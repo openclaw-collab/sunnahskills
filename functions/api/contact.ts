@@ -12,12 +12,19 @@ interface Env {
   DB: D1Database;
 }
 
+// Cloudflare D1 Database type
+declare global {
+  interface D1Database {
+    prepare: (query: string) => any;
+  }
+}
+
 // Email notification function using Cloudflare Email
 async function sendEmailNotification(contact: ContactForm, env: Env) {
   try {
     const emailData = {
-      to: "mysunnahskill@gmail.com",
-      from: "noreply@sunnahskills.pages.dev",
+      to: "mysunnahskill@gmail.com", // Your email address
+      from: "noreply@sunnahskills.pages.dev", // Your domain email
       subject: `New Contact Form Submission: ${contact.subject}`,
       text: `
 New contact form submission received:

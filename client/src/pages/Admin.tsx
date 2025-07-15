@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 
 interface Contact {
@@ -12,10 +14,21 @@ interface Contact {
   timestamp: string;
 }
 
+interface Registration {
+  id: number;
+  program_id: string;
+  program_name: string;
+  form_data: string;
+  status: string;
+  created_at: string;
+  updated_at: string;
+}
+
 const Admin = () => {
   const [password, setPassword] = useState("");
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [contacts, setContacts] = useState<Contact[]>([]);
+  const [registrations, setRegistrations] = useState<Registration[]>([]);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
@@ -28,10 +41,11 @@ const Admin = () => {
       if (response.ok || (response.status === 500 && data.contacts !== undefined)) {
         // Login successful - even if database has error, we can still access
         setContacts(data.contacts || []);
+        setRegistrations(data.registrations || []);
         setIsAuthenticated(true);
         toast({
           title: "Login successful",
-          description: `Found ${data.total} contact submissions`,
+          description: `Found ${data.totalContacts} contacts and ${data.totalRegistrations} registrations`,
         });
       } else if (response.status === 401) {
         toast({
@@ -63,9 +77,10 @@ const Admin = () => {
       if (response.ok) {
         const data = await response.json();
         setContacts(data.contacts || []);
+        setRegistrations(data.registrations || []);
         toast({
           title: "Data refreshed",
-          description: `Found ${data.total} contact submissions`,
+          description: `Found ${data.totalContacts} contacts and ${data.totalRegistrations} registrations`,
         });
       }
     } catch (error) {

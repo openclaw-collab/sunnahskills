@@ -39,9 +39,37 @@ export async function onRequestPost({ request }: { request: Request }) {
   }
 }
 
-export async function onRequestGet() {
+export async function onRequestGet({ request }: { request: Request }) {
+  const url = new URL(request.url);
+  const admin = url.searchParams.get('admin');
+  const password = url.searchParams.get('password');
+  
+  // Admin access with password protection
+  if (admin === 'true') {
+    if (password !== 'admin123') {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+    
+    return new Response(JSON.stringify({
+      contacts,
+      total: contacts.length,
+      timestamp: new Date().toISOString()
+    }), {
+      headers: { 'Content-Type': 'application/json' }
+    });
+  }
+  
+  // Regular GET - return empty array (for public access)
   return new Response(
     JSON.stringify(contacts),
-    { status: 200, headers: { "Content-Type": "application/json" } }
+    {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/json',
+      }
+    }
   );
 } 

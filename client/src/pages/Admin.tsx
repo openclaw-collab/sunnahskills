@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 
 interface Contact {
@@ -10,6 +12,16 @@ interface Contact {
   subject: string;
   message: string;
   timestamp: string;
+}
+
+interface Registration {
+  id: number;
+  program_id: string;
+  program_name: string;
+  form_data: string;
+  status: string;
+  created_at: string;
+  updated_at: string;
 }
 
 const Admin = () => {

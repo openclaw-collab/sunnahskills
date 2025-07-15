@@ -16,6 +16,16 @@ export async function onRequestGet({ request, env }: { request: Request; env: En
   const url = new URL(request.url);
   const password = url.searchParams.get('password');
   
+  // Test response to see if function is deployed
+  if (password === 'test') {
+    return new Response(JSON.stringify({ 
+      message: "Function is deployed and working!",
+      timestamp: new Date().toISOString()
+    }), {
+      headers: { 'Content-Type': 'application/json' }
+    });
+  }
+  
   // Simple password protection (replace with your desired password)
   if (password !== 'admin123') {
     return new Response(JSON.stringify({ error: 'Unauthorized' }), {

@@ -14,7 +14,11 @@ declare global {
 
 export async function onRequestGet({ env }) {
   const { results } = await env.DB.prepare("SELECT * FROM contacts").all();
-  return new Response(JSON.stringify(results), {
+  return new Response(JSON.stringify({
+    contacts: results || [],
+    total: results ? results.length : 0,
+    message: `Found ${results ? results.length : 0} contact submissions`
+  }), {
     headers: { 'Content-Type': 'application/json' },
   });
 } 

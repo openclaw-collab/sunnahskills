@@ -4,5 +4,5 @@ pages_build_output_dir = "dist"
 
 [[d1_databases]]
 binding = "DB"
-database_name = "sunnah-skills-admin"
+database_name = "sunnahskills-admin"
 database_id = "f337006b-a41a-42de-80ae-d9f9b98ec0e3" 

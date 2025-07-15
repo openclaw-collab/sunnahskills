@@ -1,4 +1,5 @@
 // /functions/api/admin.ts
+// Updated to handle database errors gracefully
 
 interface Env {
   DB: D1Database;

@@ -5,10 +5,11 @@ interface ContactForm {
   email: string;
   subject: string;
   message: string;
+  timestamp: string;
 }
 
-// In-memory storage (replace with D1 or KV for production)
-const contacts: ContactForm[] = [];
+// Global variable to store contacts (this will persist within the same Worker instance)
+let contacts: ContactForm[] = [];
 
 export async function onRequestPost({ request }: { request: Request }) {
   try {
@@ -25,8 +26,13 @@ export async function onRequestPost({ request }: { request: Request }) {
       email: data.email,
       subject: data.subject,
       message: data.message,
+      timestamp: new Date().toISOString()
     };
     contacts.push(contact);
+    
+    console.log('Contact submitted:', contact);
+    console.log('Total contacts:', contacts.length);
+    
     return new Response(
       JSON.stringify({ message: "Message sent successfully! We'll respond within 24 hours.", contact }),
       { status: 201, headers: { "Content-Type": "application/json" } }
@@ -43,6 +49,8 @@ export async function onRequestGet({ request }: { request: Request }) {
   const url = new URL(request.url);
   const admin = url.searchParams.get('admin');
   const password = url.searchParams.get('password');
+  
+  console.log('GET request - admin:', admin, 'contacts count:', contacts.length);
   
   // Admin access with password protection
   if (admin === 'true') {
@@ -62,9 +70,13 @@ export async function onRequestGet({ request }: { request: Request }) {
     });
   }
   
-  // Regular GET - return empty array (for public access)
+  // Regular GET - return all contacts (for debugging)
   return new Response(
-    JSON.stringify(contacts),
+    JSON.stringify({
+      contacts,
+      total: contacts.length,
+      note: "This is the public endpoint showing all contacts"
+    }),
     {
       status: 200,
       headers: {

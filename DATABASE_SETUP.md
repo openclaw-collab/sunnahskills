@@ -8,7 +8,7 @@
 3. Click **"D1"** in the left sidebar
 4. Click **"Create database"**
 5. Enter:
-   - **Database name**: `sunnahskills-db`
+   - **Database name**: `sunnah-skills-admin`
    - **Location**: Choose closest to your users
 6. Click **"Create"**
 
@@ -26,7 +26,7 @@ npm install -g wrangler
 wrangler login
 
 # Apply the database schema
-wrangler d1 execute sunnahskills-db --file=./db/schema.sql
+wrangler d1 execute sunnah-skills-admin --file=./db/schema.sql
 ```
 
 ## **Step 2: Configure Email Notifications**

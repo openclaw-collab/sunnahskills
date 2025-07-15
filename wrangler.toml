@@ -13,5 +13,5 @@ directory = "functions"
 # D1 Database configuration
 [[d1_databases]]
 binding = "DB"
-database_name = "sunnahskills-db"
-database_id = "your-database-id-here" # You'll get this from Cloudflare dashboard 
+database_name = "sunnah-skills-admin"
+database_id = "f337006b-a41a-42de-80ae-d9f9b98ec0e3" 

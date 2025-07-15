@@ -43,7 +43,7 @@ const Home = () => {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-              <Card className="bg-accent/50 hover:bg-accent/70 transition-colors duration-200 shadow-md">
+              <Card className="bg-accent/50 transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105">
                 <CardContent className="p-6 text-center">
                   <Users className="text-primary mx-auto mb-4" size={32} />
                   <h3 className="font-poppins font-semibold text-lg text-gray-800 mb-2">
@@ -55,7 +55,7 @@ const Home = () => {
                 </CardContent>
               </Card>
               
-              <Card className="bg-accent/50 hover:bg-accent/70 transition-colors duration-200 shadow-md">
+              <Card className="bg-accent/50 transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105">
                 <CardContent className="p-6 text-center">
                   <Target className="text-primary mx-auto mb-4" size={32} />
                   <h3 className="font-poppins font-semibold text-lg text-gray-800 mb-2">
@@ -67,7 +67,7 @@ const Home = () => {
                 </CardContent>
               </Card>
               
-              <Card className="bg-accent/50 hover:bg-accent/70 transition-colors duration-200 shadow-md">
+              <Card className="bg-accent/50 transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105">
                 <CardContent className="p-6 text-center">
                   <TreePine className="text-primary mx-auto mb-4" size={32} />
                   <h3 className="font-poppins font-semibold text-lg text-gray-800 mb-2">
@@ -79,7 +79,7 @@ const Home = () => {
                 </CardContent>
               </Card>
               
-              <Card className="bg-accent/50 hover:bg-accent/70 transition-colors duration-200 shadow-md">
+              <Card className="bg-accent/50 transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105">
                 <CardContent className="p-6 text-center">
                   <Shield className="text-primary mx-auto mb-4" size={32} />
                   <h3 className="font-poppins font-semibold text-lg text-gray-800 mb-2">
@@ -95,7 +95,7 @@ const Home = () => {
             <Link href="/programs">
               <Button 
                 size="lg" 
-                className="bg-primary hover:bg-earthGreen text-white font-semibold transition-all duration-200 transform hover:scale-105"
+                className="bg-primary text-white font-semibold transition-all duration-200 transform hover:scale-105"
               >
                 Explore Our Programs
               </Button>

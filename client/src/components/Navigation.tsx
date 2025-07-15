@@ -90,6 +90,18 @@ const Navigation = () => {
                 {programsDropdownOpen && (
                   <div className="absolute top-full left-0 mt-1 w-48 bg-white rounded-md shadow-lg border z-50">
                     <div className="py-1">
+                      <Link
+                        href="/programs"
+                        className={cn(
+                          "block px-4 py-2 text-sm transition-colors duration-200 border-b border-gray-100",
+                          location === "/programs"
+                            ? "text-primary font-semibold bg-primary/5"
+                            : "text-gray-800 hover:text-primary hover:bg-primary/5"
+                        )}
+                        onClick={() => setProgramsDropdownOpen(false)}
+                      >
+                        All Programs
+                      </Link>
                       {programItems.map((item) => (
                         <Link
                           key={item.name}
@@ -181,6 +193,21 @@ const Navigation = () => {
               
               {programsDropdownOpen && (
                 <div className="pl-4 space-y-1">
+                  <Link
+                    href="/programs"
+                    className={cn(
+                      "block px-3 py-2 rounded-md text-sm transition-colors duration-200 border-b border-gray-100",
+                      location === "/programs"
+                        ? "text-primary font-semibold"
+                        : "text-gray-600 hover:text-primary"
+                    )}
+                    onClick={() => {
+                      setIsOpen(false);
+                      setProgramsDropdownOpen(false);
+                    }}
+                  >
+                    All Programs
+                  </Link>
                   {programItems.map((item) => (
                     <Link
                       key={item.name}

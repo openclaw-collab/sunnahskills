@@ -74,7 +74,7 @@ const Programs = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
           {programs.map((program) => (
             <Link href={`/programs/${program.id}`} key={program.id}>
-              <Card className="bg-lightBeige shadow-lg transition-transform duration-200 transform hover:scale-105 hover:shadow-2xl hover:bg-red-500 overflow-hidden cursor-pointer">
+              <Card className="bg-lightBeige shadow-lg transition-transform duration-200 transform hover:scale-105 hover:shadow-2xl overflow-hidden cursor-pointer">
                 <img 
                   src={program.image} 
                   alt={program.title}

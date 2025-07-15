@@ -264,7 +264,7 @@ const Registration = () => {
                     type="submit" 
                     size="lg"
                     disabled={isSubmitting}
-                    className="bg-primary hover:bg-earthGreen text-white font-semibold transition-all duration-200 transform hover:scale-105"
+                                          className="bg-primary text-white font-semibold transition-all duration-200 transform hover:scale-105"
                   >
                     {isSubmitting ? "Submitting..." : "Submit Registration"}
                   </Button>

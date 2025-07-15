@@ -1,19 +1,8 @@
 name = "sunnahskills"
 compatibility_date = "2024-01-01"
-
-[build]
-command = "npm run build"
-
 pages_build_output_dir = "dist"
 
-# Functions configuration for Cloudflare Pages
-[functions]
-directory = "functions"
-
-# D1 Database configuration
 [[d1_databases]]
 binding = "DB"
 database_name = "sunnah-skills-admin"
 database_id = "f337006b-a41a-42de-80ae-d9f9b98ec0e3" 
-
-main = "functions/api/admin.ts" 

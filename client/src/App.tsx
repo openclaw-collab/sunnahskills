@@ -28,7 +28,7 @@ function Router() {
           <Route path="/programs" component={Programs} />
           <Route path="/programs/bjj" component={BJJProgram} />
           <Route path="/programs/archery" component={ArcheryProgram} />
-          <Route path="/programs/outdoor-workshops" component={OutdoorWorkshopsProgram} />
+          <Route path="/programs/outdoor" component={OutdoorWorkshopsProgram} />
           <Route path="/programs/bullyproofing" component={BullyproofingProgram} />
           <Route path="/schedule" component={Schedule} />
 

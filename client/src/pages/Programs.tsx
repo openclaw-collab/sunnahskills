@@ -1,5 +1,6 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Users, Target, TreePine, Shield, Clock, Medal, Heart, Calendar, Eye, Compass, Ribbon, Flame } from "lucide-react";
+import { Link } from "wouter";
 
 const Programs = () => {
   const programs = [
@@ -71,32 +72,34 @@ const Programs = () => {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
           {programs.map((program) => (
-            <Card key={program.id} className="bg-lightBeige shadow-lg hover:shadow-xl transition-shadow duration-300 overflow-hidden">
-              <img 
-                src={program.image} 
-                alt={program.title}
-                className="w-full h-64 object-cover"
-              />
-              <CardContent className="p-8">
-                <div className="flex items-center mb-4">
-                  {program.icon}
-                  <h3 className="font-poppins font-bold text-2xl text-gray-800 ml-3">
-                    {program.title}
-                  </h3>
-                </div>
-                <p className="text-gray-600 mb-6">
-                  {program.description}
-                </p>
-                <div className="space-y-3">
-                  {program.features.map((feature, index) => (
-                    <div key={index} className="flex items-center text-earthGreen">
-                      {feature.icon}
-                      <span className="text-gray-700 ml-3">{feature.text}</span>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+            <Link href={`/programs/${program.id}`} key={program.id}>
+              <Card className="bg-lightBeige shadow-lg transition-transform duration-200 transform hover:scale-105 hover:shadow-2xl overflow-hidden cursor-pointer">
+                <img 
+                  src={program.image} 
+                  alt={program.title}
+                  className="w-full h-64 object-cover"
+                />
+                <CardContent className="p-8">
+                  <div className="flex items-center mb-4">
+                    {program.icon}
+                    <h3 className="font-poppins font-bold text-2xl text-gray-800 ml-3">
+                      {program.title}
+                    </h3>
+                  </div>
+                  <p className="text-gray-600 mb-6">
+                    {program.description}
+                  </p>
+                  <div className="space-y-3">
+                    {program.features.map((feature, index) => (
+                      <div key={index} className="flex items-center text-earthGreen">
+                        {feature.icon}
+                        <span className="text-gray-700 ml-3">{feature.text}</span>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
           ))}
         </div>
       </div>

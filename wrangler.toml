@@ -6,6 +6,10 @@ command = "npm run build"
 
 pages_build_output_dir = "dist"
 
+# Functions configuration for Cloudflare Pages
+[functions]
+directory = "functions"
+
 # D1 Database configuration
 [[d1_databases]]
 binding = "DB"

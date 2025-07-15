@@ -1,3 +1,4 @@
+// Trigger redeploy to ensure Tailwind hover:scale-105 and transform classes are included
 import { Card, CardContent } from "@/components/ui/card";
 import { Users, Target, TreePine, Shield, Clock, Medal, Heart, Calendar, Eye, Compass, Ribbon, Flame } from "lucide-react";
 import { Link } from "wouter";

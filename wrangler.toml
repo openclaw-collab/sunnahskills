@@ -5,13 +5,4 @@ compatibility_date = "2024-01-01"
 command = "npm run build"
 
 [pages_build_output_dir]
-value = "dist"
-
-[functions]
-directory = "functions"
-
-[env.production]
-name = "sunnahskills-prod"
-
-[env.staging]
-name = "sunnahskills-staging" 
+value = "dist" 

@@ -22,7 +22,7 @@ const Admin = () => {
   const handleLogin = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`/api/contact?admin=true&password=${password}`);
+      const response = await fetch(`/api/admin?password=${password}`);
       if (response.ok) {
         const data = await response.json();
         setContacts(data.contacts || []);
@@ -51,7 +51,7 @@ const Admin = () => {
   const refreshData = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`/api/contact?admin=true&password=${password}`);
+      const response = await fetch(`/api/admin?password=${password}`);
       if (response.ok) {
         const data = await response.json();
         setContacts(data.contacts || []);

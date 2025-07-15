@@ -1,10 +1,12 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { exportToCSV, formatDate } from "@/lib/exportUtils";
 
 interface Contact {
   name: string;
@@ -30,6 +32,9 @@ const Admin = () => {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [registrations, setRegistrations] = useState<Registration[]>([]);
   const [loading, setLoading] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [programFilter, setProgramFilter] = useState<string>("all");
   const { toast } = useToast();
 
   const handleLogin = async () => {
@@ -132,6 +137,34 @@ const Admin = () => {
     }
   };
 
+    // Filtered registrations
+  const filteredRegistrations = useMemo(() => {
+    return registrations.filter(registration => {
+      const matchesSearch = searchTerm === "" || 
+        registration.program_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        registration.form_data.toLowerCase().includes(searchTerm.toLowerCase());
+      
+      const matchesStatus = statusFilter === "all" || registration.status === statusFilter;
+      const matchesProgram = programFilter === "all" || registration.program_id === programFilter;
+      
+      return matchesSearch && matchesStatus && matchesProgram;
+    });
+  }, [registrations, searchTerm, statusFilter, programFilter]);
+
+  // Get unique programs for filter
+  const uniquePrograms = useMemo(() => {
+    const programs = registrations.map(r => ({ id: r.program_id, name: r.program_name }));
+    return Array.from(new Map(programs.map(p => [p.id, p])).values());
+  }, [registrations]);
+
+  const handleExportCSV = () => {
+    exportToCSV(filteredRegistrations, `registrations-${new Date().toISOString().split('T')[0]}.csv`);
+    toast({
+      title: "Export Successful",
+      description: `Exported ${filteredRegistrations.length} registrations to CSV`,
+    });
+  };
+
   const renderRegistrationData = (formData: string) => {
     try {
       const data = JSON.parse(formData);
@@ -175,7 +208,53 @@ const Admin = () => {
           </TabsList>
 
           <TabsContent value="registrations" className="space-y-4">
-            {registrations.length === 0 ? (
+            {/* Search and Filter Controls */}
+            <div className="flex flex-col sm:flex-row gap-4 mb-6">
+              <div className="flex-1">
+                <Input
+                  placeholder="Search registrations..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="max-w-sm"
+                />
+              </div>
+              <div className="flex gap-2">
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger className="w-32">
+                    <SelectValue placeholder="Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Status</SelectItem>
+                    <SelectItem value="pending">Pending</SelectItem>
+                    <SelectItem value="approved">Approved</SelectItem>
+                    <SelectItem value="rejected">Rejected</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Select value={programFilter} onValueChange={setProgramFilter}>
+                  <SelectTrigger className="w-40">
+                    <SelectValue placeholder="Program" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Programs</SelectItem>
+                    {uniquePrograms.map(program => (
+                      <SelectItem key={program.id} value={program.id}>
+                        {program.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button onClick={handleExportCSV} variant="outline">
+                  Export CSV
+                </Button>
+              </div>
+            </div>
+
+            {/* Results count */}
+            <div className="text-sm text-gray-600 mb-4">
+              Showing {filteredRegistrations.length} of {registrations.length} registrations
+            </div>
+
+            {filteredRegistrations.length === 0 ? (
               <Card>
                 <CardContent className="py-8 text-center">
                   <p className="text-gray-500">No program registrations found.</p>
@@ -189,7 +268,7 @@ const Admin = () => {
               </Card>
             ) : (
               <div className="grid gap-4">
-                {registrations.map((registration) => (
+                {filteredRegistrations.map((registration) => (
                   <Card key={registration.id}>
                     <CardHeader>
                       <div className="flex justify-between items-start">
@@ -201,7 +280,7 @@ const Admin = () => {
                           <p className="text-sm text-gray-600">ID: {registration.id}</p>
                         </div>
                         <span className="text-xs text-gray-500">
-                          {new Date(registration.created_at).toLocaleString()}
+                          {formatDate(registration.created_at)}
                         </span>
                       </div>
                     </CardHeader>

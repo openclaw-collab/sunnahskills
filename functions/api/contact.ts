@@ -8,14 +8,15 @@ interface ContactForm {
   timestamp: string;
 }
 
-// Global variable to store contacts (this will persist within the same Worker instance)
-let contacts: ContactForm[] = [];
+interface Env {
+  DB: D1Database;
+}
 
-// Email notification function
-async function sendEmailNotification(contact: ContactForm) {
+// Email notification function using Cloudflare Email
+async function sendEmailNotification(contact: ContactForm, env: Env) {
   try {
     const emailData = {
-      to: "mysunnahskill@gmail.com", // Your email address
+      to: "mysunnahskill@gmail.com",
       from: "noreply@sunnahskills.pages.dev",
       subject: `New Contact Form Submission: ${contact.subject}`,
       text: `
@@ -43,9 +44,41 @@ Sunnah Skills Contact Form
       `
     };
 
-    // Using Cloudflare's email service (requires email configuration)
-    // For now, we'll just log it
-    console.log('Email notification would be sent:', emailData);
+    // Using Cloudflare's Email API
+    const emailResponse = await fetch('https://api.mailchannels.net/tx/v1/send', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({
+        personalizations: [
+          {
+            to: [{ email: emailData.to, name: 'Sunnah Skills Admin' }],
+          },
+        ],
+        from: {
+          email: emailData.from,
+          name: 'Sunnah Skills Contact Form',
+        },
+        subject: emailData.subject,
+        content: [
+          {
+            type: 'text/plain',
+            value: emailData.text,
+          },
+          {
+            type: 'text/html',
+            value: emailData.html,
+          },
+        ],
+      }),
+    });
+
+    if (!emailResponse.ok) {
+      console.error('Failed to send email:', await emailResponse.text());
+    } else {
+      console.log('Email notification sent successfully');
+    }
     
     return true;
   } catch (error) {
@@ -54,7 +87,7 @@ Sunnah Skills Contact Form
   }
 }
 
-export async function onRequestPost({ request }: { request: Request }) {
+export async function onRequestPost({ request, env }: { request: Request; env: Env }) {
   try {
     const data = await request.json();
     // Basic validation
@@ -64,6 +97,7 @@ export async function onRequestPost({ request }: { request: Request }) {
         headers: { "Content-Type": "application/json" },
       });
     }
+    
     const contact: ContactForm = {
       name: data.name,
       email: data.email,
@@ -71,19 +105,33 @@ export async function onRequestPost({ request }: { request: Request }) {
       message: data.message,
       timestamp: new Date().toISOString()
     };
-    contacts.push(contact);
+    
+    // Store in D1 database
+    const result = await env.DB.prepare(`
+      INSERT INTO contacts (name, email, subject, message, timestamp)
+      VALUES (?, ?, ?, ?, ?)
+    `).bind(contact.name, contact.email, contact.subject, contact.message, contact.timestamp)
+    .run();
+    
+    if (!result.success) {
+      throw new Error('Failed to store contact in database');
+    }
     
     // Send email notification
-    await sendEmailNotification(contact);
+    await sendEmailNotification(contact, env);
     
-    console.log('Contact submitted:', contact);
-    console.log('Total contacts:', contacts.length);
+    console.log('Contact submitted and stored:', contact);
     
     return new Response(
-      JSON.stringify({ message: "Message sent successfully! We'll respond within 24 hours.", contact }),
+      JSON.stringify({ 
+        message: "Message sent successfully! We'll respond within 24 hours.", 
+        contact,
+        id: result.meta.last_row_id 
+      }),
       { status: 201, headers: { "Content-Type": "application/json" } }
     );
   } catch (error) {
+    console.error('Error processing contact submission:', error);
     return new Response(
       JSON.stringify({ message: "Internal server error" }),
       { status: 500, headers: { "Content-Type": "application/json" } }
@@ -91,43 +139,50 @@ export async function onRequestPost({ request }: { request: Request }) {
   }
 }
 
-export async function onRequestGet({ request }: { request: Request }) {
+export async function onRequestGet({ request, env }: { request: Request; env: Env }) {
   const url = new URL(request.url);
   const admin = url.searchParams.get('admin');
   const password = url.searchParams.get('password');
   
-  console.log('GET request - admin:', admin, 'contacts count:', contacts.length);
-  
-  // Admin access with password protection
-  if (admin === 'true') {
-    if (password !== 'admin123') {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
+  try {
+    // Admin access with password protection
+    if (admin === 'true') {
+      if (password !== 'admin123') {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+          status: 401,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+      
+      // Get all contacts from database
+      const { results } = await env.DB.prepare(`
+        SELECT * FROM contacts ORDER BY timestamp DESC
+      `).all();
+      
+      return new Response(JSON.stringify({
+        contacts: results,
+        total: results.length,
+        timestamp: new Date().toISOString()
+      }), {
         headers: { 'Content-Type': 'application/json' }
       });
     }
     
-    return new Response(JSON.stringify({
-      contacts,
-      total: contacts.length,
-      timestamp: new Date().toISOString()
-    }), {
-      headers: { 'Content-Type': 'application/json' }
-    });
-  }
-  
-  // Regular GET - return all contacts (for debugging)
-  return new Response(
-    JSON.stringify({
-      contacts,
-      total: contacts.length,
-      note: "This is the public endpoint showing all contacts"
-    }),
-    {
-      status: 200,
-      headers: {
-        'Content-Type': 'application/json',
+    // Regular GET - return empty array for public access
+    return new Response(
+      JSON.stringify([]),
+      {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/json',
+        }
       }
-    }
-  );
+    );
+  } catch (error) {
+    console.error('Error fetching contacts:', error);
+    return new Response(
+      JSON.stringify({ error: 'Database error' }),
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
+    );
+  }
 } 

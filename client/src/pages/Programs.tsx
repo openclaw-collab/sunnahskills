@@ -1,7 +1,24 @@
+import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Users, Target, TreePine, Shield, Clock, Medal, Heart, Calendar, Eye, Compass, Ribbon, Flame } from "lucide-react";
+import { RegistrationModal } from "@/components/RegistrationModal";
+import { getProgramSchema } from "@/lib/programSchemas";
 
 const Programs = () => {
+  const [selectedProgram, setSelectedProgram] = useState<string | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const handleRegister = (programId: string) => {
+    setSelectedProgram(programId);
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setSelectedProgram(null);
+  };
+
   const programs = [
     {
       id: "bjj",
@@ -95,11 +112,29 @@ const Programs = () => {
                     </div>
                   ))}
                 </div>
+                
+                <div className="mt-6 pt-6 border-t border-gray-200">
+                  <Button 
+                    onClick={() => handleRegister(program.id)}
+                    className="w-full bg-primary hover:bg-primary/90 text-white font-semibold py-3"
+                  >
+                    Register for {program.title}
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           ))}
         </div>
       </div>
+
+      {/* Registration Modal */}
+      {selectedProgram && (
+        <RegistrationModal
+          isOpen={isModalOpen}
+          onClose={handleCloseModal}
+          program={getProgramSchema(selectedProgram)!}
+        />
+      )}
     </div>
   );
 };

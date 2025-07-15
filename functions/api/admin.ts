@@ -24,27 +24,40 @@ export async function onRequestGet({ request, env }: { request: Request; env: En
   }
   
   try {
-    // Get all contacts from database
-    const { results } = await env.DB.prepare(`
-      SELECT * FROM contacts ORDER BY timestamp DESC
-    `).all();
-    
-    return new Response(JSON.stringify({
-      contacts: results || [],
-      total: results?.length || 0,
-      timestamp: new Date().toISOString()
-    }), {
-      headers: { 'Content-Type': 'application/json' }
-    });
+    // Check if database is available
+    if (env.DB) {
+      // Get all contacts from database
+      const { results } = await env.DB.prepare(`
+        SELECT * FROM contacts ORDER BY timestamp DESC
+      `).all();
+      
+      return new Response(JSON.stringify({
+        contacts: results || [],
+        total: results?.length || 0,
+        timestamp: new Date().toISOString()
+      }), {
+        headers: { 'Content-Type': 'application/json' }
+      });
+    } else {
+      // Database not set up yet - return empty data but allow login
+      return new Response(JSON.stringify({
+        contacts: [],
+        total: 0,
+        timestamp: new Date().toISOString(),
+        message: "Database not configured yet. Set up D1 database to store contact submissions."
+      }), {
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
   } catch (error) {
     console.error('Error fetching contacts:', error);
+    // Return empty data but allow login even if database has issues
     return new Response(JSON.stringify({ 
-      error: 'Database error',
       contacts: [],
       total: 0,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      message: "Database error. Set up D1 database to store contact submissions."
     }), {
-      status: 500,
       headers: { 'Content-Type': 'application/json' }
     });
   }

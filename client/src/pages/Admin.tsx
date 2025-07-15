@@ -23,18 +23,26 @@ const Admin = () => {
     setLoading(true);
     try {
       const response = await fetch(`/api/admin?password=${password}`);
-      if (response.ok) {
-        const data = await response.json();
+      const data = await response.json();
+      
+      if (response.ok || (response.status === 500 && data.contacts !== undefined)) {
+        // Login successful - even if database has error, we can still access
         setContacts(data.contacts || []);
         setIsAuthenticated(true);
         toast({
           title: "Login successful",
           description: `Found ${data.total} contact submissions`,
         });
-      } else {
+      } else if (response.status === 401) {
         toast({
           title: "Login failed",
           description: "Invalid password",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Login failed",
+          description: "Server error",
           variant: "destructive",
         });
       }
@@ -121,7 +129,10 @@ const Admin = () => {
             <CardContent className="py-8 text-center">
               <p className="text-gray-500">No contact submissions found.</p>
               <p className="text-sm text-gray-400 mt-2">
-                Note: Data is stored in memory and may reset when the server restarts.
+                To store contact submissions permanently, set up the D1 database.
+              </p>
+              <p className="text-sm text-gray-400 mt-1">
+                See DATABASE_SETUP.md for instructions.
               </p>
             </CardContent>
           </Card>

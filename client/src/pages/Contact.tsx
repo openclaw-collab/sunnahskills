@@ -28,7 +28,20 @@ const Contact = () => {
 
   const contactMutation = useMutation({
     mutationFn: async (data: InsertContact) => {
-      // Updated to work with Cloudflare Workers API
+      // Check if we're in development mode
+      if (import.meta.env.DEV) {
+        // Mock response for local development
+        console.log('Mock API call:', data);
+        return new Promise((resolve) => {
+          setTimeout(() => {
+            resolve({
+              message: "Message sent successfully! (Mock response - will work on live site)"
+            });
+          }, 1000);
+        });
+      }
+      
+      // Real API call for production
       const response = await fetch("/api/contact", {
         method: "POST",
         headers: {

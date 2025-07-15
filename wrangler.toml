@@ -4,9 +4,11 @@ compatibility_date = "2024-01-01"
 [build]
 command = "npm run build"
 
-[site]
-bucket = "./dist"
-entry-point = "functions"
+[pages_build_output_dir]
+value = "dist"
+
+[functions]
+directory = "functions"
 
 [env.production]
 name = "sunnahskills-prod"

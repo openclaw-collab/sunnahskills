@@ -35,7 +35,7 @@ const Navigation = () => {
   const programItems = [
     { name: "Brazilian Jiu-Jitsu", path: "/programs/bjj" },
     { name: "Archery", path: "/programs/archery" },
-    { name: "Outdoor Workshops", path: "/programs/outdoor-workshops" },
+    { name: "Outdoor Workshops", path: "/programs/outdoor" },
     { name: "Bullyproofing", path: "/programs/bullyproofing" },
   ];
 

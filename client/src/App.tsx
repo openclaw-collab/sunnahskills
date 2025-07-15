@@ -16,6 +16,7 @@ import Schedule from "@/pages/Schedule";
 import Testimonials from "@/pages/Testimonials";
 import Contact from "@/pages/Contact";
 import NotFound from "@/pages/not-found";
+import Admin from "@/pages/Admin";
 
 function Router() {
   return (
@@ -33,6 +34,7 @@ function Router() {
 
           <Route path="/testimonials" component={Testimonials} />
           <Route path="/contact" component={Contact} />
+          <Route path="/admin" component={Admin} />
           <Route component={NotFound} />
         </Switch>
       </main>

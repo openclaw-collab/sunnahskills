@@ -13,7 +13,7 @@ declare global {
 }
 
 export async function onRequestGet({ env }) {
-  const { results } = await env.DB.prepare("SELECT * FROM admin").all();
+  const { results } = await env.DB.prepare("SELECT * FROM contacts").all();
   return new Response(JSON.stringify(results), {
     headers: { 'Content-Type': 'application/json' },
   });

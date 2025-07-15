@@ -57,13 +57,20 @@ export async function onRequestGet({ request, env }: { request: Request; env: En
     // Check if database is available
     if (env.DB) {
       // Get all contacts from database
-      const { results } = await env.DB.prepare(`
+      const contactsResult = await env.DB.prepare(`
         SELECT * FROM contacts ORDER BY timestamp DESC
       `).all();
       
+      // Get all registrations from database
+      const registrationsResult = await env.DB.prepare(`
+        SELECT * FROM registrations ORDER BY created_at DESC
+      `).all();
+      
       return new Response(JSON.stringify({
-        contacts: results || [],
-        total: results?.length || 0,
+        contacts: contactsResult?.results || [],
+        registrations: registrationsResult?.results || [],
+        totalContacts: contactsResult?.results?.length || 0,
+        totalRegistrations: registrationsResult?.results?.length || 0,
         timestamp: new Date().toISOString()
       }), {
         headers: { 'Content-Type': 'application/json' }
@@ -72,21 +79,25 @@ export async function onRequestGet({ request, env }: { request: Request; env: En
       // Database not set up yet - return empty data but allow login
       return new Response(JSON.stringify({
         contacts: [],
-        total: 0,
+        registrations: [],
+        totalContacts: 0,
+        totalRegistrations: 0,
         timestamp: new Date().toISOString(),
-        message: "Database not configured yet. Set up D1 database to store contact submissions."
+        message: "Database not configured yet. Set up D1 database to store submissions."
       }), {
         headers: { 'Content-Type': 'application/json' }
       });
     }
   } catch (error) {
-    console.error('Error fetching contacts:', error);
+    console.error('Error fetching data:', error);
     // Return empty data but allow login even if database has issues
     return new Response(JSON.stringify({ 
       contacts: [],
-      total: 0,
+      registrations: [],
+      totalContacts: 0,
+      totalRegistrations: 0,
       timestamp: new Date().toISOString(),
-      message: "Database error. Set up D1 database to store contact submissions."
+      message: "Database error. Set up D1 database to store submissions."
     }), {
       headers: { 'Content-Type': 'application/json' }
     });

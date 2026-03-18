@@ -1,0 +1,11 @@
+---
+description: Docs/copy/deliverables routing (writer, style editors, pdf)
+globs: "**/*.{md,mdx}"
+alwaysApply: false
+---
+
+# Docs, copy, and deliverables
+
+- For README, architecture notes, deployment docs, API docs: use writer (and document-specialist when external references are needed).
+- For editorial consistency and polish: use Every style editor skills when appropriate.
+- If the deliverable is a PDF (generate/extract/verify layout): use pdf skill.

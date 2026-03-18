@@ -1,0 +1,12 @@
+---
+description: Essential review + verification gates before any commit request
+alwaysApply: true
+---
+
+# Pre-commit gates (when the user asks to commit)
+
+- Do not create commits unless explicitly requested.
+- Before committing: run verification-before-completion (tests/build/lints as appropriate) and fix failures.
+- If changes are substantial: invoke code-reviewer (or requesting-code-review) before the commit.
+- Security-sensitive changes (auth, payments, cookies, webhooks, admin): invoke security-reviewer before committing.
+- UI-affecting changes: ensure accessibility checks (fixing-accessibility / wcag-audit-patterns) and basic UX guideline pass (web-design-guidelines) before committing.

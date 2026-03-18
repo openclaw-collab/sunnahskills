@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useStudio } from "./useStudio";
 import { cn } from "@/lib/utils";
 
@@ -11,18 +11,14 @@ type Props = {
 };
 
 export function StudioText({ k, defaultText, as = "span", className, multiline }: Props) {
-  const { state, setEdit } = useStudio();
-  const value = state.edits[k] ?? defaultText;
-  const Tag: any = as;
-
+  const { state, edits, setEdit } = useStudio();
+  const value = edits[k] ?? defaultText;
+  const Tag = as as any;
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value);
   const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement | null>(null);
 
-  useEffect(() => {
-    setDraft(value);
-  }, [value]);
-
+  useEffect(() => { setDraft(value); }, [value]);
   useEffect(() => {
     if (!editing) return;
     const id = window.setTimeout(() => inputRef.current?.focus(), 0);
@@ -32,7 +28,7 @@ export function StudioText({ k, defaultText, as = "span", className, multiline }
   const canEdit = state.enabled;
 
   const onCommit = () => {
-    setEdit(k, draft);
+    setEdit(k, draft, { oldValue: defaultText });
     setEditing(false);
   };
 
@@ -41,21 +37,15 @@ export function StudioText({ k, defaultText, as = "span", className, multiline }
     setEditing(false);
   };
 
-  const helper = useMemo(() => {
-    if (!canEdit) return null;
-    return (
-      <span className="ml-2 align-middle inline-flex items-center rounded-full border border-charcoal/10 bg-cream/70 px-2 py-1 text-[10px] font-mono-label uppercase tracking-[0.18em] text-charcoal/50">
-        edit
-      </span>
-    );
-  }, [canEdit]);
-
   if (!canEdit) {
     return <Tag className={className}>{value}</Tag>;
   }
 
   return (
-    <Tag className={cn("relative", className)}>
+    <Tag
+      className={cn("relative", className)}
+      data-studio-field={k.split(".").pop()}
+    >
       {editing ? (
         <span className="block">
           {multiline ? (
@@ -65,6 +55,7 @@ export function StudioText({ k, defaultText, as = "span", className, multiline }
               onChange={(e) => setDraft(e.target.value)}
               rows={Math.min(6, Math.max(3, draft.split("\n").length))}
               className="w-full rounded-2xl border border-charcoal/15 bg-white px-3 py-2 text-sm text-charcoal shadow-sm outline-none focus:ring-2 focus:ring-moss/30"
+              data-studio-ui="1"
             />
           ) : (
             <input
@@ -72,9 +63,10 @@ export function StudioText({ k, defaultText, as = "span", className, multiline }
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
               className="w-full rounded-2xl border border-charcoal/15 bg-white px-3 py-2 text-sm text-charcoal shadow-sm outline-none focus:ring-2 focus:ring-moss/30"
+              data-studio-ui="1"
             />
           )}
-          <span className="mt-2 flex gap-2">
+          <span className="mt-2 flex gap-2" data-studio-ui="1">
             <button
               type="button"
               onClick={onCommit}
@@ -95,14 +87,15 @@ export function StudioText({ k, defaultText, as = "span", className, multiline }
         <button
           type="button"
           onClick={() => setEditing(true)}
-          className="text-left hover:underline decoration-charcoal/20 underline-offset-4"
+          className="text-left hover:underline decoration-charcoal/20 underline-offset-4 group"
           aria-label="Edit text"
         >
           {value}
-          {helper}
+          <span className="ml-1.5 opacity-0 group-hover:opacity-100 transition-opacity inline-flex items-center rounded border border-charcoal/20 bg-cream/70 px-1.5 py-0.5 text-[9px] font-mono-label uppercase tracking-widest text-charcoal/50">
+            edit
+          </span>
         </button>
       )}
     </Tag>
   );
 }
-

@@ -1,47 +1,206 @@
-import React, { createContext, useCallback, useEffect, useMemo, useState } from "react";
-import type { StudioBlockMeta, StudioState, StudioThemePresetId } from "./studioTypes";
-import { applyThemePreset, loadStudioState, saveStudioState } from "./studioStore";
+import React, {
+  createContext,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import type {
+  StudioBlockMeta,
+  StudioCommentEntry,
+  StudioCustomTheme,
+  StudioEditEntry,
+  StudioExport,
+  StudioSession,
+  StudioState,
+  StudioThemePresetId,
+} from "./studioTypes";
+import {
+  applyCustomTheme,
+  applyThemePreset,
+  DEFAULT_CUSTOM_THEME,
+  genId,
+  getPresetBase,
+  isSessionToken,
+  loadStudioState,
+  saveStudioState,
+  STUDIO_THEME_PRESETS,
+} from "./studioStore";
 import { applyAutoEdits, tagStudioTextNodes } from "./autoTextStudio";
 
-type StudioContextValue = {
+// ── API helpers ──────────────────────────────────────────────────────────────
+
+async function apiFetch(path: string, init?: RequestInit) {
+  return fetch(path, { credentials: "include", ...init });
+}
+
+async function fetchSession(id: string): Promise<StudioSession | { protected: true; id: string } | null> {
+  try {
+    const res = await apiFetch(`/api/studio/sessions/${id}`);
+    if (res.status === 401) return { protected: true, id };
+    if (!res.ok) return null;
+    return res.json();
+  } catch {
+    return null;
+  }
+}
+
+async function patchSession(id: string, data: Partial<StudioSession>) {
+  return apiFetch(`/api/studio/sessions/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+}
+
+async function createSession(opts: { name?: string; password?: string }): Promise<{ id: string; shareUrl: string } | null> {
+  try {
+    const res = await apiFetch("/api/studio/sessions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(opts),
+    });
+    if (!res.ok) return null;
+    return res.json();
+  } catch {
+    return null;
+  }
+}
+
+// ── Context ───────────────────────────────────────────────────────────────────
+
+export type StudioContextValue = {
   state: StudioState;
+  /** Flattened edits map (key → newValue) for StudioText backward compat */
+  edits: Record<string, string>;
   setEnabled: (enabled: boolean) => void;
   setThemePreset: (presetId: StudioThemePresetId) => void;
-  setEdit: (key: string, value: string) => void;
+  setCustomTheme: (patch: Partial<StudioCustomTheme>) => void;
+  setEdit: (key: string, newValue: string, opts?: { oldValue?: string; type?: "text" | "image" }) => void;
   clearEdit: (key: string) => void;
-  addComment: (blockId: string, message: string, author?: string) => void;
-  listComments: (blockId: string) => StudioState["comments"][string];
+  addComment: (params: { componentId?: string; message: string; author?: string }) => void;
   registerBlock: (meta: StudioBlockMeta) => void;
   blocks: StudioBlockMeta[];
+  pinnedComponentId: string | null;
+  setPinnedComponentId: (id: string | null) => void;
+  hoveredComponentId: string | null;
+  setHoveredComponentId: (id: string | null) => void;
   exportJson: () => string;
-  importJson: (json: string) => { ok: true } | { ok: false; error: string };
+  authenticate: (password: string) => Promise<boolean>;
+  createSharedSession: (opts: { name?: string; password?: string }) => Promise<string | null>;
   reset: () => void;
 };
 
 export const StudioContext = createContext<StudioContextValue | null>(null);
 
-function hasStudioQueryParam() {
+// ── URL helpers ───────────────────────────────────────────────────────────────
+
+function getStudioParam(): string | null {
   try {
-    const params = new URLSearchParams(window.location.search);
-    return params.has("studio") || params.has("feedback");
+    return new URLSearchParams(window.location.search).get("studio");
   } catch {
-    return false;
+    return null;
   }
 }
 
+function currentRoute(): string {
+  try {
+    return window.location.pathname;
+  } catch {
+    return "/";
+  }
+}
+
+// ── Provider ──────────────────────────────────────────────────────────────────
+
 export function StudioProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<StudioState>(() => {
-    if (typeof window === "undefined") return loadStudioState();
-    const loaded = loadStudioState();
-    return { ...loaded, enabled: loaded.enabled || hasStudioQueryParam() };
+    const local = loadStudioState();
+    const token = getStudioParam();
+    if (!token) return local;
+    const isSession = isSessionToken(token);
+    return {
+      ...local,
+      enabled: true,
+      mode: isSession ? "session" : "local",
+      sessionId: isSession ? token : null,
+      authed: !isSession, // local mode is always authed
+    };
   });
 
   const [blocks, setBlocks] = useState<StudioBlockMeta[]>([]);
+  const [pinnedComponentId, setPinnedComponentId] = useState<string | null>(null);
+  const [hoveredComponentId, setHoveredComponentId] = useState<string | null>(null);
+
+  const syncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const localStateRef = useRef(state);
+  localStateRef.current = state;
+
+  // ── Session boot ────────────────────────────────────────────────────────────
+
+  useEffect(() => {
+    if (state.mode !== "session" || !state.sessionId) return;
+
+    fetchSession(state.sessionId).then((res) => {
+      if (!res) {
+        setState((s) => ({ ...s, error: "Session not found." }));
+        return;
+      }
+      if ("protected" in res && res.protected) {
+        setState((s) => ({ ...s, authed: false }));
+        return;
+      }
+      const session = res as StudioSession;
+      setState((s) => ({
+        ...s,
+        session,
+        authed: true,
+        themePresetId: session.themePresetId ?? "brand",
+        customTheme: session.customTheme ?? { ...DEFAULT_CUSTOM_THEME },
+        // Flatten session edits into localEdits for StudioText compat
+        localEdits: flattenEdits(session.edits),
+      }));
+    });
+  }, [state.mode, state.sessionId]);
+
+  // ── Polling (10s) ───────────────────────────────────────────────────────────
+
+  useEffect(() => {
+    if (state.mode !== "session" || !state.sessionId || !state.authed) return;
+
+    pollIntervalRef.current = setInterval(async () => {
+      const id = localStateRef.current.sessionId;
+      if (!id) return;
+      const res = await fetchSession(id);
+      if (!res || "protected" in res) return;
+      const session = res as StudioSession;
+      setState((s) => ({
+        ...s,
+        session,
+        // Merge server edits into localEdits, keeping optimistic local additions
+        localEdits: mergeEdits(s.localEdits, flattenEdits(session.edits)),
+      }));
+    }, 10_000);
+
+    return () => {
+      if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+    };
+  }, [state.mode, state.sessionId, state.authed]);
+
+  // ── Theme application ───────────────────────────────────────────────────────
 
   useEffect(() => {
     if (!state.enabled) return;
-    applyThemePreset(state.themePresetId);
-  }, [state.enabled, state.themePresetId]);
+    if (state.themePresetId === "custom") {
+      applyCustomTheme(state.customTheme);
+    } else {
+      applyThemePreset(state.themePresetId);
+    }
+  }, [state.enabled, state.themePresetId, state.customTheme]);
+
+  // ── Auto-tag + apply text edits ─────────────────────────────────────────────
 
   useEffect(() => {
     if (!state.enabled) return;
@@ -50,84 +209,162 @@ export function StudioProvider({ children }: { children: React.ReactNode }) {
       tagStudioTextNodes({ excludeSelector: "[data-studio-ui='1']" });
       applyAutoEdits(state, { excludeSelector: "[data-studio-ui='1']" });
     };
-
     const schedule = () => {
       if (raf) cancelAnimationFrame(raf);
       raf = requestAnimationFrame(run);
     };
-
     schedule();
-    const obs = new MutationObserver(() => schedule());
+    const obs = new MutationObserver(schedule);
     obs.observe(document.body, { subtree: true, childList: true, characterData: true });
-
-    const onPop = () => schedule();
-    window.addEventListener("popstate", onPop);
-
+    window.addEventListener("popstate", schedule);
     return () => {
       if (raf) cancelAnimationFrame(raf);
       obs.disconnect();
-      window.removeEventListener("popstate", onPop);
+      window.removeEventListener("popstate", schedule);
     };
   }, [state]);
+
+  // ── Persist local state ─────────────────────────────────────────────────────
 
   useEffect(() => {
     saveStudioState(state);
   }, [state]);
 
+  // ── Debounced backend sync ──────────────────────────────────────────────────
+
+  const scheduleSync = useCallback(() => {
+    const s = localStateRef.current;
+    if (s.mode !== "session" || !s.sessionId || !s.authed) return;
+    if (syncTimerRef.current) clearTimeout(syncTimerRef.current);
+    syncTimerRef.current = setTimeout(async () => {
+      const curr = localStateRef.current;
+      if (!curr.sessionId || !curr.session) return;
+      setState((st) => ({ ...st, syncing: true }));
+      try {
+        await patchSession(curr.sessionId, {
+          themePresetId: curr.themePresetId,
+          customTheme: curr.customTheme,
+          edits: curr.session.edits,
+          comments: curr.session.comments,
+          uploads: curr.session.uploads,
+        });
+      } catch {
+        /* ignore transient errors */
+      } finally {
+        setState((st) => ({ ...st, syncing: false }));
+      }
+    }, 1500);
+  }, []);
+
+  // ── Global edit setter (for StudioText + autoText) ──────────────────────────
+
+  const setEdit = useCallback(
+    (key: string, newValue: string, opts?: { oldValue?: string; type?: "text" | "image" }) => {
+      setState((s) => {
+        const route = currentRoute();
+        const editEntry: StudioEditEntry = {
+          id: genId(),
+          route,
+          target: keyToTarget(key),
+          type: opts?.type ?? "text",
+          oldValue: opts?.oldValue ?? s.localEdits[key] ?? "",
+          newValue,
+          createdAt: new Date().toISOString(),
+        };
+
+        const newLocalEdits = { ...s.localEdits, [key]: newValue };
+
+        if (s.mode !== "session" || !s.session) {
+          return { ...s, localEdits: newLocalEdits };
+        }
+
+        // Replace any existing edit for the same key in session.edits
+        const prevEdits = s.session.edits.filter((e) => editEntryKey(e) !== key);
+        const session: StudioSession = {
+          ...s.session,
+          edits: [...prevEdits, editEntry],
+        };
+        return { ...s, localEdits: newLocalEdits, session };
+      });
+      scheduleSync();
+    },
+    [scheduleSync],
+  );
+
+  // Expose globally for autoText panel callback
+  useEffect(() => {
+    (window as any).__studioSetEdit = (key: string, value: string) => setEdit(key, value);
+    return () => void delete (window as any).__studioSetEdit;
+  }, [setEdit]);
+
+  const clearEdit = useCallback(
+    (key: string) => {
+      setState((s) => {
+        const newLocalEdits = { ...s.localEdits };
+        delete newLocalEdits[key];
+        if (s.mode !== "session" || !s.session) return { ...s, localEdits: newLocalEdits };
+        const session: StudioSession = {
+          ...s.session,
+          edits: s.session.edits.filter((e) => editEntryKey(e) !== key),
+        };
+        return { ...s, localEdits: newLocalEdits, session };
+      });
+      scheduleSync();
+    },
+    [scheduleSync],
+  );
+
   const setEnabled = useCallback((enabled: boolean) => {
     setState((s) => ({ ...s, enabled }));
   }, []);
 
-  const setThemePreset = useCallback((themePresetId: StudioThemePresetId) => {
-    setState((s) => ({ ...s, themePresetId }));
-  }, []);
+  const setThemePreset = useCallback(
+    (presetId: StudioThemePresetId) => {
+      setState((s) => {
+        const base = getPresetBase(presetId);
+        return { ...s, themePresetId: presetId, customTheme: presetId !== "custom" ? base : s.customTheme };
+      });
+      scheduleSync();
+    },
+    [scheduleSync],
+  );
 
-  const setEdit = useCallback((key: string, value: string) => {
-    setState((s) => ({ ...s, edits: { ...s.edits, [key]: value } }));
-  }, []);
+  const setCustomTheme = useCallback(
+    (patch: Partial<StudioCustomTheme>) => {
+      setState((s) => ({
+        ...s,
+        themePresetId: "custom",
+        customTheme: { ...s.customTheme, ...patch },
+      }));
+      scheduleSync();
+    },
+    [scheduleSync],
+  );
 
-  useEffect(() => {
-    // Convenience hook for the Studio panel to save auto-selected text edits
-    // without threading the setter through event handlers.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (window as any).__studioSetEdit = (key: string, value: string) => setEdit(key, value);
-    return () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      delete (window as any).__studioSetEdit;
-    };
-  }, [setEdit]);
-
-  const clearEdit = useCallback((key: string) => {
-    setState((s) => {
-      const next = { ...s.edits };
-      delete next[key];
-      return { ...s, edits: next };
-    });
-  }, []);
-
-  const addComment = useCallback((blockId: string, message: string, author?: string) => {
-    const trimmed = message.trim();
-    if (!trimmed) return;
-    setState((s) => {
-      const existing = s.comments[blockId] ?? [];
-      const entry = {
-        id: `${Date.now()}_${Math.random().toString(16).slice(2)}`,
-        author: author?.trim() || undefined,
+  const addComment = useCallback(
+    ({ componentId, message, author }: { componentId?: string; message: string; author?: string }) => {
+      const trimmed = message.trim();
+      if (!trimmed) return;
+      const entry: StudioCommentEntry = {
+        id: genId(),
+        route: currentRoute(),
+        componentId,
         message: trimmed,
+        author: author?.trim() || undefined,
         createdAt: new Date().toISOString(),
       };
-      return {
-        ...s,
-        comments: { ...s.comments, [blockId]: [...existing, entry] },
-      };
-    });
-  }, []);
-
-  const listComments = useCallback(
-    (blockId: string) => {
-      return state.comments[blockId] ?? [];
+      setState((s) => {
+        const newLocalComments = [...s.localComments, entry];
+        if (s.mode !== "session" || !s.session) return { ...s, localComments: newLocalComments };
+        const session: StudioSession = {
+          ...s.session,
+          comments: [...s.session.comments, entry],
+        };
+        return { ...s, localComments: newLocalComments, session };
+      });
+      scheduleSync();
     },
-    [state.comments],
+    [scheduleSync],
   );
 
   const registerBlock = useCallback((meta: StudioBlockMeta) => {
@@ -137,69 +374,138 @@ export function StudioProvider({ children }: { children: React.ReactNode }) {
     });
   }, []);
 
-  const exportJson = useCallback(() => {
-    const payload = {
+  const exportJson = useCallback((): string => {
+    const s = localStateRef.current;
+    const theme =
+      s.themePresetId === "custom"
+        ? s.customTheme
+        : getPresetBase(s.themePresetId);
+
+    const allEdits: StudioEditEntry[] = s.session?.edits ?? Object.entries(s.localEdits).map(([k, v]) => ({
+      id: genId(),
+      route: currentRoute(),
+      target: keyToTarget(k),
+      type: "text" as const,
+      oldValue: "",
+      newValue: v,
+      author: undefined,
+      createdAt: new Date().toISOString(),
+    }));
+
+    const allComments = s.session?.comments ?? s.localComments;
+
+    const payload: StudioExport = {
       exportedAt: new Date().toISOString(),
-      themePresetId: state.themePresetId,
-      edits: state.edits,
-      comments: state.comments,
+      sessionId: s.sessionId ?? undefined,
+      theme,
+      changes: allEdits.map((e) => ({
+        route: e.route,
+        componentId: "componentId" in e.target ? e.target.componentId : undefined,
+        fieldKey: "fieldKey" in e.target ? e.target.fieldKey : undefined,
+        autoId: "autoId" in e.target ? e.target.autoId : undefined,
+        type: e.type,
+        oldValue: e.oldValue,
+        newValue: e.newValue,
+        author: e.author,
+        timestamp: e.createdAt,
+      })),
+      comments: allComments.map((c) => ({
+        route: c.route,
+        componentId: c.componentId,
+        message: c.message,
+        author: c.author,
+        timestamp: c.createdAt,
+      })),
     };
     return JSON.stringify(payload, null, 2);
-  }, [state.comments, state.edits, state.themePresetId]);
+  }, []);
 
-  const importJson = useCallback((json: string) => {
-    try {
-      const parsed = JSON.parse(json) as Partial<StudioState> & {
-        themePresetId?: StudioThemePresetId;
-        edits?: Record<string, string>;
-        comments?: StudioState["comments"];
-      };
-      if (!parsed || typeof parsed !== "object") return { ok: false as const, error: "Invalid JSON payload." };
+  const authenticate = useCallback(async (password: string): Promise<boolean> => {
+    const s = localStateRef.current;
+    if (!s.sessionId) return false;
+    const res = await apiFetch(`/api/studio/sessions/${s.sessionId}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ password }),
+    });
+    if (!res.ok) return false;
+    // Now fetch the full session
+    const sessionRes = await fetchSession(s.sessionId);
+    if (!sessionRes || "protected" in sessionRes) return false;
+    const session = sessionRes as StudioSession;
+    setState((st) => ({
+      ...st,
+      authed: true,
+      session,
+      localEdits: flattenEdits(session.edits),
+      themePresetId: session.themePresetId ?? "brand",
+      customTheme: session.customTheme ?? { ...DEFAULT_CUSTOM_THEME },
+    }));
+    return true;
+  }, []);
 
-      setState((s) => ({
-        ...s,
-        enabled: true,
-        themePresetId: parsed.themePresetId ?? s.themePresetId,
-        edits: parsed.edits ?? s.edits,
-        comments: parsed.comments ?? s.comments,
-      }));
-      return { ok: true as const };
-    } catch (e: any) {
-      return { ok: false as const, error: e?.message ?? "Failed to parse JSON." };
-    }
+  const createSharedSession = useCallback(async (opts: { name?: string; password?: string }) => {
+    const result = await createSession(opts);
+    return result?.shareUrl ?? null;
   }, []);
 
   const reset = useCallback(() => {
-    setState((s) => ({ enabled: s.enabled, themePresetId: "brand", edits: {}, comments: {} }));
-  }, []);
+    setState((s) => ({
+      ...s,
+      themePresetId: "brand",
+      customTheme: { ...DEFAULT_CUSTOM_THEME },
+      localEdits: {},
+      localComments: [],
+      session: s.session
+        ? { ...s.session, edits: [], comments: [], uploads: [], themePresetId: "brand", customTheme: undefined }
+        : null,
+    }));
+    scheduleSync();
+  }, [scheduleSync]);
+
+  // ── Derived flat edits for StudioText ────────────────────────────────────────
+
+  const edits = useMemo(() => state.localEdits, [state.localEdits]);
 
   const value = useMemo<StudioContextValue>(
     () => ({
       state,
+      edits,
       setEnabled,
       setThemePreset,
+      setCustomTheme,
       setEdit,
       clearEdit,
       addComment,
-      listComments,
       registerBlock,
       blocks,
+      pinnedComponentId,
+      setPinnedComponentId,
+      hoveredComponentId,
+      setHoveredComponentId,
       exportJson,
-      importJson,
+      authenticate,
+      createSharedSession,
       reset,
     }),
     [
       state,
+      edits,
       setEnabled,
       setThemePreset,
+      setCustomTheme,
       setEdit,
       clearEdit,
       addComment,
-      listComments,
       registerBlock,
       blocks,
+      pinnedComponentId,
+      setPinnedComponentId,
+      hoveredComponentId,
+      setHoveredComponentId,
       exportJson,
-      importJson,
+      authenticate,
+      createSharedSession,
       reset,
     ],
   );
@@ -207,3 +513,33 @@ export function StudioProvider({ children }: { children: React.ReactNode }) {
   return <StudioContext.Provider value={value}>{children}</StudioContext.Provider>;
 }
 
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function flattenEdits(edits: StudioEditEntry[]): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const e of edits) {
+    out[editEntryKey(e)] = e.newValue;
+  }
+  return out;
+}
+
+function mergeEdits(local: Record<string, string>, server: Record<string, string>): Record<string, string> {
+  return { ...server, ...local };
+}
+
+function keyToTarget(key: string): StudioEditEntry["target"] {
+  // Keys from StudioText look like "about.title", "home.hero" → split at last dot
+  const dotIdx = key.lastIndexOf(".");
+  if (dotIdx > 0) {
+    return { componentId: key.slice(0, dotIdx), fieldKey: key.slice(dotIdx + 1) };
+  }
+  // autoId keys look like "/route::t0"
+  return { autoId: key };
+}
+
+function editEntryKey(e: StudioEditEntry): string {
+  if ("componentId" in e.target && e.target.componentId && e.target.fieldKey) {
+    return `${e.target.componentId}.${e.target.fieldKey}`;
+  }
+  return (e.target as { autoId: string }).autoId ?? "";
+}

@@ -7,6 +7,11 @@ binding = "DB"
 database_name = "sunnahskills-admin-v2"
 database_id = "fc0a958f-4bfe-487f-845f-bce49d4715d5"
 
+# R2 bucket for Studio image uploads (enable R2 in Cloudflare Dashboard first)
+# [[r2_buckets]]
+# binding = "STUDIO_UPLOADS"
+# bucket_name = "sunnahskills-studio-uploads"
+
 [vars]
 # Non-secret vars (set here for local dev / defaults)
 SITE_URL = "http://localhost:8788"

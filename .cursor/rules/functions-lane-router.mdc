@@ -1,0 +1,12 @@
+---
+description: Backend lane routing for Cloudflare Pages Functions (API, deploy, security)
+globs: functions/**/*.ts
+alwaysApply: false
+---
+
+# Backend lane (functions)
+
+- For Cloudflare Pages/Workers/Fns patterns, auth wiring, CORS, D1/Queues/etc: use cloudflare-full-stack-integration.
+- For deploy/config/CLI work: use wrangler (and cloudflare-deploy when publishing).
+- For endpoint design changes (inputs, auth, secrets, webhooks): use security-reviewer before shipping.
+- For tricky bugs/regressions: systematic-debugging; for behavior changes: test-driven-development; before done: verification-before-completion.

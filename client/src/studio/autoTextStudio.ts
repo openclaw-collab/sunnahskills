@@ -6,13 +6,15 @@ type TagOptions = {
   routeKey?: string;
 };
 
-const EDITABLE_TAGS = new Set(["P", "SPAN", "DIV", "H1", "H2", "H3", "H4", "H5", "H6", "A", "BUTTON", "LI", "LABEL"]);
+const EDITABLE_TAGS = new Set([
+  "P", "SPAN", "DIV", "H1", "H2", "H3", "H4", "H5", "H6", "A", "BUTTON", "LI", "LABEL",
+]);
 
 function isWhitespaceOnly(text: string) {
   return text.trim().length === 0;
 }
 
-function eligibleElement(el: Element) {
+function eligibleElement(el: Element): el is HTMLElement {
   if (!(el instanceof HTMLElement)) return false;
   if (!EDITABLE_TAGS.has(el.tagName)) return false;
   if (el.closest("[data-studio-ui='1']")) return false;
@@ -21,8 +23,7 @@ function eligibleElement(el: Element) {
   if (el.getAttribute("aria-hidden") === "true") return false;
   if (el.hasAttribute("data-studio-skip")) return false;
   if (el.childElementCount > 0) return false;
-  const text = el.textContent ?? "";
-  if (isWhitespaceOnly(text)) return false;
+  if (isWhitespaceOnly(el.textContent ?? "")) return false;
   return true;
 }
 
@@ -39,10 +40,9 @@ export function tagStudioTextNodes(opts: TagOptions = {}) {
     })();
 
   const excludeSelector = opts.excludeSelector ?? "";
-
-  const all = Array.from(root.querySelectorAll<HTMLElement>("*"));
   let idx = 0;
-  for (const el of all) {
+
+  for (const el of Array.from(root.querySelectorAll<HTMLElement>("*"))) {
     if (excludeSelector && el.matches(excludeSelector)) continue;
     if (!eligibleElement(el)) continue;
     if (!el.dataset.studioAutoId) {
@@ -59,9 +59,9 @@ export function applyAutoEdits(state: StudioState, opts: TagOptions = {}) {
   for (const el of nodes) {
     const key = el.dataset.studioAutoId;
     if (!key) continue;
-    const override = state.edits[key];
+    const override = state.localEdits[key];
     if (typeof override === "string") {
-      el.textContent = override;
+      if (el.textContent !== override) el.textContent = override;
     }
   }
 }
@@ -76,4 +76,3 @@ export function getTextForAutoId(autoId: string): string | null {
   const el = document.querySelector<HTMLElement>(`[data-studio-auto-id="${CSS.escape(autoId)}"]`);
   return el?.textContent ?? null;
 }
-

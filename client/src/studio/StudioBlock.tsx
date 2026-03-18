@@ -18,6 +18,13 @@ export function StudioBlock({
     registerBlock({ id, label, page });
   }, [id, label, page, registerBlock]);
 
-  return <>{children}</>;
+  return (
+    <div
+      data-studio-component={id}
+      data-studio-label={label}
+      style={{ display: "contents" }}
+    >
+      {children}
+    </div>
+  );
 }
-

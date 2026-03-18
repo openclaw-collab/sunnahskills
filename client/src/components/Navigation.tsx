@@ -50,7 +50,7 @@ const Navigation = () => {
   );
 
   return (
-    <nav className={navClasses}>
+    <nav className={navClasses} data-studio-component="nav" data-studio-label="Navigation">
       <Link href="/">
         <button className="flex items-center gap-2 focus-visible:outline-none">
           <span className="font-mono-label text-xs uppercase tracking-[0.18em]">

@@ -190,3 +190,22 @@ CREATE TABLE IF NOT EXISTS waitlist (
   notified INTEGER DEFAULT 0,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
+-- -------------------------------------------------------
+-- Stakeholder Studio (shared review sessions)
+-- -------------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS studio_sessions (
+  id TEXT PRIMARY KEY,                   -- UUID used as URL token
+  name TEXT,
+  protected INTEGER DEFAULT 0,          -- 1 = requires password
+  password_hash TEXT,                    -- bcrypt hash, nullable
+  theme_preset_id TEXT DEFAULT 'brand',
+  custom_theme_json TEXT,                -- JSON: { background, subtheme1, highlight }
+  edits_json TEXT DEFAULT '[]',          -- JSON array of StudioEditEntry
+  comments_json TEXT DEFAULT '[]',       -- JSON array of StudioCommentEntry
+  uploads_json TEXT DEFAULT '[]',        -- JSON array of StudioUploadEntry
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_studio_sessions_created ON studio_sessions(created_at);

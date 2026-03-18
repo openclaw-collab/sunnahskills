@@ -1,0 +1,13 @@
+---
+description: UI lane routing for client work (design, accessibility, motion, perf)
+globs: client/src/**/*.ts*
+alwaysApply: false
+---
+
+# UI lane (client)
+
+- For page/component design or visual polish: use frontend-design (or interface-design for app-like surfaces). Use design-lab when multiple directions are useful.
+- For microinteractions, transitions, loading/empty states: use interaction-design.
+- For accessibility: use fixing-accessibility; for audits: wcag-audit-patterns; for general UX/UI best practices: web-design-guidelines.
+- For animation quality: use 12-principles-of-animation; for jank/perf: fixing-motion-performance; for React perf: vercel-react-best-practices.
+- For metadata/OG/title issues: use fixing-metadata.

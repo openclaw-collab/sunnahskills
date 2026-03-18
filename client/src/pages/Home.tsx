@@ -169,6 +169,7 @@ const Home = () => {
       </section>
 
       {/* PHILOSOPHY */}
+      <StudioBlock id="home.philosophy" label="Philosophy" page="Home">
       <section
         id="manifesto"
         className="py-40 bg-charcoal text-cream relative overflow-hidden rounded-[3rem] mx-2 md:mx-6 my-10"
@@ -178,20 +179,26 @@ const Home = () => {
         </div>
         <div className="max-w-5xl mx-auto px-6 relative z-10 flex flex-col items-center text-center">
           <p className="font-mono-label text-sm text-moss mb-12 uppercase tracking-[0.2em]">
-            The Philosophy
+            <StudioText k="home.philosophy.label" defaultText="The Philosophy" as="span" className="inline" />
           </p>
           <h3 className="font-body text-xl md:text-3xl text-cream/60 mb-8 font-light tracking-tight">
-            Most programs keep children busy.
+            <StudioText k="home.philosophy.subheading" defaultText="Most programs keep children busy." as="span" className="inline" />
           </h3>
           <h2 className="font-serif-accent italic text-4xl md:text-6xl lg:text-[5.5rem] tracking-tight leading-[1.1] text-cream mt-4">
-            We build discipline.
+            <StudioText k="home.philosophy.heading" defaultText="We build discipline." as="span" className="inline" />
           </h2>
           <p className="mt-10 font-body font-light text-cream/70 max-w-xl mx-auto text-sm md:text-base leading-relaxed">
-            Strength without character is incomplete. Character without training is fragile. Sunnah Skills develops
-            confidence, restraint, and capability through serious, structured training.
+            <StudioText
+              k="home.philosophy.body"
+              defaultText="Strength without character is incomplete. Character without training is fragile. Sunnah Skills develops confidence, restraint, and capability through serious, structured training."
+              as="span"
+              className="inline"
+              multiline
+            />
           </p>
         </div>
       </section>
+      </StudioBlock>
 
       {/* PROGRAMS STICKY STACK */}
       <section id="programs" className="relative bg-cream pb-32">
@@ -376,14 +383,15 @@ const Home = () => {
       </section>
 
       {/* TESTIMONIALS */}
+      <StudioBlock id="home.testimonials" label="Testimonials" page="Home">
       <section className="py-24 bg-white border-t border-charcoal/5">
         <div className="max-w-7xl mx-auto px-6">
           <div className="mb-16 flex flex-col items-center text-center gap-4">
             <h3 className="font-heading text-3xl md:text-5xl text-charcoal tracking-tight">
-              What Parents Say
+              <StudioText k="home.testimonials.heading" defaultText="What Parents Say" as="span" className="inline" />
             </h3>
             <p className="font-body text-sm md:text-base text-charcoal/60">
-              Hear from families who have experienced the Sunnah Skills difference.
+              <StudioText k="home.testimonials.subheading" defaultText="Hear from families who have experienced the Sunnah Skills difference." as="span" className="inline" multiline />
             </p>
           </div>
 
@@ -422,6 +430,7 @@ const Home = () => {
           </div>
         </div>
       </section>
+      </StudioBlock>
     </div>
   );
 };

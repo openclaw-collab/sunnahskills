@@ -66,6 +66,33 @@ export function applyAutoEdits(state: StudioState, opts: TagOptions = {}) {
   }
 }
 
+/**
+ * Apply uploaded image URLs to elements that carry data-studio-image-slot.
+ * Runs on every state update so slots stay in sync with session uploads.
+ */
+export function applyImageSlots(state: StudioState, root: HTMLElement = document.body) {
+  if (!state.enabled) return;
+  const uploads = state.session?.uploads ?? [];
+  if (uploads.length === 0) return;
+
+  const slotMap = new Map(uploads.map((u) => [u.slotKey, u.url]));
+  const slots = Array.from(root.querySelectorAll<HTMLElement>("[data-studio-image-slot]"));
+  for (const el of slots) {
+    const slot = el.dataset.studioImageSlot;
+    if (!slot) continue;
+    const url = slotMap.get(slot);
+    if (!url) continue;
+    // Apply to <img src> or CSS background-image depending on tag
+    if (el instanceof HTMLImageElement) {
+      if (el.src !== url) el.src = url;
+    } else {
+      const current = el.style.backgroundImage;
+      const next = `url("${url}")`;
+      if (current !== next) el.style.backgroundImage = next;
+    }
+  }
+}
+
 export function getAutoIdFromEventTarget(target: EventTarget | null): string | null {
   if (!(target instanceof Element)) return null;
   const el = target.closest<HTMLElement>("[data-studio-auto-id]");

@@ -27,7 +27,7 @@ import {
   saveStudioState,
   STUDIO_THEME_PRESETS,
 } from "./studioStore";
-import { applyAutoEdits, tagStudioTextNodes } from "./autoTextStudio";
+import { applyAutoEdits, applyImageSlots, tagStudioTextNodes } from "./autoTextStudio";
 
 // ── API helpers ──────────────────────────────────────────────────────────────
 
@@ -89,6 +89,8 @@ export type StudioContextValue = {
   exportJson: () => string;
   authenticate: (password: string) => Promise<boolean>;
   createSharedSession: (opts: { name?: string; password?: string }) => Promise<string | null>;
+  /** Upload an image file for a given slot key. Returns the resulting URL or null on error. */
+  uploadImage: (file: File, slotKey: string, route?: string) => Promise<string | null>;
   reset: () => void;
 };
 
@@ -223,6 +225,12 @@ export function StudioProvider({ children }: { children: React.ReactNode }) {
       window.removeEventListener("popstate", schedule);
     };
   }, [state]);
+
+  // Apply image slot overrides whenever uploads change
+  useEffect(() => {
+    if (!state.enabled) return;
+    applyImageSlots(state);
+  }, [state.enabled, state.session?.uploads]);
 
   // ── Persist local state ─────────────────────────────────────────────────────
 
@@ -449,6 +457,86 @@ export function StudioProvider({ children }: { children: React.ReactNode }) {
     return result?.shareUrl ?? null;
   }, []);
 
+  const uploadImage = useCallback(
+    async (file: File, slotKey: string, route?: string): Promise<string | null> => {
+      const s = localStateRef.current;
+      if (!s.sessionId) {
+        // Local mode: read as data URL and apply optimistically
+        return new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            const url = e.target?.result as string;
+            // Store as a fake upload entry in local state
+            setState((st) => ({
+              ...st,
+              session: st.session
+                ? {
+                    ...st.session,
+                    uploads: [
+                      ...(st.session.uploads ?? []).filter((u) => u.slotKey !== slotKey),
+                      {
+                        id: genId(),
+                        route: route ?? currentRoute(),
+                        slotKey,
+                        url,
+                        filename: file.name,
+                        createdAt: new Date().toISOString(),
+                      },
+                    ],
+                  }
+                : st.session,
+            }));
+            resolve(url);
+          };
+          reader.readAsDataURL(file);
+        });
+      }
+
+      // Session mode: POST to the uploads API
+      setState((st) => ({ ...st, syncing: true }));
+      try {
+        const params = new URLSearchParams({
+          session: s.sessionId!,
+          slot: slotKey,
+          route: route ?? currentRoute(),
+        });
+        const form = new FormData();
+        form.append("file", file);
+        const res = await apiFetch(`/api/studio/uploads?${params}`, { method: "POST", body: form });
+        if (!res.ok) return null;
+        const data = await res.json() as { ok: boolean; upload: { url: string } };
+        const url = data.upload.url;
+        // Optimistically update local session.uploads
+        setState((st) => ({
+          ...st,
+          syncing: false,
+          session: st.session
+            ? {
+                ...st.session,
+                uploads: [
+                  ...(st.session.uploads ?? []).filter((u) => u.slotKey !== slotKey),
+                  {
+                    id: genId(),
+                    route: route ?? currentRoute(),
+                    slotKey,
+                    url,
+                    filename: file.name,
+                    createdAt: new Date().toISOString(),
+                  },
+                ],
+              }
+            : st.session,
+        }));
+        scheduleSync();
+        return url;
+      } catch {
+        setState((st) => ({ ...st, syncing: false }));
+        return null;
+      }
+    },
+    [scheduleSync],
+  );
+
   const reset = useCallback(() => {
     setState((s) => ({
       ...s,
@@ -486,6 +574,7 @@ export function StudioProvider({ children }: { children: React.ReactNode }) {
       exportJson,
       authenticate,
       createSharedSession,
+      uploadImage,
       reset,
     }),
     [
@@ -506,6 +595,7 @@ export function StudioProvider({ children }: { children: React.ReactNode }) {
       exportJson,
       authenticate,
       createSharedSession,
+      uploadImage,
       reset,
     ],
   );

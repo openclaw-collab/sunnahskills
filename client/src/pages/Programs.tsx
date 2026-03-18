@@ -77,6 +77,7 @@ const Programs = () => {
                     loading="lazy"
                     decoding="async"
                     className="w-full h-full object-cover"
+                    data-studio-image-slot={`program.${program.id}.image`}
                   />
                   <div className="absolute inset-0 bg-gradient-to-b from-black/0 via-black/0 to-black/45" />
                 </div>

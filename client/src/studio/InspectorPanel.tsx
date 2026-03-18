@@ -1,11 +1,11 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useStudio } from "./useStudio";
 import { cn } from "@/lib/utils";
 
 type Tab = "edit" | "comments" | "history";
 
 export function InspectorPanel() {
-  const { state, edits, setEdit, clearEdit, addComment, setPinnedComponentId, pinnedComponentId, blocks } =
+  const { state, edits, setEdit, clearEdit, addComment, setPinnedComponentId, pinnedComponentId, blocks, uploadImage } =
     useStudio();
   const [tab, setTab] = useState<Tab>("edit");
   const [commentDraft, setCommentDraft] = useState("");
@@ -15,6 +15,23 @@ export function InspectorPanel() {
     () => blocks.find((b) => b.id === pinnedComponentId),
     [blocks, pinnedComponentId],
   );
+
+  // Discover image slots inside the pinned component
+  const imageSlots = useMemo(() => {
+    if (!pinnedComponentId) return [];
+    const compEl = document.querySelector<HTMLElement>(`[data-studio-component="${CSS.escape(pinnedComponentId)}"]`);
+    if (!compEl) return [];
+    return Array.from(compEl.querySelectorAll<HTMLElement>("[data-studio-image-slot]")).map((el) => ({
+      slotKey: el.dataset.studioImageSlot!,
+      currentSrc: el instanceof HTMLImageElement ? el.src : undefined,
+    }));
+  }, [pinnedComponentId]);
+
+  // Current uploaded URLs for this component's slots
+  const uploadedSlots = useMemo(() => {
+    const uploads = state.session?.uploads ?? [];
+    return new Map(uploads.map((u) => [u.slotKey, u.url]));
+  }, [state.session?.uploads]);
 
   const componentComments = useMemo(() => {
     const all = state.session?.comments ?? state.localComments;
@@ -73,6 +90,23 @@ export function InspectorPanel() {
           </button>
         ))}
       </div>
+
+      {/* Image slots strip (shown whenever slots exist, regardless of tab) */}
+      {imageSlots.length > 0 && (
+        <div className="px-4 pt-3 pb-0 space-y-2 border-b border-charcoal/8">
+          <div className="font-mono-label text-[9px] uppercase tracking-widest text-charcoal/40 mb-2">
+            Images
+          </div>
+          {imageSlots.map(({ slotKey }) => (
+            <ImageSlotRow
+              key={slotKey}
+              slotKey={slotKey}
+              uploadedUrl={uploadedSlots.get(slotKey)}
+              uploadImage={uploadImage}
+            />
+          ))}
+        </div>
+      )}
 
       <div className="p-4">
         {tab === "edit" && (
@@ -264,6 +298,79 @@ function CommentsTab({
           Add comment
         </button>
       </div>
+    </div>
+  );
+}
+
+// ── Image slot row ────────────────────────────────────────────────────────────
+
+function ImageSlotRow({
+  slotKey,
+  uploadedUrl,
+  uploadImage,
+}: {
+  slotKey: string;
+  uploadedUrl?: string;
+  uploadImage: (file: File, slotKey: string) => Promise<string | null>;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const [localPreview, setLocalPreview] = useState<string | null>(uploadedUrl ?? null);
+
+  const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    // Instant local preview
+    const objectUrl = URL.createObjectURL(file);
+    setLocalPreview(objectUrl);
+    setUploading(true);
+    const finalUrl = await uploadImage(file, slotKey);
+    setUploading(false);
+    if (finalUrl) {
+      // Replace object URL with the final stored one
+      URL.revokeObjectURL(objectUrl);
+      setLocalPreview(finalUrl);
+    }
+    // Reset input so the same file can be re-selected
+    if (inputRef.current) inputRef.current.value = "";
+  };
+
+  const label = slotKey.split(".").pop() ?? slotKey;
+
+  return (
+    <div className="flex items-center gap-3 py-2">
+      {/* Thumbnail */}
+      <div
+        className="w-14 h-10 rounded-xl border border-charcoal/10 bg-cream/60 overflow-hidden flex-none"
+        style={localPreview ? { backgroundImage: `url("${localPreview}")`, backgroundSize: "cover", backgroundPosition: "center" } : {}}
+      >
+        {!localPreview && (
+          <div className="w-full h-full flex items-center justify-center text-charcoal/20 text-lg">⬚</div>
+        )}
+      </div>
+
+      <div className="flex-1 min-w-0">
+        <div className="font-mono-label text-[9px] uppercase tracking-widest text-charcoal/50 truncate mb-1">
+          {label}
+        </div>
+        <button
+          type="button"
+          onClick={() => inputRef.current?.click()}
+          disabled={uploading}
+          className="rounded-full border border-charcoal/20 bg-white px-3 py-1 text-[10px] font-mono-label uppercase tracking-widest text-charcoal/70 hover:bg-cream transition-colors disabled:opacity-40"
+        >
+          {uploading ? "Uploading…" : localPreview ? "Replace" : "Upload image"}
+        </button>
+      </div>
+
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/*"
+        className="sr-only"
+        onChange={handleFile}
+        data-studio-ui="1"
+      />
     </div>
   );
 }

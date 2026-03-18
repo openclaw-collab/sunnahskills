@@ -52,6 +52,7 @@ const Home = () => {
             src="/hero-judo.jpg"
             alt="Judo Throw Training"
             className="w-full h-full object-cover object-[center_20%] grayscale brightness-75 contrast-125 opacity-80"
+            data-studio-image-slot="home.hero.bg"
           />
           <div className="absolute inset-0 hero-bg-gradient" />
         </div>

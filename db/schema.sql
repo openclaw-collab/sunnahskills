@@ -204,6 +204,7 @@ CREATE TABLE IF NOT EXISTS studio_sessions (
   edits_json TEXT DEFAULT '[]',          -- JSON array of StudioEditEntry
   comments_json TEXT DEFAULT '[]',       -- JSON array of StudioCommentEntry
   uploads_json TEXT DEFAULT '[]',        -- JSON array of StudioUploadEntry
+  positions_json TEXT DEFAULT '{}',      -- JSON object: { [componentId]: { dx, dy } }
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );

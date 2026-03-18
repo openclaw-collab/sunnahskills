@@ -1,203 +1,270 @@
 import { useState } from "react";
+import { Link } from "wouter";
 import { AlertCircle } from "lucide-react";
-import { SectionHeader } from "@/components/brand/SectionHeader";
+import { ClayButton } from "@/components/brand/ClayButton";
+import { DarkCard } from "@/components/brand/DarkCard";
 import { PremiumCard } from "@/components/brand/PremiumCard";
-import { TelemetryCard } from "@/components/brand/TelemetryCard";
+import { SectionHeader } from "@/components/brand/SectionHeader";
+import { StudioBlock } from "@/studio/StudioBlock";
+
+type ScheduleRow = { day: string; time: string; program: string; ages: string; slug: string };
+
+const boysSchedule: ScheduleRow[] = [
+  { day: "Monday", time: "4:00 PM", program: "BJJ Fundamentals", ages: "6–10", slug: "bjj" },
+  { day: "Monday", time: "5:15 PM", program: "BJJ Advanced", ages: "11–17", slug: "bjj" },
+  { day: "Wednesday", time: "4:00 PM", program: "BJJ Fundamentals", ages: "6–10", slug: "bjj" },
+  { day: "Wednesday", time: "5:15 PM", program: "BJJ Advanced", ages: "11–17", slug: "bjj" },
+  { day: "Saturday", time: "9:00 AM", program: "Outdoor Workshop", ages: "8–16", slug: "outdoor" },
+  { day: "Saturday", time: "11:00 AM", program: "Archery (Seasonal)", ages: "10–17", slug: "archery" },
+];
+
+const girlsSchedule: ScheduleRow[] = [
+  { day: "Tuesday", time: "4:00 PM", program: "BJJ Fundamentals", ages: "6–10", slug: "bjj" },
+  { day: "Tuesday", time: "5:15 PM", program: "BJJ Advanced", ages: "11–17", slug: "bjj" },
+  { day: "Thursday", time: "4:00 PM", program: "BJJ Fundamentals", ages: "6–10", slug: "bjj" },
+  { day: "Thursday", time: "5:15 PM", program: "BJJ Advanced", ages: "11–17", slug: "bjj" },
+  { day: "Sunday", time: "9:00 AM", program: "Outdoor Workshop", ages: "8–16", slug: "outdoor" },
+  { day: "Sunday", time: "11:00 AM", program: "Archery (Seasonal)", ages: "10–17", slug: "archery" },
+];
+
+type MixedRow = ScheduleRow & { frequency: string };
+const mixedPrograms: MixedRow[] = [
+  { day: "Friday", time: "6:00 PM", program: "Bullyproofing Workshop", ages: "8–14", slug: "bullyproofing", frequency: "Monthly" },
+];
+
+const monthDays = Array.from({ length: 31 }, (_, i) => i + 1);
+
+function ScheduleRow({ row }: { row: ScheduleRow }) {
+  return (
+    <div className="flex items-center justify-between gap-4 rounded-xl border border-charcoal/8 bg-cream px-4 py-3 hover:bg-charcoal/[0.03] transition-colors group">
+      <div className="flex items-center gap-4 min-w-0">
+        <div className="flex-none">
+          <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-charcoal/50">{row.day}</div>
+          <div className="font-mono-label text-[11px] text-charcoal/80 mt-0.5">{row.time}</div>
+        </div>
+        <div className="min-w-0">
+          <div className="font-body text-sm text-charcoal truncate">{row.program}</div>
+          <div className="font-mono-label text-[9px] uppercase tracking-[0.15em] text-charcoal/40 mt-0.5">Ages {row.ages}</div>
+        </div>
+      </div>
+      <Link href={`/programs/${row.slug}/register`}>
+        <span className="flex-none font-mono-label text-[9px] uppercase tracking-[0.15em] text-clay opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+          Register →
+        </span>
+      </Link>
+    </div>
+  );
+}
 
 const Schedule = () => {
   const [view, setView] = useState<"weekly" | "monthly">("weekly");
 
-  const boysSchedule = [
-    { day: "Monday", time: "4:00 PM", program: "BJJ Fundamentals", ages: "6-10" },
-    { day: "Monday", time: "5:15 PM", program: "BJJ Advanced", ages: "11-17" },
-    { day: "Wednesday", time: "4:00 PM", program: "BJJ Fundamentals", ages: "6-10" },
-    { day: "Wednesday", time: "5:15 PM", program: "BJJ Advanced", ages: "11-17" },
-    { day: "Saturday", time: "9:00 AM", program: "Outdoor Workshop", ages: "8-16" },
-    { day: "Saturday", time: "11:00 AM", program: "Archery (Seasonal)", ages: "10-17" },
-  ];
-
-  const girlsSchedule = [
-    { day: "Tuesday", time: "4:00 PM", program: "BJJ Fundamentals", ages: "6-10" },
-    { day: "Tuesday", time: "5:15 PM", program: "BJJ Advanced", ages: "11-17" },
-    { day: "Thursday", time: "4:00 PM", program: "BJJ Fundamentals", ages: "6-10" },
-    { day: "Thursday", time: "5:15 PM", program: "BJJ Advanced", ages: "11-17" },
-    { day: "Sunday", time: "9:00 AM", program: "Outdoor Workshop", ages: "8-16" },
-    { day: "Sunday", time: "11:00 AM", program: "Archery (Seasonal)", ages: "10-17" },
-  ];
-
-  const mixedPrograms = [
-    { day: "Friday", time: "6:00 PM", program: "Bullyproofing Workshop", ages: "8-14", frequency: "Monthly" },
-  ];
-
-  const monthDays = Array.from({ length: 31 }, (_, i) => i + 1);
-
   return (
     <div className="bg-cream min-h-screen pb-24">
       <div className="noise-overlay" />
-      <main className="max-w-6xl mx-auto px-6 pt-28">
-        <SectionHeader eyebrow="Schedule" title="Weekly Program Times" className="mb-10" />
-        <p className="font-body text-sm text-charcoal/70 max-w-2xl mb-6">
-          All classes are held at our training locations. Seasonal programs and workshops may vary by date; the
-          calendar view gives you a quick sense of when the academy is active.
-        </p>
 
-        <PremiumCard className="bg-cream border border-charcoal/10 mb-8">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      {/* PAGE HEADER */}
+      <StudioBlock id="schedule.header" label="Header" page="Schedule">
+        <header className="max-w-6xl mx-auto px-6 pt-28 pb-10">
+          <SectionHeader
+            eyebrow="Class Schedule"
+            title="Weekly Program Times"
+            className="mb-6"
+          />
+          <p className="font-body text-sm text-charcoal/70 max-w-2xl leading-relaxed">
+            Find the perfect class for you and your family. All classes are held at our training locations.
+            Seasonal programs and workshops may vary by date.
+          </p>
+        </header>
+      </StudioBlock>
+
+      <StudioBlock id="schedule.calendar" label="Calendar" page="Schedule">
+        <main className="max-w-6xl mx-auto px-6">
+
+          {/* Break alert */}
+          <PremiumCard className="bg-cream border border-clay/20 mb-8">
             <div className="flex items-start gap-3">
-              <AlertCircle className="text-clay mt-0.5" size={18} />
+              <AlertCircle className="text-clay mt-0.5 flex-none" size={16} />
               <div>
                 <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-clay">
                   Classes Currently On Break
                 </div>
                 <p className="font-body text-sm text-charcoal/75 mt-1">
-                  Reason: Break – Classes resume March 31st.
-                </p>
-                <p className="font-body text-xs text-charcoal/60 mt-1">
-                  Classes Resume: Monday, March 30, 2026
+                  Classes resume Monday, March 31st, 2026.
                 </p>
               </div>
             </div>
-          </div>
-        </PremiumCard>
+          </PremiumCard>
 
-        <div className="flex items-center justify-between mb-6">
-          <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-charcoal/60">
-            Interactive Calendar
-          </div>
-          <div className="inline-flex rounded-full border border-charcoal/10 bg-white p-1 text-[11px] font-mono-label uppercase tracking-[0.18em]">
-            <button
-              type="button"
-              onClick={() => setView("weekly")}
-              className={`px-3 py-1 rounded-full ${
-                view === "weekly" ? "bg-charcoal text-cream" : "text-charcoal/70"
-              }`}
-            >
-              Weekly
-            </button>
-            <button
-              type="button"
-              onClick={() => setView("monthly")}
-              className={`px-3 py-1 rounded-full ${
-                view === "monthly" ? "bg-charcoal text-cream" : "text-charcoal/70"
-              }`}
-            >
-              Monthly
-            </button>
-          </div>
-        </div>
-
-        {view === "weekly" ? (
-          <>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <PremiumCard className="bg-white border border-charcoal/10">
-                <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-moss">
-                  Boys&apos; Classes
-                </div>
-                <div className="mt-5 grid grid-cols-1 gap-3">
-                  {boysSchedule.map((item, idx) => (
-                    <TelemetryCard
-                      key={`${item.day}-${item.time}-${idx}`}
-                      title={`${item.day} · ${item.time}`}
-                      label={item.ages}
-                    >
-                      {item.program}
-                    </TelemetryCard>
-                  ))}
-                </div>
-              </PremiumCard>
-
-              <PremiumCard className="bg-white border border-charcoal/10">
-                <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-moss">
-                  Girls&apos; Classes
-                </div>
-                <div className="mt-5 grid grid-cols-1 gap-3">
-                  {girlsSchedule.map((item, idx) => (
-                    <TelemetryCard
-                      key={`${item.day}-${item.time}-${idx}`}
-                      title={`${item.day} · ${item.time}`}
-                      label={item.ages}
-                    >
-                      {item.program}
-                    </TelemetryCard>
-                  ))}
-                </div>
-              </PremiumCard>
+          {/* Toggle */}
+          <div className="flex items-center justify-between mb-8">
+            <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-charcoal/40">
+              Interactive Calendar
             </div>
-
-            <div className="mt-6">
-              <PremiumCard className="bg-white border border-charcoal/10">
-                <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-moss">
-                  Mixed Programs (Boys &amp; Girls)
-                </div>
-                <div className="mt-5 grid grid-cols-1 md:grid-cols-3 gap-3">
-                  {mixedPrograms.map((item, idx) => (
-                    <TelemetryCard
-                      key={`${item.day}-${item.time}-${idx}`}
-                      title={`${item.day} · ${item.time}`}
-                      label={item.frequency}
-                    >
-                      {item.program} · Ages {item.ages}
-                    </TelemetryCard>
-                  ))}
-                </div>
-              </PremiumCard>
-            </div>
-          </>
-        ) : (
-          <PremiumCard className="bg-white border border-charcoal/10 mt-4">
-            <div className="flex items-center justify-between mb-4">
-              <div className="font-heading text-lg text-charcoal">March 2026</div>
-              <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-charcoal/50">
-                View by month
-              </div>
-            </div>
-            <div className="grid grid-cols-7 gap-2 text-xs font-mono-label uppercase tracking-[0.18em] text-charcoal/40 mb-2">
-              {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) => (
-                <div key={d} className="text-center">
-                  {d}
-                </div>
-              ))}
-            </div>
-            <div className="grid grid-cols-7 gap-2 text-[11px]">
-              {monthDays.map((day) => (
-                <div
-                  key={day}
-                  className="aspect-[4/5] rounded-xl border border-charcoal/5 bg-cream px-2 py-1 flex flex-col justify-between"
+            <div className="inline-flex rounded-full border border-charcoal/10 bg-white p-1">
+              {(["weekly", "monthly"] as const).map((v) => (
+                <button
+                  key={v}
+                  type="button"
+                  onClick={() => setView(v)}
+                  className={`px-4 py-1.5 rounded-full font-mono-label text-[10px] uppercase tracking-[0.18em] transition-colors ${
+                    view === v ? "bg-clay text-cream shadow-sm" : "text-charcoal/60 hover:text-charcoal"
+                  }`}
                 >
-                  <div className="flex items-center justify-between text-charcoal/60">
-                    <span className="font-semibold text-xs">{day}</span>
-                    <span className="text-[9px] text-charcoal/40">Closed</span>
-                  </div>
-                  {day === 31 && (
-                    <div className="mt-1 space-y-1">
-                      <div className="rounded-md bg-moss/10 px-1.5 py-0.5 text-[9px] text-charcoal">
-                        Womens BJJ (Women)
-                      </div>
-                      <div className="rounded-md bg-clay/10 px-1.5 py-0.5 text-[9px] text-charcoal">
-                        Kids BJJ (Boys)
-                      </div>
-                    </div>
-                  )}
-                  <div className="mt-auto pt-2 text-[9px] text-clay/80">
-                    {day <= 30 ? "Break – Classes resume March 31st" : ""}
-                  </div>
-                </div>
+                  {v}
+                </button>
               ))}
             </div>
-          </PremiumCard>
-        )}
+          </div>
 
-        <div className="mt-8">
-          <PremiumCard className="bg-cream border border-charcoal/10">
-            <div className="flex items-start gap-3">
-              <AlertCircle className="text-clay mt-0.5" size={18} />
-              <p className="font-body text-sm text-charcoal/70">
-                Classes may be adjusted based on weather conditions. Indoor alternatives are available when needed.
-              </p>
+          {view === "weekly" ? (
+            <div className="space-y-6">
+              {/* Boys */}
+              <PremiumCard className="bg-white border border-charcoal/10">
+                <div className="flex items-center gap-2 mb-5">
+                  <div className="w-2 h-2 rounded-full bg-moss" />
+                  <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-moss">
+                    Boys' Classes
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  {boysSchedule.map((row, i) => (
+                    <ScheduleRow key={i} row={row} />
+                  ))}
+                </div>
+              </PremiumCard>
+
+              {/* Girls */}
+              <PremiumCard className="bg-white border border-charcoal/10">
+                <div className="flex items-center gap-2 mb-5">
+                  <div className="w-2 h-2 rounded-full bg-clay" />
+                  <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-clay">
+                    Girls' Classes
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  {girlsSchedule.map((row, i) => (
+                    <ScheduleRow key={i} row={row} />
+                  ))}
+                </div>
+              </PremiumCard>
+
+              {/* Mixed */}
+              <PremiumCard className="bg-white border border-charcoal/10">
+                <div className="flex items-center gap-2 mb-5">
+                  <div className="w-2 h-2 rounded-full bg-charcoal/40" />
+                  <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-charcoal/50">
+                    Mixed Programs — Boys &amp; Girls
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  {mixedPrograms.map((row, i) => (
+                    <div key={i} className="flex items-center justify-between gap-4 rounded-xl border border-charcoal/8 bg-cream px-4 py-3 hover:bg-charcoal/[0.03] transition-colors group">
+                      <div className="flex items-center gap-4 min-w-0">
+                        <div className="flex-none">
+                          <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-charcoal/50">{row.day}</div>
+                          <div className="font-mono-label text-[11px] text-charcoal/80 mt-0.5">{row.time}</div>
+                        </div>
+                        <div className="min-w-0">
+                          <div className="font-body text-sm text-charcoal truncate">{row.program}</div>
+                          <div className="font-mono-label text-[9px] uppercase tracking-[0.15em] text-charcoal/40 mt-0.5">
+                            Ages {row.ages} · {row.frequency}
+                          </div>
+                        </div>
+                      </div>
+                      <Link href={`/programs/${row.slug}/register`}>
+                        <span className="flex-none font-mono-label text-[9px] uppercase tracking-[0.15em] text-clay opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                          Register →
+                        </span>
+                      </Link>
+                    </div>
+                  ))}
+                </div>
+              </PremiumCard>
             </div>
-          </PremiumCard>
+          ) : (
+            <PremiumCard className="bg-white border border-charcoal/10">
+              <div className="flex items-center justify-between mb-4">
+                <div className="font-heading text-lg text-charcoal">March 2026</div>
+                <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-charcoal/40">
+                  Monthly view
+                </div>
+              </div>
+              <div className="grid grid-cols-7 gap-2 text-[10px] font-mono-label uppercase tracking-[0.12em] text-charcoal/40 mb-2">
+                {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) => (
+                  <div key={d} className="text-center">{d}</div>
+                ))}
+              </div>
+              <div className="grid grid-cols-7 gap-1.5 text-[10px]">
+                {monthDays.map((day) => (
+                  <div
+                    key={day}
+                    className={`aspect-[4/5] rounded-xl border px-1.5 py-1 flex flex-col justify-between ${
+                      day === 31
+                        ? "border-moss/20 bg-moss/5"
+                        : "border-charcoal/5 bg-cream"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className={`font-semibold text-xs ${day === 31 ? "text-charcoal" : "text-charcoal/50"}`}>
+                        {day}
+                      </span>
+                    </div>
+                    {day === 31 ? (
+                      <div className="mt-1 space-y-0.5">
+                        <div className="rounded bg-moss/15 px-1 py-0.5 text-[8px] text-charcoal leading-tight">
+                          Women's BJJ
+                        </div>
+                        <div className="rounded bg-clay/15 px-1 py-0.5 text-[8px] text-charcoal leading-tight">
+                          Kids BJJ (Boys)
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="mt-auto text-[8px] text-charcoal/30 leading-tight">Break</div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </PremiumCard>
+          )}
+
+          {/* Weather alert */}
+          <StudioBlock id="schedule.alert" label="Alert" page="Schedule">
+            <div className="mt-8">
+              <PremiumCard className="bg-cream border border-charcoal/10">
+                <div className="flex items-start gap-3">
+                  <AlertCircle className="text-clay mt-0.5 flex-none" size={16} />
+                  <p className="font-body text-sm text-charcoal/70">
+                    Classes may be adjusted based on weather conditions. Indoor alternatives are available when needed.
+                  </p>
+                </div>
+              </PremiumCard>
+            </div>
+          </StudioBlock>
+        </main>
+      </StudioBlock>
+
+      {/* CONTACT CTA */}
+      <StudioBlock id="schedule.cta" label="Contact CTA" page="Schedule">
+        <div className="max-w-6xl mx-auto px-6 mt-12">
+          <DarkCard className="rounded-3xl text-center py-12">
+            <div className="font-mono-label text-[10px] uppercase tracking-[0.25em] text-moss mb-4">
+              Questions
+            </div>
+            <h2 className="font-heading text-2xl text-cream mb-3">
+              Have Questions About Our Schedule?
+            </h2>
+            <p className="font-body text-sm text-cream/60 max-w-md mx-auto mb-8">
+              Contact us for more information about class times, registration, or to schedule a trial session.
+            </p>
+            <Link href="/contact">
+              <ClayButton className="px-8 py-3.5 text-[11px] uppercase tracking-[0.18em]">
+                Contact Us
+              </ClayButton>
+            </Link>
+          </DarkCard>
         </div>
-      </main>
+      </StudioBlock>
     </div>
   );
 };

@@ -15,6 +15,7 @@ export default function StudioShell() {
 
   const [open, setOpen] = useState(true);
   const [tab, setTab] = useState<PanelTab>("text");
+  const [navigateMode, setNavigateMode] = useState(false);
   const [selectMode, setSelectMode] = useState(true);
   const [selectedAutoId, setSelectedAutoId] = useState<string>("");
   const [selectedDraft, setSelectedDraft] = useState<string>("");
@@ -50,10 +51,31 @@ export default function StudioShell() {
 
   if (!state.enabled) return null;
 
+  // Navigate mode: hide everything except a small badge to return
+  if (navigateMode) {
+    return (
+      <>
+        <div
+          data-studio-ui="1"
+          className="fixed bottom-6 right-6 z-[80]"
+        >
+          <button
+            type="button"
+            onClick={() => setNavigateMode(false)}
+            className="rounded-full bg-charcoal/80 text-cream px-4 py-2 text-[11px] font-mono-label uppercase tracking-[0.18em] shadow-lg backdrop-blur-sm border border-cream/10 hover:bg-charcoal transition-colors"
+            title="Return to Studio mode"
+          >
+            ↩ Studio
+          </button>
+        </div>
+      </>
+    );
+  }
+
   return (
     <>
       <PasswordGate />
-      <ComponentHighlighter />
+      <ComponentHighlighter disabled={navigateMode} />
 
       {/* Floating toggle button */}
       <div data-studio-ui="1" className="fixed bottom-6 right-6 z-[80]">
@@ -87,6 +109,14 @@ export default function StudioShell() {
               {state.syncing && (
                 <span className="text-[9px] font-mono-label uppercase tracking-widest text-charcoal/40">Syncing…</span>
               )}
+              <button
+                type="button"
+                onClick={() => setNavigateMode(true)}
+                className="rounded-full border border-charcoal/15 bg-cream px-3 py-1.5 text-[10px] font-mono-label uppercase tracking-widest text-charcoal/70 hover:bg-charcoal hover:text-cream transition-colors"
+                title="Hide Studio panel and navigate normally"
+              >
+                Navigate
+              </button>
               <button
                 type="button"
                 onClick={() => setEnabled(false)}

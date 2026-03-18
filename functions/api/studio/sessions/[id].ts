@@ -42,6 +42,7 @@ function parseSession(row: Record<string, unknown>) {
     edits: row.edits_json ? JSON.parse(String(row.edits_json)) : [],
     comments: row.comments_json ? JSON.parse(String(row.comments_json)) : [],
     uploads: row.uploads_json ? JSON.parse(String(row.uploads_json)) : [],
+    positions: row.positions_json ? JSON.parse(String(row.positions_json)) : {},
   };
 }
 
@@ -93,6 +94,7 @@ export async function onRequestPatch({
     edits?: unknown[];
     comments?: unknown[];
     uploads?: unknown[];
+    positions?: unknown;
     name?: string;
   } | null;
 
@@ -105,6 +107,7 @@ export async function onRequestPatch({
        edits_json = COALESCE(?, edits_json),
        comments_json = COALESCE(?, comments_json),
        uploads_json = COALESCE(?, uploads_json),
+       positions_json = COALESCE(?, positions_json),
        name = COALESCE(?, name),
        updated_at = datetime('now')
      WHERE id = ?`,
@@ -115,6 +118,7 @@ export async function onRequestPatch({
       body.edits ? JSON.stringify(body.edits) : null,
       body.comments ? JSON.stringify(body.comments) : null,
       body.uploads ? JSON.stringify(body.uploads) : null,
+      body.positions ? JSON.stringify(body.positions) : null,
       body.name ?? null,
       params.id,
     )

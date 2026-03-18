@@ -65,6 +65,8 @@ export type StudioUploadEntry = {
 
 // ---------- Session (shared, matches backend) ----------
 
+export type StudioPosition = { dx: number; dy: number };
+
 export type StudioSession = {
   id: string;
   name?: string;
@@ -74,6 +76,8 @@ export type StudioSession = {
   edits: StudioEditEntry[];
   comments: StudioCommentEntry[];
   uploads: StudioUploadEntry[];
+  /** Visual drag offsets keyed by componentId */
+  positions?: Record<string, StudioPosition>;
 };
 
 // ---------- Frontend state ----------

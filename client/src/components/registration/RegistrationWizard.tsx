@@ -1,4 +1,4 @@
-import React, { type ReactNode, useMemo } from "react";
+import React, { type ReactNode, useMemo, useRef, useEffect, useState } from "react";
 import type { ProgramConfig } from "@/lib/programConfig";
 import { PremiumCard } from "@/components/brand/PremiumCard";
 import { SectionHeader } from "@/components/brand/SectionHeader";
@@ -22,6 +22,25 @@ export type RegistrationWizardProps = {
   renderStep: (args: WizardStepRenderArgs) => ReactNode;
 };
 
+function useStepTransition(stepIndex: number) {
+  const [visible, setVisible] = useState(true);
+  const [displayedIndex, setDisplayedIndex] = useState(stepIndex);
+  const prevIndex = useRef(stepIndex);
+
+  useEffect(() => {
+    if (stepIndex === prevIndex.current) return;
+    setVisible(false);
+    const timeout = setTimeout(() => {
+      setDisplayedIndex(stepIndex);
+      prevIndex.current = stepIndex;
+      setVisible(true);
+    }, 180);
+    return () => clearTimeout(timeout);
+  }, [stepIndex]);
+
+  return { visible, displayedIndex };
+}
+
 export function RegistrationWizard({
   program,
   steps,
@@ -34,6 +53,8 @@ export function RegistrationWizard({
 }: RegistrationWizardProps) {
   const step = steps[currentStepIndex];
   const isLast = currentStepIndex === steps.length - 1;
+  const { visible, displayedIndex } = useStepTransition(currentStepIndex);
+  const displayedStep = steps[displayedIndex];
 
   const footerCta = useMemo(() => {
     return isLast ? "Complete Payment" : "Continue";
@@ -55,10 +76,19 @@ export function RegistrationWizard({
               <ProgressIndicator steps={steps} currentStepIndex={currentStepIndex} className="mb-6" />
 
               <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-moss">
-                Step {currentStepIndex + 1} / {steps.length}: {step?.label}
+                Step {displayedIndex + 1} / {steps.length}: {displayedStep?.label}
               </div>
 
-              <div className="mt-6">{step ? renderStep({ stepId: step.id }) : null}</div>
+              <div
+                className="mt-6"
+                style={{
+                  opacity: visible ? 1 : 0,
+                  transform: visible ? "translateY(0)" : "translateY(6px)",
+                  transition: "opacity 180ms ease, transform 180ms ease",
+                }}
+              >
+                {displayedStep ? renderStep({ stepId: displayedStep.id }) : null}
+              </div>
 
               <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-between">
                 <OutlineButton

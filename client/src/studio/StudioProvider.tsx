@@ -12,6 +12,7 @@ import type {
   StudioCustomTheme,
   StudioEditEntry,
   StudioExport,
+  StudioPosition,
   StudioSession,
   StudioState,
   StudioThemePresetId,
@@ -91,6 +92,9 @@ export type StudioContextValue = {
   createSharedSession: (opts: { name?: string; password?: string }) => Promise<string | null>;
   /** Upload an image file for a given slot key. Returns the resulting URL or null on error. */
   uploadImage: (file: File, slotKey: string, route?: string) => Promise<string | null>;
+  /** Current drag-reposition offsets keyed by componentId */
+  positions: Record<string, StudioPosition>;
+  setPosition: (componentId: string, dx: number, dy: number) => void;
   reset: () => void;
 };
 
@@ -232,6 +236,16 @@ export function StudioProvider({ children }: { children: React.ReactNode }) {
     applyImageSlots(state);
   }, [state.enabled, state.session?.uploads]);
 
+  // Apply drag-reposition transforms whenever positions change
+  useEffect(() => {
+    if (!state.enabled) return;
+    const positions = state.session?.positions ?? {};
+    for (const [id, pos] of Object.entries(positions)) {
+      const el = document.querySelector<HTMLElement>(`[data-studio-component="${CSS.escape(id)}"]`);
+      if (el) el.style.transform = `translate(${pos.dx}px, ${pos.dy}px)`;
+    }
+  }, [state.enabled, state.session?.positions]);
+
   // ── Persist local state ─────────────────────────────────────────────────────
 
   useEffect(() => {
@@ -255,7 +269,8 @@ export function StudioProvider({ children }: { children: React.ReactNode }) {
           edits: curr.session.edits,
           comments: curr.session.comments,
           uploads: curr.session.uploads,
-        });
+          positions: curr.session.positions,
+        } as any);
       } catch {
         /* ignore transient errors */
       } finally {
@@ -537,6 +552,22 @@ export function StudioProvider({ children }: { children: React.ReactNode }) {
     [scheduleSync],
   );
 
+  const setPosition = useCallback(
+    (componentId: string, dx: number, dy: number) => {
+      setState((s) => {
+        const prev = s.session?.positions ?? {};
+        const next = { ...prev, [componentId]: { dx, dy } };
+        if (s.mode !== "session" || !s.session) {
+          // Store in local positions (no D1) by reusing session placeholder
+          return { ...s, session: s.session ? { ...s.session, positions: next } : s.session };
+        }
+        return { ...s, session: { ...s.session, positions: next } };
+      });
+      scheduleSync();
+    },
+    [scheduleSync],
+  );
+
   const reset = useCallback(() => {
     setState((s) => ({
       ...s,
@@ -575,6 +606,8 @@ export function StudioProvider({ children }: { children: React.ReactNode }) {
       authenticate,
       createSharedSession,
       uploadImage,
+      positions: state.session?.positions ?? {},
+      setPosition,
       reset,
     }),
     [
@@ -596,6 +629,7 @@ export function StudioProvider({ children }: { children: React.ReactNode }) {
       authenticate,
       createSharedSession,
       uploadImage,
+      setPosition,
       reset,
     ],
   );

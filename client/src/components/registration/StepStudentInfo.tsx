@@ -1,113 +1,142 @@
 import React from "react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { RadioGroup } from "./FormControls";
 import type { RegistrationStepProps } from "@/components/registration/steps";
+import type { ValidationErrors } from "@/hooks/useStepValidation";
 
-export function StepStudentInfo({ draft, updateDraft }: RegistrationStepProps) {
+type Props = RegistrationStepProps & {
+  errors?: ValidationErrors;
+  touch?: (field: string) => void;
+};
+
+function FieldError({ msg }: { msg?: string }) {
+  if (!msg) return null;
+  return <p className="font-body text-xs text-clay mt-1">{msg}</p>;
+}
+
+function FormInput({
+  id,
+  label,
+  value,
+  onChange,
+  placeholder,
+  type = "text",
+  error,
+  onBlur,
+  inputMode,
+}: {
+  id?: string;
+  label: string;
+  value: string | number;
+  onChange: (v: string) => void;
+  placeholder?: string;
+  type?: string;
+  error?: string;
+  onBlur?: () => void;
+  inputMode?: React.HTMLAttributes<HTMLInputElement>["inputMode"];
+}) {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <div className="space-y-2">
-        <label className="font-body text-sm text-charcoal">Student full name</label>
-        <Input
-          value={draft.student.fullName}
-          onChange={(e) =>
-            updateDraft((prev) => ({
-              ...prev,
-              student: { ...prev.student, fullName: e.target.value },
-            }))
-          }
-          placeholder="Student full name"
-        />
-      </div>
+    <div className="space-y-2">
+      <label htmlFor={id} className="font-body text-sm text-charcoal font-medium">
+        {label}
+      </label>
+      <Input
+        id={id}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        onBlur={onBlur}
+        placeholder={placeholder}
+        type={type}
+        inputMode={inputMode}
+        className={error ? "border-clay focus:border-clay" : ""}
+      />
+      <FieldError msg={error} />
+    </div>
+  );
+}
 
-      <div className="space-y-2">
-        <label className="font-body text-sm text-charcoal">Preferred name (optional)</label>
-        <Input
+export function StepStudentInfo({ draft, updateDraft, errors = {}, touch }: Props) {
+  const set = (patch: Partial<typeof draft.student>) =>
+    updateDraft((prev) => ({ ...prev, student: { ...prev.student, ...patch } }));
+
+  return (
+    <div className="space-y-5">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <FormInput
+          id="student-name"
+          label="Student full name"
+          value={draft.student.fullName}
+          onChange={(v) => set({ fullName: v })}
+          onBlur={() => touch?.("student.fullName")}
+          placeholder="Student's full name"
+          error={errors["student.fullName"]}
+        />
+        <FormInput
+          id="student-preferred"
+          label="Preferred name (optional)"
           value={draft.student.preferredName}
-          onChange={(e) =>
-            updateDraft((prev) => ({
-              ...prev,
-              student: { ...prev.student, preferredName: e.target.value },
-            }))
-          }
+          onChange={(v) => set({ preferredName: v })}
           placeholder="What should we call them?"
         />
-      </div>
-
-      <div className="space-y-2">
-        <label className="font-body text-sm text-charcoal">Date of birth</label>
-        <Input
+        <FormInput
+          id="student-dob"
+          label="Date of birth"
           value={draft.student.dateOfBirth}
-          onChange={(e) =>
-            updateDraft((prev) => ({
-              ...prev,
-              student: { ...prev.student, dateOfBirth: e.target.value },
-            }))
-          }
+          onChange={(v) => {
+            set({ dateOfBirth: v, age: v ? Math.floor((Date.now() - new Date(v).getTime()) / 31557600000) : null });
+          }}
+          onBlur={() => touch?.("student.dateOfBirth")}
           placeholder="YYYY-MM-DD"
+          type="date"
+          error={errors["student.dateOfBirth"]}
         />
+        <div className="space-y-2">
+          <label className="font-body text-sm text-charcoal font-medium">Age</label>
+          <Input
+            value={draft.student.age ?? ""}
+            readOnly
+            className="bg-cream/60 text-charcoal/60"
+            placeholder="Calculated from date of birth"
+          />
+        </div>
       </div>
+
+      <RadioGroup
+        label="Gender"
+        name="student-gender"
+        value={draft.student.gender}
+        onChange={(v) => set({ gender: v })}
+        options={[
+          { value: "male", label: "Male" },
+          { value: "female", label: "Female" },
+          { value: "prefer-not-to-say", label: "Prefer not to say" },
+        ]}
+      />
+
+      <RadioGroup
+        label="Prior experience level"
+        name="student-skill"
+        value={draft.student.skillLevel}
+        onChange={(v) => set({ skillLevel: v })}
+        options={[
+          { value: "beginner", label: "Beginner", sublabel: "No prior training" },
+          { value: "some", label: "Some experience", sublabel: "A few sessions" },
+          { value: "intermediate", label: "Intermediate", sublabel: "6+ months training" },
+        ]}
+      />
 
       <div className="space-y-2">
-        <label className="font-body text-sm text-charcoal">Age</label>
-        <Input
-          value={draft.student.age ?? ""}
-          onChange={(e) =>
-            updateDraft((prev) => ({
-              ...prev,
-              student: { ...prev.student, age: e.target.value ? Number(e.target.value) : null },
-            }))
-          }
-          placeholder="Age"
-          inputMode="numeric"
-        />
-      </div>
-
-      <div className="space-y-2">
-        <label className="font-body text-sm text-charcoal">Gender (if relevant)</label>
-        <Input
-          value={draft.student.gender}
-          onChange={(e) =>
-            updateDraft((prev) => ({
-              ...prev,
-              student: { ...prev.student, gender: e.target.value },
-            }))
-          }
-          placeholder="Optional"
-        />
-      </div>
-
-      <div className="space-y-2">
-        <label className="font-body text-sm text-charcoal">Prior experience (optional)</label>
-        <Input
-          value={draft.student.priorExperience}
-          onChange={(e) =>
-            updateDraft((prev) => ({
-              ...prev,
-              student: { ...prev.student, priorExperience: e.target.value },
-            }))
-          }
-          placeholder="None / Some / Sports background"
-        />
-      </div>
-
-      <div className="space-y-2 md:col-span-2">
-        <label className="font-body text-sm text-charcoal">
-          Medical notes / allergies / accessibility needs (optional)
+        <label className="font-body text-sm text-charcoal font-medium">
+          Medical notes, allergies, or accessibility needs (optional)
         </label>
         <Textarea
           value={draft.student.medicalNotes}
-          onChange={(e) =>
-            updateDraft((prev) => ({
-              ...prev,
-              student: { ...prev.student, medicalNotes: e.target.value },
-            }))
-          }
+          onChange={(e) => set({ medicalNotes: e.target.value })}
           placeholder="Anything we should know to support the student safely?"
-          rows={4}
+          rows={3}
         />
       </div>
     </div>
   );
 }
-

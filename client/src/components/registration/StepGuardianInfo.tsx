@@ -1,136 +1,139 @@
 import React from "react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { SelectField } from "./FormControls";
 import type { RegistrationStepProps } from "@/components/registration/steps";
+import type { ValidationErrors } from "@/hooks/useStepValidation";
 
-export function StepGuardianInfo({ draft, updateDraft }: RegistrationStepProps) {
+const RELATIONSHIP_OPTIONS = [
+  { value: "mother", label: "Mother" },
+  { value: "father", label: "Father" },
+  { value: "guardian", label: "Legal Guardian" },
+  { value: "other", label: "Other" },
+];
+
+type Props = RegistrationStepProps & {
+  errors?: ValidationErrors;
+  touch?: (field: string) => void;
+};
+
+function FieldError({ msg }: { msg?: string }) {
+  if (!msg) return null;
+  return <p className="font-body text-xs text-clay mt-1">{msg}</p>;
+}
+
+function FormInput({
+  id,
+  label,
+  value,
+  onChange,
+  placeholder,
+  type = "text",
+  error,
+  onBlur,
+}: {
+  id: string;
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+  type?: string;
+  error?: string;
+  onBlur?: () => void;
+}) {
+  return (
+    <div className="space-y-2">
+      <label htmlFor={id} className="font-body text-sm text-charcoal font-medium">
+        {label}
+      </label>
+      <Input
+        id={id}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        onBlur={onBlur}
+        placeholder={placeholder}
+        type={type}
+        className={error ? "border-clay focus:border-clay ring-clay/20" : ""}
+      />
+      <FieldError msg={error} />
+    </div>
+  );
+}
+
+export function StepGuardianInfo({ draft, updateDraft, errors = {}, touch }: Props) {
+  const set = (patch: Partial<typeof draft.guardian>) =>
+    updateDraft((prev) => ({ ...prev, guardian: { ...prev.guardian, ...patch } }));
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <div className="space-y-2">
-        <label htmlFor="guardian-full-name" className="font-body text-sm text-charcoal">
-          Full name
-        </label>
-        <Input
-          id="guardian-full-name"
-          value={draft.guardian.fullName}
-          onChange={(e) =>
-            updateDraft((prev) => ({
-              ...prev,
-              guardian: { ...prev.guardian, fullName: e.target.value },
-            }))
-          }
-          placeholder="Parent/guardian full name"
-        />
-      </div>
+      <FormInput
+        id="guardian-name"
+        label="Full name"
+        value={draft.guardian.fullName}
+        onChange={(v) => set({ fullName: v })}
+        onBlur={() => touch?.("guardian.fullName")}
+        placeholder="Parent or guardian full name"
+        error={errors["guardian.fullName"]}
+      />
+      <FormInput
+        id="guardian-email"
+        label="Email"
+        value={draft.guardian.email}
+        onChange={(v) => set({ email: v })}
+        onBlur={() => touch?.("guardian.email")}
+        placeholder="name@email.com"
+        type="email"
+        error={errors["guardian.email"]}
+      />
+      <FormInput
+        id="guardian-phone"
+        label="Phone"
+        value={draft.guardian.phone}
+        onChange={(v) => set({ phone: v })}
+        onBlur={() => touch?.("guardian.phone")}
+        placeholder="(555) 555-5555"
+        error={errors["guardian.phone"]}
+      />
 
-      <div className="space-y-2">
-        <label htmlFor="guardian-email" className="font-body text-sm text-charcoal">
-          Email
-        </label>
-        <Input
-          id="guardian-email"
-          value={draft.guardian.email}
-          onChange={(e) =>
-            updateDraft((prev) => ({
-              ...prev,
-              guardian: { ...prev.guardian, email: e.target.value },
-            }))
-          }
-          placeholder="name@email.com"
-          type="email"
-        />
-      </div>
+      <SelectField
+        label="Relationship to student"
+        value={draft.guardian.relationship}
+        onChange={(v) => set({ relationship: v })}
+        onBlur={() => touch?.("guardian.relationship")}
+        options={RELATIONSHIP_OPTIONS}
+        placeholder="Select relationship"
+        error={errors["guardian.relationship"]}
+      />
 
-      <div className="space-y-2">
-        <label htmlFor="guardian-phone" className="font-body text-sm text-charcoal">
-          Phone
-        </label>
-        <Input
-          id="guardian-phone"
-          value={draft.guardian.phone}
-          onChange={(e) =>
-            updateDraft((prev) => ({
-              ...prev,
-              guardian: { ...prev.guardian, phone: e.target.value },
-            }))
-          }
-          placeholder="(555) 555-5555"
-        />
-      </div>
-
-      <div className="space-y-2">
-        <label htmlFor="guardian-relationship" className="font-body text-sm text-charcoal">
-          Relationship to student
-        </label>
-        <Input
-          id="guardian-relationship"
-          value={draft.guardian.relationship}
-          onChange={(e) =>
-            updateDraft((prev) => ({
-              ...prev,
-              guardian: { ...prev.guardian, relationship: e.target.value },
-            }))
-          }
-          placeholder="Mother / Father / Guardian / Other"
-        />
-      </div>
-
-      <div className="space-y-2">
-        <label htmlFor="guardian-emergency-name" className="font-body text-sm text-charcoal">
-          Emergency contact name
-        </label>
-        <Input
-          id="guardian-emergency-name"
-          value={draft.guardian.emergencyContactName}
-          onChange={(e) =>
-            updateDraft((prev) => ({
-              ...prev,
-              guardian: { ...prev.guardian, emergencyContactName: e.target.value },
-            }))
-          }
-          placeholder="Emergency contact full name"
-        />
-      </div>
-
-      <div className="space-y-2">
-        <label htmlFor="guardian-emergency-phone" className="font-body text-sm text-charcoal">
-          Emergency contact phone
-        </label>
-        <Input
-          id="guardian-emergency-phone"
-          value={draft.guardian.emergencyContactPhone}
-          onChange={(e) =>
-            updateDraft((prev) => ({
-              ...prev,
-              guardian: { ...prev.guardian, emergencyContactPhone: e.target.value },
-            }))
-          }
-          placeholder="(555) 555-5555"
-        />
-      </div>
+      <FormInput
+        id="guardian-emergency-name"
+        label="Emergency contact name"
+        value={draft.guardian.emergencyContactName}
+        onChange={(v) => set({ emergencyContactName: v })}
+        placeholder="Emergency contact full name"
+      />
+      <FormInput
+        id="guardian-emergency-phone"
+        label="Emergency contact phone"
+        value={draft.guardian.emergencyContactPhone}
+        onChange={(v) => set({ emergencyContactPhone: v })}
+        placeholder="(555) 555-5555"
+      />
 
       <div className="md:col-span-2 rounded-2xl border border-charcoal/10 bg-cream p-4">
-        <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-moss">
-          Notes
+        <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-moss mb-1">
+          Notes (optional)
         </div>
-        <p className="mt-2 text-sm text-charcoal/70 font-body">
-          Use a real email and phone so we can confirm placement, send start details, and share schedule updates.
+        <p className="text-xs text-charcoal/60 font-body mb-3">
+          Use a real email so we can confirm placement, share schedule updates, and send start details.
         </p>
         <Textarea
-          id="guardian-notes"
-          className="mt-3"
           value={draft.guardian.notes ?? ""}
-          onChange={(e) =>
-            updateDraft((prev) => ({
-              ...prev,
-              guardian: { ...prev.guardian, notes: e.target.value },
-            }))
-          }
-          placeholder="Optional: anything we should know before placement?"
+          onChange={(e) => set({ notes: e.target.value })}
+          placeholder="Anything we should know before placement?"
           rows={3}
         />
       </div>
     </div>
   );
 }
-

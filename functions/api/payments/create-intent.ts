@@ -3,9 +3,12 @@ interface Env {
   STRIPE_SECRET_KEY?: string;
 }
 
+const SIBLING_DISCOUNT_PERCENT = 10;
+
 type CreateIntentRequest = {
   registrationId: number;
   discountCode?: string;
+  siblingCount?: number;
 };
 
 function json(data: unknown, init?: ResponseInit) {
@@ -42,9 +45,15 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
   if (!reg) return json({ error: "Registration not found" }, { status: 404 });
   if (!reg.amount) return json({ error: "Registration has no price selected" }, { status: 400 });
 
-  // TODO(phase2): validate discountCode server-side; compute sibling discounts.
   const subtotal = Number(reg.amount) + Number(reg.registration_fee ?? 0);
   let discountAmount = 0;
+
+  // Sibling discount (applied before promo codes)
+  const siblingCount = Number(body.siblingCount ?? 0);
+  if (siblingCount > 0) {
+    discountAmount += Math.floor((subtotal * SIBLING_DISCOUNT_PERCENT) / 100);
+  }
+
   if (body.discountCode) {
     const disc = await env.DB.prepare(
       `

@@ -4,30 +4,36 @@ import type { Appearance } from "@stripe/stripe-js";
 export const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY ?? "");
 
 export const stripeAppearance: Appearance = {
-  theme: "flat",
+  theme: "night",
   variables: {
-    colorPrimary: "#2E4036",
-    colorBackground: "#F2F0E9",
-    colorText: "#1A1A1A",
-    colorDanger: "#CC5833",
-    fontFamily: "'Plus Jakarta Sans', sans-serif",
+    colorBackground: "#1A1A1A",
+    colorText: "#F5F0E8",
+    colorPrimary: "#CE5833",
+    colorDanger: "#CE5833",
+    colorTextSecondary: "rgba(245, 240, 232, 0.6)",
+    colorTextPlaceholder: "rgba(245, 240, 232, 0.3)",
     borderRadius: "12px",
+    fontFamily: "'Plus Jakarta Sans', sans-serif",
     spacingUnit: "4px",
   },
   rules: {
     ".Input": {
-      border: "1px solid rgba(46, 64, 54, 0.2)",
+      border: "1px solid rgba(245, 240, 232, 0.12)",
       boxShadow: "none",
       padding: "12px 16px",
+      backgroundColor: "rgba(255,255,255,0.04)",
     },
     ".Input:focus": {
-      border: "1px solid #2E4036",
-      boxShadow: "0 0 0 1px #2E4036",
+      border: "1px solid #CE5833",
+      boxShadow: "0 0 0 1px #CE5833",
     },
     ".Label": {
       fontFamily: "'Plus Jakarta Sans', sans-serif",
-      fontSize: "13px",
+      fontSize: "12px",
       fontWeight: "500",
+      textTransform: "uppercase",
+      letterSpacing: "0.1em",
+      color: "rgba(245, 240, 232, 0.5)",
     },
   },
 };

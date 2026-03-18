@@ -1,6 +1,34 @@
 import { useCallback, useMemo, useState } from "react";
 import type { ProgramSlug } from "@/lib/programConfig";
 
+export type BjjSpecific = {
+  gender: "boys" | "girls" | "";
+  ageGroup: "6-10" | "11-14" | "15-17" | "";
+  trialClass: "yes" | "no" | "";
+  notes: string;
+};
+
+export type ArcherySpecific = {
+  dominantHand: "left" | "right" | "";
+  experience: "never" | "some" | "practiced" | "";
+  sessionDate: string;
+  notes: string;
+};
+
+export type OutdoorSpecific = {
+  workshopDate: string;
+  gear: string[];
+  notes: string;
+};
+
+export type BullyproofingSpecific = {
+  concernType: "being-bullied" | "exhibiting" | "confidence" | "";
+  ageGroup: "6-9" | "10-13" | "14+" | "";
+  notes: string;
+};
+
+export type ProgramSpecificData = BjjSpecific | ArcherySpecific | OutdoorSpecific | BullyproofingSpecific;
+
 export type RegistrationDraft = {
   programSlug: ProgramSlug;
   guardian: {
@@ -18,17 +46,14 @@ export type RegistrationDraft = {
     dateOfBirth: string;
     age: number | null;
     gender: string;
-    priorExperience: string;
     skillLevel: string;
     medicalNotes: string;
   };
   programDetails: {
     sessionId: number | null;
     priceId: number | null;
-    preferredStartDate: string;
-    scheduleChoice: string;
-    siblingEnrollment: boolean;
-    programSpecific: Record<string, unknown>;
+    siblingCount: 0 | 1 | 2;
+    programSpecific: ProgramSpecificData;
   };
   waivers: {
     liabilityWaiver: boolean;
@@ -42,6 +67,13 @@ export type RegistrationDraft = {
     discountCode: string;
   };
 };
+
+function defaultProgramSpecific(slug: ProgramSlug): ProgramSpecificData {
+  if (slug === "bjj") return { gender: "", ageGroup: "", trialClass: "", notes: "" };
+  if (slug === "archery") return { dominantHand: "", experience: "", sessionDate: "", notes: "" };
+  if (slug === "outdoor") return { workshopDate: "", gear: [], notes: "" };
+  return { concernType: "", ageGroup: "", notes: "" };
+}
 
 function createEmptyDraft(programSlug: ProgramSlug): RegistrationDraft {
   return {
@@ -61,17 +93,14 @@ function createEmptyDraft(programSlug: ProgramSlug): RegistrationDraft {
       dateOfBirth: "",
       age: null,
       gender: "",
-      priorExperience: "",
       skillLevel: "",
       medicalNotes: "",
     },
     programDetails: {
       sessionId: null,
       priceId: null,
-      preferredStartDate: "",
-      scheduleChoice: "",
-      siblingEnrollment: false,
-      programSpecific: {},
+      siblingCount: 0,
+      programSpecific: defaultProgramSpecific(programSlug),
     },
     waivers: {
       liabilityWaiver: false,
@@ -87,7 +116,36 @@ function createEmptyDraft(programSlug: ProgramSlug): RegistrationDraft {
   };
 }
 
+const DRAFT_KEY = (slug: ProgramSlug) => `ss-reg-draft-${slug}`;
+
+function loadSavedDraft(slug: ProgramSlug): RegistrationDraft | null {
+  try {
+    const raw = localStorage.getItem(DRAFT_KEY(slug));
+    if (!raw) return null;
+    return JSON.parse(raw) as RegistrationDraft;
+  } catch {
+    return null;
+  }
+}
+
+function saveDraft(slug: ProgramSlug, draft: RegistrationDraft) {
+  try {
+    localStorage.setItem(DRAFT_KEY(slug), JSON.stringify(draft));
+  } catch {
+    // ignore
+  }
+}
+
+function clearDraft(slug: ProgramSlug) {
+  try {
+    localStorage.removeItem(DRAFT_KEY(slug));
+  } catch {
+    // ignore
+  }
+}
+
 export function useRegistration(programSlug: ProgramSlug) {
+  const [hasSavedDraft, setHasSavedDraft] = useState<boolean>(() => !!loadSavedDraft(programSlug));
   const [draft, setDraft] = useState<RegistrationDraft>(() => createEmptyDraft(programSlug));
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
 
@@ -96,11 +154,25 @@ export function useRegistration(programSlug: ProgramSlug) {
   const goTo = useCallback((idx: number) => setCurrentStepIndex(() => Math.max(0, Math.min(idx, 4))), []);
 
   const updateDraft = useCallback((updater: (prev: RegistrationDraft) => RegistrationDraft) => {
-    setDraft((prev) => updater(prev));
-  }, []);
+    setDraft((prev) => {
+      const next = updater(prev);
+      saveDraft(programSlug, next);
+      return next;
+    });
+  }, [programSlug]);
+
+  const resumeDraft = useCallback(() => {
+    const saved = loadSavedDraft(programSlug);
+    if (saved) {
+      setDraft(saved);
+      setHasSavedDraft(false);
+    }
+  }, [programSlug]);
 
   const reset = useCallback(() => {
+    clearDraft(programSlug);
     setDraft(createEmptyDraft(programSlug));
+    setHasSavedDraft(false);
     setCurrentStepIndex(0);
   }, [programSlug]);
 
@@ -119,6 +191,8 @@ export function useRegistration(programSlug: ProgramSlug) {
     draft,
     updateDraft,
     reset,
+    resumeDraft,
+    hasSavedDraft,
     steps,
     currentStepIndex,
     goNext,

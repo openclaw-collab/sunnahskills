@@ -33,7 +33,6 @@ const registrationPayloadSchema = z.object({
     dateOfBirth: z.string().optional().default(""),
     age: z.number().int().nullable().optional(),
     gender: z.string().optional().default(""),
-    priorExperience: z.string().optional().default(""),
     skillLevel: z.string().optional().default(""),
     medicalNotes: z.string().optional().default(""),
   }),
@@ -69,6 +68,75 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
     .first();
   if (!program?.id) return json({ error: "Program not found" }, { status: 404 });
 
+  // Capacity check — if a session is specified, check if it's full
+  if (body.programDetails.sessionId) {
+    const session = await env.DB.prepare(
+      `SELECT capacity, enrolled_count FROM program_sessions WHERE id = ?`,
+    )
+      .bind(body.programDetails.sessionId)
+      .first();
+
+    if (session && session.capacity != null && Number(session.enrolled_count) >= Number(session.capacity)) {
+      // Session is full — register as waitlisted
+      const guardianRes = await env.DB.prepare(
+        `INSERT INTO guardians (full_name, email, phone, emergency_contact_name, emergency_contact_phone, relationship, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, datetime('now'))`,
+      )
+        .bind(
+          body.guardian.fullName,
+          body.guardian.email,
+          body.guardian.phone,
+          body.guardian.emergencyContactName || null,
+          body.guardian.emergencyContactPhone || null,
+          body.guardian.relationship || null,
+        )
+        .run();
+      const guardianId = guardianRes.meta?.last_row_id as number | undefined;
+      if (!guardianId) return json({ error: "Failed to create guardian" }, { status: 500 });
+
+      const studentRes = await env.DB.prepare(
+        `INSERT INTO students (guardian_id, full_name, preferred_name, date_of_birth, age, gender, prior_experience, skill_level, medical_notes, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))`,
+      )
+        .bind(
+          guardianId,
+          body.student.fullName,
+          body.student.preferredName || null,
+          body.student.dateOfBirth || null,
+          body.student.age ?? null,
+          body.student.gender || null,
+          null, // priorExperience removed from schema
+          body.student.skillLevel || null,
+          body.student.medicalNotes || null,
+        )
+        .run();
+      const studentId = studentRes.meta?.last_row_id as number | undefined;
+      if (!studentId) return json({ error: "Failed to create student" }, { status: 500 });
+
+      // Get waitlist position
+      const wlCount = await env.DB.prepare(
+        `SELECT COUNT(*) as cnt FROM registrations WHERE session_id = ? AND status = 'waitlisted'`,
+      )
+        .bind(body.programDetails.sessionId)
+        .first();
+      const position = (Number(wlCount?.cnt ?? 0)) + 1;
+
+      await env.DB.prepare(
+        `INSERT INTO registrations (guardian_id, student_id, program_id, session_id, price_id, status, program_specific_data, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, 'waitlisted', ?, datetime('now'), datetime('now'))`,
+      )
+        .bind(
+          guardianId, studentId, program.id,
+          body.programDetails.sessionId ?? null,
+          body.programDetails.priceId ?? null,
+          JSON.stringify({ ...body.programDetails.programSpecific, guardianNotes: body.guardian.notes || undefined }),
+        )
+        .run();
+
+      return json({ ok: true, waitlisted: true, position });
+    }
+  }
+
   const guardianRes = await env.DB.prepare(
     `
     INSERT INTO guardians (
@@ -95,8 +163,8 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
     `
     INSERT INTO students (
       guardian_id, full_name, preferred_name, date_of_birth, age, gender,
-      prior_experience, skill_level, medical_notes, created_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+      skill_level, medical_notes, created_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
     `,
   )
     .bind(
@@ -106,7 +174,6 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
       body.student.dateOfBirth || null,
       body.student.age ?? null,
       body.student.gender || null,
-      body.student.priorExperience || null,
       body.student.skillLevel || null,
       body.student.medicalNotes || null,
     )

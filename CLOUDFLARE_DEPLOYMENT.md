@@ -52,16 +52,30 @@ wrangler pages deploy dist --project-name=sunnahskills
 
 ## 🌐 API Endpoints
 
+This project uses Cloudflare Pages Functions under `functions/api/*`.
+
 ### Contact Form
 - **POST** `/api/contact` - Submit contact form
-- **GET** `/api/contact` - Get all contacts (admin)
 
-### Registration Form
-- **POST** `/api/registration` - Submit registration
-- **GET** `/api/registration` - Get all registrations (admin)
+### Registration + Payment
+- **POST** `/api/register` - Create registration
+- **POST** `/api/payments/create-intent` - Create Stripe PaymentIntent (one-time)
+- **POST** `/api/payments/create-subscription` - Create Stripe Subscription (BJJ recurring)
+- **POST** `/api/payments/webhook` - Stripe webhook handler
 
-### Health Check
-- **GET** `/api/health` - API health status
+### Admin auth + admin APIs
+- **POST** `/api/auth/login`
+- **POST** `/api/auth/logout`
+- **GET** `/api/auth/me`
+- **GET** `/api/admin/registrations`
+- **GET** `/api/admin/registrations/:id`
+- **PATCH** `/api/admin/registrations/:id`
+- **GET** `/api/admin/payments`
+- **GET** `/api/admin/programs`
+- **PATCH** `/api/admin/programs`
+- **PATCH** `/api/admin/sessions`
+- **GET** `/api/admin/contacts`
+- **GET** `/api/admin/export`
 
 ## 🔄 How It Works
 

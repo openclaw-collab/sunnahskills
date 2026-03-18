@@ -16,25 +16,51 @@ import Schedule from "@/pages/Schedule";
 import Testimonials from "@/pages/Testimonials";
 import Contact from "@/pages/Contact";
 import NotFound from "@/pages/not-found";
-import Admin from "@/pages/Admin";
+import AdminLogin from "@/pages/admin/AdminLogin";
+import AdminDashboard from "@/pages/admin/AdminDashboard";
+import BJJRegistration from "@/pages/registration/BJJRegistration";
+import ArcheryRegistration from "@/pages/registration/ArcheryRegistration";
+import OutdoorRegistration from "@/pages/registration/OutdoorRegistration";
+import BullyproofingRegistration from "@/pages/registration/BullyproofingRegistration";
+import RegistrationSuccess from "@/pages/registration/RegistrationSuccess";
+import RegistrationCancel from "@/pages/registration/RegistrationCancel";
+import RegistrationPending from "@/pages/registration/RegistrationPending";
+import RegistrationWaitlist from "@/pages/registration/RegistrationWaitlist";
+import TechniqueLibrary from "@/pages/TechniqueLibrary";
+import About from "@/pages/About";
+import RegistrationHub from "@/pages/RegistrationHub";
+import { StudioProvider } from "@/studio/StudioProvider";
+import StudioPanel from "@/studio/StudioPanel";
 
 function Router() {
   return (
-    <div className="min-h-screen bg-lightBeige">
+    <div className="min-h-screen bg-cream">
       <Navigation />
       <main>
         <Switch>
           <Route path="/" component={Home} />
           <Route path="/programs" component={Programs} />
+          <Route path="/register" component={RegistrationHub} />
           <Route path="/programs/bjj" component={BJJProgram} />
           <Route path="/programs/archery" component={ArcheryProgram} />
           <Route path="/programs/outdoor" component={OutdoorWorkshopsProgram} />
           <Route path="/programs/bullyproofing" component={BullyproofingProgram} />
+          <Route path="/programs/bjj/register" component={BJJRegistration} />
+          <Route path="/programs/archery/register" component={ArcheryRegistration} />
+          <Route path="/programs/outdoor/register" component={OutdoorRegistration} />
+          <Route path="/programs/bullyproofing/register" component={BullyproofingRegistration} />
+          <Route path="/registration/success" component={RegistrationSuccess} />
+          <Route path="/registration/cancel" component={RegistrationCancel} />
+          <Route path="/registration/pending" component={RegistrationPending} />
+          <Route path="/registration/waitlist" component={RegistrationWaitlist} />
+          <Route path="/techniques" component={TechniqueLibrary} />
+          <Route path="/about" component={About} />
           <Route path="/schedule" component={Schedule} />
 
           <Route path="/testimonials" component={Testimonials} />
           <Route path="/contact" component={Contact} />
-          <Route path="/admin" component={Admin} />
+          <Route path="/admin" component={AdminLogin} />
+          <Route path="/admin/dashboard" component={AdminDashboard} />
           <Route component={NotFound} />
         </Switch>
       </main>
@@ -47,8 +73,11 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <Toaster />
-        <Router />
+        <StudioProvider>
+          <Toaster />
+          <Router />
+          <StudioPanel />
+        </StudioProvider>
       </TooltipProvider>
     </QueryClientProvider>
   );

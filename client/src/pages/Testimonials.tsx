@@ -1,7 +1,9 @@
 import { Link } from "wouter";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Star } from "lucide-react";
+import { PremiumCard } from "@/components/brand/PremiumCard";
+import { SectionHeader } from "@/components/brand/SectionHeader";
+import { ClayButton } from "@/components/brand/ClayButton";
+import { StatusDot } from "@/components/brand/StatusDot";
 
 const Testimonials = () => {
   const testimonials = [
@@ -50,65 +52,73 @@ const Testimonials = () => {
   ];
 
   return (
-    <div className="py-20 bg-white">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-16">
-          <h1 className="font-poppins font-bold text-4xl md:text-5xl text-gray-800 mb-4">
-            What Families Say
-          </h1>
-          <p className="text-xl text-gray-600">
-            Real stories from our Sunnah Skills community
-          </p>
-        </div>
+    <div className="bg-cream min-h-screen pb-24">
+      <div className="noise-overlay" />
+      <main className="max-w-6xl mx-auto px-6 pt-28">
+        <SectionHeader eyebrow="Testimonials" title="What Families Say" className="mb-10" />
+        <p className="font-body text-sm text-charcoal/70 max-w-2xl mb-12">
+          Real notes from parents—how discipline, confidence, and practical skill-building show up at home.
+        </p>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {testimonials.map((testimonial, index) => (
-            <Card key={index} className="bg-lightBeige shadow-lg hover:shadow-xl transition-shadow duration-300">
-              <CardContent className="p-8">
-                <div className="flex items-center mb-6">
-                  <div className={`w-12 h-12 ${testimonial.bgColor} rounded-full flex items-center justify-center`}>
-                    <span className="text-white font-bold text-lg">{testimonial.initials}</span>
+            <PremiumCard key={index} className="bg-white border border-charcoal/10">
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div
+                    className={`w-11 h-11 ${testimonial.bgColor} rounded-full flex items-center justify-center`}
+                    aria-hidden="true"
+                  >
+                    <span className="text-white font-heading text-sm tracking-tight">{testimonial.initials}</span>
                   </div>
-                  <div className="ml-4">
-                    <h4 className="font-semibold text-gray-800">{testimonial.name}</h4>
-                    <p className="text-gray-600 text-sm">Parent of {testimonial.child}</p>
+                  <div>
+                    <div className="font-heading text-lg text-charcoal">{testimonial.name}</div>
+                    <div className="font-body text-xs text-charcoal/60">Parent of {testimonial.child}</div>
                   </div>
                 </div>
-                <p className="text-gray-700 mb-4">
-                  {testimonial.content}
-                </p>
-                <div className="flex text-yellow-400">
+
+                <div className="flex items-center gap-1 text-[#CCB55E]">
                   {[...Array(5)].map((_, i) => (
-                    <Star key={i} size={16} fill="currentColor" />
+                    <Star key={i} size={14} fill="currentColor" />
                   ))}
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+
+              <p className="mt-5 font-body text-sm text-charcoal/70 leading-relaxed">
+                <span className="text-charcoal/50 font-serif-accent text-lg leading-none mr-2">“</span>
+                {testimonial.content}
+                <span className="text-charcoal/50 font-serif-accent text-lg leading-none ml-2">”</span>
+              </p>
+            </PremiumCard>
           ))}
         </div>
 
-        <div className="text-center mt-12">
-          <Card className="bg-primary/10 max-w-2xl mx-auto">
-            <CardContent className="p-8">
-              <h3 className="font-poppins font-bold text-2xl text-gray-800 mb-4">
-                Join Our Community
-              </h3>
-              <p className="text-gray-700 text-lg mb-6">
-                Ready to see your child grow in confidence, skill, and character? 
-                Register today and become part of the Sunnah Skills family.
-              </p>
-              <Link href="/contact">
-                <Button 
-                  size="lg"
-                  className="bg-primary text-white font-semibold transition-all duration-200 transform hover:scale-105"
-                >
-                  Get Started
-                </Button>
-              </Link>
-            </CardContent>
-          </Card>
+        <div className="mt-14">
+          <PremiumCard className="bg-cream border border-charcoal/10">
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+              <div>
+                <div className="flex items-center gap-2 font-mono-label text-[10px] uppercase tracking-[0.18em] text-moss">
+                  <StatusDot ariaLabel="Enrollment open" />
+                  Join our community
+                </div>
+                <h3 className="mt-2 font-heading text-3xl text-charcoal tracking-tight">
+                  Ready to get started?
+                </h3>
+                <p className="mt-3 font-body text-sm text-charcoal/70 max-w-2xl">
+                  Reach out with questions, or pick a program and begin a guided in-app registration.
+                </p>
+              </div>
+              <div className="w-full md:w-auto">
+                <Link href="/contact">
+                  <ClayButton className="w-full md:w-auto px-7 py-3.5 text-[11px] uppercase tracking-[0.18em]">
+                    Get Started
+                  </ClayButton>
+                </Link>
+              </div>
+            </div>
+          </PremiumCard>
         </div>
-      </div>
+      </main>
     </div>
   );
 };

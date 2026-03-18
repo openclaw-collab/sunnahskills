@@ -1,6 +1,12 @@
 node_modules
 dist
 .DS_Store
+.wrangler/
+.omc/
+GrappleMap/
+GrappleMap/preview/node_modules/
+GrappleMap/**/dist/
+Screenshot *.png
 server/public
 vite.config.ts.*
 *.tar.gz

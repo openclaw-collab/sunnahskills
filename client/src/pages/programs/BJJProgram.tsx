@@ -1,179 +1,213 @@
 
 import { Link } from "wouter";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, Clock, Calendar, Award, Heart, Brain, Dumbbell, Shield } from "lucide-react";
+import { ClayButton } from "@/components/brand/ClayButton";
+import { OutlineButton } from "@/components/brand/OutlineButton";
+import { DarkCard } from "@/components/brand/DarkCard";
+import { PremiumCard } from "@/components/brand/PremiumCard";
+import { SectionHeader } from "@/components/brand/SectionHeader";
+import { TelemetryCard } from "@/components/brand/TelemetryCard";
+import { StatusDot } from "@/components/brand/StatusDot";
+import { PROGRAMS } from "@/lib/programConfig";
 
 const BJJProgram = () => {
-  const features = [
-    { icon: <Users size={20} />, text: "Fundamental grappling techniques and positions" },
-    { icon: <Heart size={20} />, text: "Physical fitness and coordination development" },
-    { icon: <Brain size={20} />, text: "Problem-solving skills and mental resilience" },
-    { icon: <Shield size={20} />, text: "Self-defense applications and safety awareness" },
-  ];
-
+  const hero = PROGRAMS.bjj.heroImage;
   const ageGroups = [
-    { group: "Women & Girls (Youth)", age: "5-11 years", time: "45 minutes", focus: "Basic movements, fundamental techniques, confidence building" },
-    { group: "Women & Girls (Teen+)", age: "12+ years", time: "60 minutes", focus: "Advanced techniques, self-defense, leadership development" },
-    { group: "Boys (Youth)", age: "8-13 years", time: "45 minutes", focus: "Fundamental grappling, respect, teamwork" },
-    { group: "Boys (Teen+)", age: "14+ years", time: "60 minutes", focus: "Advanced techniques, competition preparation, mentorship" },
-    { group: "Little Kids Program", age: "Coming Soon", time: "30 minutes", focus: "Basic movements, following instructions, fun introduction to martial arts" },
+    {
+      group: "Women & Girls (Youth)",
+      age: "5-11 years",
+      time: "45 minutes",
+      focus: "Basic movements, fundamental techniques, confidence building",
+    },
+    {
+      group: "Women & Girls (Teen+)",
+      age: "12+ years",
+      time: "60 minutes",
+      focus: "Advanced techniques, self-defense, leadership development",
+    },
+    {
+      group: "Boys (Youth)",
+      age: "8-13 years",
+      time: "45 minutes",
+      focus: "Fundamental grappling, respect, teamwork",
+    },
+    {
+      group: "Boys (Teen+)",
+      age: "14+ years",
+      time: "60 minutes",
+      focus: "Advanced techniques, competition preparation, mentorship",
+    },
+    {
+      group: "Little Kids Program",
+      age: "Coming Soon",
+      time: "30 minutes",
+      focus: "Basic movements, following instructions, fun introduction to martial arts",
+    },
   ];
 
   return (
-    <div className="min-h-screen bg-lightBeige">
-      {/* Hero Section */}
-      <section className="relative bg-gradient-to-r from-primary to-secondary text-white py-20">
-        <div className="absolute inset-0 bg-black/20"></div>
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <h1 className="font-poppins font-bold text-4xl md:text-6xl mb-6">
-              Brazilian Jiu-Jitsu
-            </h1>
-            <p className="text-xl md:text-2xl mb-8 max-w-3xl mx-auto">
-              The gentle art that builds character, confidence, and unshakeable mental toughness through Islamic principles
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button size="lg" className="bg-white text-primary hover:bg-gray-100">
-                <a href="#registration-form">Register Now</a>
-              </Button>
-              <Button size="lg" variant="outline" className="border-white text-white hover:bg-white hover:text-primary">
-                <Link href="/schedule">View Schedule</Link>
-              </Button>
-            </div>
+    <div className="bg-cream min-h-screen">
+      <div className="noise-overlay" />
+
+      {/* HERO */}
+      <header className="relative w-full overflow-hidden">
+        <div className="absolute inset-0">
+          <img
+            src={hero.src}
+            alt={hero.alt}
+            className="w-full h-full object-cover grayscale brightness-75 contrast-125 opacity-80"
+            style={{ objectPosition: hero.objectPosition }}
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/60 to-charcoal" />
+        </div>
+
+        <div className="relative z-10 max-w-6xl mx-auto px-6 pt-28 pb-16 md:pt-36 md:pb-20">
+          <p className="text-clay font-mono-label text-xs uppercase tracking-[0.18em] mb-6 flex items-center gap-2">
+            <StatusDot ariaLabel="Enrollment Open" />
+            Program: Active
+          </p>
+          <h1 className="font-heading text-5xl md:text-7xl tracking-tight text-cream leading-none">
+            Brazilian Jiu-Jitsu
+          </h1>
+          <p className="mt-8 text-cream/70 font-body text-sm md:text-base max-w-2xl leading-relaxed">
+            The gentle art that builds character, confidence, and unshakeable mental toughness through Islamic
+            principles.
+          </p>
+
+          <div className="mt-12 flex flex-col sm:flex-row gap-4">
+            <Link href="/programs/bjj/register">
+              <ClayButton className="px-8 py-3.5 text-[11px] uppercase tracking-[0.18em]">
+                Register Now
+              </ClayButton>
+            </Link>
+            <Link href="/schedule">
+              <OutlineButton className="px-8 py-3.5 text-[11px] uppercase tracking-[0.18em] border-cream/20 text-cream hover:bg-cream/10">
+                View Schedule
+              </OutlineButton>
+            </Link>
           </div>
         </div>
-      </section>
+      </header>
 
-      {/* Program Overview */}
-      <section className="py-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid md:grid-cols-2 gap-12 items-center">
-            <div>
-              <h2 className="font-poppins font-bold text-3xl md:text-4xl text-primary mb-6">
-                The Gentle Art
-              </h2>
-              <p className="text-lg text-gray-700 mb-6">
-                Brazilian Jiu-Jitsu is more than just a martial art—it's a tool for developing the complete person. 
-                Through the practice of grappling, leverage, and technique over strength, students learn valuable life 
+      {/* OVERVIEW */}
+      <section className="py-20">
+        <div className="max-w-6xl mx-auto px-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-start">
+            <div className="space-y-6">
+              <SectionHeader eyebrow="Overview" title="The Gentle Art" />
+              <p className="font-body text-charcoal/70 leading-relaxed">
+                Brazilian Jiu-Jitsu is more than just a martial art—it&apos;s a tool for developing the complete person.
+                Through the practice of grappling, leverage, and technique over strength, students learn valuable life
                 lessons about perseverance, problem-solving, and maintaining composure under pressure.
               </p>
-              <p className="text-lg text-gray-700 mb-8">
-                Our program integrates Islamic values of respect, discipline, and community while teaching practical 
+              <p className="font-body text-charcoal/70 leading-relaxed">
+                Our program integrates Islamic values of respect, discipline, and community while teaching practical
                 self-defense skills that build confidence and character in young Muslims.
               </p>
-              
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {features.map((feature, index) => (
-                  <div key={index} className="flex items-center gap-3 p-3 bg-white rounded-lg shadow-sm">
-                    <div className="text-primary">{feature.icon}</div>
-                    <span className="text-gray-700">{feature.text}</span>
-                  </div>
-                ))}
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+                <TelemetryCard title="Technique First" label="principle">
+                  Leverage over strength. Calm under pressure.
+                </TelemetryCard>
+                <TelemetryCard title="Character Built In" label="ethos">
+                  Respect, discipline, and community accountability.
+                </TelemetryCard>
               </div>
             </div>
-            
-            <div className="relative">
-              <img
-                src="https://images.unsplash.com/photo-1555597408-4e8d5d1e2f82?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=800&h=600"
-                alt="Children practicing Brazilian Jiu-Jitsu"
-                className="rounded-lg shadow-lg w-full h-[400px] object-cover"
-              />
-            </div>
+
+            <DarkCard>
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-3">
+                  <StatusDot ariaLabel="Training Block" />
+                  <span className="font-mono-label text-[11px] text-cream/70 uppercase tracking-[0.2em]">
+                    Training Block
+                  </span>
+                </div>
+              </div>
+              <div className="rounded-2xl border border-moss/25 bg-charcoal/40 p-6 text-cream/80">
+                <div className="grid grid-cols-2 gap-4 text-xs">
+                  <div>
+                    <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-cream/50">
+                      Focus
+                    </div>
+                    <div className="mt-1">Safety • Fundamentals • Confidence</div>
+                  </div>
+                  <div>
+                    <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-cream/50">
+                      Model
+                    </div>
+                    <div className="mt-1">Recurring enrollment</div>
+                  </div>
+                </div>
+              </div>
+            </DarkCard>
           </div>
         </div>
       </section>
 
-      {/* Age Groups */}
-      <section className="py-16 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <h2 className="font-poppins font-bold text-3xl md:text-4xl text-primary mb-4">
-              Age-Appropriate Programs
-            </h2>
-            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              Each age group has specially designed curriculum that matches their developmental stage and learning capacity
-            </p>
+      {/* AGE GROUPS */}
+      <section className="py-20 bg-white border-y border-charcoal/5">
+        <div className="max-w-6xl mx-auto px-6">
+          <div className="flex items-end justify-between gap-6 flex-wrap">
+            <SectionHeader eyebrow="Tracks" title="Age-Appropriate Programs" />
+            <Link href="/programs/bjj/register">
+              <ClayButton className="text-[11px] uppercase tracking-[0.18em] px-6 py-3">
+                Start Registration
+              </ClayButton>
+            </Link>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8">
-            {ageGroups.map((group, index) => (
-              <Card key={index} className="h-full">
-                <CardHeader className="text-center">
-                  <CardTitle className="text-primary text-xl">{group.group}</CardTitle>
-                  <div className="text-2xl font-bold text-secondary">{group.age}</div>
-                  <div className="flex items-center justify-center gap-2 text-gray-600">
-                    <Clock size={16} />
-                    <span>{group.time}</span>
+          <div className="mt-10 grid grid-cols-1 md:grid-cols-2 gap-6">
+            {ageGroups.map((group) => (
+              <PremiumCard key={group.group} className="bg-white border border-charcoal/10">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-charcoal/50">
+                      {group.age}
+                    </div>
+                    <div className="mt-1 font-heading text-xl text-charcoal">{group.group}</div>
                   </div>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-gray-700 text-center">{group.focus}</p>
-                </CardContent>
-              </Card>
+                  <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-moss">
+                    {group.time}
+                  </div>
+                </div>
+                <p className="mt-4 font-body text-sm text-charcoal/70 leading-relaxed">{group.focus}</p>
+              </PremiumCard>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Registration Form */}
-      <section id="registration-form" className="py-16 bg-lightBeige">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <h2 className="font-poppins font-bold text-3xl md:text-4xl text-primary mb-4">
-              Register for BJJ Program
-            </h2>
-            <p className="text-lg text-gray-600">
-              Ready to start your child's Brazilian Jiu-Jitsu journey? Fill out our registration form below.
-            </p>
-          </div>
-
-          <Card className="max-w-2xl mx-auto">
-            <CardContent className="p-8">
-              <div className="text-center">
-                <h3 className="text-xl font-semibold text-primary mb-4">
-                  Complete Registration Online
-                </h3>
-                <p className="text-gray-600 mb-6">
-                  Click the button below to access our secure online registration form for the Brazilian Jiu-Jitsu program.
-                </p>
-                <Button size="lg" className="w-full sm:w-auto">
-                  <a 
-                    href="https://forms.google.com/bjj-registration" 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-2"
-                  >
-                    <Award size={20} />
-                    Register for BJJ Program
-                  </a>
-                </Button>
-                <p className="text-sm text-gray-500 mt-4">
-                  You'll be redirected to a secure Google Form to complete your registration
+      {/* CTA */}
+      <section className="py-20">
+        <div className="max-w-6xl mx-auto px-6">
+          <PremiumCard className="bg-cream">
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+              <div>
+                <div className="font-mono-label text-[10px] uppercase tracking-[0.2em] text-moss">
+                  Next step
+                </div>
+                <h2 className="mt-2 font-heading text-3xl md:text-4xl tracking-tight text-charcoal">
+                  Begin the training with a guided registration.
+                </h2>
+                <p className="mt-4 font-body text-charcoal/70 max-w-2xl">
+                  Complete a structured enrollment flow, select the right session, sign waivers, and handle payment
+                  in-app.
                 </p>
               </div>
-            </CardContent>
-          </Card>
-        </div>
-      </section>
-
-      {/* Call to Action */}
-      <section className="py-16 bg-primary text-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="font-poppins font-bold text-3xl md:text-4xl mb-4">
-            Questions About Our BJJ Program?
-          </h2>
-          <p className="text-xl mb-8 max-w-2xl mx-auto">
-            We're here to help! Contact us for more information about class schedules, pricing, or what to expect.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button size="lg" variant="outline" className="border-white text-white hover:bg-white hover:text-primary">
-              <Link href="/contact">Contact Us</Link>
-            </Button>
-            <Button size="lg" className="bg-white text-primary hover:bg-gray-100">
-              <Link href="/schedule">View Full Schedule</Link>
-            </Button>
-          </div>
+              <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+                <Link href="/programs/bjj/register">
+                  <ClayButton className="w-full md:w-auto px-7 py-3.5 text-[11px] uppercase tracking-[0.18em]">
+                    Register Now
+                  </ClayButton>
+                </Link>
+                <Link href="/contact">
+                  <OutlineButton className="w-full md:w-auto px-7 py-3.5 text-[11px] uppercase tracking-[0.18em]">
+                    Contact Us
+                  </OutlineButton>
+                </Link>
+              </div>
+            </div>
+          </PremiumCard>
         </div>
       </section>
     </div>

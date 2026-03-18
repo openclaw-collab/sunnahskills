@@ -4,5 +4,11 @@ pages_build_output_dir = "dist"
 
 [[d1_databases]]
 binding = "DB"
-database_name = "sunnahskills-admin"
-database_id = "f337006b-a41a-42de-80ae-d9f9b98ec0e3" 
+database_name = "sunnahskills-admin-v2"
+database_id = "fddf00dc-3281-4fd7-aa5f-fe618ae6d376"
+
+[vars]
+# Non-secret vars (set here for local dev / defaults)
+SITE_URL = "http://localhost:8788"
+EMAIL_FROM = "noreply@sunnahskills.pages.dev"
+EMAIL_TO = "mysunnahskill@gmail.com"

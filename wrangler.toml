@@ -5,7 +5,7 @@ pages_build_output_dir = "dist"
 [[d1_databases]]
 binding = "DB"
 database_name = "sunnahskills-admin-v2"
-database_id = "fddf00dc-3281-4fd7-aa5f-fe618ae6d376"
+database_id = "fc0a958f-4bfe-487f-845f-bce49d4715d5"
 
 [vars]
 # Non-secret vars (set here for local dev / defaults)

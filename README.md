@@ -159,12 +159,21 @@ database_id = "fc0a958f-4bfe-487f-845f-bce49d4715d5"
 
 ## Key docs
 
-- **[docs/architecture.md](docs/architecture.md)** — System design, data flow, component map
-- **[docs/registration.md](docs/registration.md)** — Full registration + payment flow
-- **[docs/studio.md](docs/studio.md)** — Stakeholder Studio (shared review sessions)
+### Architecture & development
+- **[docs/architecture.md](docs/architecture.md)** — System overview, tech stack, all data flows
+- **[docs/frontend.md](docs/frontend.md)** — React architecture, design system, routing, Stripe client, testing
+- **[docs/backend.md](docs/backend.md)** — Pages Functions, D1 access patterns, Stripe server-side, error conventions
+- **[docs/security.md](docs/security.md)** — Auth model, payment security, PII storage, known gaps
+- **[docs/roadmap.md](docs/roadmap.md)** — Planned features, known gaps, technical debt
+
+### Feature guides
+- **[docs/registration.md](docs/registration.md)** — Full registration + payment flow, per-program fields
+- **[docs/studio.md](docs/studio.md)** — Stakeholder Studio setup and usage
 - **[docs/admin.md](docs/admin.md)** — Admin dashboard setup and usage
-- **[docs/stripe.md](docs/stripe.md)** — Stripe setup (keys, webhook, subscriptions)
-- **[docs/email.md](docs/email.md)** — MailChannels email setup
-- **[docs/d1-setup.md](docs/d1-setup.md)** — D1 database setup + migration
+
+### Setup & deployment
+- **[docs/local-dev.md](docs/local-dev.md)** — Full local dev with wrangler + D1 + Stripe CLI
 - **[docs/cloudflare-deploy.md](docs/cloudflare-deploy.md)** — Deployment guide
-- **[docs/local-dev.md](docs/local-dev.md)** — Full local dev with wrangler
+- **[docs/d1-setup.md](docs/d1-setup.md)** — D1 database setup + migration
+- **[docs/stripe.md](docs/stripe.md)** — Stripe keys, webhook, subscriptions
+- **[docs/email.md](docs/email.md)** — MailChannels email setup

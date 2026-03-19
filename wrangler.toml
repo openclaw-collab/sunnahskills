@@ -2,18 +2,47 @@ name = "sunnahskills"
 compatibility_date = "2024-01-01"
 pages_build_output_dir = "dist"
 
+# Local development defaults
 [[d1_databases]]
 binding = "DB"
 database_name = "sunnahskills-admin-v2"
 database_id = "fc0a958f-4bfe-487f-845f-bce49d4715d5"
 
-# R2 bucket for Studio image uploads (enable R2 in Cloudflare Dashboard first)
 [[r2_buckets]]
 binding = "STUDIO_UPLOADS"
 bucket_name = "sunnahskills-studio-uploads"
 
 [vars]
-# Non-secret vars (set here for local dev / defaults)
 SITE_URL = "http://localhost:8788"
+EMAIL_FROM = "noreply@sunnahskills.pages.dev"
+EMAIL_TO = "mysunnahskill@gmail.com"
+
+# ─── Production environment (main branch → sunnahskills-admin) ────────────────
+[[env.production.d1_databases]]
+binding = "DB"
+database_name = "sunnahskills-admin"
+database_id = "f337006b-a41a-42de-80ae-d9f9b98ec0e3"
+
+[[env.production.r2_buckets]]
+binding = "STUDIO_UPLOADS"
+bucket_name = "sunnahskills-studio-uploads"
+
+[env.production.vars]
+SITE_URL = "https://sunnahskills.com"
+EMAIL_FROM = "noreply@sunnahskills.com"
+EMAIL_TO = "mysunnahskill@gmail.com"
+
+# ─── Preview environment (prototype branch → sunnahskills-admin-v2) ───────────
+[[env.preview.d1_databases]]
+binding = "DB"
+database_name = "sunnahskills-admin-v2"
+database_id = "fc0a958f-4bfe-487f-845f-bce49d4715d5"
+
+[[env.preview.r2_buckets]]
+binding = "STUDIO_UPLOADS"
+bucket_name = "sunnahskills-studio-uploads"
+
+[env.preview.vars]
+SITE_URL = "https://prototype.sunnahskills.pages.dev"
 EMAIL_FROM = "noreply@sunnahskills.pages.dev"
 EMAIL_TO = "mysunnahskill@gmail.com"

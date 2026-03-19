@@ -100,7 +100,7 @@ const Contact = () => {
           href="mailto:mysunnahskill@gmail.com" 
           className="text-moss hover:text-charcoal transition-colors duration-200"
         >
-          mysunnahskill@gmail.com
+          <StudioText k="contact.email" defaultText="mysunnahskill@gmail.com" as="span" className="inline" />
         </a>
       ),
     },
@@ -113,13 +113,17 @@ const Contact = () => {
           rel="noopener noreferrer"
           className="text-moss hover:text-charcoal transition-colors duration-200"
         >
-          @sunnahskills
+          <StudioText k="contact.phone" defaultText="@sunnahskills" as="span" className="inline" />
         </a>
       ),
     },
     {
       title: "Response Time",
-      content: <p className="text-charcoal/70">We typically respond within 24 hours</p>,
+      content: (
+        <p className="text-charcoal/70">
+          <StudioText k="contact.hours" defaultText="We typically respond within 24 hours" as="span" className="inline" />
+        </p>
+      ),
     },
   ];
 
@@ -147,6 +151,7 @@ const Contact = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Contact Information */}
           <PremiumCard className="bg-white border border-charcoal/10 space-y-6">
+            <StudioBlock id="contact.info" label="Contact info" page="Contact">
             <div className="flex items-center gap-2 font-mono-label text-[10px] uppercase tracking-[0.18em] text-moss">
               <StatusDot ariaLabel="Contact channels" />
               Contact Channels
@@ -207,11 +212,17 @@ const Contact = () => {
               </div>
               <div className="grid grid-cols-[auto,1fr] gap-x-4 gap-y-1 font-body text-sm text-charcoal/80">
                 <span className="font-semibold">Main Location:</span>
-                <span>918 Dundas St E</span>
+                <span>
+                  <StudioText k="contact.address" defaultText="918 Dundas St E" as="span" className="inline" />
+                </span>
                 <span className="font-semibold">Archery:</span>
-                <span>E.T. Seaton Range</span>
+                <span>
+                  <StudioText k="contact.address.archery" defaultText="E.T. Seaton Range" as="span" className="inline" />
+                </span>
                 <span className="font-semibold">Outdoor Program:</span>
-                <span className="text-moss font-semibold">Coming Soon</span>
+                <span className="text-moss font-semibold">
+                  <StudioText k="contact.address.outdoor" defaultText="Coming Soon" as="span" className="inline" />
+                </span>
               </div>
             </div>
 
@@ -225,6 +236,7 @@ const Contact = () => {
                 <li>• Honest guidance if a program is or isn&apos;t the right fit</li>
               </ul>
             </div>
+            </StudioBlock>
           </PremiumCard>
 
           {/* Contact Form */}

@@ -6,6 +6,7 @@ import { DarkCard } from "@/components/brand/DarkCard";
 import { PremiumCard } from "@/components/brand/PremiumCard";
 import { SectionHeader } from "@/components/brand/SectionHeader";
 import { StudioBlock } from "@/studio/StudioBlock";
+import { StudioText } from "@/studio/StudioText";
 
 type ScheduleRow = { day: string; time: string; program: string; ages: string; slug: string };
 
@@ -34,25 +35,35 @@ const mixedPrograms: MixedRow[] = [
 
 const monthDays = Array.from({ length: 31 }, (_, i) => i + 1);
 
-function ScheduleRow({ row }: { row: ScheduleRow }) {
+function ScheduleRow({ row, scope, index }: { row: ScheduleRow; scope: "boys" | "girls"; index: number }) {
   return (
-    <div className="flex items-center justify-between gap-4 rounded-xl border border-charcoal/8 bg-cream px-4 py-3 hover:bg-charcoal/[0.03] transition-colors group">
-      <div className="flex items-center gap-4 min-w-0">
-        <div className="flex-none">
-          <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-charcoal/50">{row.day}</div>
-          <div className="font-mono-label text-[11px] text-charcoal/80 mt-0.5">{row.time}</div>
+    <StudioBlock id={`schedule.${row.slug}.${scope}.${index}`} label={`${row.program} ${scope}`} page="Schedule">
+      <div className="flex items-center justify-between gap-4 rounded-xl border border-charcoal/8 bg-cream px-4 py-3 hover:bg-charcoal/[0.03] transition-colors group">
+        <div className="flex items-center gap-4 min-w-0">
+          <div className="flex-none">
+            <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-charcoal/50">
+              <StudioText k={`schedule.${row.slug}.${scope}.${index}.day`} defaultText={row.day} as="span" className="inline" />
+            </div>
+            <div className="font-mono-label text-[11px] text-charcoal/80 mt-0.5">
+              <StudioText k={`schedule.${row.slug}.${scope}.${index}.time`} defaultText={row.time} as="span" className="inline" />
+            </div>
+          </div>
+          <div className="min-w-0">
+            <div className="font-body text-sm text-charcoal truncate">
+              <StudioText k={`schedule.${row.slug}.${scope}.${index}.program`} defaultText={row.program} as="span" className="inline" />
+            </div>
+            <div className="font-mono-label text-[9px] uppercase tracking-[0.15em] text-charcoal/40 mt-0.5">
+              <StudioText k={`schedule.${row.slug}.${scope}.${index}.ages`} defaultText={`Ages ${row.ages}`} as="span" className="inline" />
+            </div>
+          </div>
         </div>
-        <div className="min-w-0">
-          <div className="font-body text-sm text-charcoal truncate">{row.program}</div>
-          <div className="font-mono-label text-[9px] uppercase tracking-[0.15em] text-charcoal/40 mt-0.5">Ages {row.ages}</div>
-        </div>
+        <Link href={`/programs/${row.slug}/register`}>
+          <span className="flex-none font-mono-label text-[9px] uppercase tracking-[0.15em] text-clay opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+            Register →
+          </span>
+        </Link>
       </div>
-      <Link href={`/programs/${row.slug}/register`}>
-        <span className="flex-none font-mono-label text-[9px] uppercase tracking-[0.15em] text-clay opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-          Register →
-        </span>
-      </Link>
-    </div>
+    </StudioBlock>
   );
 }
 
@@ -72,8 +83,13 @@ const Schedule = () => {
             className="mb-6"
           />
           <p className="font-body text-sm text-charcoal/70 max-w-2xl leading-relaxed">
-            Find the perfect class for you and your family. All classes are held at our training locations.
-            Seasonal programs and workshops may vary by date.
+            <StudioText
+              k="schedule.header.description"
+              defaultText="Find the perfect class for you and your family. All classes are held at our training locations. Seasonal programs and workshops may vary by date."
+              as="span"
+              className="inline"
+              multiline
+            />
           </p>
         </header>
       </StudioBlock>
@@ -87,10 +103,10 @@ const Schedule = () => {
               <AlertCircle className="text-clay mt-0.5 flex-none" size={16} />
               <div>
                 <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-clay">
-                  Classes Currently On Break
+                  <StudioText k="schedule.break.title" defaultText="Classes Currently On Break" as="span" className="inline" />
                 </div>
                 <p className="font-body text-sm text-charcoal/75 mt-1">
-                  Classes resume Monday, March 31st, 2026.
+                  <StudioText k="schedule.break.description" defaultText="Classes resume Monday, March 31st, 2026." as="span" className="inline" />
                 </p>
               </div>
             </div>
@@ -120,74 +136,90 @@ const Schedule = () => {
           {view === "weekly" ? (
             <div className="space-y-6">
               {/* Boys */}
-              <PremiumCard className="bg-white border border-charcoal/10">
-                <div className="flex items-center gap-2 mb-5">
-                  <div className="w-2 h-2 rounded-full bg-moss" />
-                  <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-moss">
-                    Boys' Classes
+              <StudioBlock id="schedule.bjj" label="BJJ" page="Schedule">
+                <PremiumCard className="bg-white border border-charcoal/10">
+                  <div className="flex items-center gap-2 mb-5">
+                    <div className="w-2 h-2 rounded-full bg-moss" />
+                    <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-moss">
+                      <StudioText k="schedule.bjj.boys.title" defaultText="Boys' Classes" as="span" className="inline" />
+                    </div>
                   </div>
-                </div>
-                <div className="space-y-2">
-                  {boysSchedule.map((row, i) => (
-                    <ScheduleRow key={i} row={row} />
-                  ))}
-                </div>
-              </PremiumCard>
+                  <div className="space-y-2">
+                    {boysSchedule.map((row, i) => (
+                      <ScheduleRow key={i} row={row} scope="boys" index={i} />
+                    ))}
+                  </div>
+                </PremiumCard>
+              </StudioBlock>
 
               {/* Girls */}
-              <PremiumCard className="bg-white border border-charcoal/10">
-                <div className="flex items-center gap-2 mb-5">
-                  <div className="w-2 h-2 rounded-full bg-clay" />
-                  <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-clay">
-                    Girls' Classes
+              <StudioBlock id="schedule.bjj.girls" label="Girls" page="Schedule">
+                <PremiumCard className="bg-white border border-charcoal/10">
+                  <div className="flex items-center gap-2 mb-5">
+                    <div className="w-2 h-2 rounded-full bg-clay" />
+                    <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-clay">
+                      <StudioText k="schedule.bjj.girls.title" defaultText="Girls' Classes" as="span" className="inline" />
+                    </div>
                   </div>
-                </div>
-                <div className="space-y-2">
-                  {girlsSchedule.map((row, i) => (
-                    <ScheduleRow key={i} row={row} />
-                  ))}
-                </div>
-              </PremiumCard>
+                  <div className="space-y-2">
+                    {girlsSchedule.map((row, i) => (
+                      <ScheduleRow key={i} row={row} scope="girls" index={i} />
+                    ))}
+                  </div>
+                </PremiumCard>
+              </StudioBlock>
 
               {/* Mixed */}
-              <PremiumCard className="bg-white border border-charcoal/10">
-                <div className="flex items-center gap-2 mb-5">
-                  <div className="w-2 h-2 rounded-full bg-charcoal/40" />
-                  <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-charcoal/50">
-                    Mixed Programs — Boys &amp; Girls
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  {mixedPrograms.map((row, i) => (
-                    <div key={i} className="flex items-center justify-between gap-4 rounded-xl border border-charcoal/8 bg-cream px-4 py-3 hover:bg-charcoal/[0.03] transition-colors group">
-                      <div className="flex items-center gap-4 min-w-0">
-                        <div className="flex-none">
-                          <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-charcoal/50">{row.day}</div>
-                          <div className="font-mono-label text-[11px] text-charcoal/80 mt-0.5">{row.time}</div>
-                        </div>
-                        <div className="min-w-0">
-                          <div className="font-body text-sm text-charcoal truncate">{row.program}</div>
-                          <div className="font-mono-label text-[9px] uppercase tracking-[0.15em] text-charcoal/40 mt-0.5">
-                            Ages {row.ages} · {row.frequency}
-                          </div>
-                        </div>
-                      </div>
-                      <Link href={`/programs/${row.slug}/register`}>
-                        <span className="flex-none font-mono-label text-[9px] uppercase tracking-[0.15em] text-clay opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-                          Register →
-                        </span>
-                      </Link>
+              <StudioBlock id="schedule.mixed" label="Mixed Programs" page="Schedule">
+                <PremiumCard className="bg-white border border-charcoal/10">
+                  <div className="flex items-center gap-2 mb-5">
+                    <div className="w-2 h-2 rounded-full bg-charcoal/40" />
+                    <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-charcoal/50">
+                      <StudioText k="schedule.mixed.title" defaultText="Mixed Programs - Boys & Girls" as="span" className="inline" />
                     </div>
-                  ))}
-                </div>
-              </PremiumCard>
+                  </div>
+                  <div className="space-y-2">
+                    {mixedPrograms.map((row, i) => (
+                      <StudioBlock id={`schedule.${row.slug}.mixed.${i}`} label={row.program} page="Schedule" key={i}>
+                        <div className="flex items-center justify-between gap-4 rounded-xl border border-charcoal/8 bg-cream px-4 py-3 hover:bg-charcoal/[0.03] transition-colors group">
+                          <div className="flex items-center gap-4 min-w-0">
+                            <div className="flex-none">
+                              <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-charcoal/50">
+                                <StudioText k={`schedule.${row.slug}.mixed.${i}.day`} defaultText={row.day} as="span" className="inline" />
+                              </div>
+                              <div className="font-mono-label text-[11px] text-charcoal/80 mt-0.5">
+                                <StudioText k={`schedule.${row.slug}.mixed.${i}.time`} defaultText={row.time} as="span" className="inline" />
+                              </div>
+                            </div>
+                            <div className="min-w-0">
+                              <div className="font-body text-sm text-charcoal truncate">
+                                <StudioText k={`schedule.${row.slug}.mixed.${i}.program`} defaultText={row.program} as="span" className="inline" />
+                              </div>
+                              <div className="font-mono-label text-[9px] uppercase tracking-[0.15em] text-charcoal/40 mt-0.5">
+                                <StudioText k={`schedule.${row.slug}.mixed.${i}.meta`} defaultText={`Ages ${row.ages} · ${row.frequency}`} as="span" className="inline" />
+                              </div>
+                            </div>
+                          </div>
+                          <Link href={`/programs/${row.slug}/register`}>
+                            <span className="flex-none font-mono-label text-[9px] uppercase tracking-[0.15em] text-clay opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                              Register →
+                            </span>
+                          </Link>
+                        </div>
+                      </StudioBlock>
+                    ))}
+                  </div>
+                </PremiumCard>
+              </StudioBlock>
             </div>
           ) : (
             <PremiumCard className="bg-white border border-charcoal/10">
               <div className="flex items-center justify-between mb-4">
-                <div className="font-heading text-lg text-charcoal">March 2026</div>
+                <div className="font-heading text-lg text-charcoal">
+                  <StudioText k="schedule.monthly.title" defaultText="March 2026" as="span" className="inline" />
+                </div>
                 <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-charcoal/40">
-                  Monthly view
+                  <StudioText k="schedule.monthly.label" defaultText="Monthly view" as="span" className="inline" />
                 </div>
               </div>
               <div className="grid grid-cols-7 gap-2 text-[10px] font-mono-label uppercase tracking-[0.12em] text-charcoal/40 mb-2">
@@ -213,14 +245,16 @@ const Schedule = () => {
                     {day === 31 ? (
                       <div className="mt-1 space-y-0.5">
                         <div className="rounded bg-moss/15 px-1 py-0.5 text-[8px] text-charcoal leading-tight">
-                          Women's BJJ
+                          <StudioText k="schedule.monthly.day31.women" defaultText="Women's BJJ" as="span" className="inline" />
                         </div>
                         <div className="rounded bg-clay/15 px-1 py-0.5 text-[8px] text-charcoal leading-tight">
-                          Kids BJJ (Boys)
+                          <StudioText k="schedule.monthly.day31.boys" defaultText="Kids BJJ (Boys)" as="span" className="inline" />
                         </div>
                       </div>
                     ) : (
-                      <div className="mt-auto text-[8px] text-charcoal/30 leading-tight">Break</div>
+                      <div className="mt-auto text-[8px] text-charcoal/30 leading-tight">
+                        <StudioText k="schedule.monthly.break" defaultText="Break" as="span" className="inline" />
+                      </div>
                     )}
                   </div>
                 ))}
@@ -235,7 +269,13 @@ const Schedule = () => {
                 <div className="flex items-start gap-3">
                   <AlertCircle className="text-clay mt-0.5 flex-none" size={16} />
                   <p className="font-body text-sm text-charcoal/70">
-                    Classes may be adjusted based on weather conditions. Indoor alternatives are available when needed.
+                    <StudioText
+                      k="schedule.alert.weather"
+                      defaultText="Classes may be adjusted based on weather conditions. Indoor alternatives are available when needed."
+                      as="span"
+                      className="inline"
+                      multiline
+                    />
                   </p>
                 </div>
               </PremiumCard>
@@ -249,13 +289,19 @@ const Schedule = () => {
         <div className="max-w-6xl mx-auto px-6 mt-12">
           <DarkCard className="rounded-3xl text-center py-12">
             <div className="font-mono-label text-[10px] uppercase tracking-[0.25em] text-moss mb-4">
-              Questions
+              <StudioText k="schedule.cta.eyebrow" defaultText="Questions" as="span" className="inline" />
             </div>
             <h2 className="font-heading text-2xl text-cream mb-3">
-              Have Questions About Our Schedule?
+              <StudioText k="schedule.cta.title" defaultText="Have Questions About Our Schedule?" as="span" className="inline" />
             </h2>
             <p className="font-body text-sm text-cream/60 max-w-md mx-auto mb-8">
-              Contact us for more information about class times, registration, or to schedule a trial session.
+              <StudioText
+                k="schedule.cta.description"
+                defaultText="Contact us for more information about class times, registration, or to schedule a trial session."
+                as="span"
+                className="inline"
+                multiline
+              />
             </p>
             <Link href="/contact">
               <ClayButton className="px-8 py-3.5 text-[11px] uppercase tracking-[0.18em]">

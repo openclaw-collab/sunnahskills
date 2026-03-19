@@ -145,9 +145,21 @@ function CoachCard({ coach }: { coach: (typeof coaches)[number] }) {
     <PremiumCard className="bg-white border border-charcoal/10">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <div className="font-heading text-xl text-charcoal">{coach.name}</div>
+          <div className="font-heading text-xl text-charcoal">
+            <StudioText
+              k={`about.coaches.card.${coach.key}.name`}
+              defaultText={coach.name}
+              as="span"
+              className="inline"
+            />
+          </div>
           <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-moss mt-1">
-            {coach.role}
+            <StudioText
+              k={`about.coaches.card.${coach.key}.role`}
+              defaultText={coach.role}
+              as="span"
+              className="inline"
+            />
           </div>
         </div>
         <button
@@ -158,35 +170,79 @@ function CoachCard({ coach }: { coach: (typeof coaches)[number] }) {
           {open ? "Less ↑" : "More ↓"}
         </button>
       </div>
-      <p className="mt-3 font-body text-sm text-charcoal/70">{coach.bio}</p>
+      <p className="mt-3 font-body text-sm text-charcoal/70">
+        <StudioText
+          k={`about.coaches.card.${coach.key}.bio`}
+          defaultText={coach.bio}
+          as="span"
+          className="inline"
+          multiline
+        />
+      </p>
       {open && (
         <div className="mt-4 space-y-3 border-t border-charcoal/10 pt-4">
           <div>
             <div className="font-mono-label text-[9px] uppercase tracking-[0.18em] text-charcoal/40 mb-1">
-              Achievements
+              <StudioText
+                k={`about.coaches.card.${coach.key}.achievementsLabel`}
+                defaultText="Achievements"
+                as="span"
+                className="inline"
+              />
             </div>
-            <p className="font-body text-xs text-charcoal/70">{coach.achievements}</p>
+            <p className="font-body text-xs text-charcoal/70">
+              <StudioText
+                k={`about.coaches.card.${coach.key}.achievements`}
+                defaultText={coach.achievements}
+                as="span"
+                className="inline"
+                multiline
+              />
+            </p>
           </div>
           <div>
             <div className="font-mono-label text-[9px] uppercase tracking-[0.18em] text-charcoal/40 mb-1">
-              Specialties
+              <StudioText
+                k={`about.coaches.card.${coach.key}.specialtiesLabel`}
+                defaultText="Specialties"
+                as="span"
+                className="inline"
+              />
             </div>
             <div className="flex flex-wrap gap-2">
-              {coach.specialties.map((s) => (
+              {coach.specialties.map((s, i) => (
                 <span
                   key={s}
                   className="inline-flex items-center rounded-full border border-charcoal/10 px-2 py-1 text-[10px] font-mono-label uppercase tracking-[0.12em] text-charcoal/60"
                 >
-                  {s}
+                  <StudioText
+                    k={`about.coaches.card.${coach.key}.specialties.${i}`}
+                    defaultText={s}
+                    as="span"
+                    className="inline"
+                  />
                 </span>
               ))}
             </div>
           </div>
           <div>
             <div className="font-mono-label text-[9px] uppercase tracking-[0.18em] text-charcoal/40 mb-1">
-              Fun Fact
+              <StudioText
+                k={`about.coaches.card.${coach.key}.funFactLabel`}
+                defaultText="Fun Fact"
+                as="span"
+                className="inline"
+              />
             </div>
-            <p className="font-body text-xs text-charcoal/60 italic">{coach.funFact}</p>
+            <p className="font-body text-xs text-charcoal/60 italic">
+              <StudioText
+                k={`about.coaches.card.${coach.key}.funFact`}
+                defaultText={coach.funFact}
+                as="span"
+                className="inline"
+                multiline
+              />
+            </p>
           </div>
         </div>
       )}
@@ -203,13 +259,13 @@ export default function About() {
       <StudioBlock id="about.header" label="Header" page="About">
         <main className="max-w-6xl mx-auto px-6 pt-28 pb-16">
           <SectionHeader
-            eyebrow={<StudioText k="about.eyebrow" defaultText="About the Academy" as="span" className="inline" />}
-            title={<StudioText k="about.title" defaultText="The Sunnah Skills Philosophy" as="span" className="inline" />}
+            eyebrow={<StudioText k="about.header.eyebrow" defaultText="About the Academy" as="span" className="inline" />}
+            title={<StudioText k="about.header.title" defaultText="The Sunnah Skills Philosophy" as="span" className="inline" />}
             className="mb-6"
           />
           <p className="font-body text-sm text-charcoal/70 max-w-2xl leading-relaxed">
             <StudioText
-              k="about.intro"
+              k="about.header.intro"
               defaultText="We're not just teaching martial arts — we're building character, confidence, and community. Since May 2024, Sunnah Skills has been helping young Muslims develop the physical skills, mental discipline, and spiritual grounding they need to thrive."
               as="span"
               className="inline"
@@ -223,8 +279,8 @@ export default function About() {
       <StudioBlock id="about.timeline" label="Our Journey" page="About">
         <section className="max-w-6xl mx-auto px-6 py-16">
           <SectionHeader
-            eyebrow="Our Journey"
-            title="A Timeline of Growth"
+            eyebrow={<StudioText k="about.timeline.eyebrow" defaultText="Our Journey" as="span" className="inline" />}
+            title={<StudioText k="about.timeline.title" defaultText="A Timeline of Growth" as="span" className="inline" />}
             className="mb-12"
           />
           <div className="relative pl-6 border-l-2 border-charcoal/10 space-y-10">
@@ -232,10 +288,20 @@ export default function About() {
               <div key={m.key} className="relative">
                 <div className="absolute -left-[25px] top-1 w-3 h-3 rounded-full bg-clay border-2 border-cream" />
                 <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-clay mb-1">
-                  {m.label}
+                  <StudioText k={`about.timeline.${m.key}.label`} defaultText={m.label} as="span" className="inline" />
                 </div>
-                <div className="font-heading text-lg text-charcoal mb-1">{m.title}</div>
-                <p className="font-body text-sm text-charcoal/70 max-w-2xl leading-relaxed">{m.body}</p>
+                <div className="font-heading text-lg text-charcoal mb-1">
+                  <StudioText k={`about.timeline.${m.key}.title`} defaultText={m.title} as="span" className="inline" />
+                </div>
+                <p className="font-body text-sm text-charcoal/70 max-w-2xl leading-relaxed">
+                  <StudioText
+                    k={`about.timeline.${m.key}.body`}
+                    defaultText={m.body}
+                    as="span"
+                    className="inline"
+                    multiline
+                  />
+                </p>
               </div>
             ))}
           </div>
@@ -247,7 +313,7 @@ export default function About() {
         <div className="mx-2 md:mx-6 my-4">
           <DarkCard className="rounded-[3rem] py-16 px-8 md:px-16 text-center">
             <div className="font-mono-label text-[11px] uppercase tracking-[0.25em] text-moss mb-8">
-              Our Promise
+              <StudioText k="about.promise.eyebrow" defaultText="Our Promise" as="span" className="inline" />
             </div>
             <blockquote className="font-serif-accent italic text-3xl md:text-5xl text-cream leading-tight max-w-3xl mx-auto">
               <StudioText
@@ -259,7 +325,13 @@ export default function About() {
               />
             </blockquote>
             <p className="mt-8 font-body text-sm text-cream/60 max-w-lg mx-auto">
-              Every child deserves to discover their strength, both physical and spiritual.
+              <StudioText
+                k="about.promise.subcopy"
+                defaultText="Every child deserves to discover their strength, both physical and spiritual."
+                as="span"
+                className="inline"
+                multiline
+              />
             </p>
           </DarkCard>
         </div>
@@ -269,19 +341,37 @@ export default function About() {
       <StudioBlock id="about.values" label="Mission & Values" page="About">
         <section className="max-w-6xl mx-auto px-6 py-16">
           <SectionHeader
-            eyebrow="Core Values"
-            title="Our Mission & Values"
+            eyebrow={<StudioText k="about.values.eyebrow" defaultText="Core Values" as="span" className="inline" />}
+            title={<StudioText k="about.values.title" defaultText="Our Mission & Values" as="span" className="inline" />}
             className="mb-10"
           />
           <p className="font-body text-sm text-charcoal/60 max-w-2xl mb-10">
-            We're committed to developing well-rounded individuals who are confident, capable, and compassionate.
+            <StudioText
+              k="about.values.intro"
+              defaultText="We're committed to developing well-rounded individuals who are confident, capable, and compassionate."
+              as="span"
+              className="inline"
+              multiline
+            />
           </p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {values.map((v) => (
               <PremiumCard key={v.key} className="bg-white border border-charcoal/10">
-                <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-clay mb-3">{v.num}</div>
-                <div className="font-heading text-xl text-charcoal mb-2">{v.title}</div>
-                <p className="font-body text-sm text-charcoal/70 leading-relaxed">{v.desc}</p>
+                <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-clay mb-3">
+                  <StudioText k={`about.values.${v.key}.num`} defaultText={v.num} as="span" className="inline" />
+                </div>
+                <div className="font-heading text-xl text-charcoal mb-2">
+                  <StudioText k={`about.values.${v.key}.title`} defaultText={v.title} as="span" className="inline" />
+                </div>
+                <p className="font-body text-sm text-charcoal/70 leading-relaxed">
+                  <StudioText
+                    k={`about.values.${v.key}.desc`}
+                    defaultText={v.desc}
+                    as="span"
+                    className="inline"
+                    multiline
+                  />
+                </p>
               </PremiumCard>
             ))}
           </div>
@@ -292,12 +382,18 @@ export default function About() {
       <StudioBlock id="about.coaches" label="Meet the Coaches" page="About">
         <section className="max-w-6xl mx-auto px-6 py-16 bg-cream">
           <SectionHeader
-            eyebrow="The Team"
-            title="Meet the Coaches"
+            eyebrow={<StudioText k="about.coaches.eyebrow" defaultText="The Team" as="span" className="inline" />}
+            title={<StudioText k="about.coaches.title" defaultText="Meet the Coaches" as="span" className="inline" />}
             className="mb-4"
           />
           <p className="font-body text-sm text-charcoal/60 max-w-2xl mb-10">
-            Our dedicated team brings years of experience, passion, and care to every class.
+            <StudioText
+              k="about.coaches.intro"
+              defaultText="Our dedicated team brings years of experience, passion, and care to every class."
+              as="span"
+              className="inline"
+              multiline
+            />
           </p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {coaches.map((c) => (
@@ -311,30 +407,57 @@ export default function About() {
       <StudioBlock id="about.why" label="Why Parents Choose" page="About">
         <section className="max-w-6xl mx-auto px-6 py-16">
           <SectionHeader
-            eyebrow="Why Us"
-            title="Why Parents Choose Sunnah Skills"
+            eyebrow={<StudioText k="about.why.eyebrow" defaultText="Why Us" as="span" className="inline" />}
+            title={<StudioText k="about.why.title" defaultText="Why Parents Choose Sunnah Skills" as="span" className="inline" />}
             className="mb-4"
           />
           <p className="font-body text-sm text-charcoal/60 max-w-2xl mb-10">
-            Discover what makes us different from other martial arts schools.
+            <StudioText
+              k="about.why.intro"
+              defaultText="Discover what makes us different from other martial arts schools."
+              as="span"
+              className="inline"
+              multiline
+            />
           </p>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 mb-8">
             {reasons.map((r) => (
               <PremiumCard key={r.key} className="bg-white border border-charcoal/10">
-                <div className="font-heading text-base text-charcoal mb-2">{r.title}</div>
-                <p className="font-body text-sm text-charcoal/70 leading-relaxed">{r.desc}</p>
+                <div className="font-heading text-base text-charcoal mb-2">
+                  <StudioText k={`about.why.${r.key}.title`} defaultText={r.title} as="span" className="inline" />
+                </div>
+                <p className="font-body text-sm text-charcoal/70 leading-relaxed">
+                  <StudioText
+                    k={`about.why.${r.key}.desc`}
+                    defaultText={r.desc}
+                    as="span"
+                    className="inline"
+                    multiline
+                  />
+                </p>
               </PremiumCard>
             ))}
           </div>
           <DarkCard className="rounded-3xl">
             <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-moss mb-4">
-              What Parents Say
+              <StudioText k="about.why.testimonial.eyebrow" defaultText="What Parents Say" as="span" className="inline" />
             </div>
             <blockquote className="font-serif-accent italic text-xl md:text-2xl text-cream/90">
-              "Sunnah Skills has transformed my son's confidence and discipline. The Islamic values integration makes all the difference."
+                <StudioText
+                  k="about.why.testimonial.quote"
+                  defaultText={`"Sunnah Skills has transformed my son's confidence and discipline. The Islamic values integration makes all the difference."`}
+                  as="span"
+                  className="inline"
+                  multiline
+                />
             </blockquote>
             <p className="mt-4 font-mono-label text-[10px] uppercase tracking-[0.18em] text-cream/50">
-              — Parent of 3 students
+              <StudioText
+                k="about.why.testimonial.byline"
+                defaultText="— Parent of 3 students"
+                as="span"
+                className="inline"
+              />
             </p>
           </DarkCard>
         </section>
@@ -344,12 +467,33 @@ export default function About() {
       <StudioBlock id="about.cta" label="CTA" page="About">
         <section className="max-w-6xl mx-auto px-6 py-20 text-center">
           <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-charcoal/40 mb-4">
-            Locations
+            <StudioText k="about.cta.locationsLabel" defaultText="Locations" as="span" className="inline" />
           </div>
           <div className="flex flex-wrap justify-center gap-x-8 gap-y-2 font-body text-sm text-charcoal/60 mb-12">
-            <span>BJJ &amp; Most Programs — 918 Dundas St E</span>
-            <span>Archery — E.T. Seaton Range</span>
-            <span>Outdoor — Coming Soon</span>
+            <span>
+              <StudioText
+                k="about.cta.location.bjj"
+                defaultText="BJJ & Most Programs — 918 Dundas St E"
+                as="span"
+                className="inline"
+              />
+            </span>
+            <span>
+              <StudioText
+                k="about.cta.location.archery"
+                defaultText="Archery — E.T. Seaton Range"
+                as="span"
+                className="inline"
+              />
+            </span>
+            <span>
+              <StudioText
+                k="about.cta.location.outdoor"
+                defaultText="Outdoor — Coming Soon"
+                as="span"
+                className="inline"
+              />
+            </span>
           </div>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link href="/programs">

@@ -1,10 +1,12 @@
 import React, { useEffect, useRef, useState } from "react";
 import { SectionHeader } from "@/components/brand/SectionHeader";
 import { TechniqueViewer } from "@/components/grapplemap/TechniqueViewer";
+import { StudioBlock } from "@/studio/StudioBlock";
+import { StudioText } from "@/studio/StudioText";
 import { X, Maximize2 } from "lucide-react";
 
 type SceneMeta = {
-  transitionId: number;
+  transitionId?: number;
   name: string;
   tags: string[];
   description: string[];
@@ -15,6 +17,28 @@ type SceneEntry = {
   id: string;
   meta: SceneMeta;
 };
+
+const CATEGORY_DEFINITIONS = [
+  { slug: "guards", label: "Guards", keywords: ["guard"] },
+  { slug: "submissions", label: "Submissions", keywords: ["submission", "choke", "armbar", "triangle", "kimura"] },
+  { slug: "escapes", label: "Escapes", keywords: ["escape"] },
+  { slug: "passes", label: "Passes", keywords: ["pass"] },
+  { slug: "sweeps", label: "Sweeps", keywords: ["sweep"] },
+  { slug: "takedowns", label: "Takedowns", keywords: ["takedown", "throw", "trip", "shot", "wrestling"] },
+  { slug: "transitions", label: "Transitions", keywords: ["transition", "transitioning"] },
+] as const;
+
+function toStudioKeyPart(value: string) {
+  return value.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+}
+
+function getTechniqueCategorySlug(scene: SceneEntry) {
+  const searchable = [scene.meta.name, ...scene.meta.tags].join(" ").toLowerCase();
+  const matched = CATEGORY_DEFINITIONS.find((category) =>
+    category.keywords.some((keyword) => searchable.includes(keyword)),
+  );
+  return matched?.slug ?? "other";
+}
 
 function useScenesCatalog() {
   const [scenes, setScenes] = useState<SceneEntry[]>([]);
@@ -43,6 +67,7 @@ function TechniqueCard({
   onClick: () => void;
 }) {
   const desc = scene.meta.description[1] ?? "";
+  const sceneKey = toStudioKeyPart(scene.id || scene.meta.name);
 
   return (
     <div
@@ -70,10 +95,22 @@ function TechniqueCard({
           Technique
         </p>
         <h3 className="font-heading text-cream text-base capitalize leading-tight">
-          {scene.meta.name}
+          <StudioText
+            k={`techniques.${sceneKey}.name`}
+            defaultText={scene.meta.name}
+            as="span"
+            className="inline"
+          />
         </h3>
         {desc && (
-          <p className="text-cream/60 text-xs font-body line-clamp-2">{desc}</p>
+          <p className="text-cream/60 text-xs font-body line-clamp-2">
+            <StudioText
+              k={`techniques.${sceneKey}.description.short`}
+              defaultText={desc}
+              as="span"
+              className="inline"
+            />
+          </p>
         )}
         {scene.meta.tags.length > 0 && (
           <div className="flex flex-wrap gap-1.5 mt-1">
@@ -100,6 +137,7 @@ function DetailPanel({
   onClose: () => void;
 }) {
   const panelRef = useRef<HTMLDivElement>(null);
+  const sceneKey = toStudioKeyPart(scene.id || scene.meta.name);
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
@@ -141,7 +179,12 @@ function DetailPanel({
 
         <div className="px-6 py-6 space-y-4 flex-1">
           <h2 className="font-heading text-cream text-2xl capitalize">
-            {scene.meta.name}
+            <StudioText
+              k={`techniques.${sceneKey}.name`}
+              defaultText={scene.meta.name}
+              as="span"
+              className="inline"
+            />
           </h2>
 
           {scene.meta.tags.length > 0 && (
@@ -159,7 +202,15 @@ function DetailPanel({
 
           <div className="space-y-2 text-sm font-body text-cream/70">
             {scene.meta.description.map((line, i) => (
-              <p key={i}>{line}</p>
+              <p key={i}>
+                <StudioText
+                  k={`techniques.${sceneKey}.description.line_${i + 1}`}
+                  defaultText={line}
+                  as="span"
+                  className="inline"
+                  multiline
+                />
+              </p>
             ))}
           </div>
         </div>
@@ -175,6 +226,8 @@ function FullscreenModal({
   scene: SceneEntry;
   onClose: () => void;
 }) {
+  const sceneKey = toStudioKeyPart(scene.id || scene.meta.name);
+
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
@@ -187,7 +240,12 @@ function FullscreenModal({
     <div className="fixed inset-0 z-50 bg-charcoal flex flex-col" aria-modal="true" role="dialog">
       <div className="flex items-center justify-between px-6 py-4 border-b border-moss/15">
         <p className="font-mono-label text-[10px] uppercase tracking-[0.2em] text-moss capitalize">
-          {scene.meta.name}
+          <StudioText
+            k={`techniques.${sceneKey}.name`}
+            defaultText={scene.meta.name}
+            as="span"
+            className="inline"
+          />
         </p>
         <button
           className="text-cream/60 hover:text-cream transition-colors"
@@ -209,18 +267,57 @@ const TechniqueLibrary = () => {
   const [selected, setSelected] = useState<SceneEntry | null>(null);
   const [fullscreen, setFullscreen] = useState<SceneEntry | null>(null);
 
+  const groupedScenes = scenes.reduce<Record<string, SceneEntry[]>>((acc, scene) => {
+    const categorySlug = getTechniqueCategorySlug(scene);
+    if (!acc[categorySlug]) {
+      acc[categorySlug] = [];
+    }
+    acc[categorySlug].push(scene);
+    return acc;
+  }, {});
+
+  const categoryOrder = [
+    ...CATEGORY_DEFINITIONS.map((category) => category.slug),
+    "other",
+  ];
+
+  const presentCategorySlugs = categoryOrder.filter(
+    (slug) => (groupedScenes[slug] ?? []).length > 0,
+  );
+
   return (
     <div className="bg-cream min-h-screen pb-24">
       <main className="max-w-6xl mx-auto px-6 pt-32">
-        <SectionHeader
-          eyebrow="Technique Library"
-          title="GrappleMap Sequences"
-          className="mb-10"
-        />
-        <p className="font-body text-sm text-charcoal/70 max-w-2xl mb-10">
-          Explore curated sequences from the training curriculum. Browse
-          techniques, tap a card for details, or expand to fullscreen.
-        </p>
+        <StudioBlock id="techniques.header" label="Header" page="TechniqueLibrary">
+          <SectionHeader
+            eyebrow={
+              <StudioText
+                k="techniques.header.eyebrow"
+                defaultText="Technique Library"
+                as="span"
+                className="inline"
+              />
+            }
+            title={
+              <StudioText
+                k="techniques.header.title"
+                defaultText="GrappleMap Sequences"
+                as="span"
+                className="inline"
+              />
+            }
+            className="mb-10"
+          />
+          <p className="font-body text-sm text-charcoal/70 max-w-2xl mb-10">
+            <StudioText
+              k="techniques.header.intro"
+              defaultText="Explore curated sequences from the training curriculum. Browse techniques, tap a card for details, or expand to fullscreen."
+              as="span"
+              className="inline"
+              multiline
+            />
+          </p>
+        </StudioBlock>
 
         {scenes.length === 0 ? (
           <div className="text-charcoal/40 text-sm font-body py-16 text-center">
@@ -228,13 +325,22 @@ const TechniqueLibrary = () => {
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-6">
-            {scenes.map((scene) => (
-              <TechniqueCard
-                key={scene.id}
-                scene={scene}
-                onClick={() => setSelected(scene)}
-                onExpand={() => setFullscreen(scene)}
-              />
+            {presentCategorySlugs.map((categorySlug) => (
+              <StudioBlock
+                key={categorySlug}
+                id={`techniques.${categorySlug}`}
+                label={`Category ${categorySlug}`}
+                page="TechniqueLibrary"
+              >
+                {groupedScenes[categorySlug].map((scene) => (
+                  <TechniqueCard
+                    key={scene.id}
+                    scene={scene}
+                    onClick={() => setSelected(scene)}
+                    onExpand={() => setFullscreen(scene)}
+                  />
+                ))}
+              </StudioBlock>
             ))}
           </div>
         )}

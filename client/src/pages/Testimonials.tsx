@@ -4,6 +4,8 @@ import { PremiumCard } from "@/components/brand/PremiumCard";
 import { SectionHeader } from "@/components/brand/SectionHeader";
 import { ClayButton } from "@/components/brand/ClayButton";
 import { StatusDot } from "@/components/brand/StatusDot";
+import { StudioBlock } from "@/studio/StudioBlock";
+import { StudioText } from "@/studio/StudioText";
 
 const Testimonials = () => {
   const testimonials = [
@@ -62,34 +64,56 @@ const Testimonials = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {testimonials.map((testimonial, index) => (
-            <PremiumCard key={index} className="bg-white border border-charcoal/10">
-              <div className="flex items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  <div
-                    className={`w-11 h-11 ${testimonial.bgColor} rounded-full flex items-center justify-center`}
-                    aria-hidden="true"
-                  >
-                    <span className="text-white font-heading text-sm tracking-tight">{testimonial.initials}</span>
+            <StudioBlock
+              key={index}
+              id={`testimonials.${index + 1}`}
+              label={`Testimonial ${index + 1}`}
+              page="Testimonials"
+            >
+              <PremiumCard className="bg-white border border-charcoal/10">
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <div
+                      className={`w-11 h-11 ${testimonial.bgColor} rounded-full flex items-center justify-center`}
+                      aria-hidden="true"
+                    >
+                      <span className="text-white font-heading text-sm tracking-tight">{testimonial.initials}</span>
+                    </div>
+                    <div>
+                      <StudioText
+                        k={`testimonials.${index + 1}.author`}
+                        defaultText={testimonial.name}
+                        as="div"
+                        className="font-heading text-lg text-charcoal"
+                      />
+                      <StudioText
+                        k={`testimonials.${index + 1}.title`}
+                        defaultText={`Parent of ${testimonial.child}`}
+                        as="div"
+                        className="font-body text-xs text-charcoal/60"
+                      />
+                    </div>
                   </div>
-                  <div>
-                    <div className="font-heading text-lg text-charcoal">{testimonial.name}</div>
-                    <div className="font-body text-xs text-charcoal/60">Parent of {testimonial.child}</div>
+
+                  <div className="flex items-center gap-1 text-[#CCB55E]">
+                    {[...Array(5)].map((_, i) => (
+                      <Star key={i} size={14} fill="currentColor" />
+                    ))}
                   </div>
                 </div>
 
-                <div className="flex items-center gap-1 text-[#CCB55E]">
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} size={14} fill="currentColor" />
-                  ))}
-                </div>
-              </div>
-
-              <p className="mt-5 font-body text-sm text-charcoal/70 leading-relaxed">
-                <span className="text-charcoal/50 font-serif-accent text-lg leading-none mr-2">“</span>
-                {testimonial.content}
-                <span className="text-charcoal/50 font-serif-accent text-lg leading-none ml-2">”</span>
-              </p>
-            </PremiumCard>
+                <p className="mt-5 font-body text-sm text-charcoal/70 leading-relaxed">
+                  <span className="text-charcoal/50 font-serif-accent text-lg leading-none mr-2">“</span>
+                  <StudioText
+                    k={`testimonials.${index + 1}.quote`}
+                    defaultText={testimonial.content}
+                    as="span"
+                    multiline
+                  />
+                  <span className="text-charcoal/50 font-serif-accent text-lg leading-none ml-2">”</span>
+                </p>
+              </PremiumCard>
+            </StudioBlock>
           ))}
         </div>
 

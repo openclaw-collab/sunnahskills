@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { useStudio } from "./useStudio";
 import { ComponentHighlighter } from "./ComponentHighlighter";
@@ -28,7 +28,8 @@ export default function StudioShell() {
 
   // Auto-select click handler for "edit any text"
   const handleAutoSelect = (e: MouseEvent) => {
-    if (!selectMode) return;
+    // Only intercept if: Studio enabled AND panel open AND selectMode on
+    if (!open || !selectMode) return;
     if ((e.target as Element | null)?.closest?.("[data-studio-ui='1']")) return;
     const autoId = getAutoIdFromEventTarget(e.target);
     if (!autoId) return;
@@ -43,13 +44,46 @@ export default function StudioShell() {
   };
 
   // Attach / detach click handler based on selectMode
-  useState(() => {
+  useEffect(() => {
     if (!state.enabled) return;
-    window.addEventListener("click", handleAutoSelect as EventListener, true);
-    return () => window.removeEventListener("click", handleAutoSelect as EventListener, true);
-  });
+    const handler = (e: MouseEvent) => handleAutoSelect(e);
+    window.addEventListener("click", handler, true);
+    return () => window.removeEventListener("click", handler, true);
+  }, [state.enabled, selectMode, open]);
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      if ((e.metaKey || e.ctrlKey) && e.key === "e") {
+        e.preventDefault();
+        setEnabled(!state.enabled);
+      }
+      if (e.key === "Escape") {
+        if (navigateMode) setNavigateMode(false);
+        else if (open) setOpen(false);
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [state.enabled, navigateMode, open]);
 
   if (!state.enabled) return null;
+
+  if (state.loading && state.mode === "session") {
+    return (
+      <div
+        data-studio-ui="1"
+        className="fixed inset-0 z-[100] flex items-center justify-center bg-charcoal/40 backdrop-blur-sm"
+      >
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 border-2 border-cream/30 border-t-cream rounded-full animate-spin" />
+          <span className="font-mono-label text-[10px] uppercase tracking-widest text-cream/70">
+            Loading session…
+          </span>
+        </div>
+      </div>
+    );
+  }
 
   // Navigate mode: hide everything except a small badge to return
   if (navigateMode) {
@@ -62,10 +96,10 @@ export default function StudioShell() {
           <button
             type="button"
             onClick={() => setNavigateMode(false)}
-            className="rounded-full bg-charcoal/80 text-cream px-4 py-2 text-[11px] font-mono-label uppercase tracking-[0.18em] shadow-lg backdrop-blur-sm border border-cream/10 hover:bg-charcoal transition-colors"
-            title="Return to Studio mode"
+            className="rounded-full bg-charcoal/90 text-cream px-4 py-2 text-[11px] font-mono-label uppercase tracking-[0.18em] shadow-lg backdrop-blur-sm border border-cream/10 hover:bg-charcoal transition-colors"
+            aria-label="Return to edit mode"
           >
-            ↩ Studio
+            ✎ Resume Editing
           </button>
         </div>
       </>

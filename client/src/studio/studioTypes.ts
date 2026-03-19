@@ -89,6 +89,7 @@ export type StudioState = {
   sessionId: string | null;
   authed: boolean;
   syncing: boolean;
+  loading: boolean;
   error: string | null;
   /** Populated in session mode */
   session: StudioSession | null;

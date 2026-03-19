@@ -66,6 +66,7 @@ export function defaultStudioState(): StudioState {
     sessionId: null,
     authed: false,
     syncing: false,
+    loading: false,
     error: null,
     session: null,
     themePresetId: "brand",
@@ -86,6 +87,7 @@ export function loadStudioState(): StudioState {
       ...parsed,
       // Never persist live session/sync state
       syncing: false,
+      loading: false,
       error: null,
       session: null,
       localEdits: parsed.localEdits ?? {},

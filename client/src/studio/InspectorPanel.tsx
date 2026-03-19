@@ -2,10 +2,22 @@ import { useMemo, useRef, useState } from "react";
 import { useStudio } from "./useStudio";
 import { cn } from "@/lib/utils";
 
+function formatRelativeTime(isoString: string): string {
+  const diff = Date.now() - new Date(isoString).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days}d ago`;
+  return new Date(isoString).toLocaleDateString();
+}
+
 type Tab = "edit" | "comments" | "history";
 
 export function InspectorPanel() {
-  const { state, edits, setEdit, clearEdit, addComment, setPinnedComponentId, pinnedComponentId, blocks, uploadImage } =
+  const { state, edits, setEdit, clearEdit, addComment, deleteComment, setPinnedComponentId, pinnedComponentId, blocks, uploadImage } =
     useStudio();
   const [tab, setTab] = useState<Tab>("edit");
   const [commentDraft, setCommentDraft] = useState("");
@@ -126,6 +138,7 @@ export function InspectorPanel() {
             authorDraft={authorDraft}
             setAuthorDraft={setAuthorDraft}
             addComment={addComment}
+            deleteComment={deleteComment}
           />
         )}
         {tab === "history" && (
@@ -243,6 +256,7 @@ function CommentsTab({
   authorDraft,
   setAuthorDraft,
   addComment,
+  deleteComment,
 }: {
   componentId: string;
   comments: any[];
@@ -251,6 +265,7 @@ function CommentsTab({
   authorDraft: string;
   setAuthorDraft: (v: string) => void;
   addComment: (params: { componentId?: string; message: string; author?: string }) => void;
+  deleteComment: (commentId: string) => void;
 }) {
   return (
     <div className="space-y-3">
@@ -258,11 +273,19 @@ function CommentsTab({
         <div className="space-y-2 max-h-40 overflow-auto">
           {comments.map((c) => (
             <div key={c.id} className="rounded-xl border border-charcoal/10 bg-cream/40 p-3">
-              <div className="flex items-center gap-2 mb-1">
+              <div className="flex items-center justify-between gap-2 mb-1">
                 <span className="font-mono-label text-[9px] uppercase tracking-widest text-charcoal/40">
                   {c.author ? `${c.author} · ` : ""}
-                  {new Date(c.createdAt).toLocaleString()}
+                  {formatRelativeTime(c.createdAt)}
                 </span>
+                <button
+                  type="button"
+                  onClick={() => deleteComment(c.id)}
+                  className="text-charcoal/30 hover:text-clay text-xs"
+                  title="Delete comment"
+                >
+                  ✕
+                </button>
               </div>
               <p className="text-sm text-charcoal/75">{c.message}</p>
             </div>
@@ -316,62 +339,102 @@ function ImageSlotRow({
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [localPreview, setLocalPreview] = useState<string | null>(uploadedUrl ?? null);
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [showConfirm, setShowConfirm] = useState(false);
 
-  const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    // Instant local preview
     const objectUrl = URL.createObjectURL(file);
+    setPendingFile(file);
     setLocalPreview(objectUrl);
+    setShowConfirm(true);
+    if (inputRef.current) inputRef.current.value = "";
+  };
+
+  const confirmUpload = async () => {
+    if (!pendingFile) return;
     setUploading(true);
-    const finalUrl = await uploadImage(file, slotKey);
+    const finalUrl = await uploadImage(pendingFile, slotKey);
     setUploading(false);
+    setShowConfirm(false);
     if (finalUrl) {
-      // Replace object URL with the final stored one
-      URL.revokeObjectURL(objectUrl);
+      if (localPreview) URL.revokeObjectURL(localPreview);
       setLocalPreview(finalUrl);
     }
-    // Reset input so the same file can be re-selected
-    if (inputRef.current) inputRef.current.value = "";
+    setPendingFile(null);
+  };
+
+  const cancelUpload = () => {
+    if (localPreview && localPreview !== uploadedUrl) URL.revokeObjectURL(localPreview);
+    setLocalPreview(uploadedUrl ?? null);
+    setPendingFile(null);
+    setShowConfirm(false);
   };
 
   const label = slotKey.split(".").pop() ?? slotKey;
 
   return (
-    <div className="flex items-center gap-3 py-2">
-      {/* Thumbnail */}
-      <div
-        className="w-14 h-10 rounded-xl border border-charcoal/10 bg-cream/60 overflow-hidden flex-none"
-        style={localPreview ? { backgroundImage: `url("${localPreview}")`, backgroundSize: "cover", backgroundPosition: "center" } : {}}
-      >
-        {!localPreview && (
-          <div className="w-full h-full flex items-center justify-center text-charcoal/20 text-lg">⬚</div>
-        )}
-      </div>
-
-      <div className="flex-1 min-w-0">
-        <div className="font-mono-label text-[9px] uppercase tracking-widest text-charcoal/50 truncate mb-1">
-          {label}
-        </div>
-        <button
-          type="button"
-          onClick={() => inputRef.current?.click()}
-          disabled={uploading}
-          className="rounded-full border border-charcoal/20 bg-white px-3 py-1 text-[10px] font-mono-label uppercase tracking-widest text-charcoal/70 hover:bg-cream transition-colors disabled:opacity-40"
+    <>
+      <div className="flex items-center gap-3 py-2">
+        <div
+          className="w-14 h-10 rounded-xl border border-charcoal/10 bg-cream/60 overflow-hidden flex-none"
+          style={localPreview ? { backgroundImage: `url("${localPreview}")`, backgroundSize: "cover", backgroundPosition: "center" } : {}}
         >
-          {uploading ? "Uploading…" : localPreview ? "Replace" : "Upload image"}
-        </button>
+          {!localPreview && (
+            <div className="w-full h-full flex items-center justify-center text-charcoal/20 text-lg">⬚</div>
+          )}
+        </div>
+
+        <div className="flex-1 min-w-0">
+          <div className="font-mono-label text-[9px] uppercase tracking-widest text-charcoal/50 truncate mb-1">
+            {label}
+          </div>
+          <button
+            type="button"
+            onClick={() => inputRef.current?.click()}
+            disabled={uploading}
+            className="rounded-full border border-charcoal/20 bg-white px-3 py-1 text-[10px] font-mono-label uppercase tracking-widest text-charcoal/70 hover:bg-cream transition-colors disabled:opacity-40"
+          >
+            {uploading ? "Uploading…" : localPreview ? "Replace" : "Upload image"}
+          </button>
+        </div>
+
+        <input
+          ref={inputRef}
+          type="file"
+          accept="image/*"
+          className="sr-only"
+          onChange={handleFileSelect}
+          data-studio-ui="1"
+        />
       </div>
 
-      <input
-        ref={inputRef}
-        type="file"
-        accept="image/*"
-        className="sr-only"
-        onChange={handleFile}
-        data-studio-ui="1"
-      />
-    </div>
+      {showConfirm && localPreview && (
+        <div className="rounded-xl border border-charcoal/10 bg-cream/60 p-3 space-y-2">
+          <div className="font-mono-label text-[9px] uppercase tracking-widest text-charcoal/50">Preview</div>
+          <img src={localPreview} alt="Preview" className="w-full max-h-32 object-contain rounded-lg" />
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={confirmUpload}
+              disabled={uploading}
+              className="flex-1 rounded-full bg-charcoal text-cream px-3 py-1.5 text-[10px] font-mono-label uppercase tracking-widest disabled:opacity-50"
+            >
+              {uploading ? "Uploading…" : "Confirm"}
+            </button>
+            <button
+              type="button"
+              onClick={cancelUpload}
+              disabled={uploading}
+              className="flex-1 rounded-full border border-charcoal/15 bg-white px-3 py-1.5 text-[10px] font-mono-label uppercase tracking-widest text-charcoal/60"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 

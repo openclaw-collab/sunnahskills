@@ -81,6 +81,7 @@ export type StudioContextValue = {
   setEdit: (key: string, newValue: string, opts?: { oldValue?: string; type?: "text" | "image" }) => void;
   clearEdit: (key: string) => void;
   addComment: (params: { componentId?: string; message: string; author?: string }) => void;
+  deleteComment: (commentId: string) => void;
   registerBlock: (meta: StudioBlockMeta) => void;
   blocks: StudioBlockMeta[];
   pinnedComponentId: string | null;
@@ -149,24 +150,25 @@ export function StudioProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (state.mode !== "session" || !state.sessionId) return;
 
+    setState((s) => ({ ...s, loading: true, error: null }));
     fetchSession(state.sessionId).then((res) => {
       if (!res) {
-        setState((s) => ({ ...s, error: "Session not found." }));
+        setState((s) => ({ ...s, loading: false, error: "Session not found." }));
         return;
       }
       if ("protected" in res && res.protected) {
-        setState((s) => ({ ...s, authed: false }));
+        setState((s) => ({ ...s, loading: false, authed: false }));
         return;
       }
-      const session = res as StudioSession;
+      const sess = res as StudioSession;
       setState((s) => ({
         ...s,
-        session,
+        loading: false,
+        session: sess,
         authed: true,
-        themePresetId: session.themePresetId ?? "brand",
-        customTheme: session.customTheme ?? { ...DEFAULT_CUSTOM_THEME },
-        // Flatten session edits into localEdits for StudioText compat
-        localEdits: flattenEdits(session.edits),
+        themePresetId: sess.themePresetId ?? "brand",
+        customTheme: sess.customTheme ?? { ...DEFAULT_CUSTOM_THEME },
+        localEdits: flattenEdits(sess.edits),
       }));
     });
   }, [state.mode, state.sessionId]);
@@ -390,6 +392,22 @@ export function StudioProvider({ children }: { children: React.ReactNode }) {
     [scheduleSync],
   );
 
+  const deleteComment = useCallback(
+    (commentId: string) => {
+      setState((s) => {
+        const newLocalComments = s.localComments.filter((c) => c.id !== commentId);
+        if (s.mode !== "session" || !s.session) return { ...s, localComments: newLocalComments };
+        const session: StudioSession = {
+          ...s.session,
+          comments: s.session.comments.filter((c) => c.id !== commentId),
+        };
+        return { ...s, localComments: newLocalComments, session };
+      });
+      scheduleSync();
+    },
+    [scheduleSync],
+  );
+
   const registerBlock = useCallback((meta: StudioBlockMeta) => {
     setBlocks((prev) => {
       if (prev.some((b) => b.id === meta.id)) return prev;
@@ -596,6 +614,7 @@ export function StudioProvider({ children }: { children: React.ReactNode }) {
       setEdit,
       clearEdit,
       addComment,
+      deleteComment,
       registerBlock,
       blocks,
       pinnedComponentId,
@@ -619,6 +638,7 @@ export function StudioProvider({ children }: { children: React.ReactNode }) {
       setEdit,
       clearEdit,
       addComment,
+      deleteComment,
       registerBlock,
       blocks,
       pinnedComponentId,

@@ -33,7 +33,7 @@ export function tagStudioTextNodes(opts: TagOptions = {}) {
     opts.routeKey ??
     (() => {
       try {
-        return `${window.location.pathname}${window.location.search}`;
+        return window.location.pathname;
       } catch {
         return "route";
       }
@@ -46,7 +46,10 @@ export function tagStudioTextNodes(opts: TagOptions = {}) {
     if (excludeSelector && el.matches(excludeSelector)) continue;
     if (!eligibleElement(el)) continue;
     if (!el.dataset.studioAutoId) {
-      el.dataset.studioAutoId = `${routeKey}::t${idx}`;
+      const parent = el.closest<HTMLElement>("[data-studio-component]");
+      const parentId = parent?.dataset.studioComponent ?? "page";
+      const tagHint = el.tagName.toLowerCase();
+      el.dataset.studioAutoId = `${routeKey}::${parentId}.${tagHint}_${idx}`;
     }
     idx += 1;
   }

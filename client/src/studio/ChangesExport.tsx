@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useToast } from "@/hooks/use-toast";
 import { useStudio } from "./useStudio";
 
 function downloadText(filename: string, text: string) {
@@ -13,6 +14,7 @@ function downloadText(filename: string, text: string) {
 
 export function ChangesExport() {
   const { state, exportJson, reset, createSharedSession } = useStudio();
+  const { toast } = useToast();
   const [copied, setCopied] = useState(false);
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [sharing, setSharing] = useState(false);
@@ -20,15 +22,17 @@ export function ChangesExport() {
   const [sessionPassword, setSessionPassword] = useState("");
   const [showShareForm, setShowShareForm] = useState(false);
 
-  const editCount = useMemo(() => {
-    if (state.session) return state.session.edits.length;
-    return Object.keys(state.localEdits).length;
-  }, [state.session, state.localEdits]);
+  const preview = useMemo(() => {
+    const edits = state.session?.edits ?? Object.entries(state.localEdits).map(([k, v]) => ({
+      route: "/",
+      key: k,
+      newValue: v,
+    }));
+    const comments = state.session?.comments ?? state.localComments;
+    return { edits, comments };
+  }, [state.session, state.localEdits, state.localComments]);
 
-  const commentCount = useMemo(() => {
-    if (state.session) return state.session.comments.length;
-    return state.localComments.length;
-  }, [state.session, state.localComments]);
+  const hasChanges = preview.edits.length > 0 || preview.comments.length > 0;
 
   const handleCopy = async () => {
     await navigator.clipboard?.writeText(exportJson());
@@ -40,7 +44,12 @@ export function ChangesExport() {
     setSharing(true);
     const url = await createSharedSession({ name: sessionName || undefined, password: sessionPassword || undefined });
     setSharing(false);
-    if (url) setShareUrl(url);
+    if (url) {
+      setShareUrl(url);
+      toast({ title: "Session created", description: "Share the link with collaborators." });
+    } else {
+      toast({ title: "Error", description: "Failed to create session.", variant: "destructive" });
+    }
   };
 
   return (
@@ -48,14 +57,35 @@ export function ChangesExport() {
       {/* Summary */}
       <div className="grid grid-cols-2 gap-2">
         <div className="rounded-2xl bg-cream/60 border border-charcoal/8 p-3 text-center">
-          <div className="font-heading text-2xl text-charcoal">{editCount}</div>
+          <div className="font-heading text-2xl text-charcoal">{preview.edits.length}</div>
           <div className="font-mono-label text-[9px] uppercase tracking-widest text-charcoal/50 mt-0.5">edits</div>
         </div>
         <div className="rounded-2xl bg-cream/60 border border-charcoal/8 p-3 text-center">
-          <div className="font-heading text-2xl text-charcoal">{commentCount}</div>
+          <div className="font-heading text-2xl text-charcoal">{preview.comments.length}</div>
           <div className="font-mono-label text-[9px] uppercase tracking-widest text-charcoal/50 mt-0.5">comments</div>
         </div>
       </div>
+
+      {/* Change preview */}
+      {hasChanges && (
+        <div className="rounded-2xl border border-charcoal/10 bg-cream/30 p-3 space-y-2 max-h-48 overflow-auto">
+          <div className="font-mono-label text-[9px] uppercase tracking-widest text-charcoal/50">Preview</div>
+          {preview.edits.slice(-3).map((e: any, i: number) => (
+            <div key={i} className="text-xs">
+              <span className="text-charcoal/40">Edit: </span>
+              <span className="text-charcoal/70">{e.key || e.fieldKey || "text"}</span>
+              <span className="text-charcoal/40 mx-1">→</span>
+              <span className="text-charcoal">{e.newValue?.slice(0, 30)}{e.newValue?.length > 30 ? "…" : ""}</span>
+            </div>
+          ))}
+          {preview.comments.slice(-2).map((c: any, i: number) => (
+            <div key={i} className="text-xs">
+              <span className="text-charcoal/40">Comment: </span>
+              <span className="text-charcoal/70">{c.message?.slice(0, 40)}{c.message?.length > 40 ? "…" : ""}</span>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Session status */}
       {state.mode === "session" && state.sessionId && (

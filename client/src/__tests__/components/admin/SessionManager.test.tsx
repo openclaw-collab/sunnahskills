@@ -56,9 +56,11 @@ describe("SessionManager", () => {
     render(<SessionManager />);
 
     expect(await screen.findByText("Youth BJJ - Tuesday")).toBeInTheDocument();
-    expect(screen.getByText("Tuesday")).toBeInTheDocument();
-    expect(screen.getByText("16:00")).toBeInTheDocument();
-    expect(screen.getByText("17:00")).toBeInTheDocument();
+    // "Tuesday" appears in session name AND in the day/time cell — use getAllByText
+    expect(screen.getAllByText(/Tuesday/).length).toBeGreaterThanOrEqual(1);
+    // time cell is "Tuesday • 16:00–17:00" — match with regex on the cell text
+    expect(screen.getByText(/16:00/)).toBeInTheDocument();
+    expect(screen.getByText(/17:00/)).toBeInTheDocument();
   });
 
   it("displays enrollment count", async () => {

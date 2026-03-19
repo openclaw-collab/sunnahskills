@@ -91,7 +91,8 @@ describe("RadioGroup", () => {
       />,
     );
 
-    expect(screen.getByLabelText("Option B")).toBeChecked();
+    // Label accessible name includes sublabel text "With sublabel", use regex
+    expect(screen.getByLabelText(/Option B/)).toBeChecked();
   });
 });
 

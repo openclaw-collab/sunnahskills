@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { renderHook, act } from "@testing-library/react";
+import { renderHook, act, waitFor } from "@testing-library/react";
 import { useStepValidation } from "@/hooks/useStepValidation";
 import type { RegistrationDraft } from "@/hooks/useRegistration";
 
 const createDraft = (overrides: Partial<RegistrationDraft> = {}): RegistrationDraft => ({
-  programSlug: "bjj",
+  programSlug: overrides.programSlug ?? "bjj",
   guardian: {
     fullName: "",
     email: "",
@@ -160,7 +160,7 @@ describe("useStepValidation", () => {
       expect(result.current.errors["programSpecific.ageGroup"]).toBe("Please select an age group");
     });
 
-    it("validates archery-specific fields", () => {
+    it("validates archery-specific fields", async () => {
       const draft = createDraft({
         programSlug: "archery",
         programDetails: {
@@ -171,11 +171,13 @@ describe("useStepValidation", () => {
 
       act(() => result.current.validateAndTouch());
 
-      expect(result.current.errors["programSpecific.dominantHand"]).toBe("Please select your dominant hand");
-      expect(result.current.errors["programSpecific.sessionDate"]).toBe("Please select a session");
+      await waitFor(() => {
+        expect(result.current.errors["programSpecific.dominantHand"]).toBe("Please select your dominant hand");
+        expect(result.current.errors["programSpecific.sessionDate"]).toBe("Please select a session");
+      });
     });
 
-    it("validates outdoor-specific fields", () => {
+    it("validates outdoor-specific fields", async () => {
       const draft = createDraft({
         programSlug: "outdoor",
         programDetails: {
@@ -186,11 +188,13 @@ describe("useStepValidation", () => {
 
       act(() => result.current.validateAndTouch());
 
-      expect(result.current.errors["programSpecific.workshopDate"]).toBe("Please select a workshop date");
-      expect(result.current.errors["programSpecific.gear"]).toBe("Please confirm you have the required gear");
+      await waitFor(() => {
+        expect(result.current.errors["programSpecific.workshopDate"]).toBe("Please select a workshop date");
+        expect(result.current.errors["programSpecific.gear"]).toBe("Please confirm you have the required gear");
+      });
     });
 
-    it("validates bullyproofing-specific fields", () => {
+    it("validates bullyproofing-specific fields", async () => {
       const draft = createDraft({
         programSlug: "bullyproofing",
         programDetails: {
@@ -201,8 +205,10 @@ describe("useStepValidation", () => {
 
       act(() => result.current.validateAndTouch());
 
-      expect(result.current.errors["programSpecific.concernType"]).toBe("Please select the primary concern");
-      expect(result.current.errors["programSpecific.ageGroup"]).toBe("Please select an age group");
+      await waitFor(() => {
+        expect(result.current.errors["programSpecific.concernType"]).toBe("Please select the primary concern");
+        expect(result.current.errors["programSpecific.ageGroup"]).toBe("Please select an age group");
+      });
     });
   });
 

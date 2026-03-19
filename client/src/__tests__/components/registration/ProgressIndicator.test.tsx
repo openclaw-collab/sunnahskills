@@ -72,8 +72,11 @@ describe("ProgressIndicator", () => {
       <ProgressIndicator steps={TEST_STEPS} currentStepIndex={0} className="custom-progress-class" />
     );
 
-    const container = screen.getByText("Guardian").closest(".flex");
-    expect(container?.parentElement?.className).toContain("custom-progress-class");
+    // DOM: <div class="custom-progress-class"><div class="flex flex-wrap..."><div class="flex items-center gap-2">...<text>Guardian</text>
+    // Go up from text to step div (.flex items-center) → parent is the flex-wrap div → parent is the outer div with className
+    const stepEl = screen.getByText("Guardian").closest(".flex");
+    const outerContainer = stepEl?.parentElement?.parentElement;
+    expect(outerContainer?.className).toContain("custom-progress-class");
   });
 
   it("renders step indicators as circles", () => {

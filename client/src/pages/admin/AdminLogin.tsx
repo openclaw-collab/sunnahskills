@@ -12,6 +12,7 @@ export default function AdminLogin() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   return (
     <div className="bg-cream min-h-screen pb-24">
@@ -47,12 +48,19 @@ export default function AdminLogin() {
               />
             </div>
 
+            {error && (
+              <p role="alert" className="font-body text-sm text-red-600">
+                {error}
+              </p>
+            )}
+
             <div className="pt-2">
               <ClayButton
                 className="w-full px-7 py-3.5 text-[11px] uppercase tracking-[0.18em]"
                 disabled={loading}
                 onClick={async () => {
                   setLoading(true);
+                  setError(null);
                   try {
                     const res = await fetch("/api/auth/login", {
                       method: "POST",
@@ -61,13 +69,22 @@ export default function AdminLogin() {
                     });
                     const json = await res.json().catch(() => null);
                     if (!res.ok) {
-                      throw new Error(json?.error ?? "Login failed");
+                      const msg = json?.error ?? "Login failed";
+                      setError(msg);
+                      toast({
+                        title: "Login failed",
+                        description: msg,
+                        variant: "destructive",
+                      });
+                      return;
                     }
                     setLocation("/admin/dashboard");
                   } catch (e) {
+                    const msg = "Login failed";
+                    setError(msg);
                     toast({
                       title: "Login failed",
-                      description: e instanceof Error ? e.message : "Login failed",
+                      description: msg,
                       variant: "destructive",
                     });
                   } finally {

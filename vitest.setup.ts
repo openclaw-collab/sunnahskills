@@ -66,6 +66,7 @@ const localStorageMock = (() => {
 
 Object.defineProperty(window, "localStorage", {
   value: localStorageMock,
+  configurable: true,
 });
 
 // sessionStorage mock
@@ -87,6 +88,7 @@ const sessionStorageMock = (() => {
 
 Object.defineProperty(window, "sessionStorage", {
   value: sessionStorageMock,
+  configurable: true,
 });
 
 // ============================================================================

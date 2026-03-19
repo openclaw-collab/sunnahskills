@@ -44,7 +44,8 @@ describe("AdminOverview", () => {
     );
 
     expect(screen.getByText("2")).toBeInTheDocument();
-    expect(screen.getByText("1")).toBeInTheDocument();
+    // Multiple TelemetryCards may show "1" (paidRegs=1, activeRegs=1)
+    expect(screen.getAllByText("1").length).toBeGreaterThanOrEqual(1);
   });
 
   it("displays revenue in correct format", () => {

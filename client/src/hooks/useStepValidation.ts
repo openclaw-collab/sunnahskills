@@ -80,12 +80,12 @@ export function useStepValidation(stepId: string, draft: RegistrationDraft) {
 
   const touchAll = useCallback(() => {
     if (!validator) return;
-    const allKeys = Object.keys(allErrors);
+    // Compute errors fresh (not from stale closure) and touch all error keys
+    const freshErrors = validator(draft);
     const allTouched: Record<string, boolean> = {};
-    for (const k of allKeys) allTouched[k] = true;
-    // Also touch non-error fields so they're all marked
+    for (const k of Object.keys(freshErrors)) allTouched[k] = true;
     setTouched((prev) => ({ ...prev, ...allTouched }));
-  }, [allErrors, validator]);
+  }, [validator, draft]);
 
   const isValid = Object.keys(allErrors).length === 0;
 

@@ -22,7 +22,7 @@ function sumCents(rows: Array<{ amount: number | null | undefined }>) {
 }
 
 function money(amountCents: number, currency = "USD") {
-  return new Intl.NumberFormat(undefined, {
+  return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency,
     maximumFractionDigits: 0,

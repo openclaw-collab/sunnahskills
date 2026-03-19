@@ -170,6 +170,7 @@ database_id = "fc0a958f-4bfe-487f-845f-bce49d4715d5"
 - **[docs/registration.md](docs/registration.md)** — Full registration + payment flow, per-program fields
 - **[docs/studio.md](docs/studio.md)** — Stakeholder Studio setup and usage
 - **[docs/admin.md](docs/admin.md)** — Admin dashboard setup and usage
+- **[docs/technique-library.md](docs/technique-library.md)** — Technique Library (GrappleMap) current state + future roadmap
 
 ### Setup & deployment
 - **[docs/local-dev.md](docs/local-dev.md)** — Full local dev with wrangler + D1 + Stripe CLI

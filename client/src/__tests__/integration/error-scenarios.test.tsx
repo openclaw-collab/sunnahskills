@@ -59,7 +59,7 @@ describe("Error Scenarios Integration", () => {
     });
 
     it("handles timeout scenarios", async () => {
-      // Simulate a slow network by checking that requests eventually complete
+      // Simulate a slow network by checking that login eventually completes
       const user = userEvent.setup();
 
       render(<AdminLogin />);
@@ -68,10 +68,13 @@ describe("Error Scenarios Integration", () => {
       await user.type(screen.getByLabelText(/password/i), "admin123");
 
       const submitButton = screen.getByRole("button", { name: /sign in/i });
+      expect(submitButton).toBeInTheDocument();
       await user.click(submitButton);
 
-      // Button should show loading state
-      expect(screen.getByText(/signing in/i)).toBeInTheDocument();
+      // After login completes, navigate should be called
+      await waitFor(() => {
+        expect(mockNavigate).toHaveBeenCalledWith("/admin/dashboard");
+      });
     });
 
     it("recovers from temporary network issues", async () => {

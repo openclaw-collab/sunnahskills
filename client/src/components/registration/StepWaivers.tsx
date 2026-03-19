@@ -14,7 +14,7 @@ function WaiverRow({
 }) {
   return (
     <div className="flex items-start gap-3 rounded-2xl border border-charcoal/10 bg-cream p-4">
-      <Checkbox checked={checked} onCheckedChange={(v) => onCheckedChange(v === true)} />
+      <Checkbox aria-label={label} checked={checked} onCheckedChange={(v) => onCheckedChange(v === true)} />
       <div className="space-y-1">
         <div className="font-body text-sm text-charcoal">{label}</div>
         <div className="font-body text-xs text-charcoal/60">
@@ -71,8 +71,9 @@ export function StepWaivers({ draft, updateDraft }: RegistrationStepProps) {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
         <div className="space-y-2">
-          <label className="font-body text-sm text-charcoal">Typed legal signature</label>
+          <label htmlFor="waiver-signature" className="font-body text-sm text-charcoal">Typed legal signature</label>
           <Input
+            id="waiver-signature"
             value={draft.waivers.signatureText}
             onChange={(e) =>
               updateDraft((prev) => ({

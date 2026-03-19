@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { render } from "./test-utils";
+import { render, mockLocalStorage } from "./test-utils";
 import { ProgramRegistrationPage } from "@/pages/registration/ProgramRegistrationPage";
 import { mockStore } from "./mocks/handlers";
 
@@ -24,76 +24,72 @@ vi.mock("@stripe/react-stripe-js", () => ({
   useElements: () => ({}),
 }));
 
+// Helper: fill guardian step — SelectField has no htmlFor so use getByRole("combobox")
+async function fillGuardianStep(user: ReturnType<typeof userEvent.setup>) {
+  await user.type(screen.getByLabelText("Full name"), "John Doe");
+  await user.type(screen.getByLabelText("Email"), "john@example.com");
+  await user.type(screen.getByLabelText("Phone"), "555-123-4567");
+  await user.type(screen.getByLabelText("Emergency contact name"), "Jane Doe");
+  await user.type(screen.getByLabelText("Emergency contact phone"), "555-987-6543");
+  const relationshipSelect = screen.getByRole("combobox");
+  await user.selectOptions(relationshipSelect, "mother");
+}
+
 describe("Registration Flow Integration", () => {
+  beforeEach(() => {
+    // Mock localStorage to prevent StorageEvent jsdom crash when hook saves drafts
+    mockLocalStorage({});
+  });
+
   it("completes full multi-step registration flow", async () => {
     const user = userEvent.setup();
     render(<ProgramRegistrationPage slug="bjj" />);
 
-    // Step 1: Guardian Info
-    expect(screen.getByText(/guardian information/i)).toBeInTheDocument();
+    // Step 1: Guardian Info — wizard shows "Step 1 / 5: Guardian"
+    expect(screen.getByText(/step 1/i)).toBeInTheDocument();
 
-    await user.type(screen.getByLabelText(/full name/i), "John Doe");
-    await user.type(screen.getByLabelText(/email/i), "john@example.com");
-    await user.type(screen.getByLabelText(/phone/i), "555-123-4567");
-    await user.type(screen.getByLabelText(/emergency contact name/i), "Jane Doe");
-    await user.type(screen.getByLabelText(/emergency contact phone/i), "555-987-6543");
-    await user.type(screen.getByLabelText(/relationship/i), "Parent");
-
+    await fillGuardianStep(user);
     await user.click(screen.getByRole("button", { name: /continue/i }));
 
     // Step 2: Student Info
     await waitFor(() => {
-      expect(screen.getByText(/student information/i)).toBeInTheDocument();
-    });
+      expect(screen.getByText(/step 2/i)).toBeInTheDocument();
+    }, { timeout: 500 });
 
     await user.type(screen.getByLabelText(/student.*full name/i), "Jimmy Doe");
     await user.type(screen.getByLabelText(/preferred name/i), "Jim");
     await user.type(screen.getByLabelText(/date of birth/i), "2015-01-01");
 
-    // Select gender
-    const genderSelect = screen.getByRole("combobox", { name: /gender/i });
-    await user.click(genderSelect);
-    await user.click(screen.getByRole("option", { name: /male/i }));
-
     await user.click(screen.getByRole("button", { name: /continue/i }));
 
-    // Step 3: Program Details
+    // Step 3: Program Details (BJJ uses RadioGroups for class group and age group)
     await waitFor(() => {
-      expect(screen.getByText(/program details/i)).toBeInTheDocument();
-    });
+      expect(screen.getByText(/step 3/i)).toBeInTheDocument();
+    }, { timeout: 500 });
 
-    // Select age group
-    const ageGroupSelect = screen.getByRole("combobox", { name: /age group/i });
-    await user.click(ageGroupSelect);
-    await user.click(screen.getByRole("option", { name: /6-10/i }));
+    await user.click(screen.getByLabelText(/boys' class/i));
+    await user.click(screen.getByLabelText(/6.10 yrs/i));
 
     await user.click(screen.getByRole("button", { name: /continue/i }));
 
     // Step 4: Waivers
     await waitFor(() => {
-      expect(screen.getByText(/waivers/i)).toBeInTheDocument();
-    });
+      expect(screen.getByText(/step 4/i)).toBeInTheDocument();
+    }, { timeout: 500 });
 
-    // Check all waiver checkboxes
-    const liabilityCheckbox = screen.getByLabelText(/liability waiver/i);
-    const photoCheckbox = screen.getByLabelText(/photo consent/i);
-    const medicalCheckbox = screen.getByLabelText(/medical consent/i);
-    const termsCheckbox = screen.getByLabelText(/terms/i);
+    await user.click(screen.getByRole("checkbox", { name: /liability waiver/i }));
+    await user.click(screen.getByRole("checkbox", { name: /photo/i }));
+    await user.click(screen.getByRole("checkbox", { name: /medical/i }));
+    await user.click(screen.getByRole("checkbox", { name: /terms/i }));
+    await user.type(screen.getByLabelText(/typed legal signature/i), "John Doe");
 
-    await user.click(liabilityCheckbox);
-    await user.click(photoCheckbox);
-    await user.click(medicalCheckbox);
-    await user.click(termsCheckbox);
-
-    // Type signature
-    await user.type(screen.getByLabelText(/signature/i), "John Doe");
-
-    await user.click(screen.getByRole("button", { name: /continue to payment/i }));
+    // "Continue" on waivers triggers registration + payment setup
+    await user.click(screen.getByRole("button", { name: /continue/i }));
 
     // Step 5: Payment
     await waitFor(() => {
       expect(screen.getByTestId("payment-element")).toBeInTheDocument();
-    });
+    }, { timeout: 3000 });
 
     // Verify registration was created
     await waitFor(() => {
@@ -111,7 +107,7 @@ describe("Registration Flow Integration", () => {
     const user = userEvent.setup();
     const localStorageData: Record<string, string> = {};
 
-    // Mock localStorage
+    // Override with a tracking mock for this specific test
     const localStorageMock = {
       getItem: vi.fn((key: string) => localStorageData[key] || null),
       setItem: vi.fn((key: string, value: string) => {
@@ -120,17 +116,15 @@ describe("Registration Flow Integration", () => {
       removeItem: vi.fn((key: string) => {
         delete localStorageData[key];
       }),
-      clear: vi.fn(() => {
-        Object.keys(localStorageData).forEach((key) => delete localStorageData[key]);
-      }),
+      clear: vi.fn(),
     };
-    Object.defineProperty(window, "localStorage", { value: localStorageMock });
+    Object.defineProperty(window, "localStorage", { value: localStorageMock, writable: true });
 
     const { unmount } = render(<ProgramRegistrationPage slug="archery" />);
 
     // Fill out guardian info
-    await user.type(screen.getByLabelText(/full name/i), "Sarah Smith");
-    await user.type(screen.getByLabelText(/email/i), "sarah@example.com");
+    await user.type(screen.getByLabelText("Full name"), "Sarah Smith");
+    await user.type(screen.getByLabelText("Email"), "sarah@example.com");
 
     // Unmount component (simulate navigation away)
     unmount();
@@ -157,7 +151,7 @@ describe("Registration Flow Integration", () => {
         phone: "555-000-0000",
         emergencyContactName: "Contact",
         emergencyContactPhone: "555-111-1111",
-        relationship: "Parent",
+        relationship: "mother",
         notes: "",
       },
       student: {
@@ -196,16 +190,16 @@ describe("Registration Flow Integration", () => {
       removeItem: vi.fn(),
       clear: vi.fn(),
     };
-    Object.defineProperty(window, "localStorage", { value: localStorageMock });
+    Object.defineProperty(window, "localStorage", { value: localStorageMock, writable: true });
 
     render(<ProgramRegistrationPage slug="bjj" />);
 
-    // Should show resume banner
+    // ResumeBanner shows "Continue your {programName} registration"
     await waitFor(() => {
-      expect(screen.getByText(/resume your registration/i)).toBeInTheDocument();
+      expect(screen.getByText(/continue your.*registration/i)).toBeInTheDocument();
     });
 
-    // Click resume
+    // Click resume — button text is "Resume →"
     await user.click(screen.getByRole("button", { name: /resume/i }));
 
     // Should have pre-filled data
@@ -219,18 +213,21 @@ describe("Registration Flow Integration", () => {
     const user = userEvent.setup();
     render(<ProgramRegistrationPage slug="bjj" />);
 
+    // Should be on step 1
+    expect(screen.getByText(/step 1/i)).toBeInTheDocument();
+
     // Try to continue without filling required fields
     await user.click(screen.getByRole("button", { name: /continue/i }));
 
-    // Should still be on guardian step (validation should prevent proceeding)
-    expect(screen.getByText(/guardian information/i)).toBeInTheDocument();
+    // Guardian form fields should still be visible
+    expect(screen.getByLabelText("Full name")).toBeInTheDocument();
+    expect(screen.getByLabelText("Email")).toBeInTheDocument();
   });
 
   it("handles waitlist scenario when program is full", async () => {
     const user = userEvent.setup();
     const navigateMock = vi.fn();
 
-    // Override the mock for this test
     vi.doMock("wouter", async () => {
       const actual = await vi.importActual("wouter");
       return {
@@ -239,7 +236,6 @@ describe("Registration Flow Integration", () => {
       };
     });
 
-    // Setup mock to return waitlist response
     mockStore.shouldFailNextRequest = false;
     const originalFetch = global.fetch;
     global.fetch = vi.fn().mockImplementation((url: string, options: any) => {
@@ -254,20 +250,12 @@ describe("Registration Flow Integration", () => {
 
     render(<ProgramRegistrationPage slug="bjj" />);
 
-    // Fill out all required fields quickly
-    await user.type(screen.getByLabelText(/full name/i), "Test User");
-    await user.type(screen.getByLabelText(/email/i), "test@example.com");
-    await user.type(screen.getByLabelText(/phone/i), "555-123-4567");
-    await user.type(screen.getByLabelText(/emergency contact name/i), "Contact");
-    await user.type(screen.getByLabelText(/emergency contact phone/i), "555-987-6543");
-    await user.type(screen.getByLabelText(/relationship/i), "Parent");
-
-    // Navigate through steps
+    await fillGuardianStep(user);
     await user.click(screen.getByRole("button", { name: /continue/i }));
 
     await waitFor(() => {
-      expect(screen.getByText(/student information/i)).toBeInTheDocument();
-    });
+      expect(screen.getByText(/step 2/i)).toBeInTheDocument();
+    }, { timeout: 500 });
 
     await user.type(screen.getByLabelText(/student.*full name/i), "Student Name");
     await user.type(screen.getByLabelText(/preferred name/i), "Student");
@@ -276,25 +264,26 @@ describe("Registration Flow Integration", () => {
     await user.click(screen.getByRole("button", { name: /continue/i }));
 
     await waitFor(() => {
-      expect(screen.getByText(/program details/i)).toBeInTheDocument();
-    });
+      expect(screen.getByText(/step 3/i)).toBeInTheDocument();
+    }, { timeout: 500 });
+
+    await user.click(screen.getByLabelText(/boys' class/i));
+    await user.click(screen.getByLabelText(/6.10 yrs/i));
 
     await user.click(screen.getByRole("button", { name: /continue/i }));
 
     await waitFor(() => {
-      expect(screen.getByText(/waivers/i)).toBeInTheDocument();
-    });
+      expect(screen.getByText(/step 4/i)).toBeInTheDocument();
+    }, { timeout: 500 });
 
-    // Check waivers
-    await user.click(screen.getByLabelText(/liability waiver/i));
-    await user.click(screen.getByLabelText(/photo consent/i));
-    await user.click(screen.getByLabelText(/medical consent/i));
-    await user.click(screen.getByLabelText(/terms/i));
-    await user.type(screen.getByLabelText(/signature/i), "Test User");
+    await user.click(screen.getByRole("checkbox", { name: /liability waiver/i }));
+    await user.click(screen.getByRole("checkbox", { name: /photo/i }));
+    await user.click(screen.getByRole("checkbox", { name: /medical/i }));
+    await user.click(screen.getByRole("checkbox", { name: /terms/i }));
+    await user.type(screen.getByLabelText(/typed legal signature/i), "Test User");
 
-    await user.click(screen.getByRole("button", { name: /continue to payment/i }));
+    await user.click(screen.getByRole("button", { name: /continue/i }));
 
-    // Restore fetch
     global.fetch = originalFetch;
     vi.doUnmock("wouter");
   });

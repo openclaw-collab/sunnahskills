@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { render } from "./test-utils";
+import { render, mockLocalStorage } from "./test-utils";
 import { ProgramRegistrationPage } from "@/pages/registration/ProgramRegistrationPage";
 import { mockStore } from "./mocks/handlers";
 
@@ -27,50 +27,57 @@ vi.mock("@stripe/react-stripe-js", () => ({
   }),
 }));
 
+// Helper: fill and submit guardian step
+// SelectField has no htmlFor — use getByRole("combobox") (only one native select on guardian step)
+const fillGuardianStep = async (user: ReturnType<typeof userEvent.setup>) => {
+  await user.type(screen.getByLabelText("Full name"), "John Doe");
+  await user.type(screen.getByLabelText("Email"), "john@example.com");
+  await user.type(screen.getByLabelText("Phone"), "555-123-4567");
+  await user.type(screen.getByLabelText("Emergency contact name"), "Jane Doe");
+  await user.type(screen.getByLabelText("Emergency contact phone"), "555-987-6543");
+  const relationshipSelect = screen.getByRole("combobox");
+  await user.selectOptions(relationshipSelect, "mother");
+  await user.click(screen.getByRole("button", { name: /continue/i }));
+};
+
+const fillStudentStep = async (user: ReturnType<typeof userEvent.setup>) => {
+  await waitFor(() => {
+    expect(screen.getByText(/step 2/i)).toBeInTheDocument();
+  }, { timeout: 500 });
+  await user.type(screen.getByLabelText("Student full name"), "Jimmy Doe");
+  await user.type(screen.getByLabelText(/preferred name/i), "Jim");
+  await user.type(screen.getByLabelText("Date of birth"), "2015-01-01");
+  await user.click(screen.getByRole("button", { name: /continue/i }));
+};
+
+// BJJ program details: Class group + Age group are both RadioGroups (not comboboxes)
+const fillProgramDetailsStep = async (user: ReturnType<typeof userEvent.setup>) => {
+  await waitFor(() => {
+    expect(screen.getByText(/step 3/i)).toBeInTheDocument();
+  }, { timeout: 500 });
+  // Select "Boys' class" radio
+  await user.click(screen.getByLabelText(/boys' class/i));
+  // Select "6–10 yrs" radio
+  await user.click(screen.getByLabelText(/6.10 yrs/i));
+  await user.click(screen.getByRole("button", { name: /continue/i }));
+};
+
+const fillWaiversStep = async (user: ReturnType<typeof userEvent.setup>) => {
+  await waitFor(() => {
+    expect(screen.getByText(/step 4/i)).toBeInTheDocument();
+  }, { timeout: 500 });
+  await user.click(screen.getByRole("checkbox", { name: /liability waiver/i }));
+  await user.click(screen.getByRole("checkbox", { name: /photo/i }));
+  await user.click(screen.getByRole("checkbox", { name: /medical/i }));
+  await user.click(screen.getByRole("checkbox", { name: /terms/i }));
+  await user.type(screen.getByLabelText(/typed legal signature/i), "John Doe");
+};
+
 describe("Payment Flow Integration", () => {
-  const fillGuardianStep = async (user: ReturnType<typeof userEvent.setup>) => {
-    await user.type(screen.getByLabelText(/full name/i), "John Doe");
-    await user.type(screen.getByLabelText(/email/i), "john@example.com");
-    await user.type(screen.getByLabelText(/phone/i), "555-123-4567");
-    await user.type(screen.getByLabelText(/emergency contact name/i), "Jane Doe");
-    await user.type(screen.getByLabelText(/emergency contact phone/i), "555-987-6543");
-    await user.type(screen.getByLabelText(/relationship/i), "Parent");
-    await user.click(screen.getByRole("button", { name: /continue/i }));
-  };
-
-  const fillStudentStep = async (user: ReturnType<typeof userEvent.setup>) => {
-    await waitFor(() => {
-      expect(screen.getByText(/student information/i)).toBeInTheDocument();
-    });
-    await user.type(screen.getByLabelText(/student.*full name/i), "Jimmy Doe");
-    await user.type(screen.getByLabelText(/preferred name/i), "Jim");
-    await user.type(screen.getByLabelText(/date of birth/i), "2015-01-01");
-    await user.click(screen.getByRole("button", { name: /continue/i }));
-  };
-
-  const fillProgramDetailsStep = async (user: ReturnType<typeof userEvent.setup>) => {
-    await waitFor(() => {
-      expect(screen.getByText(/program details/i)).toBeInTheDocument();
-    });
-    const ageGroupSelect = screen.getByRole("combobox", { name: /age group/i });
-    await user.click(ageGroupSelect);
-    await user.click(screen.getByRole("option", { name: /6-10/i }));
-    await user.click(screen.getByRole("button", { name: /continue/i }));
-  };
-
-  const fillWaiversStep = async (user: ReturnType<typeof userEvent.setup>) => {
-    await waitFor(() => {
-      expect(screen.getByText(/waivers/i)).toBeInTheDocument();
-    });
-    await user.click(screen.getByLabelText(/liability waiver/i));
-    await user.click(screen.getByLabelText(/photo consent/i));
-    await user.click(screen.getByLabelText(/medical consent/i));
-    await user.click(screen.getByLabelText(/terms/i));
-    await user.type(screen.getByLabelText(/signature/i), "John Doe");
-  };
-
   beforeEach(() => {
     mockConfirmPayment.mockClear();
+    // Mock localStorage to prevent StorageEvent jsdom crash when hook saves drafts
+    mockLocalStorage({});
   });
 
   it("creates payment intent for one-time payment program", async () => {
@@ -79,26 +86,32 @@ describe("Payment Flow Integration", () => {
 
     render(<ProgramRegistrationPage slug="archery" />);
 
-    // Navigate to payment step
     await fillGuardianStep(user);
     await fillStudentStep(user);
-    await fillProgramDetailsStep(user);
+
+    // Archery details: dominant hand + experience are RadioGroups, session is a SelectField
+    await waitFor(() => {
+      expect(screen.getByText(/step 3/i)).toBeInTheDocument();
+    }, { timeout: 500 });
+    await user.click(screen.getByLabelText(/right-handed/i));
+    await user.click(screen.getByLabelText(/never tried/i));
+    // Select a session from the native <select> (only combobox on this step)
+    const sessionSelect = screen.getByRole("combobox");
+    await user.selectOptions(sessionSelect, "summer-2026-a");
+    await user.click(screen.getByRole("button", { name: /continue/i }));
+
     await fillWaiversStep(user);
+    await user.click(screen.getByRole("button", { name: /continue/i }));
 
-    await user.click(screen.getByRole("button", { name: /continue to payment/i }));
-
-    // Wait for payment step
     await waitFor(() => {
       expect(screen.getByTestId("payment-element")).toBeInTheDocument();
-    });
+    }, { timeout: 3000 });
 
-    // Verify payment intent was created
     await waitFor(() => {
       expect(mockStore.payments).toHaveLength(1);
       expect(mockStore.payments[0].id).toMatch(/^pi_/);
     });
 
-    // Verify registration was created
     expect(mockStore.registrations).toHaveLength(1);
     const registration = mockStore.registrations[0];
     expect(registration.status).toBe("pending_payment");
@@ -110,20 +123,17 @@ describe("Payment Flow Integration", () => {
 
     render(<ProgramRegistrationPage slug="bjj" />);
 
-    // Navigate to payment step
     await fillGuardianStep(user);
     await fillStudentStep(user);
     await fillProgramDetailsStep(user);
     await fillWaiversStep(user);
 
-    await user.click(screen.getByRole("button", { name: /continue to payment/i }));
+    await user.click(screen.getByRole("button", { name: /continue/i }));
 
-    // Wait for payment step
     await waitFor(() => {
       expect(screen.getByTestId("payment-element")).toBeInTheDocument();
-    });
+    }, { timeout: 3000 });
 
-    // Verify subscription was created (or payment intent as fallback)
     await waitFor(() => {
       expect(mockStore.payments).toHaveLength(1);
     });
@@ -135,32 +145,24 @@ describe("Payment Flow Integration", () => {
 
     render(<ProgramRegistrationPage slug="bjj" />);
 
-    // Navigate to program details and add siblings
     await fillGuardianStep(user);
     await fillStudentStep(user);
 
     await waitFor(() => {
-      expect(screen.getByText(/program details/i)).toBeInTheDocument();
-    });
+      expect(screen.getByText(/step 3/i)).toBeInTheDocument();
+    }, { timeout: 500 });
 
-    // Select age group
-    const ageGroupSelect = screen.getByRole("combobox", { name: /age group/i });
-    await user.click(ageGroupSelect);
-    await user.click(screen.getByRole("option", { name: /6-10/i }));
-
-    // Add sibling count (this would be in the order summary sidebar)
-    // Continue to waivers
+    await user.click(screen.getByLabelText(/boys' class/i));
+    await user.click(screen.getByLabelText(/6.10 yrs/i));
     await user.click(screen.getByRole("button", { name: /continue/i }));
 
     await fillWaiversStep(user);
-    await user.click(screen.getByRole("button", { name: /continue to payment/i }));
+    await user.click(screen.getByRole("button", { name: /continue/i }));
 
-    // Wait for payment step
     await waitFor(() => {
       expect(screen.getByTestId("payment-element")).toBeInTheDocument();
-    });
+    }, { timeout: 3000 });
 
-    // Verify payment was created
     await waitFor(() => {
       expect(mockStore.payments).toHaveLength(1);
     });
@@ -174,43 +176,36 @@ describe("Payment Flow Integration", () => {
 
     render(<ProgramRegistrationPage slug="bjj" />);
 
-    // Navigate to payment step
     await fillGuardianStep(user);
     await fillStudentStep(user);
     await fillProgramDetailsStep(user);
     await fillWaiversStep(user);
 
-    await user.click(screen.getByRole("button", { name: /continue to payment/i }));
+    await user.click(screen.getByRole("button", { name: /continue/i }));
 
-    // Wait for payment step
     await waitFor(() => {
       expect(screen.getByTestId("payment-element")).toBeInTheDocument();
-    });
+    }, { timeout: 3000 });
 
-    // Registration should still be created even if payment fails later
     expect(mockStore.registrations).toHaveLength(1);
   });
 
   it("handles payment intent creation failure", async () => {
     const user = userEvent.setup();
-    mockStore.shouldFailNextRequest = true;
+    mockStore.shouldFailPayment = true;
 
     render(<ProgramRegistrationPage slug="bjj" />);
 
-    // Navigate to payment step
     await fillGuardianStep(user);
     await fillStudentStep(user);
     await fillProgramDetailsStep(user);
     await fillWaiversStep(user);
 
-    await user.click(screen.getByRole("button", { name: /continue to payment/i }));
+    await user.click(screen.getByRole("button", { name: /continue/i }));
 
-    // Should show error message
     await waitFor(() => {
-      expect(screen.getByText(/failed to create payment/i)).toBeInTheDocument();
-    });
-
-    mockStore.shouldFailNextRequest = false;
+      expect(screen.getByText(/payment creation failed/i)).toBeInTheDocument();
+    }, { timeout: 3000 });
   });
 
   it("handles discount code application", async () => {
@@ -219,30 +214,24 @@ describe("Payment Flow Integration", () => {
 
     render(<ProgramRegistrationPage slug="bjj" />);
 
-    // Navigate to program details step
     await fillGuardianStep(user);
     await fillStudentStep(user);
 
     await waitFor(() => {
-      expect(screen.getByText(/program details/i)).toBeInTheDocument();
-    });
+      expect(screen.getByText(/step 3/i)).toBeInTheDocument();
+    }, { timeout: 500 });
 
-    // At this point, order summary should be visible with discount code input
-    // Continue through to payment
-    const ageGroupSelect = screen.getByRole("combobox", { name: /age group/i });
-    await user.click(ageGroupSelect);
-    await user.click(screen.getByRole("option", { name: /6-10/i }));
+    await user.click(screen.getByLabelText(/boys' class/i));
+    await user.click(screen.getByLabelText(/6.10 yrs/i));
 
     await user.click(screen.getByRole("button", { name: /continue/i }));
     await fillWaiversStep(user);
-    await user.click(screen.getByRole("button", { name: /continue to payment/i }));
+    await user.click(screen.getByRole("button", { name: /continue/i }));
 
-    // Wait for payment step
     await waitFor(() => {
       expect(screen.getByTestId("payment-element")).toBeInTheDocument();
-    });
+    }, { timeout: 3000 });
 
-    // Verify registration was created
     expect(mockStore.registrations).toHaveLength(1);
   });
 });

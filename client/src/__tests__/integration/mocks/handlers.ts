@@ -58,6 +58,7 @@ export const mockStore = {
   currentUser: null as any,
   nextRegistrationId: 1,
   shouldFailNextRequest: false,
+  shouldFailPayment: false,
   networkError: false,
 };
 
@@ -70,6 +71,7 @@ export function resetMockStore() {
   mockStore.currentUser = null;
   mockStore.nextRegistrationId = 1;
   mockStore.shouldFailNextRequest = false;
+  mockStore.shouldFailPayment = false;
   mockStore.networkError = false;
 }
 
@@ -142,7 +144,8 @@ export const handlers = [
       return HttpResponse.error();
     }
 
-    if (mockStore.shouldFailNextRequest) {
+    if (mockStore.shouldFailNextRequest || mockStore.shouldFailPayment) {
+      mockStore.shouldFailPayment = false;
       return HttpResponse.json({ error: "Payment creation failed" }, { status: 500 });
     }
 
@@ -176,6 +179,11 @@ export const handlers = [
       return HttpResponse.json({ error: "subscriptions_not_configured" }, { status: 400 });
     }
 
+    if (mockStore.shouldFailPayment) {
+      // Fall through to create-intent which will also fail
+      return HttpResponse.json({ error: "subscriptions_not_configured" }, { status: 400 });
+    }
+
     if (mockStore.shouldFailNextRequest) {
       return HttpResponse.json({ error: "Subscription creation failed" }, { status: 500 });
     }
@@ -202,6 +210,20 @@ export const handlers = [
     }
 
     return HttpResponse.json({ registrations: mockStore.registrations });
+  }),
+
+  http.get("/api/admin/registrations/:id", ({ params }) => {
+    if (!mockStore.currentUser) {
+      return HttpResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const id = parseInt(params.id as string, 10);
+    const registration = mockStore.registrations.find((r) => r.id === id || r.registration_id === id);
+    if (!registration) {
+      return HttpResponse.json({ error: "Registration not found" }, { status: 404 });
+    }
+
+    return HttpResponse.json({ registration });
   }),
 
   http.get("/api/admin/payments", () => {
@@ -256,6 +278,22 @@ export const handlers = [
         { id: 2, slug: "archery", name: "Archery", type: "one-time" },
       ],
     });
+  }),
+
+  http.get("/api/admin/discounts", () => {
+    return HttpResponse.json({ discounts: [] });
+  }),
+
+  http.post("/api/admin/discounts", async ({ request }) => {
+    return HttpResponse.json({ ok: true, discount: { id: 1 } });
+  }),
+
+  http.get("/api/admin/sessions", () => {
+    return HttpResponse.json({ sessions: [] });
+  }),
+
+  http.post("/api/admin/sessions", async () => {
+    return HttpResponse.json({ ok: true });
   }),
 
   http.get("/api/admin/contacts", () => {

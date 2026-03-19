@@ -121,7 +121,7 @@ export const handlers = [
       return HttpResponse.json({ error: "Registration failed" }, { status: 500 });
     }
 
-    const body = await request.json();
+    const body = await request.json() as Record<string, unknown>;
     const registrationId = mockStore.nextRegistrationId++;
 
     const registration = {

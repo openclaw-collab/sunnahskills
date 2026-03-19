@@ -6,6 +6,7 @@ import { ClayButton } from "./brand/ClayButton";
 
 const navSections = [
   // Use real SPA paths so navigation works from any route.
+  { label: "Techniques", href: "/techniques" },
   { label: "Schedule", href: "/schedule" },
   { label: "About", href: "/about" },
   { label: "Contact", href: "/contact" },

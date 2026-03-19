@@ -1,4 +1,5 @@
 import React from "react";
+import { vi } from "vitest";
 import { render as rtlRender, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -100,13 +101,13 @@ export async function waitForLoadingToFinish() {
 
 // Helper to mock localStorage
 export function mockLocalStorage(data: Record<string, any>) {
-  const getItem = jest.fn((key: string) => {
+  const getItem = vi.fn((key: string) => {
     const value = data[key];
     return value ? JSON.stringify(value) : null;
   });
-  const setItem = jest.fn();
-  const removeItem = jest.fn();
-  const clear = jest.fn();
+  const setItem = vi.fn();
+  const removeItem = vi.fn();
+  const clear = vi.fn();
 
   Object.defineProperty(window, "localStorage", {
     value: { getItem, setItem, removeItem, clear },

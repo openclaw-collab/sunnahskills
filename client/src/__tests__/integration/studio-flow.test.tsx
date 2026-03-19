@@ -396,7 +396,7 @@ describe("Studio Flow Integration", () => {
       });
       mockStore.sessionPasswords.set(sessionId, password);
 
-      const isCorrect = attempt === password;
+      const isCorrect = (attempt as string) === (password as string);
       expect(isCorrect).toBe(false);
 
       if (isCorrect) {

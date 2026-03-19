@@ -1,9 +1,214 @@
-import React from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { SectionHeader } from "@/components/brand/SectionHeader";
-import { DarkCard } from "@/components/brand/DarkCard";
 import { TechniqueViewer } from "@/components/grapplemap/TechniqueViewer";
+import { X, Maximize2 } from "lucide-react";
+
+type SceneMeta = {
+  transitionId: number;
+  name: string;
+  tags: string[];
+  description: string[];
+  dataPath: string;
+};
+
+type SceneEntry = {
+  id: string;
+  meta: SceneMeta;
+};
+
+function useScenesCatalog() {
+  const [scenes, setScenes] = useState<SceneEntry[]>([]);
+  useEffect(() => {
+    fetch("/data/scenes.json")
+      .then((r) => r.json())
+      .then((data: { scenes: Record<string, { meta: SceneMeta }> }) => {
+        const entries = Object.entries(data.scenes).map(([id, val]) => ({
+          id,
+          meta: val.meta,
+        }));
+        setScenes(entries);
+      })
+      .catch(() => {});
+  }, []);
+  return scenes;
+}
+
+function TechniqueCard({
+  scene,
+  onExpand,
+  onClick,
+}: {
+  scene: SceneEntry;
+  onExpand: () => void;
+  onClick: () => void;
+}) {
+  const desc = scene.meta.description[1] ?? "";
+
+  return (
+    <div
+      className="group relative flex flex-col bg-charcoal rounded-3xl overflow-hidden border border-moss/20 hover:border-moss/50 transition-colors cursor-pointer"
+      onClick={onClick}
+    >
+      {/* 3D Viewer */}
+      <div className="relative w-full h-52">
+        <TechniqueViewer className="w-full h-full" sequencePath={scene.meta.dataPath} />
+        <button
+          className="absolute top-3 right-3 z-10 bg-charcoal/80 text-cream/70 hover:text-cream rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity"
+          onClick={(e) => {
+            e.stopPropagation();
+            onExpand();
+          }}
+          aria-label="Fullscreen"
+        >
+          <Maximize2 size={14} />
+        </button>
+      </div>
+
+      {/* Card body */}
+      <div className="px-5 py-4 flex flex-col gap-2 flex-1">
+        <p className="font-mono-label text-[10px] uppercase tracking-[0.2em] text-moss">
+          Technique
+        </p>
+        <h3 className="font-heading text-cream text-base capitalize leading-tight">
+          {scene.meta.name}
+        </h3>
+        {desc && (
+          <p className="text-cream/60 text-xs font-body line-clamp-2">{desc}</p>
+        )}
+        {scene.meta.tags.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 mt-1">
+            {scene.meta.tags.map((tag) => (
+              <span
+                key={tag}
+                className="text-[10px] uppercase tracking-[0.15em] bg-moss/20 text-moss px-2 py-0.5 rounded-full"
+              >
+                {tag}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function DetailPanel({
+  scene,
+  onClose,
+}: {
+  scene: SceneEntry;
+  onClose: () => void;
+}) {
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", handleKey);
+    return () => document.removeEventListener("keydown", handleKey);
+  }, [onClose]);
+
+  return (
+    <div className="fixed inset-0 z-50 flex" aria-modal="true" role="dialog">
+      {/* Backdrop */}
+      <div
+        className="absolute inset-0 bg-charcoal/70 backdrop-blur-sm"
+        onClick={onClose}
+      />
+
+      {/* Slide-in panel */}
+      <div
+        ref={panelRef}
+        className="relative ml-auto h-full w-full max-w-lg bg-charcoal border-l border-moss/20 flex flex-col overflow-y-auto animate-in slide-in-from-right duration-300"
+      >
+        <div className="flex items-center justify-between px-6 py-5 border-b border-moss/15">
+          <p className="font-mono-label text-[10px] uppercase tracking-[0.2em] text-moss">
+            Technique Detail
+          </p>
+          <button
+            className="text-cream/60 hover:text-cream transition-colors"
+            onClick={onClose}
+            aria-label="Close"
+          >
+            <X size={18} />
+          </button>
+        </div>
+
+        <div className="w-full h-72 flex-shrink-0">
+          <TechniqueViewer className="w-full h-full" sequencePath={scene.meta.dataPath} />
+        </div>
+
+        <div className="px-6 py-6 space-y-4 flex-1">
+          <h2 className="font-heading text-cream text-2xl capitalize">
+            {scene.meta.name}
+          </h2>
+
+          {scene.meta.tags.length > 0 && (
+            <div className="flex flex-wrap gap-1.5">
+              {scene.meta.tags.map((tag) => (
+                <span
+                  key={tag}
+                  className="text-[10px] uppercase tracking-[0.15em] bg-moss/20 text-moss px-2 py-0.5 rounded-full"
+                >
+                  {tag}
+                </span>
+              ))}
+            </div>
+          )}
+
+          <div className="space-y-2 text-sm font-body text-cream/70">
+            {scene.meta.description.map((line, i) => (
+              <p key={i}>{line}</p>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function FullscreenModal({
+  scene,
+  onClose,
+}: {
+  scene: SceneEntry;
+  onClose: () => void;
+}) {
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", handleKey);
+    return () => document.removeEventListener("keydown", handleKey);
+  }, [onClose]);
+
+  return (
+    <div className="fixed inset-0 z-50 bg-charcoal flex flex-col" aria-modal="true" role="dialog">
+      <div className="flex items-center justify-between px-6 py-4 border-b border-moss/15">
+        <p className="font-mono-label text-[10px] uppercase tracking-[0.2em] text-moss capitalize">
+          {scene.meta.name}
+        </p>
+        <button
+          className="text-cream/60 hover:text-cream transition-colors"
+          onClick={onClose}
+          aria-label="Close fullscreen"
+        >
+          <X size={20} />
+        </button>
+      </div>
+      <div className="flex-1">
+        <TechniqueViewer className="w-full h-full" sequencePath={scene.meta.dataPath} />
+      </div>
+    </div>
+  );
+}
 
 const TechniqueLibrary = () => {
+  const scenes = useScenesCatalog();
+  const [selected, setSelected] = useState<SceneEntry | null>(null);
+  const [fullscreen, setFullscreen] = useState<SceneEntry | null>(null);
+
   return (
     <div className="bg-cream min-h-screen pb-24">
       <main className="max-w-6xl mx-auto px-6 pt-32">
@@ -13,40 +218,37 @@ const TechniqueLibrary = () => {
           className="mb-10"
         />
         <p className="font-body text-sm text-charcoal/70 max-w-2xl mb-10">
-          Explore curated sequences from the training curriculum. This section will grow into a
-          full technique browser powered by GrappleMap data.
+          Explore curated sequences from the training curriculum. Browse
+          techniques, tap a card for details, or expand to fullscreen.
         </p>
 
-        <DarkCard>
-          <div className="mb-4 font-mono-label text-[11px] text-cream/70 uppercase tracking-[0.2em]">
-            Featured Sequence
+        {scenes.length === 0 ? (
+          <div className="text-charcoal/40 text-sm font-body py-16 text-center">
+            Loading techniques…
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-stretch">
-            <div className="relative w-full h-72 md:h-80 rounded-2xl overflow-hidden border border-moss/25">
-              <TechniqueViewer className="w-full h-full" />
-            </div>
-            <div className="space-y-3 text-sm font-body text-cream/80">
-              <p className="text-xs uppercase tracking-[0.2em] text-clay">
-                Uchi-mata → Armbar → Tap
-              </p>
-              <p>
-                A classic throw-to-submission chain used to teach off-balancing, commitment, and
-                clean finishing mechanics. Students learn to connect stand-up entries to safe
-                ground control and a decisive tap.
-              </p>
-              <ul className="text-xs space-y-1.5 text-cream/70">
-                <li>+ Collar tie to weak underhook</li>
-                <li>+ Uchi-mata entry and finish</li>
-                <li>+ Transition to armbar control</li>
-                <li>+ Clean, pressure-controlled tap</li>
-              </ul>
-            </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-6">
+            {scenes.map((scene) => (
+              <TechniqueCard
+                key={scene.id}
+                scene={scene}
+                onClick={() => setSelected(scene)}
+                onExpand={() => setFullscreen(scene)}
+              />
+            ))}
           </div>
-        </DarkCard>
+        )}
       </main>
+
+      {selected && !fullscreen && (
+        <DetailPanel scene={selected} onClose={() => setSelected(null)} />
+      )}
+
+      {fullscreen && (
+        <FullscreenModal scene={fullscreen} onClose={() => setFullscreen(null)} />
+      )}
     </div>
   );
 };
 
 export default TechniqueLibrary;
-

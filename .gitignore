@@ -6,6 +6,7 @@ dist
 GrappleMap/
 GrappleMap/preview/node_modules/
 GrappleMap/**/dist/
+!client/src/components/grapplemap/
 Screenshot *.png
 server/public
 vite.config.ts.*

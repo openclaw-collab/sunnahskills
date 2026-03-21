@@ -18,6 +18,152 @@ function json(data: unknown, init?: ResponseInit) {
   });
 }
 
+async function loadPaymentByIntent(env: Env, paymentIntentId: string) {
+  return env.DB.prepare(
+    `
+    SELECT pay.id, pay.status, pay.registration_id, pay.stripe_subscription_id,
+           pay.amount, pay.currency, pay.receipt_url, pay.metadata,
+           r.session_id
+    FROM payments pay
+    JOIN registrations r ON r.id = pay.registration_id
+    WHERE pay.stripe_payment_intent_id = ?
+    LIMIT 1
+    `,
+  )
+    .bind(paymentIntentId)
+    .first<{
+      id: number;
+      status: string;
+      registration_id: number;
+      stripe_subscription_id: string | null;
+      amount: number;
+      currency: string;
+      receipt_url: string | null;
+      metadata: string | null;
+      session_id: number | null;
+    }>();
+}
+
+async function loadPaymentBySubscription(env: Env, subscriptionId: string) {
+  return env.DB.prepare(
+    `
+    SELECT pay.id, pay.status, pay.registration_id, pay.stripe_subscription_id,
+           pay.amount, pay.currency, pay.receipt_url, pay.metadata,
+           r.session_id
+    FROM payments pay
+    JOIN registrations r ON r.id = pay.registration_id
+    WHERE pay.stripe_subscription_id = ?
+    LIMIT 1
+    `,
+  )
+    .bind(subscriptionId)
+    .first<{
+      id: number;
+      status: string;
+      registration_id: number;
+      stripe_subscription_id: string | null;
+      amount: number;
+      currency: string;
+      receipt_url: string | null;
+      metadata: string | null;
+      session_id: number | null;
+    }>();
+}
+
+async function incrementDiscountUse(env: Env, metadataJson: string | null | undefined) {
+  if (!metadataJson) return;
+  let code: string | null = null;
+  try {
+    const metadata = JSON.parse(metadataJson) as Record<string, unknown>;
+    code = typeof metadata.discountCode === "string" ? metadata.discountCode.trim().toUpperCase() : null;
+  } catch {
+    code = null;
+  }
+  if (!code) return;
+
+  await env.DB.prepare(
+    `
+    UPDATE discounts
+    SET current_uses = COALESCE(current_uses, 0) + 1
+    WHERE code = ? AND active = 1 AND (max_uses IS NULL OR current_uses < max_uses)
+    `,
+  )
+    .bind(code)
+    .run();
+}
+
+async function sendPaymentEmails(
+  env: Env,
+  params: {
+    guardianName: string;
+    guardianEmail: string;
+    studentName: string;
+    programName: string;
+    amount: number;
+    currency: string;
+    registrationId: number;
+    receiptUrl?: string | null;
+  },
+) {
+  const fromEmail = env.EMAIL_FROM ?? "noreply@sunnahskills.pages.dev";
+  try {
+    const userMsg = paymentReceiptEmail({
+      guardianName: params.guardianName,
+      studentName: params.studentName,
+      programName: params.programName,
+      amountCents: params.amount,
+      currency: params.currency,
+      receiptUrl: params.receiptUrl,
+      siteUrl: env.SITE_URL,
+    });
+    await sendMailChannelsEmail(env, {
+      to: { email: params.guardianEmail, name: params.guardianName },
+      from: { email: fromEmail, name: "Sunnah Skills" },
+      subject: userMsg.subject,
+      text: userMsg.text,
+      html: userMsg.html,
+    });
+
+    if (env.EMAIL_TO) {
+      const adminMsg = adminPaymentReceivedEmail({
+        guardianName: params.guardianName,
+        guardianEmail: params.guardianEmail,
+        studentName: params.studentName,
+        programName: params.programName,
+        amountCents: params.amount,
+        currency: params.currency,
+        registrationId: params.registrationId,
+        receiptUrl: params.receiptUrl,
+        siteUrl: env.SITE_URL,
+      });
+      await sendMailChannelsEmail(env, {
+        to: { email: env.EMAIL_TO, name: "Sunnah Skills Admin" },
+        from: { email: fromEmail, name: "Sunnah Skills" },
+        subject: adminMsg.subject,
+        text: adminMsg.text,
+        html: adminMsg.html,
+      });
+    }
+  } catch {
+    // Best-effort only.
+  }
+}
+
+async function markRegistrationActive(env: Env, registrationId: number) {
+  await env.DB.prepare(
+    `UPDATE registrations SET status='active', updated_at=datetime('now') WHERE id = ?`,
+  )
+    .bind(registrationId)
+    .run();
+}
+
+async function incrementSessionEnrollment(env: Env, sessionId: number | null | undefined) {
+  if (!sessionId) return;
+  await env.DB.prepare(`UPDATE program_sessions SET enrolled_count = enrolled_count + 1 WHERE id = ?`)
+    .bind(sessionId)
+    .run();
+}
+
 export async function onRequestPost({ request, env }: { request: Request; env: Env }) {
   if (!env.DB) return json({ error: "DB not configured" }, { status: 500 });
   if (!env.STRIPE_SECRET_KEY || !env.STRIPE_WEBHOOK_SECRET) {
@@ -32,113 +178,76 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
   let event: Stripe.Event;
   try {
     event = stripe.webhooks.constructEvent(raw, sig, env.STRIPE_WEBHOOK_SECRET);
-  } catch (err) {
+  } catch {
     return json({ error: "Invalid signature" }, { status: 400 });
   }
 
   try {
     if (event.type === "payment_intent.succeeded") {
       const pi = event.data.object as Stripe.PaymentIntent;
-      const registrationId = pi.metadata?.registration_id ? Number(pi.metadata.registration_id) : null;
+      const payment = await loadPaymentByIntent(env, pi.id);
+      const registrationIdFromMeta = pi.metadata?.registration_id ? Number(pi.metadata.registration_id) : null;
+      const registrationId = payment?.registration_id ?? (Number.isInteger(registrationIdFromMeta) ? registrationIdFromMeta : null);
       const receiptUrl = (pi.charges?.data?.[0]?.receipt_url as string) ?? null;
 
+      if (payment?.status === "paid") {
+        return json({ ok: true });
+      }
+
       await env.DB.prepare(
-        `UPDATE payments SET status='paid', receipt_url=?, updated_at=datetime('now')
+        `UPDATE payments SET status='paid', receipt_url=COALESCE(?, receipt_url), updated_at=datetime('now')
          WHERE stripe_payment_intent_id = ?`,
       )
         .bind(receiptUrl, pi.id)
         .run();
+      await incrementDiscountUse(env, payment?.metadata ?? null);
 
       if (registrationId) {
-        await env.DB.prepare(
-          `UPDATE registrations SET status='active', updated_at=datetime('now') WHERE id = ?`,
+        await markRegistrationActive(env, registrationId);
+
+        const reg = await env.DB.prepare(
+          `
+          SELECT
+            r.session_id,
+            g.full_name as guardian_name,
+            g.email as guardian_email,
+            s.full_name as student_name,
+            p.name as program_name,
+            pay.amount as amount,
+            pay.currency as currency
+          FROM registrations r
+          JOIN guardians g ON g.id = r.guardian_id
+          JOIN students s ON s.id = r.student_id
+          JOIN programs p ON p.id = r.program_id
+          LEFT JOIN payments pay ON pay.registration_id = r.id
+          WHERE r.id = ?
+          LIMIT 1
+          `,
         )
           .bind(registrationId)
-          .run();
+          .first<{
+            session_id: number | null;
+            guardian_name: string;
+            guardian_email: string;
+            student_name: string;
+            program_name: string;
+            amount: number | null;
+            currency: string | null;
+          }>();
 
-        const reg = await env.DB.prepare(`SELECT session_id FROM registrations WHERE id = ?`)
-          .bind(registrationId)
-          .first();
-        if (reg?.session_id) {
-          await env.DB.prepare(
-            `UPDATE program_sessions SET enrolled_count = enrolled_count + 1 WHERE id = ?`,
-          )
-            .bind(reg.session_id)
-            .run();
-        }
+        await incrementSessionEnrollment(env, reg?.session_id ?? payment?.session_id ?? null);
 
-        // Best-effort emails
-        try {
-          const row = await env.DB.prepare(
-            `
-            SELECT
-              g.full_name as guardian_name,
-              g.email as guardian_email,
-              s.full_name as student_name,
-              p.name as program_name,
-              pay.amount as amount,
-              pay.currency as currency
-            FROM registrations r
-            JOIN guardians g ON g.id = r.guardian_id
-            JOIN students s ON s.id = r.student_id
-            JOIN programs p ON p.id = r.program_id
-            LEFT JOIN payments pay ON pay.registration_id = r.id
-            WHERE r.id = ?
-            LIMIT 1
-            `,
-          )
-            .bind(registrationId)
-            .first();
-
-          const fromEmail = env.EMAIL_FROM ?? "noreply@sunnahskills.pages.dev";
-          const guardianName = String(row?.guardian_name ?? "Parent");
-          const guardianEmail = String(row?.guardian_email ?? "");
-          const studentName = String(row?.student_name ?? "Student");
-          const programName = String(row?.program_name ?? "Program");
-          const amount = Number(row?.amount ?? pi.amount_received ?? 0);
-          const currency = String(row?.currency ?? pi.currency ?? "usd");
-
-          if (guardianEmail) {
-            const userMsg = paymentReceiptEmail({
-              guardianName,
-              studentName,
-              programName,
-              amountCents: amount,
-              currency,
-              receiptUrl,
-              siteUrl: env.SITE_URL,
-            });
-            await sendMailChannelsEmail(env, {
-              to: { email: guardianEmail, name: guardianName },
-              from: { email: fromEmail, name: "Sunnah Skills" },
-              subject: userMsg.subject,
-              text: userMsg.text,
-              html: userMsg.html,
-            });
-          }
-
-          if (env.EMAIL_TO) {
-            const adminMsg = adminPaymentReceivedEmail({
-              guardianName,
-              guardianEmail,
-              studentName,
-              programName,
-              amountCents: amount,
-              currency,
-              registrationId,
-              receiptUrl,
-              siteUrl: env.SITE_URL,
-            });
-            await sendMailChannelsEmail(env, {
-              to: { email: env.EMAIL_TO, name: "Sunnah Skills Admin" },
-              from: { email: fromEmail, name: "Sunnah Skills" },
-              subject: adminMsg.subject,
-              text: adminMsg.text,
-              html: adminMsg.html,
-            });
-          }
-        } catch {
-          // swallow
+        if (reg?.guardian_email) {
+          await sendPaymentEmails(env, {
+            guardianName: reg.guardian_name,
+            guardianEmail: reg.guardian_email,
+            studentName: reg.student_name,
+            programName: reg.program_name,
+            amount: Number(reg.amount ?? pi.amount_received ?? 0),
+            currency: String(reg.currency ?? pi.currency ?? "usd"),
+            registrationId,
+            receiptUrl,
+          });
         }
       }
     }
@@ -146,19 +255,76 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
     if (event.type === "payment_intent.payment_failed") {
       const pi = event.data.object as Stripe.PaymentIntent;
       await env.DB.prepare(
-        `UPDATE payments SET status='failed', updated_at=datetime('now') WHERE stripe_payment_intent_id = ?`,
+        `UPDATE payments SET status='failed', updated_at=datetime('now') WHERE stripe_payment_intent_id = ? AND status != 'paid'`,
       )
         .bind(pi.id)
         .run();
     }
 
-    // invoice.paid: subscription recurring payment (handled when subscription support is enabled)
     if (event.type === "invoice.paid") {
       const invoice = event.data.object as Stripe.Invoice;
       const subId = invoice.subscription ? String(invoice.subscription) : null;
       if (subId) {
+        const payment = await loadPaymentBySubscription(env, subId);
+        const wasPaid = payment?.status === "paid";
+        if (!wasPaid) {
+          await env.DB.prepare(
+            `UPDATE payments SET status='paid', receipt_url=COALESCE(?, receipt_url), updated_at=datetime('now') WHERE stripe_subscription_id = ?`,
+          )
+            .bind(invoice.hosted_invoice_url ?? invoice.invoice_pdf ?? null, subId)
+            .run();
+          await incrementDiscountUse(env, payment?.metadata ?? null);
+
+          if (payment?.registration_id) {
+            await markRegistrationActive(env, payment.registration_id);
+            await incrementSessionEnrollment(env, payment.session_id ?? null);
+
+            const reg = await env.DB.prepare(
+              `
+              SELECT
+                g.full_name as guardian_name,
+                g.email as guardian_email,
+                s.full_name as student_name,
+                p.name as program_name
+              FROM registrations r
+              JOIN guardians g ON g.id = r.guardian_id
+              JOIN students s ON s.id = r.student_id
+              JOIN programs p ON p.id = r.program_id
+              WHERE r.id = ?
+              LIMIT 1
+              `,
+            )
+              .bind(payment.registration_id)
+              .first<{
+                guardian_name: string;
+                guardian_email: string;
+                student_name: string;
+                program_name: string;
+              }>();
+
+            if (reg?.guardian_email) {
+              await sendPaymentEmails(env, {
+                guardianName: reg.guardian_name,
+                guardianEmail: reg.guardian_email,
+                studentName: reg.student_name,
+                programName: reg.program_name,
+                amount: Number(payment.amount ?? invoice.amount_paid ?? 0),
+                currency: String(invoice.currency ?? payment.currency ?? "usd"),
+                registrationId: payment.registration_id,
+                receiptUrl: invoice.hosted_invoice_url ?? invoice.invoice_pdf ?? null,
+              });
+            }
+          }
+        }
+      }
+    }
+
+    if (event.type === "invoice.payment_failed") {
+      const invoice = event.data.object as Stripe.Invoice;
+      const subId = invoice.subscription ? String(invoice.subscription) : null;
+      if (subId) {
         await env.DB.prepare(
-          `UPDATE payments SET status='paid', updated_at=datetime('now') WHERE stripe_subscription_id = ?`,
+          `UPDATE payments SET status='failed', updated_at=datetime('now') WHERE stripe_subscription_id = ?`,
         )
           .bind(subId)
           .run();
@@ -166,8 +332,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
     }
 
     return json({ ok: true });
-  } catch (e) {
+  } catch {
     return json({ error: "Webhook handler failed" }, { status: 500 });
   }
 }
-

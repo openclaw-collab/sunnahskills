@@ -34,6 +34,7 @@ Routing uses **Wouter**, a lightweight hash-free client router. All routes are d
   <Route path="/"                            component={Home} />
   <Route path="/about"                       component={About} />
   <Route path="/programs"                    component={Programs} />
+  <Route path="/register"                    component={RegistrationHub} />
   <Route path="/programs/bjj"                component={BJJProgram} />
   <Route path="/programs/bjj/register"       component={BJJRegistration} />
   {/* ... more programs ... */}
@@ -45,6 +46,7 @@ Routing uses **Wouter**, a lightweight hash-free client router. All routes are d
   <Route path="/testimonials"                component={Testimonials} />
   <Route path="/admin"                       component={AdminLogin} />
   <Route path="/admin/dashboard"             component={AdminDashboard} />
+  <Route path="/admin/sequences"             component={AdminSequences} />
   <Route                                     component={NotFound} />
 </Switch>
 ```
@@ -150,6 +152,8 @@ Form controls in `FormControls.tsx`:
 
 Step transition animations use `opacity` + `translateY` CSS transitions defined inline in `RegistrationWizard.tsx`.
 
+`ProgramRegistrationPage.tsx` wraps the wizard for each program route, creates the registration first, then boots payment. BJJ attempts subscription checkout first and gracefully falls back to a one-time intent when the server reports `subscriptions_not_configured`.
+
 ## Stripe integration (client-side)
 
 `client/src/lib/stripe.ts` exports:
@@ -158,7 +162,7 @@ Step transition animations use `opacity` + `translateY` CSS transitions defined 
 
 `PaymentProvider.tsx` wraps children in `<Elements stripe={stripePromise} options={{ appearance }}>`.
 
-`PaymentForm.tsx` renders `<PaymentElement />` and calls `stripe.confirmPayment()` on submit.
+`PaymentForm.tsx` renders `<PaymentElement />` and calls `stripe.confirmPayment()` on submit. The sibling discount and promo code logic live server-side, not in the client.
 
 ## Navigation (`components/Navigation.tsx`)
 
@@ -169,7 +173,7 @@ The navbar is a fixed floating pill with backdrop blur. It adapts between two co
 
 The transition condition is `scrolled || !isHome`.
 
-The "Programs" item is a clickable link to `/programs` that also triggers a hover dropdown menu listing all four individual program routes.
+The "Programs" item is a clickable link to `/programs` that also triggers a hover dropdown menu listing all four individual program routes. The primary registration CTA links to `/register`, which acts as the entry point to the program-specific wizards.
 
 Mobile: hamburger menu with a charcoal overlay panel.
 
@@ -183,7 +187,7 @@ Mobile: hamburger menu with a charcoal overlay panel.
 
 Data comes from the `GrappleMap/` directory at the project root (static JSON position files).
 
-The `TechniqueLibrary` page (`pages/TechniqueLibrary.tsx`) provides a browsable grid of positions with a `TechniqueViewer` embedded for the selected position.
+The `TechniqueLibrary` page (`pages/TechniqueLibrary.tsx`) provides a browsable grid of positions with a `TechniqueViewer` embedded for the selected sequence. It loads catalog metadata from `/data/scenes.json` and sequence data from `/data/library/sequences/manifest.json` plus the individual technique JSON files in `/data/library/sequences/`.
 
 ## Studio overlay (`studio/`)
 

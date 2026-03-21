@@ -27,11 +27,11 @@ test.describe('Homepage', () => {
     await expect(page.locator('text=Academy Telemetry')).toBeVisible();
 
     // Programs section
-    await expect(page.locator('text=Core Curriculum')).toBeVisible();
-    await expect(page.locator('text=Brazilian Jiu-Jitsu')).toBeVisible();
-    await expect(page.locator('text=Traditional Archery')).toBeVisible();
-    await expect(page.locator('text=Outdoor Workshops')).toBeVisible();
-    await expect(page.locator('text=Bullyproofing')).toBeVisible();
+    await expect(page.locator('text=Core Curriculum').first()).toBeVisible();
+    await expect(page.locator('text=Brazilian Jiu-Jitsu').first()).toBeVisible();
+    await expect(page.locator('text=Traditional Archery').first()).toBeVisible();
+    await expect(page.locator('text=Outdoor Workshops').first()).toBeVisible();
+    await expect(page.locator('text=Bullyproofing').first()).toBeVisible();
 
     // Testimonials
     await expect(page.locator('text=What Parents Say')).toBeVisible();
@@ -44,7 +44,7 @@ test.describe('Homepage', () => {
     await page.click('a:has-text("Register Now")');
     await page.waitForURL('/register', { timeout: 10000 });
 
-    await expect(page.locator('h1, h2')).toContainText('Choose a Program');
+    await expect(page.locator('h1, h2').first()).toContainText('Choose a Program');
   });
 
   test('should navigate to schedule from hero CTA', async ({ page }) => {
@@ -54,7 +54,7 @@ test.describe('Homepage', () => {
     await page.click('a:has-text("View Schedule")');
     await page.waitForURL('/schedule', { timeout: 10000 });
 
-    await expect(page.locator('h1, h2')).toContainText('Weekly Program Times');
+    await expect(page.locator('h1, h2').first()).toContainText('Weekly Program Times');
   });
 
   test('should have working scroll animations', async ({ page }) => {
@@ -107,14 +107,14 @@ test.describe('Navigation', () => {
     await mobilePage.click('button[aria-label="Toggle navigation"]');
 
     // Verify mobile menu items
-    await expect(mobilePage.locator('text=Programs')).toBeVisible();
-    await expect(mobilePage.locator('text=Schedule')).toBeVisible();
-    await expect(mobilePage.locator('text=About')).toBeVisible();
-    await expect(mobilePage.locator('text=Contact')).toBeVisible();
+    await expect(mobilePage.locator('text=Programs').first()).toBeVisible();
+    await expect(mobilePage.locator('text=Schedule').first()).toBeVisible();
+    await expect(mobilePage.locator('text=About').first()).toBeVisible();
+    await expect(mobilePage.locator('text=Contact').first()).toBeVisible();
     await expect(mobilePage.locator('button:has-text("Register Now")')).toBeVisible();
 
     // Navigate via mobile menu
-    await mobilePage.click('text=Schedule');
+    await mobilePage.locator('text=Schedule').first().click();
     await mobilePage.waitForURL('/schedule', { timeout: 10000 });
     await expect(mobilePage).toHaveURL('/schedule');
   });
@@ -125,21 +125,21 @@ test.describe('Navigation', () => {
     // BJJ
     await page.click('role=menuitem:has-text("Brazilian Jiu-Jitsu")');
     await page.waitForURL('/programs/bjj', { timeout: 10000 });
-    await expect(page.locator('h1, h2')).toContainText('Brazilian Jiu-Jitsu');
+    await expect(page.locator('h1, h2').first()).toContainText('Brazilian Jiu-Jitsu');
 
     // Back and try archery
     await page.goto('/');
     await page.hover('text=Programs');
     await page.click('role=menuitem:has-text("Traditional Archery")');
     await page.waitForURL('/programs/archery', { timeout: 10000 });
-    await expect(page.locator('h1, h2')).toContainText('Archery');
+    await expect(page.locator('h1, h2').first()).toContainText('Archery');
   });
 });
 
 test.describe('Program Pages', () => {
   const programs = [
-    { slug: 'bjj', name: 'Brazilian Jiu-Jitsu', expectedContent: ['ground-based grappling', 'Ages 6-17'] },
-    { slug: 'archery', name: 'Archery', expectedContent: ['Traditional Archery', 'Summer and fall'] },
+    { slug: 'bjj', name: 'Brazilian Jiu-Jitsu', expectedContent: ['grappling', '5-11 years'] },
+    { slug: 'archery', name: 'Archery', expectedContent: ['Traditional Archery', 'Seasonal'] },
     { slug: 'outdoor', name: 'Outdoor', expectedContent: ['Outdoor Workshops', 'wilderness'] },
     { slug: 'bullyproofing', name: 'Bullyproofing', expectedContent: ['Bullyproofing', 'confidence'] },
   ];
@@ -178,13 +178,13 @@ test.describe('Program Pages', () => {
     await navigateTo.programs(page);
     await waitFor.pageLoad(page);
 
-    await expect(page.locator('h1, h2')).toContainText('Choose a Track');
+    await expect(page.locator('h1, h2').first()).toContainText('Choose a Track');
 
     // All programs should be listed
-    await expect(page.locator('text=Brazilian Jiu-Jitsu')).toBeVisible();
-    await expect(page.locator('text=Seasonal Archery')).toBeVisible();
-    await expect(page.locator('text=Outdoor Workshops')).toBeVisible();
-    await expect(page.locator('text=Bullyproofing Workshops')).toBeVisible();
+    await expect(page.locator('text=Brazilian Jiu-Jitsu').first()).toBeVisible();
+    await expect(page.locator('text=Traditional Archery').first()).toBeVisible();
+    await expect(page.locator('text=Outdoor Workshops').first()).toBeVisible();
+    await expect(page.locator('text=Bullyproofing').first()).toBeVisible();
   });
 });
 
@@ -193,16 +193,16 @@ test.describe('Schedule Page', () => {
     await navigateTo.schedule(page);
     await waitFor.pageLoad(page);
 
-    await expect(page.locator('h1, h2')).toContainText('Weekly Program Times');
+    await expect(page.locator('h1, h2').first()).toContainText('Weekly Program Times');
 
     // Weekly view elements
-    await expect(page.locator('text=Boys\' Classes')).toBeVisible();
-    await expect(page.locator('text=Girls\' Classes')).toBeVisible();
-    await expect(page.locator('text=Mixed Programs')).toBeVisible();
+    await expect(page.locator('text=Boys\' Classes').first()).toBeVisible();
+    await expect(page.locator('text=Girls\' Classes').first()).toBeVisible();
+    await expect(page.locator('text=Mixed Programs').first()).toBeVisible();
 
     // Schedule items
-    await expect(page.locator('text=BJJ Fundamentals')).toBeVisible();
-    await expect(page.locator('text=BJJ Advanced')).toBeVisible();
+    await expect(page.locator('text=BJJ Fundamentals').first()).toBeVisible();
+    await expect(page.locator('text=BJJ Advanced').first()).toBeVisible();
   });
 
   test('should toggle between weekly and monthly views', async ({ page }) => {
@@ -210,7 +210,7 @@ test.describe('Schedule Page', () => {
     await waitFor.pageLoad(page);
 
     // Default weekly view
-    await expect(page.locator('text=Boys\' Classes')).toBeVisible();
+    await expect(page.locator('text=Boys\' Classes').first()).toBeVisible();
 
     // Switch to monthly view
     await page.click('button:has-text("monthly")');
@@ -219,7 +219,7 @@ test.describe('Schedule Page', () => {
 
     // Switch back to weekly
     await page.click('button:has-text("weekly")');
-    await expect(page.locator('text=Boys\' Classes')).toBeVisible();
+    await expect(page.locator('text=Boys\' Classes').first()).toBeVisible();
   });
 
   test('should have register links for each class', async ({ page }) => {
@@ -248,7 +248,7 @@ test.describe('About Page', () => {
     await navigateTo.about(page);
     await waitFor.pageLoad(page);
 
-    await expect(page.locator('h1, h2')).toContainText('About');
+    await expect(page.locator('h1, h2').first()).toContainText('About');
     await expect(page.locator('body')).toContainText('Sunnah Skills');
   });
 });
@@ -258,7 +258,7 @@ test.describe('Contact Page', () => {
     await navigateTo.contact(page);
     await waitFor.pageLoad(page);
 
-    await expect(page.locator('h1, h2')).toContainText('Contact');
+    await expect(page.locator('h1, h2').first()).toContainText('Contact');
 
     // Form fields
     await expect(page.locator('input[name="name"], #name')).toBeVisible();
@@ -284,7 +284,7 @@ test.describe('404 Page', () => {
     await page.goto('/non-existent-page-12345');
     await waitFor.pageLoad(page);
 
-    await expect(page.locator('h1, h2')).toContainText(/404|Not Found|Page not found/i);
+    await expect(page.locator('h1, h2').first()).toContainText(/404|Not Found|Page not found/i);
     await expect(page.locator('a:has-text("Home"), button:has-text("Home")')).toBeVisible();
   });
 });

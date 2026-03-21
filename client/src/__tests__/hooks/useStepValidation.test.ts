@@ -76,7 +76,7 @@ describe("useStepValidation", () => {
     });
 
     it("returns isValid true when all fields valid", () => {
-      const draft = createDraft({ guardian: { fullName: "Parent", email: "parent@test.com", phone: "555-5555", relationship: "mother" } });
+      const draft = createDraft({ guardian: { fullName: "Parent", email: "parent@test.com", phone: "555-555-5555", relationship: "mother" } });
       const { result } = renderHook(() => useStepValidation("guardian", draft));
 
       expect(result.current.isValid).toBe(true);
@@ -125,6 +125,7 @@ describe("useStepValidation", () => {
       expect(result.current.errors["waivers.medicalConsent"]).toBe("Please consent to medical treatment authorization");
       expect(result.current.errors["waivers.termsAgreement"]).toBe("Please agree to the terms and policies");
       expect(result.current.errors["waivers.signatureText"]).toBe("Please type your full name as a signature");
+      expect(result.current.errors["waivers.signedAt"]).toBe("Please add today’s date");
     });
 
     it("returns isValid true when all waivers signed", () => {

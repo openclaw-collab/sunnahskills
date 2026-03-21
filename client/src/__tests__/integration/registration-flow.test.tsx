@@ -56,9 +56,13 @@ describe("Registration Flow Integration", () => {
       expect(screen.getByText(/step 2/i)).toBeInTheDocument();
     }, { timeout: 500 });
 
-    await user.type(screen.getByLabelText(/student.*full name/i), "Jimmy Doe");
-    await user.type(screen.getByLabelText(/preferred name/i), "Jim");
-    await user.type(screen.getByLabelText(/date of birth/i), "2015-01-01");
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText("Student's full name")).toBeInTheDocument();
+    }, { timeout: 1000 });
+
+    await user.type(screen.getByPlaceholderText("Student's full name"), "Jimmy Doe");
+    await user.type(screen.getByPlaceholderText("What should we call them?"), "Jim");
+    await user.type(screen.getByPlaceholderText("YYYY-MM-DD"), "2015-01-01");
 
     await user.click(screen.getByRole("button", { name: /continue/i }));
 
@@ -67,8 +71,8 @@ describe("Registration Flow Integration", () => {
       expect(screen.getByText(/step 3/i)).toBeInTheDocument();
     }, { timeout: 500 });
 
-    await user.click(screen.getByLabelText(/boys' class/i));
-    await user.click(screen.getByLabelText(/6.10 yrs/i));
+    await user.click(await screen.findByLabelText(/boys' class/i));
+    await user.click(await screen.findByLabelText(/6.10 yrs/i));
 
     await user.click(screen.getByRole("button", { name: /continue/i }));
 
@@ -77,11 +81,13 @@ describe("Registration Flow Integration", () => {
       expect(screen.getByText(/step 4/i)).toBeInTheDocument();
     }, { timeout: 500 });
 
-    await user.click(screen.getByRole("checkbox", { name: /liability waiver/i }));
-    await user.click(screen.getByRole("checkbox", { name: /photo/i }));
-    await user.click(screen.getByRole("checkbox", { name: /medical/i }));
-    await user.click(screen.getByRole("checkbox", { name: /terms/i }));
+    await user.click(await screen.findByRole("checkbox", { name: /liability waiver/i }));
+    await user.click(await screen.findByRole("checkbox", { name: /photo/i }));
+    await user.click(await screen.findByRole("checkbox", { name: /medical/i }));
+    await user.click(await screen.findByRole("checkbox", { name: /terms/i }));
     await user.type(screen.getByLabelText(/typed legal signature/i), "John Doe");
+    await user.type(screen.getByLabelText(/^date$/i), "2026-03-18");
+    await user.type(screen.getByLabelText(/^date$/i), "2026-03-18");
 
     // "Continue" on waivers triggers registration + payment setup
     await user.click(screen.getByRole("button", { name: /continue/i }));
@@ -257,9 +263,13 @@ describe("Registration Flow Integration", () => {
       expect(screen.getByText(/step 2/i)).toBeInTheDocument();
     }, { timeout: 500 });
 
-    await user.type(screen.getByLabelText(/student.*full name/i), "Student Name");
-    await user.type(screen.getByLabelText(/preferred name/i), "Student");
-    await user.type(screen.getByLabelText(/date of birth/i), "2015-01-01");
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText("Student's full name")).toBeInTheDocument();
+    }, { timeout: 1000 });
+
+    await user.type(screen.getByPlaceholderText("Student's full name"), "Student Name");
+    await user.type(screen.getByPlaceholderText("What should we call them?"), "Student");
+    await user.type(screen.getByPlaceholderText("YYYY-MM-DD"), "2015-01-01");
 
     await user.click(screen.getByRole("button", { name: /continue/i }));
 
@@ -267,8 +277,8 @@ describe("Registration Flow Integration", () => {
       expect(screen.getByText(/step 3/i)).toBeInTheDocument();
     }, { timeout: 500 });
 
-    await user.click(screen.getByLabelText(/boys' class/i));
-    await user.click(screen.getByLabelText(/6.10 yrs/i));
+    await user.click(await screen.findByLabelText(/boys' class/i));
+    await user.click(await screen.findByLabelText(/6.10 yrs/i));
 
     await user.click(screen.getByRole("button", { name: /continue/i }));
 
@@ -276,11 +286,12 @@ describe("Registration Flow Integration", () => {
       expect(screen.getByText(/step 4/i)).toBeInTheDocument();
     }, { timeout: 500 });
 
-    await user.click(screen.getByRole("checkbox", { name: /liability waiver/i }));
-    await user.click(screen.getByRole("checkbox", { name: /photo/i }));
-    await user.click(screen.getByRole("checkbox", { name: /medical/i }));
-    await user.click(screen.getByRole("checkbox", { name: /terms/i }));
+    await user.click(await screen.findByRole("checkbox", { name: /liability waiver/i }));
+    await user.click(await screen.findByRole("checkbox", { name: /photo/i }));
+    await user.click(await screen.findByRole("checkbox", { name: /medical/i }));
+    await user.click(await screen.findByRole("checkbox", { name: /terms/i }));
     await user.type(screen.getByLabelText(/typed legal signature/i), "Test User");
+    await user.type(screen.getByLabelText(/^date$/i), "2026-03-18");
 
     await user.click(screen.getByRole("button", { name: /continue/i }));
 

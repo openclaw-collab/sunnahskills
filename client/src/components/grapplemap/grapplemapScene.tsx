@@ -115,6 +115,13 @@ function PlayerSkeleton({
     return { lineGeometry, jointsGeometry, jointPositions, linePositions };
   }, []);
 
+  useEffect(() => {
+    return () => {
+      lineGeometry.dispose();
+      jointsGeometry.dispose();
+    };
+  }, [lineGeometry, jointsGeometry]);
+
   useFrame(() => {
     if (!frames?.length) return;
     const total = frames.length;
@@ -178,14 +185,20 @@ export function GrappleMapScene() {
   const timeRef = useRef(0);
 
   useEffect(() => {
+    const controller = new AbortController();
     let cancelled = false;
     (async () => {
-      const res = await fetch("/data/sequence.json");
-      const json = (await res.json()) as GrappleMapSequence;
-      if (!cancelled) setSeq(json);
+      try {
+        const res = await fetch("/data/sequence.json", { signal: controller.signal });
+        const json = (await res.json()) as GrappleMapSequence;
+        if (!cancelled) setSeq(json);
+      } catch {
+        if (!cancelled) setSeq(null);
+      }
     })();
     return () => {
       cancelled = true;
+      controller.abort();
     };
   }, []);
 
@@ -212,4 +225,3 @@ export function GrappleMapScene() {
     </>
   );
 }
-

@@ -92,7 +92,7 @@ SQL injection is prevented by using D1's **prepared statement API** with `.bind(
 - Studio sessions can be **password-protected** (`studio_sessions.protected = 1`)
 - The password is stored as a **bcrypt hash** in `studio_sessions.password_hash`
 - On password submission, `bcrypt.compare()` runs server-side
-- On success, an HttpOnly cookie `ss_studio_<sessionId>` is set
+- On success, an HttpOnly cookie `studio_auth_<sessionId>=1` is set
 - Subsequent `GET /api/studio/sessions/:id` requests check for this cookie
 
 ### URL token design

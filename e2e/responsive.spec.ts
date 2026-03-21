@@ -152,7 +152,7 @@ test.describe('Responsive - Registration Flow', () => {
     await waitFor.pageLoad(mobilePage);
 
     // Registration wizard should be usable
-    await expect(mobilePage.locator('text=Guardian')).toBeVisible();
+    await expect(mobilePage.getByText('Guardian', { exact: true }).first()).toBeVisible();
 
     // Form should fit within viewport
     const form = mobilePage.locator('form, [class*="wizard"]').first();
@@ -168,7 +168,7 @@ test.describe('Responsive - Registration Flow', () => {
     await waitFor.pageLoad(tabletPage);
 
     // Registration wizard should be visible
-    await expect(tabletPage.locator('text=Guardian')).toBeVisible();
+    await expect(tabletPage.getByText('Guardian', { exact: true }).first()).toBeVisible();
 
     // Sidebar might be visible on tablet
     await expect(tabletPage.locator('text=Program Summary, text=Order Summary')).toBeVisible().catch(() => {

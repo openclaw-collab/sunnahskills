@@ -29,13 +29,16 @@ Admin dashboard panel components. Provides CRUD operations for registrations, pa
 5. **Sessions** - Session capacity and scheduling
 6. **Discounts** - Promo codes
 7. **Contacts** - Contact form submissions
+8. **Export** - CSV download
+
+The sequence builder is a separate admin page at `/admin/sequences`, not a tab in the dashboard.
 
 ## Authentication
 
 - Login at `/admin` → POST `/api/auth/login`
 - Session cookie `admin_session` (HttpOnly, Secure)
 - All `/api/admin/*` routes verify session via `adminAuth()`
-- Session expires after 24 hours
+- Session expires after 7 days
 
 ## For AI Agents
 

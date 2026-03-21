@@ -21,6 +21,8 @@ Stripe payment integration components. Wraps Stripe Elements for secure card inp
 4. **Confirm** → `stripe.confirmPayment()` or `confirmCardPayment()`
 5. **Redirect** → On success → `/registration/success?rid={id}`
 
+BJJ tries `/api/payments/create-subscription` first and falls back to `/api/payments/create-intent` if the server replies `subscriptions_not_configured`.
+
 ## Stripe Integration
 
 - Uses `@stripe/react-stripe-js` and `@stripe/stripe-js`

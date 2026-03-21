@@ -4,13 +4,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { SelectField } from "./FormControls";
 import type { RegistrationStepProps } from "@/components/registration/steps";
 import type { ValidationErrors } from "@/hooks/useStepValidation";
-
-const RELATIONSHIP_OPTIONS = [
-  { value: "mother", label: "Mother" },
-  { value: "father", label: "Father" },
-  { value: "guardian", label: "Legal Guardian" },
-  { value: "other", label: "Other" },
-];
+import { guardianRelationshipOptions } from "@shared/registration-options";
 
 type Props = RegistrationStepProps & {
   errors?: ValidationErrors;
@@ -50,7 +44,10 @@ function FormInput({
         id={id}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        onBlur={onBlur}
+        onBlur={() => {
+          onChange(value.trim());
+          onBlur?.();
+        }}
         placeholder={placeholder}
         type={type}
         className={error ? "border-clay focus:border-clay ring-clay/20" : ""}
@@ -58,6 +55,10 @@ function FormInput({
       <FieldError msg={error} />
     </div>
   );
+}
+
+function sanitizePhone(value: string) {
+  return value.replace(/[^\d+()\-\s]/g, "").replace(/\s+/g, " ").trim();
 }
 
 export function StepGuardianInfo({ draft, updateDraft, errors = {}, touch }: Props) {
@@ -80,7 +81,10 @@ export function StepGuardianInfo({ draft, updateDraft, errors = {}, touch }: Pro
         label="Email"
         value={draft.guardian.email}
         onChange={(v) => set({ email: v })}
-        onBlur={() => touch?.("guardian.email")}
+        onBlur={() => {
+          set({ email: draft.guardian.email.trim().toLowerCase() });
+          touch?.("guardian.email");
+        }}
         placeholder="name@email.com"
         type="email"
         error={errors["guardian.email"]}
@@ -90,8 +94,12 @@ export function StepGuardianInfo({ draft, updateDraft, errors = {}, touch }: Pro
         label="Phone"
         value={draft.guardian.phone}
         onChange={(v) => set({ phone: v })}
-        onBlur={() => touch?.("guardian.phone")}
+        onBlur={() => {
+          set({ phone: sanitizePhone(draft.guardian.phone) });
+          touch?.("guardian.phone");
+        }}
         placeholder="(555) 555-5555"
+        type="tel"
         error={errors["guardian.phone"]}
       />
 
@@ -100,7 +108,7 @@ export function StepGuardianInfo({ draft, updateDraft, errors = {}, touch }: Pro
         value={draft.guardian.relationship}
         onChange={(v) => set({ relationship: v })}
         onBlur={() => touch?.("guardian.relationship")}
-        options={RELATIONSHIP_OPTIONS}
+        options={[...guardianRelationshipOptions]}
         placeholder="Select relationship"
         error={errors["guardian.relationship"]}
       />
@@ -117,7 +125,9 @@ export function StepGuardianInfo({ draft, updateDraft, errors = {}, touch }: Pro
         label="Emergency contact phone"
         value={draft.guardian.emergencyContactPhone}
         onChange={(v) => set({ emergencyContactPhone: v })}
+        onBlur={() => set({ emergencyContactPhone: sanitizePhone(draft.guardian.emergencyContactPhone) })}
         placeholder="(555) 555-5555"
+        type="tel"
       />
 
       <div className="md:col-span-2 rounded-2xl border border-charcoal/10 bg-cream p-4">
@@ -130,6 +140,7 @@ export function StepGuardianInfo({ draft, updateDraft, errors = {}, touch }: Pro
         <Textarea
           value={draft.guardian.notes ?? ""}
           onChange={(e) => set({ notes: e.target.value })}
+          onBlur={() => set({ notes: (draft.guardian.notes ?? "").trim() })}
           placeholder="Anything we should know before placement?"
           rows={3}
         />

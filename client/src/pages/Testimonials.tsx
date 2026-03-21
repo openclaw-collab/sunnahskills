@@ -6,6 +6,7 @@ import { ClayButton } from "@/components/brand/ClayButton";
 import { StatusDot } from "@/components/brand/StatusDot";
 import { StudioBlock } from "@/studio/StudioBlock";
 import { StudioText } from "@/studio/StudioText";
+import { MotionDiv, MotionPage } from "@/components/motion/PageMotion";
 
 const Testimonials = () => {
   const testimonials = [
@@ -54,7 +55,7 @@ const Testimonials = () => {
   ];
 
   return (
-    <div className="bg-cream min-h-screen pb-24">
+    <MotionPage className="bg-cream min-h-screen pb-24">
       <div className="noise-overlay" />
       <main className="max-w-6xl mx-auto px-6 pt-28">
         <SectionHeader eyebrow="Testimonials" title="What Families Say" className="mb-10" />
@@ -64,13 +65,13 @@ const Testimonials = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {testimonials.map((testimonial, index) => (
-            <StudioBlock
-              key={index}
-              id={`testimonials.${index + 1}`}
-              label={`Testimonial ${index + 1}`}
-              page="Testimonials"
-            >
-              <PremiumCard className="bg-white border border-charcoal/10">
+            <MotionDiv key={index} delay={index * 0.04}>
+              <StudioBlock
+                id={`testimonials.${index + 1}`}
+                label={`Testimonial ${index + 1}`}
+                page="Testimonials"
+              >
+                <PremiumCard className="bg-white border border-charcoal/10">
                 <div className="flex items-center justify-between gap-4">
                   <div className="flex items-center gap-3">
                     <div
@@ -112,13 +113,15 @@ const Testimonials = () => {
                   />
                   <span className="text-charcoal/50 font-serif-accent text-lg leading-none ml-2">”</span>
                 </p>
-              </PremiumCard>
-            </StudioBlock>
+                </PremiumCard>
+              </StudioBlock>
+            </MotionDiv>
           ))}
         </div>
 
         <div className="mt-14">
-          <PremiumCard className="bg-cream border border-charcoal/10">
+          <MotionDiv delay={0.04}>
+            <PremiumCard className="bg-cream border border-charcoal/10">
             <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
               <div>
                 <div className="flex items-center gap-2 font-mono-label text-[10px] uppercase tracking-[0.18em] text-moss">
@@ -133,17 +136,16 @@ const Testimonials = () => {
                 </p>
               </div>
               <div className="w-full md:w-auto">
-                <Link href="/contact">
-                  <ClayButton className="w-full md:w-auto px-7 py-3.5 text-[11px] uppercase tracking-[0.18em]">
-                    Get Started
-                  </ClayButton>
-                </Link>
+                <ClayButton asChild className="w-full md:w-auto px-7 py-3.5 text-[11px] uppercase tracking-[0.18em]">
+                  <Link href="/contact">Get Started</Link>
+                </ClayButton>
               </div>
             </div>
-          </PremiumCard>
+            </PremiumCard>
+          </MotionDiv>
         </div>
       </main>
-    </div>
+    </MotionPage>
   );
 };
 

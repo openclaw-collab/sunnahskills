@@ -21,7 +21,7 @@ Stripe payment integration endpoints. Creates PaymentIntents, subscriptions, and
 POST /api/payments/create-intent
   ├── Calculate total (price + fee - discounts)
   ├── Create Stripe PaymentIntent
-  └── Return { clientSecret }
+  └── Return { clientSecret, paymentIntentId }
 ```
 
 ### Subscription (BJJ)
@@ -29,14 +29,18 @@ POST /api/payments/create-intent
 POST /api/payments/create-subscription
   ├── Get or create Stripe Customer
   ├── Apply sibling coupon if applicable
+  ├── Apply valid promo coupon from D1 if applicable
   ├── Create Stripe Subscription
   └── Return { clientSecret } from invoice
 ```
+
+If subscriptions are not configured, the subscription endpoint returns `subscriptions_not_configured` and the client falls back to the one-time flow.
 
 ### Webhook Events
 - `invoice.paid` - Update payment status, send email
 - `payment_intent.succeeded` - Confirm payment
 - `payment_intent.payment_failed` - Mark failed, notify
+- `invoice.payment_failed` - Mark failed on subscription renewals
 
 ## For AI Agents
 
@@ -49,6 +53,6 @@ POST /api/payments/create-subscription
 ### Security
 - Webhook signature verification with `STRIPE_WEBHOOK_SECRET`
 - Never expose `STRIPE_SECRET_KEY` to client
-- Log all payment events
+- Ignore duplicate webhook deliveries once a payment is already marked paid
 
 <!-- MANUAL: -->

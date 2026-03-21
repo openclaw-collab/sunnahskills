@@ -1,4 +1,4 @@
-import { getAdminFromRequest } from "../../../_utils/adminAuth";
+import { getAdminFromRequest, hasAdminPermission } from "../../../_utils/adminAuth";
 
 interface Env {
   DB: D1Database;
@@ -23,6 +23,7 @@ export async function onRequestGet({ request, env }: { request: Request; env: En
   if (!env.DB) return json({ error: "DB not configured" }, { status: 500 });
   const admin = await getAdminFromRequest(env, request);
   if (!admin) return json({ error: "Unauthorized" }, { status: 401 });
+  if (!hasAdminPermission(admin, "registrations", "read")) return json({ error: "Forbidden" }, { status: 403 });
 
   const id = getIdFromUrl(request);
   if (!id) return json({ error: "Invalid id" }, { status: 400 });
@@ -71,6 +72,7 @@ export async function onRequestPatch({ request, env }: { request: Request; env: 
   if (!env.DB) return json({ error: "DB not configured" }, { status: 500 });
   const admin = await getAdminFromRequest(env, request);
   if (!admin) return json({ error: "Unauthorized" }, { status: 401 });
+  if (!hasAdminPermission(admin, "registrations", "write")) return json({ error: "Forbidden" }, { status: 403 });
 
   const id = getIdFromUrl(request);
   if (!id) return json({ error: "Invalid id" }, { status: 400 });
@@ -94,4 +96,3 @@ export async function onRequestPatch({ request, env }: { request: Request; env: 
 
   return json({ ok: true });
 }
-

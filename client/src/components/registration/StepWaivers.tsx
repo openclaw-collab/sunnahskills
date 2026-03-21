@@ -86,15 +86,17 @@ export function StepWaivers({ draft, updateDraft }: RegistrationStepProps) {
         </div>
 
         <div className="space-y-2">
-          <label className="font-body text-sm text-charcoal">Date</label>
+          <label htmlFor="waiver-signed-at" className="font-body text-sm text-charcoal">Date</label>
           <Input
+            id="waiver-signed-at"
             value={draft.waivers.signedAt}
             onChange={(e) =>
               updateDraft((prev) => ({
                 ...prev,
                 waivers: { ...prev.waivers, signedAt: e.target.value },
-              }))
+                }))
             }
+            type="date"
             placeholder="YYYY-MM-DD"
           />
         </div>
@@ -102,4 +104,3 @@ export function StepWaivers({ draft, updateDraft }: RegistrationStepProps) {
     </div>
   );
 }
-

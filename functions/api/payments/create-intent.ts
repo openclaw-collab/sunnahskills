@@ -23,7 +23,9 @@ function json(data: unknown, init?: ResponseInit) {
 
 export async function onRequestPost({ request, env }: { request: Request; env: Env }) {
   const body = (await request.json().catch(() => null)) as CreateIntentRequest | null;
-  if (!body?.registrationId) return json({ error: "registrationId is required" }, { status: 400 });
+  if (!Number.isInteger(body?.registrationId) || Number(body.registrationId) <= 0) {
+    return json({ error: "registrationId is required" }, { status: 400 });
+  }
   if (!env.DB) return json({ error: "DB not configured" }, { status: 500 });
 
   const reg = await env.DB.prepare(
@@ -31,6 +33,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
     SELECT r.id as registration_id,
            r.program_id as program_id,
            r.price_id as price_id,
+           p.id as program_price_row_id,
            p.amount as amount,
            p.registration_fee as registration_fee,
            p.frequency as frequency
@@ -43,15 +46,21 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
     .first();
 
   if (!reg) return json({ error: "Registration not found" }, { status: 404 });
-  if (!reg.amount) return json({ error: "Registration has no price selected" }, { status: 400 });
+  if (!Number.isInteger(Number(reg.price_id ?? null)) || !Number.isInteger(Number(reg.amount ?? null))) {
+    return json({ error: "Registration has no price selected" }, { status: 400 });
+  }
 
-  const subtotal = Number(reg.amount) + Number(reg.registration_fee ?? 0);
-  let discountAmount = 0;
+  const subtotal = Math.max(0, Number(reg.amount) + Number(reg.registration_fee ?? 0));
+  let siblingDiscount = 0;
+  let promoDiscount = 0;
 
   // Sibling discount (applied before promo codes)
   const siblingCount = Number(body.siblingCount ?? 0);
+  if (!Number.isInteger(siblingCount) || siblingCount < 0 || siblingCount > 2) {
+    return json({ error: "siblingCount must be between 0 and 2" }, { status: 400 });
+  }
   if (siblingCount > 0) {
-    discountAmount += Math.floor((subtotal * SIBLING_DISCOUNT_PERCENT) / 100);
+    siblingDiscount = Math.floor((subtotal * SIBLING_DISCOUNT_PERCENT) / 100);
   }
 
   if (body.discountCode) {
@@ -77,12 +86,17 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
         Number(disc.current_uses) < Number(disc.max_uses);
 
       if (withinWindow && underMaxUses) {
-        if (disc.type === "fixed") discountAmount = Math.min(subtotal, Number(disc.value));
-        if (disc.type === "percentage") discountAmount = Math.floor((subtotal * Number(disc.value)) / 100);
+        const afterSibling = Math.max(0, subtotal - siblingDiscount);
+        if (disc.type === "fixed") promoDiscount = Math.min(afterSibling, Number(disc.value));
+        if (disc.type === "percentage") promoDiscount = Math.floor((afterSibling * Number(disc.value)) / 100);
       }
     }
   }
-  const total = subtotal - discountAmount;
+  const discountAmount = siblingDiscount + promoDiscount;
+  const total = Math.max(0, subtotal - discountAmount);
+  if (total <= 0) {
+    return json({ error: "Payment total must be greater than zero" }, { status: 400 });
+  }
 
   const stripeKey = env.STRIPE_SECRET_KEY;
   if (!stripeKey) return json({ error: "Stripe not configured" }, { status: 500 });
@@ -105,10 +119,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
 
   const stripeJson = (await stripeRes.json().catch(() => null)) as any;
   if (!stripeRes.ok || !stripeJson?.id || !stripeJson?.client_secret) {
-    return json(
-      { error: "Stripe error creating PaymentIntent", details: stripeJson },
-      { status: 502 },
-    );
+    return json({ error: "Stripe error creating PaymentIntent" }, { status: 502 });
   }
 
   await env.DB.prepare(
@@ -146,4 +157,3 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
 
   return json({ clientSecret: stripeJson.client_secret, paymentIntentId: stripeJson.id });
 }
-

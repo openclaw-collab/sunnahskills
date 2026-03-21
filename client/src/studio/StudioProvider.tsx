@@ -18,9 +18,11 @@ import type {
   StudioThemePresetId,
 } from "./studioTypes";
 import {
+  normalizeCustomTheme,
+  resolveActiveTheme,
+  DEFAULT_CUSTOM_THEME,
   applyCustomTheme,
   applyThemePreset,
-  DEFAULT_CUSTOM_THEME,
   genId,
   getPresetBase,
   isSessionToken,
@@ -28,7 +30,8 @@ import {
   saveStudioState,
   STUDIO_THEME_PRESETS,
 } from "./studioStore";
-import { applyAutoEdits, applyImageSlots, tagStudioTextNodes } from "./autoTextStudio";
+import { applyAutoEdits, applyComponentThemeTokens, applyImageSlots, tagStudioComponentNodes, tagStudioTextNodes } from "./autoTextStudio";
+import { applyStudioComponentOffset } from "./studioDom";
 
 // ── API helpers ──────────────────────────────────────────────────────────────
 
@@ -167,7 +170,7 @@ export function StudioProvider({ children }: { children: React.ReactNode }) {
         session: sess,
         authed: true,
         themePresetId: sess.themePresetId ?? "brand",
-        customTheme: sess.customTheme ?? { ...DEFAULT_CUSTOM_THEME },
+        customTheme: normalizeCustomTheme(sess.customTheme as Partial<StudioCustomTheme> | undefined),
         localEdits: flattenEdits(sess.edits),
       }));
     });
@@ -202,7 +205,7 @@ export function StudioProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!state.enabled) return;
     if (state.themePresetId === "custom") {
-      applyCustomTheme(state.customTheme);
+      applyCustomTheme(normalizeCustomTheme(state.customTheme));
     } else {
       applyThemePreset(state.themePresetId);
     }
@@ -214,6 +217,7 @@ export function StudioProvider({ children }: { children: React.ReactNode }) {
     if (!state.enabled) return;
     let raf = 0;
     const run = () => {
+      tagStudioComponentNodes({ excludeSelector: "[data-studio-ui='1']" });
       tagStudioTextNodes({ excludeSelector: "[data-studio-ui='1']" });
       applyAutoEdits(state, { excludeSelector: "[data-studio-ui='1']" });
     };
@@ -238,13 +242,17 @@ export function StudioProvider({ children }: { children: React.ReactNode }) {
     applyImageSlots(state);
   }, [state.enabled, state.session?.uploads]);
 
+  useEffect(() => {
+    if (!state.enabled) return;
+    applyComponentThemeTokens(state, resolveActiveTheme(state.themePresetId, state.customTheme));
+  }, [state.enabled, state.localEdits, state.themePresetId, state.customTheme]);
+
   // Apply drag-reposition transforms whenever positions change
   useEffect(() => {
     if (!state.enabled) return;
     const positions = state.session?.positions ?? {};
     for (const [id, pos] of Object.entries(positions)) {
-      const el = document.querySelector<HTMLElement>(`[data-studio-component="${CSS.escape(id)}"]`);
-      if (el) el.style.transform = `translate(${pos.dx}px, ${pos.dy}px)`;
+      applyStudioComponentOffset(id, pos.dx, pos.dy);
     }
   }, [state.enabled, state.session?.positions]);
 
@@ -359,7 +367,7 @@ export function StudioProvider({ children }: { children: React.ReactNode }) {
       setState((s) => ({
         ...s,
         themePresetId: "custom",
-        customTheme: { ...s.customTheme, ...patch },
+        customTheme: { ...resolveActiveTheme(s.themePresetId, s.customTheme), ...patch },
       }));
       scheduleSync();
     },
@@ -476,12 +484,12 @@ export function StudioProvider({ children }: { children: React.ReactNode }) {
     const session = sessionRes as StudioSession;
     setState((st) => ({
       ...st,
-      authed: true,
-      session,
-      localEdits: flattenEdits(session.edits),
-      themePresetId: session.themePresetId ?? "brand",
-      customTheme: session.customTheme ?? { ...DEFAULT_CUSTOM_THEME },
-    }));
+        authed: true,
+        session,
+        localEdits: flattenEdits(session.edits),
+        themePresetId: session.themePresetId ?? "brand",
+        customTheme: normalizeCustomTheme(session.customTheme as Partial<StudioCustomTheme> | undefined),
+      }));
     return true;
   }, []);
 

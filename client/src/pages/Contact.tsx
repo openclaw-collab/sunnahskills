@@ -16,6 +16,7 @@ import { ClayButton } from "@/components/brand/ClayButton";
 import { StatusDot } from "@/components/brand/StatusDot";
 import { StudioBlock } from "@/studio/StudioBlock";
 import { StudioText } from "@/studio/StudioText";
+import { MotionDiv, MotionPage } from "@/components/motion/PageMotion";
 
 const Contact = () => {
   const { toast } = useToast();
@@ -33,20 +34,17 @@ const Contact = () => {
 
   const contactMutation = useMutation({
     mutationFn: async (data: InsertContact) => {
-      // Check if we're in development mode
       if (import.meta.env.DEV) {
-        // Mock response for local development
         console.log('Mock API call:', data);
         return new Promise((resolve) => {
           setTimeout(() => {
             resolve({
-              message: "Message sent successfully! (Mock response - will work on live site)"
+              message: "Message sent successfully."
             });
           }, 1000);
         });
       }
       
-      // Real API call for production
       const response = await fetch("/api/contact", {
         method: "POST",
         headers: {
@@ -128,7 +126,7 @@ const Contact = () => {
   ];
 
   return (
-    <div className="bg-cream min-h-screen pb-24">
+      <MotionPage className="bg-cream min-h-screen pb-24">
       <div className="noise-overlay" />
       <main className="max-w-6xl mx-auto px-6 pt-28">
         <StudioBlock id="contact.header" label="Header + intro" page="Contact">
@@ -137,118 +135,121 @@ const Contact = () => {
             title={<StudioText k="contact.title" defaultText="Get in Touch" as="span" className="inline" />}
             className="mb-10"
           />
-        <p className="font-body text-sm text-charcoal/70 max-w-2xl mb-12">
-          <StudioText
-            k="contact.intro"
-            defaultText="Ask anything—program fit, scheduling, registration help. We’ll respond with clear next steps and a specific recommendation for your family."
-            as="span"
-            className="inline"
-            multiline
-          />
-        </p>
+          <p className="mb-12 max-w-2xl font-body text-sm text-charcoal/70">
+            <StudioText
+              k="contact.intro"
+              defaultText="Ask anything—program fit, scheduling, registration help. We’ll respond with clear next steps and a specific recommendation for your family."
+              as="span"
+              className="inline"
+              multiline
+            />
+          </p>
         </StudioBlock>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Contact Information */}
-          <PremiumCard className="bg-white border border-charcoal/10 space-y-6">
-            <StudioBlock id="contact.info" label="Contact info" page="Contact">
-            <div className="flex items-center gap-2 font-mono-label text-[10px] uppercase tracking-[0.18em] text-moss">
-              <StatusDot ariaLabel="Contact channels" />
-              Contact Channels
-            </div>
+          <MotionDiv delay={0.02}>
+            <PremiumCard className="bg-white border border-charcoal/10 space-y-6">
+              <StudioBlock id="contact.info" label="Contact info" page="Contact">
+                <div className="flex items-center gap-2 font-mono-label text-[10px] uppercase tracking-[0.18em] text-moss">
+                  <StatusDot ariaLabel="Contact channels" />
+                  Contact Channels
+                </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="rounded-2xl border border-charcoal/10 bg-cream/60 px-4 py-3 flex items-center justify-between gap-4">
-                <div className="flex items-center gap-3 min-w-0">
-                  <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-clay/10 text-clay flex-none">
-                    <Mail className="w-4 h-4" />
-                  </span>
-                  <div className="min-w-0">
-                    <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-charcoal/60">
-                      Email
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <div className="flex items-center justify-between gap-4 rounded-2xl border border-charcoal/10 bg-cream/60 px-4 py-3">
+                    <div className="flex min-w-0 items-center gap-3">
+                      <span className="inline-flex h-8 w-8 flex-none items-center justify-center rounded-full bg-clay/10 text-clay">
+                        <Mail className="w-4 h-4" />
+                      </span>
+                      <div className="min-w-0">
+                        <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-charcoal/60">
+                          Email
+                        </div>
+                        <div className="truncate text-sm font-body text-charcoal/85 [&>a]:block [&>a]:truncate">
+                          {contactInfo[0].content}
+                        </div>
+                      </div>
                     </div>
-                    <div className="text-sm font-body text-charcoal/85 truncate [&>a]:block [&>a]:truncate">
-                      {contactInfo[0].content}
+                  </div>
+
+                  <div className="flex items-center justify-between gap-4 rounded-2xl border border-charcoal/10 bg-cream/60 px-4 py-3">
+                    <div className="flex min-w-0 items-center gap-3">
+                      <span className="inline-flex h-8 w-8 flex-none items-center justify-center rounded-full bg-moss/10 text-moss">
+                        <Instagram className="w-4 h-4" />
+                      </span>
+                      <div className="min-w-0">
+                        <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-charcoal/60">
+                          Instagram
+                        </div>
+                        <div className="truncate text-sm font-body text-charcoal/85 [&>a]:block [&>a]:truncate">
+                          {contactInfo[1].content}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between gap-4 rounded-2xl border border-charcoal/10 bg-cream/60 px-4 py-3 sm:col-span-2">
+                    <div className="flex min-w-0 items-center gap-3">
+                      <span className="inline-flex h-8 w-8 flex-none items-center justify-center rounded-full bg-charcoal/10 text-charcoal">
+                        <Clock className="w-4 h-4" />
+                      </span>
+                      <div className="min-w-0">
+                        <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-charcoal/60">
+                          Response time
+                        </div>
+                        <div className="text-sm font-body text-charcoal/80">{contactInfo[2].content}</div>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
 
-              <div className="rounded-2xl border border-charcoal/10 bg-cream/60 px-4 py-3 flex items-center justify-between gap-4">
-                <div className="flex items-center gap-3 min-w-0">
-                  <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-moss/10 text-moss flex-none">
-                    <Instagram className="w-4 h-4" />
-                  </span>
-                  <div className="min-w-0">
-                    <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-charcoal/60">
-                      Instagram
-                    </div>
-                    <div className="text-sm font-body text-charcoal/85 truncate [&>a]:block [&>a]:truncate">
-                      {contactInfo[1].content}
-                    </div>
+                <div className="space-y-3 rounded-2xl border border-charcoal/10 bg-cream p-5">
+                  <div className="flex items-center gap-2">
+                    <MapPin className="text-clay" size={18} />
+                    <div className="font-heading text-lg text-charcoal">Locations</div>
+                  </div>
+                  <div className="grid grid-cols-[auto,1fr] gap-x-4 gap-y-1 font-body text-sm text-charcoal/80">
+                    <span className="font-semibold">Main Location:</span>
+                    <span>
+                      <StudioText k="contact.address" defaultText="918 Dundas St E" as="span" className="inline" />
+                    </span>
+                    <span className="font-semibold">Archery:</span>
+                    <span>
+                      <StudioText k="contact.address.archery" defaultText="E.T. Seaton Range" as="span" className="inline" />
+                    </span>
+                    <span className="font-semibold">Outdoor Program:</span>
+                    <span className="font-semibold text-moss">
+                      <StudioText k="contact.address.outdoor" defaultText="Coming Soon" as="span" className="inline" />
+                    </span>
                   </div>
                 </div>
-              </div>
 
-              <div className="rounded-2xl border border-charcoal/10 bg-cream/60 px-4 py-3 flex items-center justify-between gap-4 sm:col-span-2">
-                <div className="flex items-center gap-3 min-w-0">
-                  <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-charcoal/10 text-charcoal flex-none">
-                    <Clock className="w-4 h-4" />
-                  </span>
-                  <div className="min-w-0">
-                    <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-charcoal/60">
-                      Response time
-                    </div>
-                    <div className="text-sm font-body text-charcoal/80">{contactInfo[2].content}</div>
+                <div className="rounded-2xl border border-charcoal/10 bg-white p-5">
+                  <div className="mb-2 font-mono-label text-[10px] uppercase tracking-[0.18em] text-moss">
+                    When you reach out, you&apos;ll get
                   </div>
+                  <ul className="space-y-1 font-body text-sm text-charcoal/70">
+                    <li>• A response from a coach or admin within one business day</li>
+                    <li>• Clear next steps for registration or waitlist placement</li>
+                    <li>• Honest guidance if a program is or isn&apos;t the right fit</li>
+                  </ul>
                 </div>
-              </div>
-            </div>
-
-            <div className="rounded-2xl border border-charcoal/10 bg-cream p-5 space-y-3">
-              <div className="flex items-center gap-2">
-                <MapPin className="text-clay" size={18} />
-                <div className="font-heading text-lg text-charcoal">Locations</div>
-              </div>
-              <div className="grid grid-cols-[auto,1fr] gap-x-4 gap-y-1 font-body text-sm text-charcoal/80">
-                <span className="font-semibold">Main Location:</span>
-                <span>
-                  <StudioText k="contact.address" defaultText="918 Dundas St E" as="span" className="inline" />
-                </span>
-                <span className="font-semibold">Archery:</span>
-                <span>
-                  <StudioText k="contact.address.archery" defaultText="E.T. Seaton Range" as="span" className="inline" />
-                </span>
-                <span className="font-semibold">Outdoor Program:</span>
-                <span className="text-moss font-semibold">
-                  <StudioText k="contact.address.outdoor" defaultText="Coming Soon" as="span" className="inline" />
-                </span>
-              </div>
-            </div>
-
-            <div className="rounded-2xl border border-charcoal/10 bg-white p-5">
-              <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-moss mb-2">
-                When you reach out, you&apos;ll get
-              </div>
-              <ul className="font-body text-sm text-charcoal/70 space-y-1">
-                <li>• A response from a coach or admin within one business day</li>
-                <li>• Clear next steps for registration or waitlist placement</li>
-                <li>• Honest guidance if a program is or isn&apos;t the right fit</li>
-              </ul>
-            </div>
-            </StudioBlock>
-          </PremiumCard>
+              </StudioBlock>
+            </PremiumCard>
+          </MotionDiv>
 
           {/* Contact Form */}
-          <PremiumCard className="bg-white border border-charcoal/10">
-            <div className="font-heading text-2xl text-charcoal">Send a Message</div>
-            <p className="mt-2 font-body text-sm text-charcoal/70">
-              Share context so we can reply with the right schedule and next steps.
-            </p>
+          <MotionDiv delay={0.06}>
+            <PremiumCard className="bg-white border border-charcoal/10">
+              <div className="font-heading text-2xl text-charcoal">Send a Message</div>
+              <p className="mt-2 font-body text-sm text-charcoal/70">
+                Share context so we can reply with the right schedule and next steps.
+              </p>
 
-            <div className="mt-6">
-              <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <div className="mt-6">
+                <Form {...form}>
+                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                   <FormField
                     control={form.control}
                     name="name"
@@ -327,13 +328,14 @@ const Contact = () => {
                   >
                     {isSubmitting ? "Sending..." : "Send Message"}
                   </ClayButton>
-                </form>
-              </Form>
-            </div>
-          </PremiumCard>
+                  </form>
+                </Form>
+              </div>
+            </PremiumCard>
+          </MotionDiv>
         </div>
       </main>
-    </div>
+    </MotionPage>
   );
 };
 

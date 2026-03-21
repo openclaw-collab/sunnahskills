@@ -44,9 +44,12 @@ const fillStudentStep = async (user: ReturnType<typeof userEvent.setup>) => {
   await waitFor(() => {
     expect(screen.getByText(/step 2/i)).toBeInTheDocument();
   }, { timeout: 500 });
-  await user.type(screen.getByLabelText("Student full name"), "Jimmy Doe");
-  await user.type(screen.getByLabelText(/preferred name/i), "Jim");
-  await user.type(screen.getByLabelText("Date of birth"), "2015-01-01");
+  await waitFor(() => {
+    expect(screen.getByPlaceholderText("Student's full name")).toBeInTheDocument();
+  }, { timeout: 1000 });
+  await user.type(screen.getByPlaceholderText("Student's full name"), "Jimmy Doe");
+  await user.type(screen.getByPlaceholderText("What should we call them?"), "Jim");
+  await user.type(screen.getByPlaceholderText("YYYY-MM-DD"), "2015-01-01");
   await user.click(screen.getByRole("button", { name: /continue/i }));
 };
 
@@ -56,9 +59,9 @@ const fillProgramDetailsStep = async (user: ReturnType<typeof userEvent.setup>) 
     expect(screen.getByText(/step 3/i)).toBeInTheDocument();
   }, { timeout: 500 });
   // Select "Boys' class" radio
-  await user.click(screen.getByLabelText(/boys' class/i));
+  await user.click(await screen.findByLabelText(/boys' class/i));
   // Select "6–10 yrs" radio
-  await user.click(screen.getByLabelText(/6.10 yrs/i));
+  await user.click(await screen.findByLabelText(/6.10 yrs/i));
   await user.click(screen.getByRole("button", { name: /continue/i }));
 };
 
@@ -66,11 +69,12 @@ const fillWaiversStep = async (user: ReturnType<typeof userEvent.setup>) => {
   await waitFor(() => {
     expect(screen.getByText(/step 4/i)).toBeInTheDocument();
   }, { timeout: 500 });
-  await user.click(screen.getByRole("checkbox", { name: /liability waiver/i }));
-  await user.click(screen.getByRole("checkbox", { name: /photo/i }));
-  await user.click(screen.getByRole("checkbox", { name: /medical/i }));
-  await user.click(screen.getByRole("checkbox", { name: /terms/i }));
+  await user.click(await screen.findByRole("checkbox", { name: /liability waiver/i }));
+  await user.click(await screen.findByRole("checkbox", { name: /photo/i }));
+  await user.click(await screen.findByRole("checkbox", { name: /medical/i }));
+  await user.click(await screen.findByRole("checkbox", { name: /terms/i }));
   await user.type(screen.getByLabelText(/typed legal signature/i), "John Doe");
+  await user.type(screen.getByLabelText(/^date$/i), "2026-03-18");
 };
 
 describe("Payment Flow Integration", () => {
@@ -93,8 +97,8 @@ describe("Payment Flow Integration", () => {
     await waitFor(() => {
       expect(screen.getByText(/step 3/i)).toBeInTheDocument();
     }, { timeout: 500 });
-    await user.click(screen.getByLabelText(/right-handed/i));
-    await user.click(screen.getByLabelText(/never tried/i));
+    await user.click(await screen.findByLabelText(/right-handed/i));
+    await user.click(await screen.findByLabelText(/never tried/i));
     // Select a session from the native <select> (only combobox on this step)
     const sessionSelect = screen.getByRole("combobox");
     await user.selectOptions(sessionSelect, "summer-2026-a");
@@ -152,8 +156,8 @@ describe("Payment Flow Integration", () => {
       expect(screen.getByText(/step 3/i)).toBeInTheDocument();
     }, { timeout: 500 });
 
-    await user.click(screen.getByLabelText(/boys' class/i));
-    await user.click(screen.getByLabelText(/6.10 yrs/i));
+    await user.click(await screen.findByLabelText(/boys' class/i));
+    await user.click(await screen.findByLabelText(/6.10 yrs/i));
     await user.click(screen.getByRole("button", { name: /continue/i }));
 
     await fillWaiversStep(user);
@@ -221,8 +225,8 @@ describe("Payment Flow Integration", () => {
       expect(screen.getByText(/step 3/i)).toBeInTheDocument();
     }, { timeout: 500 });
 
-    await user.click(screen.getByLabelText(/boys' class/i));
-    await user.click(screen.getByLabelText(/6.10 yrs/i));
+    await user.click(await screen.findByLabelText(/boys' class/i));
+    await user.click(await screen.findByLabelText(/6.10 yrs/i));
 
     await user.click(screen.getByRole("button", { name: /continue/i }));
     await fillWaiversStep(user);

@@ -14,6 +14,8 @@ Utility functions, configurations, and client-side service setup. Non-component 
 | `queryClient.ts` | TanStack Query client configuration |
 | `programConfig.ts` | Program catalog (slugs, types, copy) |
 | `programSchemas.ts` | Zod schemas for program forms |
+| `loadLibrary.ts` | Loads GrappleMap sequence manifest / fallbacks |
+| `grapplemap-types.ts` | Shared GrappleMap sequence types |
 | `stripe.ts` | Stripe.js initialization + appearance theme |
 
 ## For AI Agents

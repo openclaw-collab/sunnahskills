@@ -1,0 +1,26 @@
+{
+  "meta": {
+    "id": "leg-over-pass",
+    "name": "Leg-Over Pass",
+    "slug": "leg-over-pass",
+    "positionCategory": "guard-pass",
+    "startingPosition": "Open Guard",
+    "endingPosition": "Side Control",
+    "difficulty": "intermediate",
+    "description": [
+      "Leg-over guard pass.",
+      "Stack the opponent and step over their legs to pass."
+    ],
+    "sources": ["Gracie Combatives"],
+    "totalFrames": 19,
+    "positions": 2,
+    "transitions": 1
+  },
+  "markers": [
+    { "name": "Open Guard", "frame": 0, "type": "position" },
+    { "name": "Leg-Over Pass", "frame": 1, "type": "transition" },
+    { "name": "Side Control", "frame": 19, "type": "position" }
+  ],
+  "frames": [],
+  "verified": false
+}

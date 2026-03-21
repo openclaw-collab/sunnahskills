@@ -3,6 +3,8 @@ import { Link, useSearch } from "wouter";
 import { ClayButton } from "@/components/brand/ClayButton";
 import { DarkCard } from "@/components/brand/DarkCard";
 import { PremiumCard } from "@/components/brand/PremiumCard";
+import { OutlineButton } from "@/components/brand/OutlineButton";
+import { MotionDiv, MotionPage } from "@/components/motion/PageMotion";
 
 const NEXT_STEPS = [
   {
@@ -28,12 +30,12 @@ export default function RegistrationSuccess() {
   const rid = params.get("rid");
 
   return (
-    <div className="bg-cream min-h-screen pb-24">
+    <MotionPage className="bg-cream min-h-screen pb-24">
       <div className="noise-overlay" />
       <main className="max-w-2xl mx-auto px-6 pt-28">
 
         {/* Checkmark */}
-        <div className="flex justify-center mb-8">
+        <MotionDiv delay={0.02} className="flex justify-center mb-8">
           <div className="w-20 h-20 rounded-full bg-clay/10 border-2 border-clay/30 flex items-center justify-center">
             <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
               <path
@@ -45,9 +47,9 @@ export default function RegistrationSuccess() {
               />
             </svg>
           </div>
-        </div>
+        </MotionDiv>
 
-        <div className="text-center mb-10">
+        <MotionDiv delay={0.06} className="text-center mb-10">
           <div className="font-mono-label text-[10px] uppercase tracking-[0.25em] text-moss mb-3">
             Registration Complete
           </div>
@@ -63,10 +65,11 @@ export default function RegistrationSuccess() {
               <span className="font-mono-label text-[11px] text-charcoal">#{rid}</span>
             </div>
           )}
-        </div>
+        </MotionDiv>
 
         {/* What happens next */}
-        <DarkCard className="rounded-3xl mb-6">
+        <MotionDiv delay={0.1}>
+          <DarkCard className="rounded-3xl mb-6">
           <div className="font-mono-label text-[10px] uppercase tracking-[0.25em] text-moss mb-6">
             What happens next
           </div>
@@ -81,29 +84,25 @@ export default function RegistrationSuccess() {
               </div>
             ))}
           </div>
-        </DarkCard>
+          </DarkCard>
+        </MotionDiv>
 
-        <PremiumCard className="bg-white border border-charcoal/10">
+        <MotionDiv delay={0.14}>
+          <PremiumCard className="bg-white border border-charcoal/10">
           <p className="font-body text-sm text-charcoal/60 mb-5">
             Questions before your first class? We're happy to help.
           </p>
           <div className="flex flex-col sm:flex-row gap-3">
-            <Link href="/programs">
-              <ClayButton className="px-7 py-3.5 text-[11px] uppercase tracking-[0.18em]">
-                Explore Programs
-              </ClayButton>
-            </Link>
-            <Link href="/contact">
-              <button
-                type="button"
-                className="px-7 py-3.5 rounded-full border border-charcoal/20 text-charcoal/70 text-[11px] font-mono-label uppercase tracking-[0.18em] hover:bg-charcoal hover:text-cream transition-colors"
-              >
-                Contact Us
-              </button>
-            </Link>
+            <ClayButton asChild className="px-7 py-3.5 text-[11px] uppercase tracking-[0.18em]">
+              <Link href="/programs">Explore Programs</Link>
+            </ClayButton>
+            <OutlineButton asChild className="px-7 py-3.5 text-[11px] uppercase tracking-[0.18em]">
+              <Link href="/contact">Contact Us</Link>
+            </OutlineButton>
           </div>
-        </PremiumCard>
+          </PremiumCard>
+        </MotionDiv>
       </main>
-    </div>
+    </MotionPage>
   );
 }

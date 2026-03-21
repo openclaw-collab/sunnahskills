@@ -1,4 +1,4 @@
-import { getAdminFromRequest } from "../../_utils/adminAuth";
+import { getAdminFromRequest, hasAdminPermission } from "../../_utils/adminAuth";
 
 interface Env {
   DB: D1Database;
@@ -15,6 +15,7 @@ export async function onRequestGet({ request, env }: { request: Request; env: En
   if (!env.DB) return json({ error: "DB not configured" }, { status: 500 });
   const admin = await getAdminFromRequest(env, request);
   if (!admin) return json({ error: "Unauthorized" }, { status: 401 });
+  if (!hasAdminPermission(admin, "payments", "read")) return json({ error: "Forbidden" }, { status: 403 });
 
   const { results } = await env.DB.prepare(
     `
@@ -34,4 +35,3 @@ export async function onRequestGet({ request, env }: { request: Request; env: En
 
   return json({ payments: results ?? [] });
 }
-

@@ -10,7 +10,7 @@ Static assets served directly. Contains images, fonts, and GrappleMap sequence d
 
 | Directory | Purpose |
 |-----------|---------|
-| `data/` | GrappleMap 3D animation data (see `data/AGENTS.md`) |
+| `data/` | GrappleMap 3D animation data, catalogs, and manifests (see `data/AGENTS.md`) |
 
 ## For AI Agents
 

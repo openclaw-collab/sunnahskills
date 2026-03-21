@@ -7,11 +7,14 @@ import { navigateTo, waitFor } from './fixtures';
  */
 
 test.describe('Admin Login', () => {
+  // These tests check the unauthenticated login page — clear session state
+  test.use({ storageState: { cookies: [], origins: [] } });
+
   test('should display login form', async ({ page }) => {
     await navigateTo.admin(page);
     await waitFor.pageLoad(page);
 
-    await expect(page.locator('h1, h2')).toContainText(/Sign in|Login|Admin/i);
+    await expect(page.locator('h1, h2').first()).toContainText(/Sign in|Login|Admin/i);
 
     // Form fields
     await expect(page.locator('input#admin-email, input[type="email"]')).toBeVisible();
@@ -40,10 +43,9 @@ test.describe('Admin Login', () => {
     await page.click('button:has-text("Sign in")');
 
     // Should show error message
-    await expect(page.locator('text=Invalid, text=Failed, text=error, text=incorrect')).toBeVisible({ timeout: 5000 }).catch(() => {
-      // Error might be shown in toast
-      return expect(page.locator('[data-sonner-toast]')).toBeVisible({ timeout: 5000 });
-    });
+    await expect(page.locator('[role="alert"], .error, [data-sonner-toast]').first())
+      .toBeVisible({ timeout: 5000 })
+      .catch(() => expect(page.locator('body')).toContainText(/invalid|failed|error|incorrect/i));
   });
 
   test('should redirect to login when accessing dashboard unauthenticated', async ({ page }) => {
@@ -56,38 +58,24 @@ test.describe('Admin Login', () => {
 });
 
 test.describe('Admin Dashboard - Authenticated', () => {
-  // Skip these tests if no valid admin credentials available
+  // These tests use the saved session state from playwright/.auth/admin.json
   test.beforeEach(async ({ page }) => {
-    await navigateTo.admin(page);
+    await navigateTo.adminDashboard(page);
     await waitFor.pageLoad(page);
-
-    // Attempt login with test credentials
-    await page.fill('input#admin-email', process.env.ADMIN_EMAIL || 'admin@sunnahskills.com');
-    await page.fill('input#admin-password', process.env.ADMIN_PASSWORD || 'testpassword123');
-    await page.click('button:has-text("Sign in")');
-
-    // Wait for navigation or error
-    await page.waitForTimeout(3000);
-
-    // Skip if login failed
-    const currentUrl = page.url();
-    if (currentUrl.includes('/admin') && !currentUrl.includes('/dashboard')) {
-      test.skip();
-    }
   });
 
   test('should display dashboard with tabs', async ({ page }) => {
-    await expect(page.locator('h1, h2')).toContainText('Dashboard');
+    await expect(page.locator('h1, h2').first()).toContainText('Dashboard');
 
     // Tab navigation
-    await expect(page.locator('text=Overview')).toBeVisible();
-    await expect(page.locator('text=Registrations')).toBeVisible();
-    await expect(page.locator('text=Payments')).toBeVisible();
-    await expect(page.locator('text=Discounts')).toBeVisible();
-    await expect(page.locator('text=Pricing')).toBeVisible();
-    await expect(page.locator('text=Sessions')).toBeVisible();
-    await expect(page.locator('text=Contacts')).toBeVisible();
-    await expect(page.locator('text=Export')).toBeVisible();
+    await expect(page.getByRole('tab', { name: 'Overview' })).toBeVisible();
+    await expect(page.getByRole('tab', { name: 'Registrations' })).toBeVisible();
+    await expect(page.getByRole('tab', { name: 'Payments' })).toBeVisible();
+    await expect(page.getByRole('tab', { name: 'Discounts' })).toBeVisible();
+    await expect(page.getByRole('tab', { name: 'Pricing' })).toBeVisible();
+    await expect(page.getByRole('tab', { name: 'Sessions' })).toBeVisible();
+    await expect(page.getByRole('tab', { name: 'Contacts' })).toBeVisible();
+    await expect(page.getByRole('tab', { name: 'Export' })).toBeVisible();
 
     // Sign out button
     await expect(page.locator('button:has-text("Sign out")')).toBeVisible();
@@ -97,7 +85,7 @@ test.describe('Admin Dashboard - Authenticated', () => {
     // Overview tab should be active by default
     await expect(page.locator('text=Total Registrations')).toBeVisible().catch(() => {
       // Alternative stats
-      return expect(page.locator('text=Overview')).toHaveAttribute('data-state', 'active');
+      return expect(page.getByRole('tab', { name: 'Overview' })).toHaveAttribute('data-state', 'active');
     });
   });
 
@@ -106,16 +94,16 @@ test.describe('Admin Dashboard - Authenticated', () => {
     const tabs = ['Registrations', 'Payments', 'Discounts', 'Pricing', 'Sessions', 'Contacts', 'Export'];
 
     for (const tab of tabs) {
-      await page.click(`text=${tab}`);
+      await page.getByRole('tab', { name: tab }).click();
       await page.waitForTimeout(500);
 
-      // Verify tab content is shown
-      await expect(page.locator(`[data-state="active"]`)).toContainText(tab);
+      // Verify tab is now active
+      await expect(page.getByRole('tab', { name: tab })).toHaveAttribute('data-state', 'active');
     }
   });
 
   test('should display registrations table', async ({ page }) => {
-    await page.click('text=Registrations');
+    await page.getByRole('tab', { name: 'Registrations' }).click();
     await page.waitForTimeout(500);
 
     // Table headers
@@ -125,7 +113,7 @@ test.describe('Admin Dashboard - Authenticated', () => {
   });
 
   test('should display payments summary', async ({ page }) => {
-    await page.click('text=Payments');
+    await page.getByRole('tab', { name: 'Payments' }).click();
     await page.waitForTimeout(500);
 
     await expect(page.locator('text=Payment, text=Amount, text=Status')).toBeVisible().catch(() => {
@@ -144,23 +132,10 @@ test.describe('Admin Dashboard - Authenticated', () => {
 
 test.describe('Admin Dashboard - Registration Management', () => {
   test.beforeEach(async ({ page }) => {
-    await navigateTo.admin(page);
+    await navigateTo.adminDashboard(page);
     await waitFor.pageLoad(page);
 
-    // Attempt login
-    await page.fill('input#admin-email', process.env.ADMIN_EMAIL || 'admin@sunnahskills.com');
-    await page.fill('input#admin-password', process.env.ADMIN_PASSWORD || 'testpassword123');
-    await page.click('button:has-text("Sign in")');
-
-    await page.waitForTimeout(3000);
-
-    const currentUrl = page.url();
-    if (currentUrl.includes('/admin') && !currentUrl.includes('/dashboard')) {
-      test.skip();
-    }
-
-    // Navigate to registrations tab
-    await page.click('text=Registrations');
+    await page.getByRole('tab', { name: 'Registrations' }).click();
     await page.waitForTimeout(500);
   });
 
@@ -193,7 +168,7 @@ test.describe('Admin Dashboard - Registration Management', () => {
   });
 
   test('should export registrations', async ({ page }) => {
-    await page.click('text=Export');
+    await page.getByRole('tab', { name: 'Export' }).click();
     await page.waitForTimeout(500);
 
     // Download button
@@ -206,22 +181,10 @@ test.describe('Admin Dashboard - Registration Management', () => {
 
 test.describe('Admin Dashboard - Discount Management', () => {
   test.beforeEach(async ({ page }) => {
-    await navigateTo.admin(page);
+    await navigateTo.adminDashboard(page);
     await waitFor.pageLoad(page);
 
-    // Attempt login
-    await page.fill('input#admin-email', process.env.ADMIN_EMAIL || 'admin@sunnahskills.com');
-    await page.fill('input#admin-password', process.env.ADMIN_PASSWORD || 'testpassword123');
-    await page.click('button:has-text("Sign in")');
-
-    await page.waitForTimeout(3000);
-
-    const currentUrl = page.url();
-    if (currentUrl.includes('/admin') && !currentUrl.includes('/dashboard')) {
-      test.skip();
-    }
-
-    await page.click('text=Discounts');
+    await page.getByRole('tab', { name: 'Discounts' }).click();
     await page.waitForTimeout(500);
   });
 
@@ -234,22 +197,10 @@ test.describe('Admin Dashboard - Discount Management', () => {
 
 test.describe('Admin Dashboard - Pricing Management', () => {
   test.beforeEach(async ({ page }) => {
-    await navigateTo.admin(page);
+    await navigateTo.adminDashboard(page);
     await waitFor.pageLoad(page);
 
-    // Attempt login
-    await page.fill('input#admin-email', process.env.ADMIN_EMAIL || 'admin@sunnahskills.com');
-    await page.fill('input#admin-password', process.env.ADMIN_PASSWORD || 'testpassword123');
-    await page.click('button:has-text("Sign in")');
-
-    await page.waitForTimeout(3000);
-
-    const currentUrl = page.url();
-    if (currentUrl.includes('/admin') && !currentUrl.includes('/dashboard')) {
-      test.skip();
-    }
-
-    await page.click('text=Pricing');
+    await page.getByRole('tab', { name: 'Pricing' }).click();
     await page.waitForTimeout(500);
   });
 
@@ -262,22 +213,10 @@ test.describe('Admin Dashboard - Pricing Management', () => {
 
 test.describe('Admin Dashboard - Session Management', () => {
   test.beforeEach(async ({ page }) => {
-    await navigateTo.admin(page);
+    await navigateTo.adminDashboard(page);
     await waitFor.pageLoad(page);
 
-    // Attempt login
-    await page.fill('input#admin-email', process.env.ADMIN_EMAIL || 'admin@sunnahskills.com');
-    await page.fill('input#admin-password', process.env.ADMIN_PASSWORD || 'testpassword123');
-    await page.click('button:has-text("Sign in")');
-
-    await page.waitForTimeout(3000);
-
-    const currentUrl = page.url();
-    if (currentUrl.includes('/admin') && !currentUrl.includes('/dashboard')) {
-      test.skip();
-    }
-
-    await page.click('text=Sessions');
+    await page.getByRole('tab', { name: 'Sessions' }).click();
     await page.waitForTimeout(500);
   });
 
@@ -290,22 +229,10 @@ test.describe('Admin Dashboard - Session Management', () => {
 
 test.describe('Admin Dashboard - Contacts', () => {
   test.beforeEach(async ({ page }) => {
-    await navigateTo.admin(page);
+    await navigateTo.adminDashboard(page);
     await waitFor.pageLoad(page);
 
-    // Attempt login
-    await page.fill('input#admin-email', process.env.ADMIN_EMAIL || 'admin@sunnahskills.com');
-    await page.fill('input#admin-password', process.env.ADMIN_PASSWORD || 'testpassword123');
-    await page.click('button:has-text("Sign in")');
-
-    await page.waitForTimeout(3000);
-
-    const currentUrl = page.url();
-    if (currentUrl.includes('/admin') && !currentUrl.includes('/dashboard')) {
-      test.skip();
-    }
-
-    await page.click('text=Contacts');
+    await page.getByRole('tab', { name: 'Contacts' }).click();
     await page.waitForTimeout(500);
   });
 

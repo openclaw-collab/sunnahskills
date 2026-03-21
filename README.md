@@ -46,9 +46,10 @@ See [`docs/local-dev.md`](docs/local-dev.md) for the full local setup.
 │   │   ├── About.tsx                  # About the Academy (7 sections)
 │   │   ├── Schedule.tsx               # Class schedule (weekly/monthly)
 │   │   ├── Programs.tsx               # Programs listing
+│   │   ├── RegistrationHub.tsx        # Program chooser for /register
 │   │   ├── programs/                  # Individual program detail pages
 │   │   ├── registration/              # Registration wizard pages per program
-│   │   ├── admin/                     # Admin login + dashboard
+│   │   ├── admin/                     # Admin login, dashboard, sequence tools
 │   │   ├── Contact.tsx
 │   │   ├── Testimonials.tsx
 │   │   └── TechniqueLibrary.tsx       # GrappleMap browser
@@ -108,6 +109,7 @@ See [`docs/local-dev.md`](docs/local-dev.md) for the full local setup.
 | `/programs/archery/register` | `ArcheryRegistration.tsx` | Registration wizard |
 | `/programs/outdoor/register` | `OutdoorRegistration.tsx` | Registration wizard |
 | `/programs/bullyproofing/register` | `BullyproofingRegistration.tsx` | Registration wizard |
+| `/register` | `RegistrationHub.tsx` | Program chooser / registration entry point |
 | `/registration/success?rid=N` | `RegistrationSuccess.tsx` | Post-payment confirmation |
 | `/registration/waitlist?pos=N&program=...` | `RegistrationWaitlist.tsx` | Session-full waitlist |
 | `/registration/cancel` | `RegistrationCancel.tsx` | Payment cancelled |
@@ -123,6 +125,7 @@ See [`docs/local-dev.md`](docs/local-dev.md) for the full local setup.
 |---|---|
 | `/admin` | Login (bcrypt + D1 session cookie) |
 | `/admin/dashboard` | Full dashboard: registrations, payments, pricing, sessions, discounts, contacts, export |
+| `/admin/sequences` | Sequence builder for GrappleMap catalog entries |
 
 ### Studio (review tool)
 

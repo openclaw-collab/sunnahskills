@@ -8,6 +8,8 @@ export type ProgramConfig = {
   type: ProgramType;
   ageRangeLabel: string;
   shortPitch: string;
+  heroLead: string;
+  highlights: string[];
   heroImage: {
     src: string;
     alt: string;
@@ -26,17 +28,19 @@ export const PROGRAMS: Record<ProgramSlug, ProgramConfig> = {
     name: "Brazilian Jiu-Jitsu",
     type: "recurring",
     ageRangeLabel: "Youth + Teen Tracks",
-    shortPitch: "Technique-first training that builds calm confidence and resilient character.",
+    shortPitch: "Technique-first grappling that builds calm confidence, patience, and resilient character.",
+    heroLead:
+      "Ground-based training that teaches leverage, timing, and composure while helping students grow through steady progression.",
+    highlights: ["Age-group tracks", "Technique over strength", "Belt progression", "Confidence under pressure"],
     heroImage: {
-      // Athlete training in gi; high contrast, reads well under gradient.
-      src: "https://images.unsplash.com/photo-1549719386-74dfcbf7dbed?auto=format&fit=crop&w=2200&q=75",
-      alt: "Brazilian Jiu-Jitsu training",
-      objectPosition: "center 25%",
+      src: "https://images.unsplash.com/photo-1527631746610-bca00a040d60?auto=format&fit=crop&w=2200&q=75",
+      alt: "Youth Brazilian Jiu-Jitsu training on the mats",
+      objectPosition: "center 30%",
     },
     registerPath: "/programs/bjj/register",
     detailPath: "/programs/bjj",
-    pricingBlurb: "Monthly tuition + optional one-time registration fee (admin-editable).",
-    scheduleBlurb: "Recurring weekly sessions with age-group tracks.",
+    pricingBlurb: "Monthly tuition plus an admin-editable registration fee where applicable.",
+    scheduleBlurb: "Recurring weekly sessions organized by age and experience.",
     nextSteps: [
       "We confirm session placement by age and experience.",
       "Complete waivers and payment in the same flow.",
@@ -48,16 +52,19 @@ export const PROGRAMS: Record<ProgramSlug, ProgramConfig> = {
     name: "Traditional Archery",
     type: "seasonal",
     ageRangeLabel: "Youth + Teen (Seasonal)",
-    shortPitch: "A Sunnah-rooted sport for focus, patience, and precise mechanics.",
+    shortPitch: "A Sunnah-rooted discipline for focus, patience, and precise form.",
+    heroLead:
+      "Seasonal sessions centered on breath, stance, safety, and the quiet repetition that builds skill and attention.",
+    highlights: ["Seasonal sessions", "Safety-first range rules", "Traditional form", "Focus through repetition"],
     heroImage: {
-      src: "https://images.unsplash.com/photo-1509475826633-fed577a2c71b?auto=format&fit=crop&w=2200&q=75",
-      alt: "Traditional archery target and bow",
-      objectPosition: "center 35%",
+      src: "https://images.unsplash.com/photo-1508896694512-1eade558679c?auto=format&fit=crop&w=2200&q=75",
+      alt: "Traditional archery target and archer",
+      objectPosition: "center 34%",
     },
     registerPath: "/programs/archery/register",
     detailPath: "/programs/archery",
-    pricingBlurb: "Seasonal session fee varies by age tier (admin-editable).",
-    scheduleBlurb: "Seasonal sessions with multiple time windows.",
+    pricingBlurb: "Seasonal session pricing varies by age tier and schedule.",
+    scheduleBlurb: "Seasonal sessions offered in limited windows.",
     nextSteps: [
       "Choose a session window and confirm equipment acknowledgement.",
       "Complete waivers and payment in-app.",
@@ -69,16 +76,19 @@ export const PROGRAMS: Record<ProgramSlug, ProgramConfig> = {
     name: "Outdoor Workshops",
     type: "workshop",
     ageRangeLabel: "Workshop Ages Vary",
-    shortPitch: "Readiness training: practical skills, stewardship, and disciplined decision making.",
+    shortPitch: "Practical readiness training built around stewardship, problem-solving, and disciplined decision making.",
+    heroLead:
+      "Hands-on fieldcraft that teaches students to read conditions, work with tools, and move through the outdoors with confidence.",
+    highlights: ["Workshop-based dates", "Stewardship mindset", "Navigation and shelter skills", "Real-world readiness"],
     heroImage: {
-      src: "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?auto=format&fit=crop&w=2200&q=75",
-      alt: "Forest trail and outdoor landscape",
-      objectPosition: "center 40%",
+      src: "https://images.unsplash.com/photo-1516939884455-1445c8652f83?auto=format&fit=crop&w=2200&q=75",
+      alt: "Forest trail and campfire-ready outdoor setting",
+      objectPosition: "center 42%",
     },
     registerPath: "/programs/outdoor/register",
     detailPath: "/programs/outdoor",
-    pricingBlurb: "One-time workshop fee per date (admin-editable).",
-    scheduleBlurb: "Workshop-based; select a specific date.",
+    pricingBlurb: "One-time workshop fees are set per date in the admin panel.",
+    scheduleBlurb: "Workshop dates are selected individually.",
     nextSteps: [
       "Select a workshop date and confirm gear/readiness checklist.",
       "Complete waivers and payment in-app.",
@@ -90,16 +100,19 @@ export const PROGRAMS: Record<ProgramSlug, ProgramConfig> = {
     name: "Bullyproofing Workshops",
     type: "series",
     ageRangeLabel: "Ages 8–14 (Typical)",
-    shortPitch: "Boundaries, awareness, and practical protection—without aggression.",
+    shortPitch: "Boundaries, awareness, and practical self-protection without aggression.",
+    heroLead:
+      "A short-series program that helps students respond with clarity, confidence, and calm when social pressure rises.",
+    highlights: ["Verbal boundary setting", "Situational awareness", "Basic escape skills", "Confidence building"],
     heroImage: {
-      src: "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?auto=format&fit=crop&w=2200&q=75",
-      alt: "Confident youth portrait",
+      src: "https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&w=2200&q=75",
+      alt: "Confident youth in a training stance",
       objectPosition: "center 30%",
     },
     registerPath: "/programs/bullyproofing/register",
     detailPath: "/programs/bullyproofing",
-    pricingBlurb: "One-time workshop/series fee (admin-editable).",
-    scheduleBlurb: "Short-series workshops; dates vary.",
+    pricingBlurb: "Series pricing is set by cohort or workshop date.",
+    scheduleBlurb: "Short-series dates are announced in advance.",
     nextSteps: [
       "Share any parent concerns to help instructors support the student.",
       "Complete waivers and payment in-app.",
@@ -115,3 +128,15 @@ export function getProgramConfig(slug: string): ProgramConfig | null {
   return null;
 }
 
+export function getProgramTypeLabel(type: ProgramType): string {
+  switch (type) {
+    case "recurring":
+      return "Recurring Enrollment";
+    case "seasonal":
+      return "Seasonal Program";
+    case "workshop":
+      return "Workshop-Based";
+    case "series":
+      return "Short Series";
+  }
+}

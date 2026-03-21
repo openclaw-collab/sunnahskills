@@ -1,4 +1,4 @@
-import { getAdminFromRequest } from "../../_utils/adminAuth";
+import { getAdminFromRequest, hasAdminPermission } from "../../_utils/adminAuth";
 
 interface Env {
   DB: D1Database;
@@ -7,6 +7,7 @@ interface Env {
 export async function onRequestGet({ request, env }: { request: Request; env: Env }) {
   const admin = await getAdminFromRequest(env, request);
   if (!admin) return new Response("Unauthorized", { status: 401 });
+  if (!hasAdminPermission(admin, "exports", "read")) return new Response("Forbidden", { status: 403 });
 
   const { results } = await env.DB.prepare(
     `
@@ -59,4 +60,3 @@ export async function onRequestGet({ request, env }: { request: Request; env: En
     },
   });
 }
-

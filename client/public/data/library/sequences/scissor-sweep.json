@@ -1,0 +1,26 @@
+{
+  "meta": {
+    "id": "scissor-sweep",
+    "name": "Scissor Sweep",
+    "slug": "scissor-sweep",
+    "positionCategory": "closed-guard",
+    "startingPosition": "Closed Guard",
+    "endingPosition": "Mount",
+    "difficulty": "beginner",
+    "description": [
+      "Classic scissor sweep from closed guard.",
+      "Break their posture, establish grips, and scissors your legs to sweep."
+    ],
+    "sources": ["Gracie Combatives"],
+    "totalFrames": 0,
+    "positions": 2,
+    "transitions": 1
+  },
+  "markers": [
+    { "name": "Closed Guard", "frame": 0, "type": "position" },
+    { "name": "Scissor Sweep", "frame": 1, "type": "transition" },
+    { "name": "Mount", "frame": 8, "type": "position" }
+  ],
+  "frames": [],
+  "verified": false
+}

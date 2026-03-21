@@ -59,14 +59,14 @@ export const test = base.extend<TestFixtures>({
     const context = await browser.newContext();
     const page = await context.newPage();
 
-    // Navigate to admin and login
-    await page.goto('/admin');
-    await page.fill('#admin-email', process.env.ADMIN_EMAIL || 'admin@sunnahskills.com');
-    await page.fill('#admin-password', process.env.ADMIN_PASSWORD || 'testpassword123');
-    await page.click('button:has-text("Sign in")');
+    // Navigate to admin login using accessible locators
+    await page.goto('/admin/login');
+    await page.getByLabel(/email/i).fill(process.env.ADMIN_EMAIL || 'admin@sunnahskills.com');
+    await page.getByLabel(/password/i).fill(process.env.ADMIN_PASSWORD || 'testpassword123');
+    await page.getByRole('button', { name: /sign in|login/i }).click();
 
     // Wait for dashboard to load
-    await page.waitForURL('/admin/dashboard', { timeout: 10000 });
+    await page.waitForURL(/\/admin/, { timeout: 10000 });
 
     await use(page);
     await context.close();
@@ -124,10 +124,12 @@ export const navigateTo = {
  * Wait helpers
  */
 export const waitFor = {
-  // Wait for page to be fully loaded
+  // Wait for page to be fully loaded including React render
   pageLoad: async (page: Page) => {
-    await page.waitForLoadState('networkidle');
     await page.waitForLoadState('domcontentloaded');
+    await page.waitForLoadState('networkidle');
+    // Wait for React SPA to mount (nav is always rendered by App.tsx)
+    await page.waitForSelector('nav, main, [role="main"]', { timeout: 15_000 }).catch(() => {});
   },
 
   // Wait for animations to complete

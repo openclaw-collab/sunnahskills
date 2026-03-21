@@ -19,15 +19,14 @@ Shared utility modules for Cloudflare Pages Functions. Auth helpers, email servi
 
 ### adminAuth.ts
 ```typescript
-async function adminAuth(request: Request, env: Env): Promise<
-  { valid: true; adminId: number } |
-  { valid: false; response: Response }
->
+async function createAdminSession(env: Env, adminUserId: number): Promise<{ token: string; expiresAtIso: string; cookie: string }>
+async function getAdminFromRequest(env: Env, request: Request): Promise<{ adminUserId: number; email: string; name: string | null; role: string } | null>
+function clearAdminSessionCookie(): string
 ```
 - Reads `admin_session` cookie
 - Validates against `admin_sessions` table
 - Checks `expires_at` timestamp
-- Returns adminId on success, 401 Response on failure
+- Returns the admin user on success, `null` on failure
 
 ### cookies.ts
 ```typescript
@@ -35,22 +34,22 @@ function setCookie(name: string, value: string, options: CookieOptions): string
 function getCookie(request: Request, name: string): string | undefined
 function deleteCookie(name: string): string
 ```
-- Defaults: HttpOnly, Secure, SameSite=Strict
+- Supports `HttpOnly`, `Secure`, `SameSite=Lax | Strict | None`, `Path`, and `Max-Age`
 - Max-Age support
 
 ### email.ts
 ```typescript
-async function sendEmail(options: EmailOptions): Promise<Response>
+async function sendMailChannelsEmail(env: Env, message: { to; from; replyTo?; subject; text; html }): Promise<void>
 ```
 - POSTs to `https://api.mailchannels.net/tx/v1/send`
 - Uses MailChannels (free via Cloudflare)
 - Supports HTML and text bodies
 
 ### emailTemplates.ts
-- `registrationConfirmation(registration)`
-- `paymentReceipt(payment, registration)`
-- `waitlistConfirmation(position, program)`
-- `adminNotification(registration)`
+- `registrationConfirmationEmail(...)`
+- `adminNewRegistrationEmail(...)`
+- `paymentReceiptEmail(...)`
+- `waitlistEmail(...)`
 
 ## For AI Agents
 
@@ -61,14 +60,14 @@ async function sendEmail(options: EmailOptions): Promise<Response>
 
 ### Usage Pattern
 ```typescript
-import { adminAuth } from '../_utils/adminAuth';
-import { sendEmail } from '../_utils/email';
+import { getAdminFromRequest } from './adminAuth';
+import { sendMailChannelsEmail } from './email';
 
 export default async function handler(request, context) {
-  const auth = await adminAuth(request, context.env);
-  if (!auth.valid) return auth.response;
+  const admin = await getAdminFromRequest(context.env, request);
+  if (!admin) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
 
-  await sendEmail({ to, subject, html });
+  await sendMailChannelsEmail(context.env, { to, from, subject, text, html });
 }
 ```
 

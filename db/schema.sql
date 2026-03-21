@@ -18,6 +18,9 @@ CREATE TABLE IF NOT EXISTS admin_users (
   password_hash TEXT NOT NULL,
   name TEXT,
   role TEXT DEFAULT 'admin',
+  status TEXT DEFAULT 'active',
+  permissions_json TEXT DEFAULT '{}',
+  disabled_at DATETIME,
   last_login DATETIME,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
@@ -33,6 +36,21 @@ CREATE TABLE IF NOT EXISTS admin_sessions (
 
 CREATE INDEX IF NOT EXISTS idx_admin_sessions_token ON admin_sessions(token);
 CREATE INDEX IF NOT EXISTS idx_admin_sessions_expires ON admin_sessions(expires_at);
+
+CREATE TABLE IF NOT EXISTS admin_activity_logs (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  actor_admin_user_id INTEGER REFERENCES admin_users(id),
+  subject_admin_user_id INTEGER REFERENCES admin_users(id),
+  action TEXT NOT NULL,
+  entity_type TEXT NOT NULL,
+  entity_id TEXT,
+  details_json TEXT DEFAULT '{}',
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_admin_activity_logs_created_at ON admin_activity_logs(created_at);
+CREATE INDEX IF NOT EXISTS idx_admin_activity_logs_actor ON admin_activity_logs(actor_admin_user_id);
+CREATE INDEX IF NOT EXISTS idx_admin_activity_logs_subject ON admin_activity_logs(subject_admin_user_id);
 
 -- Programs catalog
 CREATE TABLE IF NOT EXISTS programs (
@@ -59,6 +77,7 @@ CREATE TABLE IF NOT EXISTS program_prices (
   amount INTEGER NOT NULL, -- cents
   frequency TEXT NOT NULL, -- 'monthly', 'per_session', 'per_workshop', 'per_series'
   registration_fee INTEGER DEFAULT 0, -- cents
+  metadata TEXT,
   active INTEGER DEFAULT 1,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
@@ -190,6 +209,28 @@ CREATE TABLE IF NOT EXISTS waitlist (
   notified INTEGER DEFAULT 0,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
+
+-- GrappleMap / admin-authored technique sequences
+CREATE TABLE IF NOT EXISTS technique_sequences (
+  id TEXT PRIMARY KEY,
+  slug TEXT NOT NULL UNIQUE,
+  name TEXT NOT NULL,
+  position_category TEXT NOT NULL,
+  starting_position TEXT,
+  ending_position TEXT,
+  difficulty TEXT DEFAULT 'beginner',
+  description_json TEXT DEFAULT '[]',
+  markers_json TEXT DEFAULT '[]',
+  frames_json TEXT DEFAULT '[]',
+  sources_json TEXT DEFAULT '[]',
+  verified INTEGER DEFAULT 0,
+  created_by_admin_user_id INTEGER REFERENCES admin_users(id),
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_technique_sequences_slug ON technique_sequences(slug);
+CREATE INDEX IF NOT EXISTS idx_technique_sequences_category ON technique_sequences(position_category);
 -- -------------------------------------------------------
 -- Stakeholder Studio (shared review sessions)
 -- -------------------------------------------------------

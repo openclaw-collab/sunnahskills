@@ -3,26 +3,18 @@ import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, CheckboxGroup, SelectField } from "./FormControls";
 import type { RegistrationStepProps } from "@/components/registration/steps";
 import type { BjjSpecific, ArcherySpecific, OutdoorSpecific, BullyproofingSpecific } from "@/hooks/useRegistration";
-
-const WORKSHOP_DATES = [
-  { value: "2026-04-12", label: "April 12, 2026 — Morning session" },
-  { value: "2026-04-26", label: "April 26, 2026 — Morning session" },
-  { value: "2026-05-10", label: "May 10, 2026 — Morning session" },
-  { value: "2026-05-24", label: "May 24, 2026 — Morning session" },
-];
-
-const ARCHERY_SESSIONS = [
-  { value: "summer-2026-a", label: "Summer 2026 — Session A (Jul 7 – Jul 25)" },
-  { value: "summer-2026-b", label: "Summer 2026 — Session B (Aug 4 – Aug 22)" },
-  { value: "fall-2026", label: "Fall 2026 — Session (Sep 8 – Oct 17)" },
-];
-
-const GEAR_OPTIONS = [
-  { value: "boots", label: "Sturdy, closed-toe boots" },
-  { value: "rain-gear", label: "Rain gear / waterproof layer" },
-  { value: "water-bottle", label: "Water bottle (1L+)" },
-  { value: "sun-protection", label: "Sun protection (hat + sunscreen)" },
-];
+import {
+  archeryDominantHandOptions,
+  archeryExperienceOptions,
+  archerySessionOptions,
+  bjjAgeGroupOptions,
+  bjjClassGroupOptions,
+  bjjTrialClassOptions,
+  bullyproofingAgeGroupOptions,
+  bullyproofingConcernOptions,
+  outdoorGearOptions,
+  outdoorWorkshopDateOptions,
+} from "@shared/registration-options";
 
 function BjjFields({ draft, updateDraft }: RegistrationStepProps) {
   const ps = draft.programDetails.programSpecific as BjjSpecific;
@@ -42,31 +34,25 @@ function BjjFields({ draft, updateDraft }: RegistrationStepProps) {
         name="bjj-gender"
         value={ps.gender}
         onChange={(v) => set({ gender: v as BjjSpecific["gender"] })}
-        options={[
-          { value: "boys", label: "Boys' class" },
-          { value: "girls", label: "Girls' class" },
-        ]}
+        options={[...bjjClassGroupOptions]}
       />
       <RadioGroup
         label="Age group"
         name="bjj-age"
         value={ps.ageGroup}
         onChange={(v) => set({ ageGroup: v as BjjSpecific["ageGroup"] })}
-        options={[
-          { value: "6-10", label: "6–10 yrs", sublabel: "Fundamentals" },
-          { value: "11-14", label: "11–14 yrs", sublabel: "Intermediate" },
-          { value: "15-17", label: "15–17 yrs", sublabel: "Advanced" },
-        ]}
+        options={bjjAgeGroupOptions.map((opt) => ({
+          ...opt,
+          sublabel:
+            opt.value === "6-10" ? "Fundamentals" : opt.value === "11-14" ? "Intermediate" : "Advanced",
+        }))}
       />
       <RadioGroup
         label="Would you like to start with a trial class?"
         name="bjj-trial"
         value={ps.trialClass}
         onChange={(v) => set({ trialClass: v as BjjSpecific["trialClass"] })}
-        options={[
-          { value: "yes", label: "Yes, trial class first" },
-          { value: "no", label: "No, enrol directly" },
-        ]}
+        options={[...bjjTrialClassOptions]}
       />
       <div className="space-y-2">
         <label className="font-body text-sm text-charcoal font-medium">Anything else we should know? (optional)</label>
@@ -99,27 +85,24 @@ function ArcheryFields({ draft, updateDraft }: RegistrationStepProps) {
         name="archery-hand"
         value={ps.dominantHand}
         onChange={(v) => set({ dominantHand: v as ArcherySpecific["dominantHand"] })}
-        options={[
-          { value: "right", label: "Right-handed" },
-          { value: "left", label: "Left-handed" },
-        ]}
+        options={[...archeryDominantHandOptions]}
       />
       <RadioGroup
         label="Prior archery experience"
         name="archery-exp"
         value={ps.experience}
         onChange={(v) => set({ experience: v as ArcherySpecific["experience"] })}
-        options={[
-          { value: "never", label: "Never tried", sublabel: "Complete beginner" },
-          { value: "some", label: "Some experience", sublabel: "A few sessions" },
-          { value: "practiced", label: "Practiced before", sublabel: "Regular practice" },
-        ]}
+        options={archeryExperienceOptions.map((opt) => ({
+          ...opt,
+          sublabel:
+            opt.value === "never" ? "Complete beginner" : opt.value === "some" ? "A few sessions" : "Regular practice",
+        }))}
       />
       <SelectField
         label="Preferred session"
         value={ps.sessionDate}
         onChange={(v) => set({ sessionDate: v })}
-        options={ARCHERY_SESSIONS}
+        options={[...archerySessionOptions]}
         placeholder="Select a session"
       />
       <div className="space-y-2">
@@ -152,12 +135,12 @@ function OutdoorFields({ draft, updateDraft }: RegistrationStepProps) {
         label="Workshop date"
         value={ps.workshopDate}
         onChange={(v) => set({ workshopDate: v })}
-        options={WORKSHOP_DATES}
+        options={[...outdoorWorkshopDateOptions]}
         placeholder="Select a date"
       />
       <CheckboxGroup
         label="Gear checklist — please confirm you'll bring:"
-        options={GEAR_OPTIONS}
+        options={[...outdoorGearOptions]}
         values={ps.gear}
         onChange={(v) => set({ gear: v })}
       />
@@ -197,22 +180,22 @@ function BullyproofingFields({ draft, updateDraft }: RegistrationStepProps) {
         name="bp-concern"
         value={ps.concernType}
         onChange={(v) => set({ concernType: v as BullyproofingSpecific["concernType"] })}
-        options={[
-          { value: "being-bullied", label: "Being bullied", sublabel: "Needs assertiveness + tools" },
-          { value: "exhibiting", label: "Exhibiting bullying behaviour", sublabel: "Learning empathy + boundaries" },
-          { value: "confidence", label: "General confidence building", sublabel: "Proactive development" },
-        ]}
+        options={bullyproofingConcernOptions.map((opt) => ({
+          ...opt,
+          sublabel:
+            opt.value === "being-bullied"
+              ? "Needs assertiveness + tools"
+              : opt.value === "exhibiting"
+                ? "Learning empathy + boundaries"
+                : "Proactive development",
+        }))}
       />
       <RadioGroup
         label="Student age group"
         name="bp-age"
         value={ps.ageGroup}
         onChange={(v) => set({ ageGroup: v as BullyproofingSpecific["ageGroup"] })}
-        options={[
-          { value: "6-9", label: "6–9 yrs" },
-          { value: "10-13", label: "10–13 yrs" },
-          { value: "14+", label: "14+ yrs" },
-        ]}
+        options={[...bullyproofingAgeGroupOptions]}
       />
       <div className="space-y-2">
         <label className="font-body text-sm text-charcoal font-medium">Anything else we should know? (optional)</label>

@@ -114,4 +114,17 @@
     --stripe-danger: #CC5833;
     --stripe-radius: 12px;
   }
+
+  [data-studio-bg-tone] {
+    background: var(--studio-component-bg) !important;
+  }
+
+  [data-studio-border-tone] {
+    border-color: var(--studio-component-border) !important;
+  }
+
+  [data-studio-text-tone],
+  [data-studio-text-tone] :where(*) {
+    color: var(--studio-component-text) !important;
+  }
 }

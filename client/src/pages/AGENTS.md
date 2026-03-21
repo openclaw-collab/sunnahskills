@@ -46,6 +46,7 @@ Page-level React components mapped to routes. Each file represents a unique URL 
 |------|-------|-------------|
 | `admin/AdminLogin.tsx` | `/admin` | Admin login page |
 | `admin/AdminDashboard.tsx` | `/admin/dashboard` | Admin dashboard |
+| `admin/AdminSequences.tsx` | `/admin/sequences` | GrappleMap sequence builder |
 
 ## For AI Agents
 

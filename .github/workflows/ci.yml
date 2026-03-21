@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  push:
+    branches: [main, prototype]
+  pull_request:
+    branches: [main]
+
+jobs:
+  check:
+    name: Code Quality Checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: TypeScript check
+        run: npx tsc -p tsconfig.json --noEmit
+
+      - name: Unit tests (Vitest)
+        run: npx vitest run --config vitest.config.ts
+        env:
+          NODE_ENV: test
+
+      - name: Build
+        run: npm run build
+
+      - name: Wrangler dry-run deploy check
+        run: npx wrangler deploy --dry-run --env production
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}

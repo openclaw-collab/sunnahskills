@@ -14,7 +14,6 @@ Cloudflare Pages Functions (Workers runtime) providing API endpoints. All backen
 | `api/programs.ts` | GET /api/programs - List available programs |
 | `api/contact.ts` | POST /api/contact - Contact form submission |
 | `api/waitlist.ts` | POST /api/waitlist - Add to waitlist |
-| `api/admin.ts` | Main admin API handler |
 | `api/discounts/validate.ts` | POST /api/discounts/validate - Validate promo codes |
 
 ## Subdirectories
@@ -61,6 +60,8 @@ Cloudflare Pages Functions (Workers runtime) providing API endpoints. All backen
 | `/api/auth/*` | `api/auth/*.ts` | Login/logout/session |
 | `/api/payments/*` | `api/payments/*.ts` | Stripe operations |
 | `/api/admin/*` | `api/admin/*.ts` | Admin operations |
+| `/api/admin/positions` | `api/admin/positions.ts` | Static positions catalog |
+| `/api/admin/sequences` | `api/admin/sequences.ts` | Sequence catalog / builder stub |
 | `/api/studio/*` | `api/studio/*.ts` | Studio sessions |
 | `/api/discounts/validate` | `api/discounts/validate.ts` | Validate discounts |
 

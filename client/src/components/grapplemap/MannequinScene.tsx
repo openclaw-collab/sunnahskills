@@ -155,6 +155,8 @@ function HumanPlayer({
   useEffect(() => {
     if (!groupRef.current) return;
     const group = groupRef.current;
+    const createdGeometries: THREE.BufferGeometry[] = [];
+    const createdMaterials: THREE.Material[] = [];
     while (group.children.length) group.remove(group.children[0]);
     jointsRef.current = [];
     limbsRef.current = [];
@@ -167,12 +169,14 @@ function HumanPlayer({
       transparent: true,
       opacity: 0.9,
     });
+    createdMaterials.push(solidMat);
     const glowMat = new THREE.MeshBasicMaterial({
       color: glowColor,
       wireframe: true,
       transparent: true,
       opacity: 0.55,
     });
+    createdMaterials.push(glowMat);
 
     const jointSolidMat = new THREE.MeshStandardMaterial({
       color,
@@ -181,20 +185,24 @@ function HumanPlayer({
       transparent: true,
       opacity: 0.92,
     });
+    createdMaterials.push(jointSolidMat);
     const jointGlowMat = new THREE.MeshBasicMaterial({
       color: glowColor,
       wireframe: true,
       transparent: true,
       opacity: 0.45,
     });
+    createdMaterials.push(jointGlowMat);
 
     for (const { j, r } of JOINT_VISUALS) {
       const solidGeo = new THREE.SphereGeometry(r, 12, 8);
+      createdGeometries.push(solidGeo);
       const solid = new THREE.Mesh(solidGeo, jointSolidMat);
       (solid.userData as any).jointIndex = j;
       group.add(solid);
 
       const glowGeo = new THREE.IcosahedronGeometry(r * 1.08, 1);
+      createdGeometries.push(glowGeo);
       const glow = new THREE.Mesh(glowGeo, jointGlowMat);
       (glow.userData as any).jointIndex = j;
       group.add(glow);
@@ -207,18 +215,25 @@ function HumanPlayer({
     for (const seg of ANATOMY_SEGMENTS) {
       const solidGeo = new THREE.CylinderGeometry(seg.rTop, seg.rBot, 1, 8, 1);
       solidGeo.translate(0, 0.5, 0);
+      createdGeometries.push(solidGeo);
       const solid = new THREE.Mesh(solidGeo, solidMat);
       solid.userData = { ...seg };
       group.add(solid);
 
       const glowGeo = new THREE.CylinderGeometry(seg.rTop * 1.06, seg.rBot * 1.06, 1, 6, 1);
       glowGeo.translate(0, 0.5, 0);
+      createdGeometries.push(glowGeo);
       const glow = new THREE.Mesh(glowGeo, glowMat);
       glow.userData = { ...seg };
       group.add(glow);
 
       limbsRef.current.push({ solid, glow });
     }
+
+    return () => {
+      createdGeometries.forEach((geometry) => geometry.dispose());
+      createdMaterials.forEach((material) => material.dispose());
+    };
   }, [color, glowColor]);
 
   useFrame(() => {
@@ -277,9 +292,11 @@ function HumanPlayer({
 
 function MannequinSceneInner({
   sequencePath = "/data/sequence.json",
+  sequenceData,
   playbackRef,
 }: {
   sequencePath?: string;
+  sequenceData?: SequenceData;
   playbackRef: React.MutableRefObject<PlaybackState>;
 }) {
   const [data, setData] = useState<SequenceData | null>(null);
@@ -294,16 +311,27 @@ function MannequinSceneInner({
   }, [playbackRef]);
 
   useEffect(() => {
+    if (sequenceData) {
+      setData(sequenceData);
+      return;
+    }
+
     let cancelled = false;
+    const controller = new AbortController();
     (async () => {
-      const res = await fetch(sequencePath);
-      const json = (await res.json()) as SequenceData;
-      if (!cancelled) setData(json);
+      try {
+        const res = await fetch(sequencePath, { signal: controller.signal });
+        const json = (await res.json()) as SequenceData;
+        if (!cancelled) setData(json);
+      } catch {
+        if (!cancelled) setData(null);
+      }
     })();
     return () => {
       cancelled = true;
+      controller.abort();
     };
-  }, [sequencePath]);
+  }, [sequenceData, sequencePath]);
 
   useFrame((_state, delta) => {
     if (playbackRef.current.paused) return;
@@ -346,9 +374,11 @@ function MannequinSceneInner({
 
 function PlaybackOverlay({
   sequencePath,
+  sequenceData,
   playbackRef,
 }: {
   sequencePath: string;
+  sequenceData?: SequenceData;
   playbackRef: React.MutableRefObject<PlaybackState>;
 }) {
   const [paused, setPaused] = useState(false);
@@ -359,6 +389,12 @@ function PlaybackOverlay({
   const rafRef = useRef(0);
 
   useEffect(() => {
+    if (sequenceData) {
+      setTotalFrames(Math.max(1, sequenceData.frames.length - 1));
+      setMarkers(sequenceData.markers ?? []);
+      return;
+    }
+
     (async () => {
       try {
         const res = await fetch(sequencePath);
@@ -369,7 +405,7 @@ function PlaybackOverlay({
         // ignore
       }
     })();
-  }, [sequencePath]);
+  }, [sequenceData, sequencePath]);
 
   // Sync frame display from timeRef on every animation frame
   useEffect(() => {
@@ -426,93 +462,67 @@ function PlaybackOverlay({
         bottom: 0,
         left: 0,
         right: 0,
-        padding: "10px 14px",
+        padding: "6px 10px",
         background: "rgba(18,22,18,0.82)",
         backdropFilter: "blur(6px)",
         display: "flex",
-        flexDirection: "column",
-        gap: "7px",
+        flexDirection: "row",
+        alignItems: "center",
+        gap: "8px",
         pointerEvents: "all",
         userSelect: "none",
         zIndex: 10,
+        maxHeight: "52px",
       }}
     >
-      {/* Row 1: play/pause + scrubber */}
-      <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-        <button
-          onClick={togglePause}
-          title={paused ? "Play" : "Pause"}
-          style={{
-            background: "rgba(46,64,54,0.9)",
-            border: "1px solid #4a7c59",
-            borderRadius: "4px",
-            color: "#d4c9a8",
-            cursor: "pointer",
-            fontSize: "13px",
-            padding: "3px 10px",
-            lineHeight: "20px",
-            flexShrink: 0,
-          }}
-        >
-          {paused ? "▶" : "⏸"}
-        </button>
-        <input
-          type="range"
-          min={0}
-          max={totalFrames}
-          step={0.1}
-          value={frame}
-          onChange={onScrub}
-          style={{ accentColor: "#8aab7a", flex: 1, cursor: "pointer" }}
-        />
-        <span style={{ color: "#8aab7a", fontSize: "11px", minWidth: "52px", textAlign: "right" }}>
-          {frame}/{totalFrames}
-        </span>
-      </div>
-
-      {/* Row 2: speed */}
-      <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-        <span style={{ color: "#8aab7a", fontSize: "11px", flexShrink: 0 }}>Speed</span>
-        <input
-          type="range"
-          min={0.25}
-          max={2}
-          step={0.25}
-          value={speed}
-          onChange={onSpeedChange}
-          style={{ accentColor: "#8aab7a", width: "110px", cursor: "pointer" }}
-        />
-        <span style={{ color: "#8aab7a", fontSize: "11px" }}>{speed.toFixed(2)}x</span>
-      </div>
-
-      {/* Row 3: marker jump buttons */}
-      {markers.length > 0 && (
-        <div style={{ display: "flex", alignItems: "center", gap: "5px", flexWrap: "wrap" }}>
-          <span style={{ color: "#8aab7a", fontSize: "11px", flexShrink: 0 }}>Jump:</span>
-          {markers.map((m, i) => (
-            <button
-              key={i}
-              title={m.name}
-              onClick={() => jumpToMarker(m.frame)}
-              style={{
-                background: "rgba(46,64,54,0.9)",
-                border: "1px solid #4a7c59",
-                borderRadius: "4px",
-                color: "#d4c9a8",
-                cursor: "pointer",
-                fontSize: "11px",
-                padding: "2px 8px",
-                maxWidth: "130px",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
-              }}
-            >
-              {m.name.replace(/\\n/g, " ")}
-            </button>
-          ))}
-        </div>
-      )}
+      <button
+        onClick={togglePause}
+        title={paused ? "Play" : "Pause"}
+        style={{
+          background: "rgba(46,64,54,0.9)",
+          border: "1px solid #4a7c59",
+          borderRadius: "4px",
+          color: "#d4c9a8",
+          cursor: "pointer",
+          fontSize: "10px",
+          padding: "2px 8px",
+          flexShrink: 0,
+        }}
+      >
+        {paused ? "▶" : "⏸"}
+      </button>
+      <input
+        type="range"
+        min={0}
+        max={totalFrames}
+        step={0.1}
+        value={frame}
+        onChange={onScrub}
+        style={{ accentColor: "#8aab7a", flex: 1, cursor: "pointer", height: "4px" }}
+      />
+      <span style={{ color: "#8aab7a", fontSize: "10px", minWidth: "44px", textAlign: "right", flexShrink: 0 }}>
+        {frame}/{totalFrames}
+      </span>
+      <select
+        value={speed}
+        onChange={(e) => onSpeedChange(e as unknown as React.ChangeEvent<HTMLInputElement>)}
+        style={{
+          background: "rgba(46,64,54,0.9)",
+          border: "1px solid #4a7c59",
+          borderRadius: "4px",
+          color: "#d4c9a8",
+          fontSize: "10px",
+          padding: "2px 4px",
+          cursor: "pointer",
+          width: "52px",
+          flexShrink: 0,
+        }}
+      >
+        <option value={0.5}>0.5x</option>
+        <option value={1}>1x</option>
+        <option value={1.5}>1.5x</option>
+        <option value={2}>2x</option>
+      </select>
     </div>
   );
 }
@@ -520,20 +530,75 @@ function PlaybackOverlay({
 export function MannequinViewer({
   className,
   sequencePath = "/data/sequence.json",
+  sequenceData,
+  onThumbnailReady,
 }: {
   className?: string;
   sequencePath?: string;
+  sequenceData?: SequenceData;
+  onThumbnailReady?: (dataUrl: string) => void;
 }) {
+  const supportsWebGL = useState(() => {
+    if (typeof document === "undefined") return false;
+    try {
+      const canvas = document.createElement("canvas");
+      return Boolean(canvas.getContext("webgl2") || canvas.getContext("webgl"));
+    } catch {
+      return false;
+    }
+  })[0];
   const playbackRef = useRef<PlaybackState>({ paused: false, speed: 1, timeRef: null });
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const thumbnailCaptured = useRef(false);
+
+  // Capture thumbnail after first render
+  useEffect(() => {
+    if (!onThumbnailReady || thumbnailCaptured.current) return;
+
+    const captureThumbnail = () => {
+      if (thumbnailCaptured.current) return;
+      const canvas = canvasRef.current;
+      if (canvas) {
+        try {
+          const dataUrl = canvas.toDataURL("image/jpeg", 0.7);
+          thumbnailCaptured.current = true;
+          onThumbnailReady(dataUrl);
+        } catch (e) {
+          // Ignore capture errors
+        }
+      }
+    };
+
+    // Small delay to ensure canvas is rendered
+    const timer = setTimeout(captureThumbnail, 100);
+    return () => clearTimeout(timer);
+  }, [onThumbnailReady]);
+
+  if (!supportsWebGL) {
+    return (
+      <div className={className} style={{ position: "relative", width: "100%", height: "100%" }}>
+        <div className="flex h-full w-full items-center justify-center rounded-2xl border border-white/10 bg-charcoal px-4 text-center">
+          <div className="max-w-xs">
+            <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-clay">
+              GrappleMap Preview
+            </div>
+            <p className="mt-3 font-body text-sm leading-relaxed text-cream/70">
+              The interactive viewer needs WebGL. The technique library still works, and the public site falls back
+              to this static preview when the browser cannot create a 3D context.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={className} style={{ position: "relative", width: "100%", height: "100%" }}>
-      <Canvas camera={{ position: [5, 3.5, 5], fov: 45, near: 0.1, far: 100 }}>
+      <Canvas ref={canvasRef} camera={{ position: [5, 3.5, 5], fov: 45, near: 0.1, far: 100 }}>
         <color attach="background" args={["#1A1A1A"]} />
-        <MannequinSceneInner sequencePath={sequencePath} playbackRef={playbackRef} />
+        <MannequinSceneInner sequencePath={sequencePath} sequenceData={sequenceData} playbackRef={playbackRef} />
       </Canvas>
-      <PlaybackOverlay sequencePath={sequencePath} playbackRef={playbackRef} />
+      <PlaybackOverlay sequencePath={sequencePath} sequenceData={sequenceData} playbackRef={playbackRef} />
     </div>
   );
 }
-

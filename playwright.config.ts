@@ -1,115 +1,80 @@
 import { defineConfig, devices } from '@playwright/test';
+import { fileURLToPath } from 'url';
+import { dirname, resolve } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+const TEST_PORT = 8789;
+const BASE_URL = `http://localhost:${TEST_PORT}`;
 
 /**
  * Playwright E2E Test Configuration for Sunnah Skills
+ *
+ * Test server: Miniflare (local SQLite) on port 8789 — no Cloudflare account needed.
+ * Dev server: Vite/wrangler on port 8788 — unaffected by test runs.
+ *
  * @see https://playwright.dev/docs/test-configuration
  */
 export default defineConfig({
   testDir: './e2e',
-
-  /* Run tests in files in parallel */
   fullyParallel: true,
-
-  /* Fail the build on CI if you accidentally left test.only in the source code */
   forbidOnly: !!process.env.CI,
-
-  /* Retry on CI only */
   retries: process.env.CI ? 2 : 0,
-
-  /* Opt out of parallel tests on CI */
   workers: process.env.CI ? 1 : undefined,
 
-  /* Reporter to use */
   reporter: [
     ['html', { open: 'never' }],
     ['list'],
-    ['json', { outputFile: 'e2e-results.json' }],
+    ['json', { outputFile: 'test-results/e2e-results.json' }],
   ],
 
-  /* Shared settings for all the projects below */
   use: {
-    /* Base URL to use in actions like `await page.goto('/')` */
-    baseURL: process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:5173',
-
-    /* Collect trace when retrying the failed test */
+    baseURL: BASE_URL,
     trace: 'on-first-retry',
-
-    /* Screenshot on failure */
     screenshot: 'only-on-failure',
-
-    /* Video recording */
     video: 'on-first-retry',
-
-    /* Action timeout */
     actionTimeout: 15000,
-
-    /* Navigation timeout */
     navigationTimeout: 30000,
   },
 
-  /* Configure projects for major browsers and viewports */
   projects: [
-    // Desktop - Chrome
+    // Auth setup — runs first, creates playwright/.auth/admin.json
     {
-      name: 'chromium-desktop',
+      name: 'setup',
+      testMatch: /auth\.setup\.ts/,
+      use: { ...devices['Desktop Chrome'] },
+    },
+
+    // Primary browser — Chromium only for speed
+    {
+      name: 'chromium',
       use: {
         ...devices['Desktop Chrome'],
-        viewport: { width: 1920, height: 1080 },
+        storageState: 'playwright/.auth/admin.json',
       },
+      dependencies: ['setup'],
     },
 
-    // Desktop - Firefox
-    {
-      name: 'firefox-desktop',
-      use: {
-        ...devices['Desktop Firefox'],
-        viewport: { width: 1920, height: 1080 },
-      },
-    },
-
-    // Desktop - Safari
-    {
-      name: 'webkit-desktop',
-      use: {
-        ...devices['Desktop Safari'],
-        viewport: { width: 1920, height: 1080 },
-      },
-    },
-
-    // Tablet - iPad
-    {
-      name: 'ipad',
-      use: {
-        ...devices['iPad (gen 7) landscape'],
-      },
-    },
-
-    // Mobile - iPhone
-    {
-      name: 'iphone',
-      use: {
-        ...devices['iPhone 14'],
-      },
-    },
-
-    // Mobile - Android
-    {
-      name: 'android',
-      use: {
-        ...devices['Pixel 7'],
-      },
-    },
+    // Enable additional browsers as needed:
+    // {
+    //   name: 'firefox',
+    //   use: { ...devices['Desktop Firefox'], storageState: 'playwright/.auth/admin.json' },
+    //   dependencies: ['setup'],
+    // },
+    // {
+    //   name: 'mobile-chrome',
+    //   use: { ...devices['Pixel 7'], storageState: 'playwright/.auth/admin.json' },
+    //   dependencies: ['setup'],
+    // },
   ],
 
-  /* Run local dev server before starting the tests */
-  webServer: {
-    command: 'npm run dev',
-    url: 'http://localhost:5173',
-    reuseExistingServer: !process.env.CI,
-    timeout: 120000,
-  },
+  // Server lifecycle is managed by globalSetup / globalTeardown.
+  // globalSetup builds, seeds the DB, and starts wrangler pages dev.
+  // globalTeardown kills the server process.
 
-  /* Global setup and teardown */
-  globalSetup: require.resolve('./e2e/global-setup.ts'),
-  globalTeardown: require.resolve('./e2e/global-teardown.ts'),
+  globalSetup: resolve(__dirname, './e2e/global-setup.ts'),
+  globalTeardown: resolve(__dirname, './e2e/global-teardown.ts'),
+
+  outputDir: 'test-results/',
 });

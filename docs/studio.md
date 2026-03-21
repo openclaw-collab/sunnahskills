@@ -25,7 +25,7 @@ To create a new shared session, open Studio in local mode and click **"Create sh
 
 ## Access control
 
-If a session is password-protected, the `PasswordGate` component is shown before the Studio panel opens. The entered password is bcrypt-compared against `studio_sessions.password_hash` server-side. On success, an HttpOnly cookie `ss_studio_<sessionId>` is set for the session.
+If a session is password-protected, the `PasswordGate` component is shown before the Studio panel opens. The entered password is bcrypt-compared against `studio_sessions.password_hash` server-side. On success, an HttpOnly cookie `studio_auth_<sessionId>=1` is set for the session.
 
 ## Studio UI components (`client/src/studio/`)
 
@@ -55,12 +55,10 @@ Wrap any text with `<StudioText>`:
 ```tsx
 import { StudioText } from "@/studio/StudioText";
 
-<StudioText componentId="hero" fieldKey="headline">
-  Character Before Competition
-</StudioText>
+<StudioText k="home.hero.titleA" defaultText="Built Through" />
 ```
 
-The `componentId` + `fieldKey` pair becomes the stable edit target.
+The `k` value becomes the stable edit target. In practice, pages use structured keys such as `home.hero.titleA` or `programs.eyebrow`.
 
 ### Editable blocks (commenting + drag)
 
@@ -111,7 +109,7 @@ Custom mode: choose background, subtheme1, and highlight with color pickers. Cha
 
 In session mode (`?studio=UUID`):
 
-1. **Polling:** `StudioProvider` polls `GET /api/studio/sessions/:id` every 5 seconds and merges remote state into local optimistic state.
+1. **Polling:** `StudioProvider` polls `GET /api/studio/sessions/:id` every 10 seconds and merges remote state into local optimistic state.
 2. **Sending:** Every change is debounced 800ms then sent as `PATCH /api/studio/sessions/:id` with the updated JSON columns.
 
 Conflict model: **last-write-wins** per field. This is intentional — Studio is a review tool, not a collaborative editor.
@@ -163,8 +161,9 @@ The developer reviews this JSON and applies desired changes to the source code.
 
 | Endpoint | Method | Purpose |
 |---|---|---|
-| `/api/studio/sessions` | `POST` | Create new shared session |
+| `/api/studio/sessions` | `POST` | Create new shared session (`{ id, shareUrl, name, protected }`) |
 | `/api/studio/sessions/:id` | `GET` | Load session (verifies password cookie if protected) |
+| `/api/studio/sessions/:id` | `POST` | Authenticate password-protected session |
 | `/api/studio/sessions/:id` | `PATCH` | Update session state (edits, comments, positions, theme) |
 | `/api/studio/uploads` | `POST` | Upload image (R2 if enabled, else base64 data URL in D1) |
 

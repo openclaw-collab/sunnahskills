@@ -53,6 +53,8 @@ QueryClientProvider (TanStack Query)
               └── StudioPanel  ← Studio overlay UI
 ```
 
+`StudioProvider` boots in either local mode (`?studio=1`) or shared session mode (`?studio=<UUID>`), applies the active theme, and polls shared sessions every 10 seconds.
+
 ### Design system (`components/brand/`)
 
 All brand UI is extracted into reusable primitives:
@@ -67,6 +69,7 @@ All brand UI is extracted into reusable primitives:
 | `TelemetryCard` | Data/metric display card |
 | `SectionHeader` | Page/section title with eyebrow label |
 | `StatusDot` | Colored enrollment status indicator |
+| `ClayButton`, `OutlineButton`, `MagneticButton` | Brand CTA variants with different emphasis levels |
 
 ### Brand palette (Tailwind)
 
@@ -122,13 +125,15 @@ User fills wizard (client)
         ├── POST /api/payments/create-intent  (one-time programs)
         │     ├── Calculates total (price + reg fee - sibling discount - promo code)
         │     ├── Creates Stripe PaymentIntent server-side
-        │     └── Returns { clientSecret }
+        │     └── Returns { clientSecret, paymentIntentId }
         │
         ├── POST /api/payments/create-subscription  (recurring: BJJ)
         │     ├── Creates/retrieves Stripe Customer by email
         │     ├── Applies sibling coupon if siblingCount > 0
         │     ├── Creates Stripe Subscription (payment_behavior: default_incomplete)
         │     └── Returns { clientSecret } from latest_invoice.payment_intent
+        │
+        └── If subscriptions are not configured, returns { error: "subscriptions_not_configured" } and the client falls back to a one-time intent
         │
         └── Stripe Elements confirmPayment() (client)
               │
@@ -145,7 +150,7 @@ User fills wizard (client)
 Admin visits /admin
   └── POST /api/auth/login (email + password)
         ├── bcrypt.compare against admin_users.password_hash
-        ├── Inserts admin_sessions row (token = 32-byte hex, 24h TTL)
+        ├── Inserts admin_sessions row (token = UUID, 7-day TTL)
         └── Sets HttpOnly cookie "admin_session"
 
 All /api/admin/* routes
@@ -165,7 +170,7 @@ Stakeholder receives URL: https://site.com/?studio=<UUID>
         │     ├── Password-protected → shows PasswordGate (POST cookie)
         │     └── Loads session: edits, comments, uploads, positions, theme
         │
-        ├── Polls /api/studio/sessions/:id every 5s for multi-user sync
+        ├── Polls /api/studio/sessions/:id every 10s for multi-user sync
         │
         └── On any change → debounced PATCH /api/studio/sessions/:id
               └── Persists edits_json, comments_json, positions_json, custom_theme_json to D1

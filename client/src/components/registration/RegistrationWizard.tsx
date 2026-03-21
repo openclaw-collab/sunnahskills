@@ -1,4 +1,5 @@
-import React, { type ReactNode, useMemo, useRef, useEffect, useState } from "react";
+import React, { type ReactNode, useMemo } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import type { ProgramConfig } from "@/lib/programConfig";
 import { PremiumCard } from "@/components/brand/PremiumCard";
 import { SectionHeader } from "@/components/brand/SectionHeader";
@@ -6,6 +7,7 @@ import { TelemetryCard } from "@/components/brand/TelemetryCard";
 import { ClayButton } from "@/components/brand/ClayButton";
 import { OutlineButton } from "@/components/brand/OutlineButton";
 import { ProgressIndicator, type ProgressStep } from "@/components/registration/ProgressIndicator";
+import { MotionPage } from "@/components/motion/PageMotion";
 
 export type WizardStepRenderArgs = {
   stepId: string;
@@ -22,24 +24,31 @@ export type RegistrationWizardProps = {
   renderStep: (args: WizardStepRenderArgs) => ReactNode;
 };
 
-function useStepTransition(stepIndex: number) {
-  const [visible, setVisible] = useState(true);
-  const [displayedIndex, setDisplayedIndex] = useState(stepIndex);
-  const prevIndex = useRef(stepIndex);
-
-  useEffect(() => {
-    if (stepIndex === prevIndex.current) return;
-    setVisible(false);
-    const timeout = setTimeout(() => {
-      setDisplayedIndex(stepIndex);
-      prevIndex.current = stepIndex;
-      setVisible(true);
-    }, 180);
-    return () => clearTimeout(timeout);
-  }, [stepIndex]);
-
-  return { visible, displayedIndex };
-}
+const stepVariants = {
+  initial: {
+    opacity: 0,
+    y: 14,
+    filter: "blur(4px)",
+  },
+  animate: {
+    opacity: 1,
+    y: 0,
+    filter: "blur(0px)",
+    transition: {
+      duration: 0.24,
+      ease: [0.16, 1, 0.3, 1] as const,
+    },
+  },
+  exit: {
+    opacity: 0,
+    y: -10,
+    filter: "blur(3px)",
+    transition: {
+      duration: 0.18,
+      ease: [0.55, 0, 1, 0.45] as const,
+    },
+  },
+};
 
 export function RegistrationWizard({
   program,
@@ -53,15 +62,13 @@ export function RegistrationWizard({
 }: RegistrationWizardProps) {
   const step = steps[currentStepIndex];
   const isLast = currentStepIndex === steps.length - 1;
-  const { visible, displayedIndex } = useStepTransition(currentStepIndex);
-  const displayedStep = steps[displayedIndex];
 
   const footerCta = useMemo(() => {
     return isLast ? "Complete Payment" : "Continue";
   }, [isLast]);
 
   return (
-    <div className="bg-cream min-h-screen pb-24">
+    <MotionPage className="bg-cream min-h-screen pb-24">
       <div className="noise-overlay" />
 
       <main className="max-w-6xl mx-auto px-6 pt-28">
@@ -76,19 +83,21 @@ export function RegistrationWizard({
               <ProgressIndicator steps={steps} currentStepIndex={currentStepIndex} className="mb-6" />
 
               <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-moss">
-                Step {displayedIndex + 1} / {steps.length}: {displayedStep?.label}
+                Step {currentStepIndex + 1} / {steps.length}: {step?.label}
               </div>
 
-              <div
-                className="mt-6"
-                style={{
-                  opacity: visible ? 1 : 0,
-                  transform: visible ? "translateY(0)" : "translateY(6px)",
-                  transition: "opacity 180ms ease, transform 180ms ease",
-                }}
-              >
-                {displayedStep ? renderStep({ stepId: displayedStep.id }) : null}
-              </div>
+              <AnimatePresence mode="wait" initial={false}>
+                <motion.div
+                  key={step?.id ?? currentStepIndex}
+                  className="mt-6"
+                  variants={stepVariants}
+                  initial="initial"
+                  animate="animate"
+                  exit="exit"
+                >
+                  {step ? renderStep({ stepId: step.id }) : null}
+                </motion.div>
+              </AnimatePresence>
 
               <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-between">
                 <OutlineButton
@@ -152,7 +161,6 @@ export function RegistrationWizard({
           </div>
         </div>
       </main>
-    </div>
+    </MotionPage>
   );
 }
-

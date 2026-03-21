@@ -4,16 +4,19 @@
 # data
 
 ## Purpose
-GrappleMap 3D animation data files. JSON sequences for the technique viewer.
+GrappleMap 3D animation data files, catalogs, and manifests used by the technique viewer and admin sequence tools.
 
 ## Key Files
 
 | File | Description |
 |------|-------------|
-| `sequence.json` | Current sequence: "Uchi-mata → Armbar → Tap" (37 frames) |
-| `scenes.json` | Unused catalog metadata (potential future use) |
+| `sequence.json` | Legacy single-sequence fallback used by the default viewer path |
+| `scenes.json` | Technique card catalog for the `/techniques` page |
+| `library/admin/positions.json` | Admin positions catalog |
+| `library/sequences/manifest.json` | Library sequence index |
+| `library/sequences/*.json` | Individual technique sequences |
 
-## sequence.json Format
+## Legacy `sequence.json` Format
 
 ```typescript
 {
@@ -41,9 +44,8 @@ GrappleMap 3D animation data files. JSON sequences for the technique viewer.
 - Keep files under 1MB for performance
 - Multiple sequences require manifest/catalog
 
-### Future Enhancement
-- Support multiple `.json` files
-- Create manifest indexing all sequences
-- Add metadata (tags, difficulty, description)
+### Current Enhancement
+- Keep `scenes.json` and `library/sequences/manifest.json` in sync with any new GrappleMap export
+- Add metadata (tags, difficulty, description) to new sequences
 
 <!-- MANUAL: -->

@@ -13,68 +13,72 @@ Each program has its own registration route that wraps a shared 5-step wizard (`
 | `outdoor` | `/programs/outdoor/register` | Per-workshop one-time |
 | `bullyproofing` | `/programs/bullyproofing/register` | Workshop / package one-time |
 
+The `/register` route is a lightweight program chooser that links into these four flows.
+
 ## Wizard steps
 
 ```
 Step 1: Guardian Info
 Step 2: Student Info
-Step 3: Program Details  ← program-specific fields
-Step 4: Waivers & Consent
-Step 5: Payment (Stripe Elements)
+Step 3: Program Details  ← program-specific fields + sibling discount selector
+Step 4: Waivers
+Step 5: Payment
 ```
 
 ### Step 1 — Guardian Info (`StepGuardianInfo.tsx`)
 
-Fields: full name · email · phone · emergency contact name · emergency contact phone · relationship (select).
+Fields: full name · email · phone · relationship (select) · emergency contact name · emergency contact phone · optional notes.
 
-Validation: all required, email format, US phone format.
+Validation: full name, email, phone, and relationship are required.
 
 ### Step 2 — Student Info (`StepStudentInfo.tsx`)
 
 Fields: full name · preferred name · date of birth (auto-computes age) · gender (radio) · skill level (radio) · medical notes / allergies (textarea).
 
-Validation: name required, DOB required, gender required.
+Validation: full name and date of birth are required. The age field is derived from the DOB.
 
 ### Step 3 — Program Details (`StepProgramDetails.tsx`)
 
 Branched by `program.slug`:
 
 **BJJ:**
-- Gender group (Boys / Girls) — radio
-- Age group (Kids 5–9 / Juniors 10–14 / Teens 15–17) — radio
+- Class group (Boys' class / Girls' class) — radio
+- Age group (6–10 / 11–14 / 15–17) — radio
 - Want a trial class first? (Yes / No) — radio
+- Optional notes textarea
 - Sibling enrollment (0 / 1 / 2+) — shared radio
 
 **Archery:**
-- Dominant hand (Right / Left / Not sure) — radio
-- Prior archery experience (radio)
-- Session selection (SelectField from DB sessions)
+- Dominant hand (Right / Left) — radio
+- Prior archery experience (Never / Some experience / Practiced before) — radio
+- Preferred session date (SelectField from static schedule data)
+- Optional notes textarea
 - Sibling enrollment
 
 **Outdoor Workshops:**
 - Workshop date selection (SelectField)
-- Equipment acknowledgment (checkbox)
 - Gear readiness checklist (CheckboxGroup)
+- Optional notes textarea
 - Sibling enrollment
 
 **Bullyproofing:**
-- Age group (5–9 / 10–14 / 15–17) — radio
-- Primary concern (radio: Confidence / Bullying / Self-defence / General fitness)
-- Additional parent notes (one textarea per step)
+- Primary concern (Being bullied / Exhibiting bullying behaviour / General confidence building) — radio
+- Age group (6–9 / 10–13 / 14+) — radio
+- Optional notes textarea
 - Sibling enrollment
 
 ### Step 4 — Waivers (`StepWaivers.tsx`)
 
 Checkboxes: liability waiver · photo/media consent · medical treatment consent · terms agreement.
-Typed legal signature field + date auto-fill.
+Typed legal signature field + date field.
 
-All four checkboxes are required to proceed.
+The UI collects all four checkboxes. Validation requires the liability waiver, medical consent, terms agreement, typed signature, and a valid date. The server re-checks the same fields before writing records.
 
 ### Step 5 — Payment (`StepPayment.tsx`)
 
-Shows `OrderSummaryCard` (pricing breakdown + promo code input), then Stripe `PaymentElement`.
+Shows `OrderSummaryCard` (pricing breakdown + discount code input), then Stripe `PaymentElement`.
 
-On submit: calls `create-intent` or `create-subscription` depending on program type, then `stripe.confirmPayment()`.
+On submit: calls `POST /api/register`, then `create-subscription` for BJJ or `create-intent` for one-time programs, and finally `stripe.confirmPayment()`.
 
 ## Registration draft persistence
 
@@ -93,13 +97,13 @@ type RegistrationDraft = {
     programSpecific: ProgramSpecificData;  // BjjSpecific | ArcherySpecific | ...
   };
   waivers: WaiverInfo;
-  promoCode?: string;
+  payment: { discountCode: string };
 };
 ```
 
 ## Step validation
 
-`useStepValidation(stepId, draft)` returns `{ errors, touch, isValid, validateAndTouch }`. Each step calls `validateAndTouch()` on "Next" — if invalid, all fields are marked touched and errors display with red borders + helper text.
+`useStepValidation(stepId, draft)` returns `{ errors, touch, isValid, validateAndTouch }`. Each step calls `validateAndTouch()` on "Next" — if invalid, all fields are marked touched and errors display with red borders + helper text. Validation currently covers the guardian, student, program detail, and waiver steps.
 
 ## Capacity / waitlist
 
@@ -108,6 +112,7 @@ type RegistrationDraft = {
 - If `enrolled_count < capacity` → normal registration, status = `submitted`
 - If full → waitlist registration, status = `waitlisted`, returns `{ waitlisted: true, position }`
 - Frontend redirects to `/registration/waitlist?pos=N&program=...`
+- Waitlisted submissions still persist guardians, students, and waivers, and they trigger a dedicated waitlist confirmation email.
 
 ## Payment: one-time (`create-intent.ts`)
 
@@ -117,7 +122,9 @@ type RegistrationDraft = {
 4. Validates promo code against `discounts` table if provided
 5. Creates Stripe `PaymentIntent` server-side
 6. Inserts `payments` row with status `pending`
-7. Returns `{ clientSecret }`
+7. Returns `{ clientSecret, paymentIntentId }`
+
+Server-side validation now also rejects malformed `registrationId`, invalid sibling counts, and non-positive totals.
 
 ## Payment: subscription (`create-subscription.ts`)
 
@@ -126,18 +133,22 @@ For BJJ (recurring):
 1. Creates or retrieves Stripe `Customer` by guardian email
 2. Looks up `stripe_price_id` from `program_prices.metadata` JSON
 3. If `siblingCount > 0`: creates/retrieves a Stripe Coupon for 10% off (`SIBLING_10PCT`)
-4. Creates Stripe `Subscription` with `payment_behavior: "default_incomplete"`, expands `latest_invoice.payment_intent`
-5. Inserts `payments` row with `payment_type: "subscription"` and `stripe_subscription_id`
-6. Returns `{ clientSecret }` from the subscription's payment intent
+4. Applies any valid promo code from the `discounts` table by creating a one-time Stripe coupon
+5. Creates Stripe `Subscription` with `payment_behavior: "default_incomplete"`, expands `latest_invoice.payment_intent`
+6. Inserts `payments` row with `payment_type: "subscription"` and `stripe_subscription_id`
+7. Returns `{ clientSecret }` from the subscription's payment intent
 
-If `STRIPE_SECRET_KEY` is not set, returns `{ subscriptions_not_configured: true }` and falls back to a one-time payment intent.
+If `STRIPE_SECRET_KEY` is not set, or no `stripe_price_id` is configured in `program_prices.metadata`, the subscription endpoint returns `{ error: "subscriptions_not_configured" }` and the client falls back to a one-time payment intent.
 
 ## Webhook (`webhook.ts`)
 
 Handles `payment_intent.succeeded` and `invoice.paid`:
 - Updates `payments.status` to `paid`
 - Updates `registrations.status` to `active`
+- Increments `program_sessions.enrolled_count` when a registration is tied to a session
 - Sends confirmation email via MailChannels
+- Ignores duplicate `payment_intent.succeeded` deliveries once a payment is already marked `paid`
+- Marks subscription invoices `failed` on `invoice.payment_failed`
 
 ## Email notifications
 

@@ -15,7 +15,7 @@ Brand-specific design system components. Custom UI primitives implementing the S
 | `MagneticButton.tsx` | Magnetic hover effect CTA |
 | `DarkCard.tsx` | Dark charcoal surface card |
 | `PremiumCard.tsx` | Cream/light card with shadow |
-| `TelemetryCard.tsx` | Data/metric display card |
+| `TelemetryCard.tsx` | Card with `title`, `label`, optional icon, and children |
 | `SectionHeader.tsx` | Page/section title with eyebrow label |
 | `StatusDot.tsx` | Colored enrollment status indicator |
 

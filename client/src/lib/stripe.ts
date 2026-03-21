@@ -1,7 +1,9 @@
 import { loadStripe } from "@stripe/stripe-js";
 import type { Appearance } from "@stripe/stripe-js";
 
-export const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY ?? "");
+const publishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY?.trim();
+
+export const stripePromise = publishableKey ? loadStripe(publishableKey) : Promise.resolve(null);
 
 export const stripeAppearance: Appearance = {
   theme: "night",
@@ -37,4 +39,3 @@ export const stripeAppearance: Appearance = {
     },
   },
 };
-

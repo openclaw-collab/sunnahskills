@@ -12,7 +12,7 @@
 |------|-------------|
 | `TechniqueViewer.tsx` | Wrapper: Suspense + MannequinViewer |
 | `MannequinScene.tsx` | Main 3D scene with Canvas, OrbitControls, HumanPlayer |
-| `grapplemapScene.tsx` | Alternative skeleton view (currently unused) |
+| `grapplemapScene.tsx` | Legacy skeleton view / default fallback scene |
 
 ## Component Hierarchy
 
@@ -31,19 +31,44 @@ TechniqueViewer (page/section wrapper)
 
 ## Data Format
 
-**Source**: `public/data/sequence.json`
+**Primary sources**: `public/data/library/sequences/manifest.json` and `public/data/library/sequences/*.json`
+**Legacy fallback**: `public/data/sequence.json`
 
+Primary library sequence format:
+```typescript
+{
+  meta: {
+    id: string;
+    name: string;
+    slug: string;
+    positionCategory: string;
+    startingPosition: string;
+    endingPosition: string;
+    difficulty: "beginner" | "intermediate" | "advanced";
+    description: string[];
+    sources?: string[];
+    totalFrames: number;
+    positions: number;
+    transitions: number;
+  },
+  markers: [{ name, frame, type }], // type: "position" | "transition"
+  frames: number[][][][],
+  verified: boolean
+}
+```
+
+Legacy fallback format:
 ```typescript
 {
   meta: { name, extractedAt, totalFrames, positions, transitions },
-  markers: [{ name, frame, type }], // type: "position" | "transition"
-  frames: number[][][][] // frames[frame][player][joint][x,y,z]
+  markers: [{ name, frame, type }],
+  frames: number[][][][]
 }
 ```
 
 - 23 joints per player
-- 37 frames in current sequence
-- Joints: toes, heels, ankles, knees, hips, shoulders, elbows, wrists, hands, fingers, core, neck, head
+- Frames are `frames[frame][player][joint][x,y,z]`
+- Player 0 = attacker, player 1 = defender
 
 ## Current Sequence
 
@@ -53,7 +78,7 @@ TechniqueViewer (page/section wrapper)
 
 ### Working In This Directory
 - Uses Three.js + @react-three/fiber
-- Fetches sequence.json at runtime
+- Fetches `sequencePath` at runtime (defaults to `/data/sequence.json`)
 - Auto-plays animation loop
 - Supports manual orbit controls (drag to rotate)
 
@@ -65,7 +90,7 @@ TechniqueViewer (page/section wrapper)
 
 ### Future Enhancements (see docs/technique-library.md)
 - Playback controls (play/pause, scrubber)
-- Multiple sequence support
+- Multiple sequence support via the library manifest
 - Scene selection grid
 - Fullscreen mode
 

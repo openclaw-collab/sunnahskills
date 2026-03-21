@@ -14,17 +14,19 @@ Admin-only API routes for dashboard operations. All routes require valid admin s
 | `registrations/[id].ts` | /api/admin/registrations/:id | Get/update single registration |
 | `payments.ts` | /api/admin/payments | Payment list and summary |
 | `programs.ts` | /api/admin/programs | Program CRUD |
-| `sessions.ts` | /api/admin/sessions | Session scheduling |
+| `sessions.ts` | /api/admin/sessions | Update session visibility/status |
 | `discounts.ts` | /api/admin/discounts | Promo code CRUD |
 | `contacts.ts` | /api/admin/contacts | Contact submissions |
 | `export.ts` | /api/admin/export | CSV export |
+| `positions.ts` | /api/admin/positions | Static GrappleMap positions catalog |
+| `sequences.ts` | /api/admin/sequences | Sequence browser / builder stub |
 
 ## Authentication
 
-All routes use `adminAuth()` utility:
+All routes use `getAdminFromRequest(env, request)`:
 ```typescript
-const auth = await adminAuth(request, env);
-if (!auth.valid) return auth.response;
+const admin = await getAdminFromRequest(env, request);
+if (!admin) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
 ```
 
 ## Common Operations
@@ -42,6 +44,7 @@ if (!auth.valid) return auth.response;
 - Full CRUD operations
 - Capacity management
 - Pricing updates
+- Sequence builder lives at `/admin/sequences` and uses the static positions catalog
 
 ## For AI Agents
 

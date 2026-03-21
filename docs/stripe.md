@@ -15,6 +15,8 @@ npx wrangler pages secret put STRIPE_SECRET_KEY
 npx wrangler pages secret put STRIPE_WEBHOOK_SECRET
 ```
 
+For local webhook testing, the `STRIPE_WEBHOOK_SECRET` should come from `stripe listen`, not from a long-lived dashboard secret.
+
 ## Stripe dashboard setup
 
 1. Create a Stripe account at [dashboard.stripe.com](https://dashboard.stripe.com)
@@ -45,13 +47,19 @@ npx wrangler d1 execute sunnahskills-admin-v2 --command \
   "UPDATE program_prices SET metadata = '{\"stripe_price_id\": \"price_ABC123\"}' WHERE program_id = 'bjj' AND age_group = 'kids';"
 ```
 
-If `stripe_price_id` is absent from the metadata, the subscription endpoint gracefully falls back to a one-time PaymentIntent (`subscriptions_not_configured` response code).
+If `stripe_price_id` is absent from the metadata, or `STRIPE_SECRET_KEY` is missing, the subscription endpoint returns `{ error: "subscriptions_not_configured" }` and the client falls back to a one-time PaymentIntent.
+
+The admin price editor validates `stripe_price_id` values before saving them, so malformed IDs are rejected early instead of failing at checkout.
 
 ## Sibling discount
 
 A Stripe Coupon `SIBLING_10PCT` (10% off, `forever` duration) is auto-created on first use by `create-subscription.ts`. It is retrieved by ID on subsequent uses. No manual Stripe dashboard action needed.
 
 For one-time payments, the 10% sibling discount is calculated in `create-intent.ts` before creating the PaymentIntent (no Stripe coupon involved).
+
+Valid promo codes are now honored in both payment flows:
+- One-time checkout applies the discount in D1 before the PaymentIntent is created.
+- Subscriptions create a one-time Stripe coupon from the matching D1 discount row and attach it to the subscription.
 
 ## Webhook setup
 
@@ -76,6 +84,8 @@ For local webhook testing:
 ```bash
 stripe listen --forward-to http://localhost:8788/api/payments/webhook
 ```
+
+The worker is authoritative for webhook handling. Duplicate `payment_intent.succeeded` events are ignored once a payment is already marked `paid`, and `invoice.payment_failed` now marks subscription payments as failed.
 
 ## Appearance theme
 

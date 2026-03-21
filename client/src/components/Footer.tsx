@@ -3,6 +3,8 @@ import { ClayButton } from "./brand/ClayButton";
 import { StatusDot } from "./brand/StatusDot";
 
 const Footer = () => {
+  const year = new Date().getFullYear();
+
   return (
     <footer className="bg-charcoal text-cream rounded-t-[4rem] pt-24 pb-12 px-6 mt-24">
       <div className="max-w-7xl mx-auto mb-24 text-center">
@@ -10,20 +12,20 @@ const Footer = () => {
           Begin the Training.
         </h2>
         <div className="flex flex-col sm:flex-row justify-center gap-4">
-          <Link href="/programs">
-            <ClayButton className="px-8 py-4 text-[11px] uppercase tracking-[0.18em]">
-              Explore Programs
-            </ClayButton>
+          <ClayButton asChild className="px-8 py-4 text-[11px] uppercase tracking-[0.18em]">
+            <Link href="/programs">Explore Programs</Link>
+          </ClayButton>
+          <Link
+            href="/contact"
+            className="px-8 py-4 rounded-full border border-cream/20 text-cream text-[11px] uppercase tracking-[0.18em] hover:bg-cream/10 transition-colors"
+          >
+            Contact Us
           </Link>
-          <Link href="/contact">
-            <button className="px-8 py-4 rounded-full border border-cream/20 text-cream text-[11px] uppercase tracking-[0.18em] hover:bg-cream/10 transition-colors">
-              Contact Us
-            </button>
-          </Link>
-          <Link href="/programs">
-            <button className="px-8 py-4 rounded-full border border-transparent text-cream/70 hover:text-cream text-[11px] uppercase tracking-[0.18em] transition-colors">
-              About Us
-            </button>
+          <Link
+            href="/about"
+            className="px-8 py-4 rounded-full border border-transparent text-cream/70 hover:text-cream text-[11px] uppercase tracking-[0.18em] transition-colors"
+          >
+            About Us
           </Link>
         </div>
       </div>
@@ -101,16 +103,11 @@ const Footer = () => {
 
       <div className="max-w-7xl mx-auto border-t border-cream/10 pt-8 flex flex-col md:flex-row justify-between items-center gap-4 text-[10px] font-mono-label text-cream/30 uppercase tracking-widest">
         <p>
-          &copy; 2024 Sunnah Skills. All rights reserved. Building character through traditional skills.
+          &copy; {year} Sunnah Skills. All rights reserved. Building character through traditional skills.
         </p>
-        <div className="flex gap-4">
-          <a href="#" className="hover:text-cream/80 transition-colors">
-            Terms
-          </a>
-          <a href="#" className="hover:text-cream/80 transition-colors">
-            Privacy
-          </a>
-        </div>
+        <p className="text-center md:text-right">
+          Registration terms, safeguarding details, and privacy information are shared during enrollment and on request.
+        </p>
       </div>
     </footer>
   );

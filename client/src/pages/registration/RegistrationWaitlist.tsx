@@ -1,8 +1,10 @@
 import React from "react";
 import { Link, useSearch } from "wouter";
 import { ClayButton } from "@/components/brand/ClayButton";
+import { OutlineButton } from "@/components/brand/OutlineButton";
 import { DarkCard } from "@/components/brand/DarkCard";
 import { PremiumCard } from "@/components/brand/PremiumCard";
+import { MotionDiv, MotionPage } from "@/components/motion/PageMotion";
 
 export default function RegistrationWaitlist() {
   const search = useSearch();
@@ -11,12 +13,12 @@ export default function RegistrationWaitlist() {
   const programName = params.get("program") ? decodeURIComponent(params.get("program")!) : "this program";
 
   return (
-    <div className="bg-cream min-h-screen pb-24">
+    <MotionPage className="bg-cream min-h-screen pb-24">
       <div className="noise-overlay" />
       <main className="max-w-2xl mx-auto px-6 pt-28">
 
         {/* Position number */}
-        <div className="flex justify-center mb-8">
+        <MotionDiv delay={0.02} className="flex justify-center mb-8">
           <div className="flex flex-col items-center">
             <div className="font-mono-label text-[10px] uppercase tracking-[0.25em] text-charcoal/40 mb-2">
               Waitlist position
@@ -25,9 +27,9 @@ export default function RegistrationWaitlist() {
               <span className="font-heading text-4xl text-charcoal"># {position}</span>
             </div>
           </div>
-        </div>
+        </MotionDiv>
 
-        <div className="text-center mb-10">
+        <MotionDiv delay={0.06} className="text-center mb-10">
           <div className="font-mono-label text-[10px] uppercase tracking-[0.25em] text-clay mb-3">
             Session Full
           </div>
@@ -37,9 +39,10 @@ export default function RegistrationWaitlist() {
           <p className="font-body text-sm text-charcoal/60 max-w-sm mx-auto">
             You're position {position} on the waitlist for {programName}. We'll email you as soon as a spot opens up.
           </p>
-        </div>
+        </MotionDiv>
 
-        <DarkCard className="rounded-3xl mb-6">
+        <MotionDiv delay={0.1}>
+          <DarkCard className="rounded-3xl mb-6">
           <div className="font-mono-label text-[10px] uppercase tracking-[0.25em] text-moss mb-5">
             What to expect
           </div>
@@ -72,29 +75,25 @@ export default function RegistrationWaitlist() {
               </div>
             </div>
           </div>
-        </DarkCard>
+          </DarkCard>
+        </MotionDiv>
 
-        <PremiumCard className="bg-white border border-charcoal/10">
+        <MotionDiv delay={0.14}>
+          <PremiumCard className="bg-white border border-charcoal/10">
           <p className="font-body text-sm text-charcoal/60 mb-5">
             Have questions or want to explore other programs?
           </p>
           <div className="flex flex-col sm:flex-row gap-3">
-            <Link href="/programs">
-              <ClayButton className="px-7 py-3.5 text-[11px] uppercase tracking-[0.18em]">
-                View All Programs
-              </ClayButton>
-            </Link>
-            <Link href="/contact">
-              <button
-                type="button"
-                className="px-7 py-3.5 rounded-full border border-charcoal/20 text-charcoal/70 text-[11px] font-mono-label uppercase tracking-[0.18em] hover:bg-charcoal hover:text-cream transition-colors"
-              >
-                Contact Us
-              </button>
-            </Link>
+            <ClayButton asChild className="px-7 py-3.5 text-[11px] uppercase tracking-[0.18em]">
+              <Link href="/programs">View All Programs</Link>
+            </ClayButton>
+            <OutlineButton asChild className="px-7 py-3.5 text-[11px] uppercase tracking-[0.18em]">
+              <Link href="/contact">Contact Us</Link>
+            </OutlineButton>
           </div>
-        </PremiumCard>
+          </PremiumCard>
+        </MotionDiv>
       </main>
-    </div>
+    </MotionPage>
   );
 }

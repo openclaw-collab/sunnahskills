@@ -1,11 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { ChevronDown, Menu, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ClayButton } from "./brand/ClayButton";
 
 const navSections = [
-  // Use real SPA paths so navigation works from any route.
   { label: "Techniques", href: "/techniques" },
   { label: "Schedule", href: "/schedule" },
   { label: "About", href: "/about" },
@@ -24,7 +23,9 @@ const REGISTER_HREF = "/register";
 const Navigation = () => {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [programsOpen, setProgramsOpen] = useState(false);
   const [location] = useLocation();
+  const closeProgramsTimer = useRef<number | null>(null);
 
   useEffect(() => {
     const onScroll = () => {
@@ -37,7 +38,34 @@ const Navigation = () => {
 
   useEffect(() => {
     setMobileOpen(false);
+    setProgramsOpen(false);
   }, [location]);
+
+  useEffect(() => {
+    return () => {
+      if (closeProgramsTimer.current) {
+        window.clearTimeout(closeProgramsTimer.current);
+      }
+    };
+  }, []);
+
+  const openPrograms = () => {
+    if (closeProgramsTimer.current) {
+      window.clearTimeout(closeProgramsTimer.current);
+      closeProgramsTimer.current = null;
+    }
+    setProgramsOpen(true);
+  };
+
+  const closePrograms = () => {
+    if (closeProgramsTimer.current) {
+      window.clearTimeout(closeProgramsTimer.current);
+    }
+    closeProgramsTimer.current = window.setTimeout(() => {
+      setProgramsOpen(false);
+      closeProgramsTimer.current = null;
+    }, 120);
+  };
 
   const isHome = location === "/";
   const useLightSurface = scrolled || !isHome;
@@ -52,87 +80,91 @@ const Navigation = () => {
 
   return (
     <nav className={navClasses} data-studio-component="nav" data-studio-label="Navigation">
-      <Link href="/">
-        <button className="flex items-center gap-2 focus-visible:outline-none">
-          <span className="font-mono-label text-xs uppercase tracking-[0.18em]">
-            Sunnah Skills
-          </span>
-        </button>
+      <Link href="/" className="flex items-center gap-2 focus-visible:outline-none">
+        <span className="font-mono-label text-xs uppercase tracking-[0.18em]">Sunnah Skills</span>
       </Link>
 
       <div className="hidden md:flex items-center gap-8 font-sans text-[11px] tracking-[0.18em] uppercase">
-        <div className="relative group">
+        <div
+          className="relative pb-4 -mb-4"
+          onMouseEnter={openPrograms}
+          onMouseLeave={closePrograms}
+          onFocus={openPrograms}
+          onBlur={(event) => {
+            if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+              closePrograms();
+            }
+          }}
+        >
           <div className="flex items-center gap-1">
             <Link href="/programs">
               <a className="hover:opacity-70 transition-opacity">Programs</a>
             </Link>
-            <ChevronDown className="h-3.5 w-3.5 opacity-70 transition-transform group-hover:rotate-180 group-focus-within:rotate-180" />
+            <ChevronDown
+              className={cn(
+                "h-3.5 w-3.5 opacity-70 transition-transform duration-200",
+                programsOpen ? "rotate-180" : "rotate-0",
+              )}
+            />
           </div>
 
           <div
-            role="menu"
             className={cn(
-              "pointer-events-none opacity-0 translate-y-1 group-hover:pointer-events-auto group-hover:opacity-100 group-hover:translate-y-0 group-focus-within:pointer-events-auto group-focus-within:opacity-100 group-focus-within:translate-y-0 transition-all duration-150 absolute left-0 mt-3 w-[320px] rounded-3xl border shadow-2xl overflow-hidden",
-              useLightSurface
-                ? "bg-white text-charcoal border-charcoal/10"
-                : "bg-charcoal/95 text-cream border-cream/10",
+              "absolute left-0 top-full w-[320px] pt-2 transition-all duration-200 ease-out",
+              programsOpen ? "pointer-events-auto opacity-100 translate-y-0" : "pointer-events-none opacity-0 -translate-y-1",
             )}
           >
             <div
               className={cn(
-                "px-5 py-4 border-b font-mono-label text-[10px] uppercase tracking-[0.18em]",
-                useLightSurface ? "border-charcoal/10 text-charcoal/60" : "border-cream/10 text-cream/70",
-              )}
+                "overflow-hidden rounded-3xl border shadow-2xl",
+              useLightSurface
+                ? "bg-white text-charcoal border-charcoal/10"
+                : "bg-charcoal/95 text-cream border-cream/10",
+            )}
             >
-              Browse programs
-            </div>
-            <div className="p-2">
-              <Link href="/programs">
-                <a
-                  role="menuitem"
-                  className={cn(
-                    "block rounded-2xl px-4 py-3 text-[11px] tracking-[0.18em] uppercase transition-colors",
-                    useLightSurface ? "hover:bg-cream" : "hover:bg-cream/10",
-                  )}
-                >
-                  All Programs
-                </a>
-              </Link>
-              {programLinks.map((item) => (
-                <Link href={item.href} key={item.href}>
-                  <a
-                    role="menuitem"
-                    className={cn(
-                      "block rounded-2xl px-4 py-3 text-[11px] tracking-[0.18em] uppercase transition-colors",
-                      useLightSurface ? "hover:bg-cream" : "hover:bg-cream/10",
-                    )}
-                  >
-                    {item.label}
+              <div
+                className={cn(
+                  "px-5 py-4 border-b font-mono-label text-[10px] uppercase tracking-[0.18em]",
+                  useLightSurface ? "border-charcoal/10 text-charcoal/60" : "border-cream/10 text-cream/70",
+                )}
+              >
+                Browse programs
+              </div>
+              <div className="p-2">
+                <Link href="/programs">
+                  <a className={cn("block rounded-2xl px-4 py-3 text-[11px] tracking-[0.18em] uppercase transition-colors", useLightSurface ? "hover:bg-cream" : "hover:bg-cream/10")}>
+                    All Programs
                   </a>
                 </Link>
-              ))}
+                {programLinks.map((item) => (
+                  <Link href={item.href} key={item.href}>
+                    <a className={cn("block rounded-2xl px-4 py-3 text-[11px] tracking-[0.18em] uppercase transition-colors", useLightSurface ? "hover:bg-cream" : "hover:bg-cream/10")}>
+                      {item.label}
+                    </a>
+                  </Link>
+                ))}
+              </div>
             </div>
           </div>
         </div>
 
         {navSections.map((item) => (
-          <a key={item.label} href={item.href} className="hover:opacity-70 transition-opacity">
-            {item.label}
-          </a>
+          <Link key={item.label} href={item.href}>
+            <a className="hover:opacity-70 transition-opacity">{item.label}</a>
+          </Link>
         ))}
       </div>
 
       <div className="hidden md:block">
-        <Link href={REGISTER_HREF}>
-          <ClayButton
-            className={cn(
-              "text-[11px] uppercase tracking-[0.18em] px-5 py-2.5",
-              useLightSurface ? "bg-charcoal text-cream" : "bg-clay text-cream",
-            )}
-          >
-            Register Now
-          </ClayButton>
-        </Link>
+        <ClayButton
+          asChild
+          className={cn(
+            "text-[11px] uppercase tracking-[0.18em] px-5 py-2.5",
+            useLightSurface ? "bg-charcoal text-cream" : "bg-clay text-cream",
+          )}
+        >
+          <Link href={REGISTER_HREF}>Register Now</Link>
+        </ClayButton>
       </div>
 
       {/* Mobile toggle */}
@@ -169,20 +201,18 @@ const Navigation = () => {
             </div>
 
             {navSections.map((item) => (
-              <a
-                key={item.label}
-                href={item.href}
-                className="py-1.5 border-b border-cream/5 last:border-0"
-                onClick={() => setMobileOpen(false)}
-              >
-                {item.label}
-              </a>
+              <Link key={item.label} href={item.href}>
+                <a
+                  className="py-1.5 border-b border-cream/5 last:border-0"
+                  onClick={() => setMobileOpen(false)}
+                >
+                  {item.label}
+                </a>
+              </Link>
             ))}
-            <Link href={REGISTER_HREF}>
-              <ClayButton className="w-full mt-1 text-[11px] tracking-[0.18em]">
-                Register Now
-              </ClayButton>
-            </Link>
+            <ClayButton asChild className="w-full mt-1 text-[11px] tracking-[0.18em]">
+              <Link href={REGISTER_HREF}>Register Now</Link>
+            </ClayButton>
           </div>
         </div>
       )}

@@ -22,6 +22,7 @@ Cloudflare D1 (SQLite) database schema and seed data. Single source of truth for
 - `guardians` - Parent/guardian information
 - `students` - Student information
 - `waivers` - Signed liability waivers
+- `waitlist` - Waitlist entries for full sessions
 
 ### Payment Tables
 - `payments` - Payment records with Stripe IDs

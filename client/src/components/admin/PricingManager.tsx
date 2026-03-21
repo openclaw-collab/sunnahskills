@@ -13,6 +13,7 @@ type Price = {
   amount: number;
   frequency: string;
   registration_fee: number;
+  metadata?: string | null;
   active: number;
 };
 
@@ -91,6 +92,7 @@ export function PricingManager() {
                       <th className="text-left py-2 pr-4">Frequency</th>
                       <th className="text-left py-2 pr-4">Amount</th>
                       <th className="text-left py-2 pr-4">Reg fee</th>
+                      <th className="text-left py-2 pr-4">Stripe price</th>
                       <th className="text-left py-2 pr-4">Active</th>
                       <th className="text-left py-2">Actions</th>
                     </tr>
@@ -108,6 +110,7 @@ export function PricingManager() {
                               priceId: t.id,
                               amount: next.amount,
                               registrationFee: next.registration_fee,
+                              stripePriceId: next.stripe_price_id,
                               active: next.active,
                             }),
                           });
@@ -117,7 +120,7 @@ export function PricingManager() {
                     ))}
                     {tiers.length === 0 ? (
                       <tr>
-                        <td colSpan={6} className="py-6 text-center text-charcoal/60">
+                        <td colSpan={7} className="py-6 text-center text-charcoal/60">
                           No price tiers found for this program.
                         </td>
                       </tr>
@@ -138,10 +141,17 @@ function PriceRow({
   onSave,
 }: {
   tier: Price;
-  onSave: (next: Price) => Promise<void>;
+  onSave: (next: Price & { stripe_price_id?: string | null }) => Promise<void>;
 }) {
   const [amount, setAmount] = useState(String(tier.amount));
   const [fee, setFee] = useState(String(tier.registration_fee ?? 0));
+  const [stripePriceId, setStripePriceId] = useState(() => {
+    try {
+      return String(JSON.parse(tier.metadata ?? "{}")?.stripe_price_id ?? "");
+    } catch {
+      return "";
+    }
+  });
   const [saving, setSaving] = useState(false);
 
   return (
@@ -173,6 +183,14 @@ function PriceRow({
           <div className="text-xs text-charcoal/60">{money(Number(fee || 0))}</div>
         </div>
       </td>
+      <td className="py-2 pr-4">
+        <Input
+          value={stripePriceId}
+          onChange={(e) => setStripePriceId(e.target.value)}
+          placeholder="price_..."
+          className="w-40 bg-white border-charcoal/10"
+        />
+      </td>
       <td className="py-2 pr-4">{tier.active ? "Yes" : "No"}</td>
       <td className="py-2">
         <div className="flex items-center gap-2">
@@ -185,6 +203,7 @@ function PriceRow({
                   ...tier,
                   amount: Number(amount || 0),
                   registration_fee: Number(fee || 0),
+                  stripe_price_id: stripePriceId.trim() || null,
                   active: tier.active ? 0 : 1,
                 });
               } finally {
@@ -204,6 +223,7 @@ function PriceRow({
                   ...tier,
                   amount: Number(amount || 0),
                   registration_fee: Number(fee || 0),
+                  stripe_price_id: stripePriceId.trim() || null,
                 });
               } finally {
                 setSaving(false);
@@ -218,4 +238,3 @@ function PriceRow({
     </tr>
   );
 }
-

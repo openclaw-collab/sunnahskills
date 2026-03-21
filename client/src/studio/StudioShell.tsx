@@ -1,55 +1,29 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { cn } from "@/lib/utils";
 import { useStudio } from "./useStudio";
 import { ComponentHighlighter } from "./ComponentHighlighter";
 import { PasswordGate } from "./PasswordGate";
-import { InspectorPanel } from "./InspectorPanel";
-import { ThemeEditor } from "./ThemeEditor";
+import { InspectorPanel, PageImageLibrary, StudioTextPanel, StudioThemePanel } from "./InspectorPanel";
 import { ChangesExport } from "./ChangesExport";
-import { getAutoIdFromEventTarget, getTextForAutoId } from "./autoTextStudio";
+import { listVisibleStudioComponents } from "./studioDom";
 
 type PanelTab = "inspect" | "theme" | "text" | "export";
 
 export default function StudioShell() {
-  const { state, setEnabled, setEdit, pinnedComponentId } = useStudio();
+  const { state, setEnabled, pinnedComponentId, setPinnedComponentId, blocks } = useStudio();
 
   const [open, setOpen] = useState(true);
-  const [tab, setTab] = useState<PanelTab>("text");
+  const [tab, setTab] = useState<PanelTab>("inspect");
   const [navigateMode, setNavigateMode] = useState(false);
-  const [selectMode, setSelectMode] = useState(true);
-  const [selectedAutoId, setSelectedAutoId] = useState<string>("");
-  const [selectedDraft, setSelectedDraft] = useState<string>("");
+  const [selectedSurfaceKey, setSelectedSurfaceKey] = useState("__root");
+  const visibleComponents = useMemo(
+    () => (state.enabled ? listVisibleStudioComponents() : []),
+    [state.enabled, pinnedComponentId, open, navigateMode, blocks],
+  );
 
-  // When a component is pinned, auto-switch to inspect tab
-  const activeTab: PanelTab = pinnedComponentId ? "inspect" : tab;
-  const setActiveTab = (t: PanelTab) => {
-    setTab(t);
-  };
-
-  // Auto-select click handler for "edit any text"
-  const handleAutoSelect = (e: MouseEvent) => {
-    // Only intercept if: Studio enabled AND panel open AND selectMode on
-    if (!open || !selectMode) return;
-    if ((e.target as Element | null)?.closest?.("[data-studio-ui='1']")) return;
-    const autoId = getAutoIdFromEventTarget(e.target);
-    if (!autoId) return;
-    if (!(e.metaKey || e.ctrlKey)) {
-      e.preventDefault();
-      e.stopPropagation();
-    }
-    setSelectedAutoId(autoId);
-    setSelectedDraft(getTextForAutoId(autoId) ?? "");
-    setTab("text");
-    setOpen(true);
-  };
-
-  // Attach / detach click handler based on selectMode
   useEffect(() => {
-    if (!state.enabled) return;
-    const handler = (e: MouseEvent) => handleAutoSelect(e);
-    window.addEventListener("click", handler, true);
-    return () => window.removeEventListener("click", handler, true);
-  }, [state.enabled, selectMode, open]);
+    setSelectedSurfaceKey("__root");
+  }, [pinnedComponentId]);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -167,10 +141,10 @@ export default function StudioShell() {
               <button
                 key={t}
                 type="button"
-                onClick={() => setActiveTab(t)}
+                onClick={() => setTab(t)}
                 className={cn(
                   "flex-1 py-2.5 text-[10px] font-mono-label uppercase tracking-widest transition-colors",
-                  activeTab === t
+                  tab === t
                     ? "text-charcoal border-b-2 border-clay bg-white"
                     : "text-charcoal/40 hover:text-charcoal/70",
                 )}
@@ -183,89 +157,68 @@ export default function StudioShell() {
           {/* Tab content (scrollable) */}
           <div className="flex-1 overflow-y-auto p-4 space-y-4">
             {/* Inspect tab */}
-            {activeTab === "inspect" && (
-              <div>
-                {pinnedComponentId ? (
-                  <InspectorPanel />
-                ) : (
-                  <div className="text-center py-6">
-                    <div className="text-2xl mb-2">↗</div>
-                    <p className="text-sm text-charcoal/50">
-                      Hover over a highlighted section and click to inspect it.
-                    </p>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Text / auto-select tab */}
-            {activeTab === "text" && (
+            {tab === "inspect" && (
               <div className="space-y-3">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-charcoal/60">
-                      Edit any text
-                    </div>
-                    <div className="mt-0.5 text-xs text-charcoal/50">
-                      Click any text. Cmd/Ctrl+Click to follow links.
-                    </div>
+                <div className="rounded-2xl border border-charcoal/10 bg-cream/30 p-3">
+                  <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-charcoal/60">
+                    Components on this page
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => setSelectMode((v) => !v)}
-                    className={cn(
-                      "rounded-full px-3 py-1.5 text-[10px] font-mono-label uppercase tracking-widest border transition-all",
-                      selectMode
-                        ? "bg-charcoal text-cream border-charcoal"
-                        : "bg-white text-charcoal/60 border-charcoal/15 hover:bg-cream",
-                    )}
-                  >
-                    {selectMode ? "Select: On" : "Select: Off"}
-                  </button>
+                  <div className="mt-2 text-xs text-charcoal/50">
+                    Pick a section first, then refine its text, images, and inner elements.
+                  </div>
+                  <div className="mt-3 space-y-2 max-h-52 overflow-y-auto pr-1">
+                    {visibleComponents.map((component) => (
+                      <button
+                        key={component.id}
+                        type="button"
+                        onClick={() => {
+                          setPinnedComponentId(component.id);
+                          setSelectedSurfaceKey("__root");
+                        }}
+                        className={cn(
+                          "w-full rounded-2xl border px-3 py-3 text-left transition-colors",
+                          pinnedComponentId === component.id
+                            ? "border-clay bg-white"
+                            : "border-charcoal/10 bg-white hover:bg-cream/50",
+                        )}
+                      >
+                        <div className="flex items-center justify-between gap-3">
+                          <div>
+                            <div className="text-sm font-heading text-charcoal">{component.label}</div>
+                            <div className="mt-1 text-xs text-charcoal/45">
+                              {component.surfaceCount > 0
+                                ? "Section styling, inner surfaces, and media available"
+                                : "Section styling and content editing available"}
+                            </div>
+                          </div>
+                          <div className="shrink-0 text-right font-mono-label text-[9px] uppercase tracking-widest text-charcoal/40">
+                            <div>{component.textCount} text</div>
+                            <div>{component.imageCount} images</div>
+                            <div>{component.surfaceCount} surfaces</div>
+                          </div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
                 </div>
-
-                {selectedAutoId ? (
-                  <div className="rounded-2xl border border-charcoal/10 bg-cream/40 p-3 space-y-2">
-                    <div className="font-mono-label text-[9px] uppercase tracking-widest text-charcoal/40 truncate">
-                      {selectedAutoId}
-                    </div>
-                    <textarea
-                      value={selectedDraft}
-                      onChange={(e) => setSelectedDraft(e.target.value)}
-                      rows={3}
-                      className="w-full rounded-xl border border-charcoal/15 bg-white px-3 py-2 text-sm text-charcoal outline-none focus:ring-2 focus:ring-moss/30"
-                      data-studio-ui="1"
-                    />
-                    <div className="flex gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setEdit(selectedAutoId, selectedDraft)}
-                        className="rounded-full bg-charcoal text-cream px-4 py-2 text-[10px] font-mono-label uppercase tracking-widest"
-                      >
-                        Save text
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => { setSelectedAutoId(""); setSelectedDraft(""); }}
-                        className="rounded-full border border-charcoal/15 bg-white px-4 py-2 text-[10px] font-mono-label uppercase tracking-widest text-charcoal/60"
-                      >
-                        Clear
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="rounded-2xl border border-dashed border-charcoal/15 bg-cream/30 py-6 text-center text-sm text-charcoal/40">
-                    No text selected. Click any text on the page.
-                  </div>
-                )}
+                <PageImageLibrary />
+                <InspectorPanel
+                  selectedSurfaceKey={selectedSurfaceKey}
+                  onSelectSurface={setSelectedSurfaceKey}
+                />
               </div>
             )}
 
-            {/* Theme tab */}
-            {activeTab === "theme" && <ThemeEditor />}
+            {tab === "text" && <StudioTextPanel />}
 
-            {/* Export tab */}
-            {activeTab === "export" && <ChangesExport />}
+            {tab === "theme" && (
+              <StudioThemePanel
+                selectedSurfaceKey={selectedSurfaceKey}
+                onSelectSurface={setSelectedSurfaceKey}
+              />
+            )}
+
+            {tab === "export" && <ChangesExport />}
           </div>
         </div>
       )}

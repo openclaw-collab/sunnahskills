@@ -1,207 +1,528 @@
 import { useMemo, useRef, useState } from "react";
-import { useStudio } from "./useStudio";
 import { cn } from "@/lib/utils";
+import { useStudio } from "./useStudio";
+import { resolveActiveTheme } from "./studioStore";
+import { discoverImageSlots, discoverSurfaceCandidates, discoverTextFields, listPageImageSlots } from "./studioDom";
 
-function formatRelativeTime(isoString: string): string {
-  const diff = Date.now() - new Date(isoString).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return "just now";
-  if (mins < 60) return `${mins}m ago`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  if (days < 7) return `${days}d ago`;
-  return new Date(isoString).toLocaleDateString();
-}
+type PanelProps = {
+  selectedSurfaceKey: string;
+  onSelectSurface: (key: string) => void;
+};
 
-type Tab = "edit" | "comments" | "history";
-
-export function InspectorPanel() {
-  const { state, edits, setEdit, clearEdit, addComment, deleteComment, setPinnedComponentId, pinnedComponentId, blocks, uploadImage } =
-    useStudio();
-  const [tab, setTab] = useState<Tab>("edit");
-  const [commentDraft, setCommentDraft] = useState("");
-  const [authorDraft, setAuthorDraft] = useState("");
+export function InspectorPanel({ selectedSurfaceKey, onSelectSurface }: PanelProps) {
+  const { state, pinnedComponentId, setPinnedComponentId, blocks, uploadImage } = useStudio();
 
   const pinnedBlock = useMemo(
-    () => blocks.find((b) => b.id === pinnedComponentId),
+    () => blocks.find((block) => block.id === pinnedComponentId),
     [blocks, pinnedComponentId],
   );
 
-  // Discover image slots inside the pinned component
-  const imageSlots = useMemo(() => {
-    if (!pinnedComponentId) return [];
-    const compEl = document.querySelector<HTMLElement>(`[data-studio-component="${CSS.escape(pinnedComponentId)}"]`);
-    if (!compEl) return [];
-    return Array.from(compEl.querySelectorAll<HTMLElement>("[data-studio-image-slot]")).map((el) => ({
-      slotKey: el.dataset.studioImageSlot!,
-      currentSrc: el instanceof HTMLImageElement ? el.src : undefined,
-    }));
-  }, [pinnedComponentId]);
+  const imageSlots = useMemo(
+    () => (pinnedComponentId ? discoverImageSlots(pinnedComponentId) : []),
+    [pinnedComponentId],
+  );
 
-  // Current uploaded URLs for this component's slots
+  const surfaceCandidates = useMemo(
+    () => (pinnedComponentId ? discoverSurfaceCandidates(pinnedComponentId) : []),
+    [pinnedComponentId],
+  );
+
   const uploadedSlots = useMemo(() => {
     const uploads = state.session?.uploads ?? [];
-    return new Map(uploads.map((u) => [u.slotKey, u.url]));
+    return new Map(uploads.map((upload) => [upload.slotKey, upload.url]));
   }, [state.session?.uploads]);
 
-  const componentComments = useMemo(() => {
-    const all = state.session?.comments ?? state.localComments;
-    return all.filter((c) => c.componentId === pinnedComponentId);
-  }, [state.session?.comments, state.localComments, pinnedComponentId]);
-
-  const componentEdits = useMemo(() => {
-    if (state.session?.edits) {
-      return state.session.edits.filter((e) => {
-        const cId = "componentId" in e.target ? e.target.componentId : null;
-        return cId === pinnedComponentId;
-      });
-    }
-    // Local mode: find matching localEdits by key prefix
-    return Object.entries(edits)
-      .filter(([k]) => k.startsWith(pinnedComponentId ?? "__none__"))
-      .map(([k, v]) => ({ key: k, value: v }));
-  }, [state.session?.edits, edits, pinnedComponentId]);
-
-  if (!pinnedComponentId) return null;
-
-  return (
-    <div className="rounded-2xl border border-charcoal/10 bg-white overflow-hidden">
-      {/* Header */}
-      <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-charcoal/8 bg-cream/40">
-        <div>
-          <div className="font-mono-label text-[9px] uppercase tracking-widest text-clay">Inspecting</div>
-          <div className="font-heading text-sm text-charcoal mt-0.5">
-            {pinnedBlock?.label ?? pinnedComponentId}
-          </div>
-        </div>
-        <button
-          type="button"
-          onClick={() => setPinnedComponentId(null)}
-          className="rounded-full border border-charcoal/10 bg-white px-3 py-1.5 text-[10px] font-mono-label uppercase tracking-widest text-charcoal/60 hover:bg-cream transition-colors"
-        >
-          ✕ Unpin
-        </button>
-      </div>
-
-      {/* Tabs */}
-      <div className="flex border-b border-charcoal/8">
-        {(["edit", "comments", "history"] as Tab[]).map((t) => (
-          <button
-            key={t}
-            type="button"
-            onClick={() => setTab(t)}
-            className={cn(
-              "flex-1 py-2 text-[10px] font-mono-label uppercase tracking-widest transition-colors",
-              tab === t
-                ? "text-charcoal border-b-2 border-clay"
-                : "text-charcoal/40 hover:text-charcoal/70",
-            )}
-          >
-            {t}
-          </button>
-        ))}
-      </div>
-
-      {/* Image slots strip (shown whenever slots exist, regardless of tab) */}
-      {imageSlots.length > 0 && (
-        <div className="px-4 pt-3 pb-0 space-y-2 border-b border-charcoal/8">
-          <div className="font-mono-label text-[9px] uppercase tracking-widest text-charcoal/40 mb-2">
-            Images
-          </div>
-          {imageSlots.map(({ slotKey }) => (
-            <ImageSlotRow
-              key={slotKey}
-              slotKey={slotKey}
-              uploadedUrl={uploadedSlots.get(slotKey)}
-              uploadImage={uploadImage}
-            />
-          ))}
-        </div>
-      )}
-
-      <div className="p-4">
-        {tab === "edit" && (
-          <EditTab
-            pinnedComponentId={pinnedComponentId}
-            edits={edits}
-            setEdit={setEdit}
-            clearEdit={clearEdit}
-          />
-        )}
-        {tab === "comments" && (
-          <CommentsTab
-            componentId={pinnedComponentId}
-            comments={componentComments}
-            commentDraft={commentDraft}
-            setCommentDraft={setCommentDraft}
-            authorDraft={authorDraft}
-            setAuthorDraft={setAuthorDraft}
-            addComment={addComment}
-            deleteComment={deleteComment}
-          />
-        )}
-        {tab === "history" && (
-          <HistoryTab componentEdits={componentEdits} />
-        )}
-      </div>
-    </div>
-  );
-}
-
-// ── Edit tab ─────────────────────────────────────────────────────────────────
-
-function EditTab({
-  pinnedComponentId,
-  edits,
-  setEdit,
-  clearEdit,
-}: {
-  pinnedComponentId: string;
-  edits: Record<string, string>;
-  setEdit: (key: string, value: string, opts?: { oldValue?: string }) => void;
-  clearEdit: (key: string) => void;
-}) {
-  const relevantEdits = Object.entries(edits).filter(([k]) => k.startsWith(pinnedComponentId));
-  const [draftKey, setDraftKey] = useState("");
-  const [draftValue, setDraftValue] = useState("");
-
-  if (relevantEdits.length === 0 && !draftKey) {
+  if (!pinnedComponentId) {
     return (
-      <div className="text-sm text-charcoal/50 text-center py-3">
-        <p>No text edits for this component yet.</p>
-        <p className="mt-1 text-[11px]">Click text on the page to edit it, or use the auto-select mode.</p>
-      </div>
+      <EmptyPanel
+        title="No selection yet"
+        body="Choose a block from the page list or click one on the site to start inspecting it."
+      />
     );
   }
 
   return (
     <div className="space-y-3">
-      {relevantEdits.map(([k, v]) => (
-        <div key={k} className="rounded-xl border border-charcoal/10 bg-cream/30 p-3">
-          <div className="flex items-center justify-between gap-2 mb-1.5">
-            <div className="font-mono-label text-[9px] uppercase tracking-widest text-charcoal/40 truncate">
-              {k.split(".").pop() ?? k}
+      <div className="rounded-2xl border border-charcoal/10 bg-white overflow-hidden">
+        <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-charcoal/8 bg-cream/40">
+          <div>
+            <div className="font-mono-label text-[9px] uppercase tracking-widest text-clay">Selected block</div>
+            <div className="font-heading text-sm text-charcoal mt-0.5">
+              {pinnedBlock?.label ?? pinnedComponentId}
             </div>
-            <button
-              type="button"
-              onClick={() => clearEdit(k)}
-              className="text-[10px] text-charcoal/40 hover:text-clay transition-colors"
-            >
-              ✕ Reset
-            </button>
+            <div className="mt-1 text-xs text-charcoal/45">Choose a section target, then refine a card, button, or image inside it.</div>
           </div>
-          <EditableValue
-            value={v}
-            onSave={(nv) => setEdit(k, nv, { oldValue: v })}
-          />
+          <button
+            type="button"
+            onClick={() => setPinnedComponentId(null)}
+            className="rounded-full border border-charcoal/10 bg-white px-3 py-1.5 text-[10px] font-mono-label uppercase tracking-widest text-charcoal/60 hover:bg-cream transition-colors"
+          >
+            Unpin
+          </button>
         </div>
-      ))}
+
+        <div className="p-4 space-y-4">
+          <div className="rounded-xl border border-charcoal/10 bg-cream/30 p-3">
+            <div className="font-mono-label text-[9px] uppercase tracking-widest text-charcoal/40 mb-2">
+              Style target
+            </div>
+            <div className="space-y-2">
+              <TargetButton
+                active={selectedSurfaceKey === "__root"}
+                title="Whole section"
+                subtitle="Use this for the overall background, text tone, and section-level treatment."
+                onClick={() => onSelectSurface("__root")}
+              />
+              {surfaceCandidates
+                .filter((candidate) => candidate.key !== "__root")
+                .map((candidate) => (
+                  <TargetButton
+                    key={candidate.key}
+                    active={selectedSurfaceKey === candidate.key}
+                    title={candidate.label}
+                    subtitle={candidate.key}
+                    onClick={() => onSelectSurface(candidate.key)}
+                  />
+                ))}
+            </div>
+          </div>
+
+          {imageSlots.length > 0 && (
+            <div className="rounded-xl border border-charcoal/10 bg-cream/30 p-3 space-y-2">
+              <div className="font-mono-label text-[9px] uppercase tracking-widest text-charcoal/40">
+                Images in this block
+              </div>
+              {imageSlots.map(({ slotKey }) => (
+                <ImageSlotRow
+                  key={slotKey}
+                  slotKey={slotKey}
+                  uploadedUrl={uploadedSlots.get(slotKey)}
+                  uploadImage={uploadImage}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
 
-function EditableValue({ value, onSave }: { value: string; onSave: (v: string) => void }) {
+export function PageImageLibrary() {
+  const { state, uploadImage, setPinnedComponentId } = useStudio();
+
+  const pageImageSlots = useMemo(() => listPageImageSlots(), [state.enabled, state.session?.uploads]);
+  const uploadedSlots = useMemo(() => {
+    const uploads = state.session?.uploads ?? [];
+    return new Map(uploads.map((upload) => [upload.slotKey, upload.url]));
+  }, [state.session?.uploads]);
+
+  if (pageImageSlots.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="rounded-2xl border border-charcoal/10 bg-white p-4 space-y-3">
+      <div>
+        <div className="font-mono-label text-[9px] uppercase tracking-widest text-clay">Page images</div>
+        <div className="mt-1 text-sm text-charcoal/55">
+          Upload to any indexed image slot on this page without changing the current tab flow.
+        </div>
+      </div>
+      <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+        {pageImageSlots.map((slot) => (
+          <div key={slot.slotKey} className="rounded-xl border border-charcoal/10 bg-cream/20 p-3">
+            <div className="flex items-center justify-between gap-3 mb-2">
+              <div>
+                <div className="text-sm text-charcoal">
+                  {slot.slotKey
+                    .split(".")
+                    .slice(-2)
+                    .join(" ")
+                    .replace(/[-_]+/g, " ")}
+                </div>
+                <div className="mt-1 font-mono-label text-[9px] uppercase tracking-widest text-charcoal/35">
+                  {slot.slotKey}
+                </div>
+              </div>
+              {slot.componentId ? (
+                <button
+                  type="button"
+                  onClick={() => setPinnedComponentId(slot.componentId ?? null)}
+                  className="rounded-full border border-charcoal/10 bg-white px-3 py-1.5 text-[10px] font-mono-label uppercase tracking-widest text-charcoal/55 hover:bg-cream"
+                >
+                  Jump to block
+                </button>
+              ) : null}
+            </div>
+            <ImageSlotRow
+              slotKey={slot.slotKey}
+              uploadedUrl={uploadedSlots.get(slot.slotKey) ?? slot.currentSrc}
+              uploadImage={uploadImage}
+            />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export function StudioTextPanel() {
+  const { blocks, pinnedComponentId, edits, setEdit, clearEdit } = useStudio();
+
+  const pinnedBlock = useMemo(
+    () => blocks.find((block) => block.id === pinnedComponentId),
+    [blocks, pinnedComponentId],
+  );
+
+  const fields = useMemo(
+    () => (pinnedComponentId ? discoverTextFields(pinnedComponentId, edits) : []),
+    [edits, pinnedComponentId],
+  );
+
+  if (!pinnedComponentId) {
+    return (
+      <EmptyPanel
+        title="Choose a block first"
+        body="Use Inspect to pick the exact section you want to edit, then come back here for its copy."
+      />
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      <PanelHeader
+        eyebrow="Text editor"
+        title={pinnedBlock?.label ?? pinnedComponentId}
+        subtitle="Edit only the copy that belongs to the currently selected block."
+      />
+      <div className="rounded-2xl border border-charcoal/10 bg-white p-4 space-y-3">
+        {fields.length === 0 ? (
+          <div className="text-sm text-charcoal/50">
+            This block does not expose editable text yet.
+          </div>
+        ) : (
+          fields.map((field) => (
+            <div key={field.key} className="rounded-xl border border-charcoal/10 bg-cream/20 p-3">
+              <div className="flex items-center justify-between gap-2 mb-2">
+                <div>
+                  <div className="text-sm text-charcoal">{field.label}</div>
+                  <div className="mt-1 font-mono-label text-[9px] uppercase tracking-widest text-charcoal/35">
+                    {field.key}
+                  </div>
+                </div>
+                {field.edited ? (
+                  <button
+                    type="button"
+                    onClick={() => clearEdit(field.key)}
+                    className="rounded-full border border-charcoal/10 bg-white px-3 py-1.5 text-[10px] font-mono-label uppercase tracking-widest text-charcoal/50 hover:bg-cream"
+                  >
+                    Reset
+                  </button>
+                ) : null}
+              </div>
+              <EditableValue
+                value={field.currentValue}
+                onSave={(nextValue) => setEdit(field.key, nextValue, { oldValue: field.defaultValue })}
+              />
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
+export function StudioThemePanel({ selectedSurfaceKey, onSelectSurface }: PanelProps) {
+  const { blocks, pinnedComponentId, edits, setEdit, clearEdit, state, setCustomTheme } = useStudio();
+  const activeTheme = resolveActiveTheme(state.themePresetId, state.customTheme);
+
+  const pinnedBlock = useMemo(
+    () => blocks.find((block) => block.id === pinnedComponentId),
+    [blocks, pinnedComponentId],
+  );
+
+  const surfaceCandidates = useMemo(
+    () => (pinnedComponentId ? discoverSurfaceCandidates(pinnedComponentId) : []),
+    [pinnedComponentId],
+  );
+
+  const selectedSurface = useMemo(
+    () => surfaceCandidates.find((candidate) => candidate.key === selectedSurfaceKey) ?? surfaceCandidates[0] ?? null,
+    [selectedSurfaceKey, surfaceCandidates],
+  );
+
+  if (!pinnedComponentId) {
+    return (
+      <EmptyPanel
+        title="Choose a block first"
+        body="Use Inspect to choose the block or inner surface you want to style."
+      />
+    );
+  }
+
+  const targetPrefix =
+    selectedSurface && selectedSurface.key !== "__root"
+      ? `${pinnedComponentId}.__node.${selectedSurface.key}`
+      : pinnedComponentId;
+  const backgroundToneKey = `${targetPrefix}.__backgroundTone`;
+  const borderToneKey = `${targetPrefix}.__borderTone`;
+  const textToneKey = `${targetPrefix}.__textTone`;
+
+  const selectedBackgroundTone = edits[backgroundToneKey] ?? "inherit";
+  const selectedBorderTone = edits[borderToneKey] ?? "inherit";
+  const selectedTextTone = edits[textToneKey] ?? "inherit";
+
+  return (
+    <div className="space-y-3">
+      <PanelHeader
+        eyebrow="Theme editor"
+        title={pinnedBlock?.label ?? pinnedComponentId}
+        subtitle="Style the selected target, then adjust the page palette if needed."
+      />
+
+      <div className="rounded-2xl border border-charcoal/10 bg-white p-4 space-y-4">
+        <div className="rounded-xl border border-charcoal/10 bg-cream/20 p-3">
+          <div className="font-mono-label text-[9px] uppercase tracking-widest text-charcoal/40 mb-2">
+            Current style target
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <TargetChip
+              active={selectedSurfaceKey === "__root"}
+              label="Whole section"
+              onClick={() => onSelectSurface("__root")}
+            />
+            {surfaceCandidates
+              .filter((candidate) => candidate.key !== "__root")
+              .map((candidate) => (
+                <TargetChip
+                  key={candidate.key}
+                  active={selectedSurfaceKey === candidate.key}
+                  label={candidate.label}
+                  onClick={() => onSelectSurface(candidate.key)}
+                />
+              ))}
+          </div>
+        </div>
+
+        <div className="rounded-xl border border-charcoal/10 bg-cream/20 p-3 space-y-3">
+          <div className="font-mono-label text-[9px] uppercase tracking-widest text-charcoal/40">
+            Selected target styling
+          </div>
+          <TokenRow
+            label="Background role"
+            value={selectedBackgroundTone}
+            options={[
+              { value: "inherit", label: "Inherit" },
+              { value: "page", label: "Page" },
+              { value: "surface-main", label: "Main" },
+              { value: "surface-sub", label: "Sub" },
+              { value: "accent", label: "Accent" },
+              { value: "contrast", label: "Contrast" },
+            ]}
+            onChange={(value) => {
+              if (value === "inherit") clearEdit(backgroundToneKey);
+              else setEdit(backgroundToneKey, value, { oldValue: selectedBackgroundTone });
+            }}
+          />
+          <TokenRow
+            label="Border role"
+            value={selectedBorderTone}
+            options={[
+              { value: "inherit", label: "Inherit" },
+              { value: "surface-main", label: "Main" },
+              { value: "surface-sub", label: "Sub" },
+              { value: "accent", label: "Accent" },
+              { value: "contrast", label: "Contrast" },
+            ]}
+            onChange={(value) => {
+              if (value === "inherit") clearEdit(borderToneKey);
+              else setEdit(borderToneKey, value, { oldValue: selectedBorderTone });
+            }}
+          />
+          <TokenRow
+            label="Text colour"
+            value={selectedTextTone}
+            options={[
+              { value: "inherit", label: "Inherit" },
+              { value: "text-main", label: "Primary" },
+              { value: "text-sub", label: "Muted" },
+              { value: "accent", label: "Accent" },
+              { value: "contrast", label: "Contrast" },
+            ]}
+            onChange={(value) => {
+              if (value === "inherit") clearEdit(textToneKey);
+              else setEdit(textToneKey, value, { oldValue: selectedTextTone });
+            }}
+          />
+        </div>
+
+        <div className="rounded-xl border border-charcoal/10 bg-cream/20 p-3">
+          <div className="font-mono-label text-[9px] uppercase tracking-widest text-charcoal/40 mb-3">
+            Page palette
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <CompactColorField
+              label="Page"
+              value={activeTheme.pageBackground}
+              onChange={(value) => setCustomTheme({ pageBackground: value })}
+            />
+            <CompactColorField
+              label="Main"
+              value={activeTheme.surfaceMain}
+              onChange={(value) => setCustomTheme({ surfaceMain: value })}
+            />
+            <CompactColorField
+              label="Sub"
+              value={activeTheme.surfaceSub}
+              onChange={(value) => setCustomTheme({ surfaceSub: value })}
+            />
+            <CompactColorField
+              label="Primary text"
+              value={activeTheme.textMain}
+              onChange={(value) => setCustomTheme({ textMain: value })}
+            />
+            <CompactColorField
+              label="Muted text"
+              value={activeTheme.textSub}
+              onChange={(value) => setCustomTheme({ textSub: value })}
+            />
+            <CompactColorField
+              label="Accent"
+              value={activeTheme.accent}
+              onChange={(value) => setCustomTheme({ accent: value })}
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PanelHeader({ eyebrow, title, subtitle }: { eyebrow: string; title: string; subtitle: string }) {
+  return (
+    <div className="rounded-2xl border border-charcoal/10 bg-white p-4">
+      <div className="font-mono-label text-[9px] uppercase tracking-widest text-clay">{eyebrow}</div>
+      <div className="mt-1 font-heading text-base text-charcoal">{title}</div>
+      <div className="mt-1 text-sm text-charcoal/55">{subtitle}</div>
+    </div>
+  );
+}
+
+function EmptyPanel({ title, body }: { title: string; body: string }) {
+  return (
+    <div className="rounded-2xl border border-dashed border-charcoal/15 bg-cream/30 py-6 px-4 text-center">
+      <div className="font-heading text-base text-charcoal">{title}</div>
+      <p className="mt-2 text-sm text-charcoal/50">{body}</p>
+    </div>
+  );
+}
+
+function TargetButton({
+  active,
+  title,
+  subtitle,
+  onClick,
+}: {
+  active: boolean;
+  title: string;
+  subtitle: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "w-full rounded-2xl border px-3 py-3 text-left transition-colors",
+        active ? "border-clay bg-white" : "border-charcoal/10 bg-white hover:bg-cream/50",
+      )}
+    >
+      <div className="text-sm text-charcoal">{title}</div>
+      <div className="mt-1 font-mono-label text-[9px] uppercase tracking-widest text-charcoal/35">{subtitle}</div>
+    </button>
+  );
+}
+
+function TargetChip({ active, label, onClick }: { active: boolean; label: string; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "rounded-full border px-3 py-1.5 text-[10px] font-mono-label uppercase tracking-widest transition-colors",
+        active ? "border-charcoal bg-charcoal text-cream" : "border-charcoal/15 bg-white text-charcoal/60 hover:bg-cream",
+      )}
+    >
+      {label}
+    </button>
+  );
+}
+
+function TokenRow({
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  options: Array<{ value: string; label: string }>;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <div>
+      <div className="text-[11px] text-charcoal/60 mb-2">{label}</div>
+      <div className="flex flex-wrap gap-2">
+        {options.map((option) => (
+          <button
+            key={option.value}
+            type="button"
+            onClick={() => onChange(option.value)}
+            className={cn(
+              "rounded-full border px-3 py-1.5 text-[10px] font-mono-label uppercase tracking-widest transition-colors",
+              value === option.value
+                ? "border-charcoal bg-charcoal text-cream"
+                : "border-charcoal/15 bg-white text-charcoal/60 hover:bg-cream",
+            )}
+          >
+            {option.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function CompactColorField({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <label className="flex items-center gap-3 rounded-xl border border-charcoal/10 bg-white px-3 py-2">
+      <span
+        className="relative h-8 w-8 shrink-0 overflow-hidden rounded-xl border border-charcoal/10"
+        style={{ background: value }}
+      >
+        <input
+          type="color"
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+          data-studio-ui="1"
+        />
+      </span>
+      <span className="font-mono-label text-[10px] uppercase tracking-widest text-charcoal/55">{label}</span>
+    </label>
+  );
+}
+
+function EditableValue({ value, onSave }: { value: string; onSave: (value: string) => void }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value);
 
@@ -209,7 +530,10 @@ function EditableValue({ value, onSave }: { value: string; onSave: (v: string) =
     return (
       <div
         className="text-sm text-charcoal cursor-pointer hover:text-clay transition-colors"
-        onClick={() => { setDraft(value); setEditing(true); }}
+        onClick={() => {
+          setDraft(value);
+          setEditing(true);
+        }}
       >
         {value}
       </div>
@@ -220,7 +544,7 @@ function EditableValue({ value, onSave }: { value: string; onSave: (v: string) =
     <div className="space-y-2">
       <textarea
         value={draft}
-        onChange={(e) => setDraft(e.target.value)}
+        onChange={(event) => setDraft(event.target.value)}
         rows={2}
         className="w-full rounded-xl border border-charcoal/15 bg-white px-3 py-2 text-sm text-charcoal outline-none focus:ring-2 focus:ring-moss/30"
         autoFocus
@@ -229,7 +553,10 @@ function EditableValue({ value, onSave }: { value: string; onSave: (v: string) =
       <div className="flex gap-2">
         <button
           type="button"
-          onClick={() => { onSave(draft); setEditing(false); }}
+          onClick={() => {
+            onSave(draft);
+            setEditing(false);
+          }}
           className="rounded-full bg-charcoal text-cream px-3 py-1.5 text-[10px] font-mono-label uppercase tracking-widest"
         >
           Save
@@ -246,87 +573,6 @@ function EditableValue({ value, onSave }: { value: string; onSave: (v: string) =
   );
 }
 
-// ── Comments tab ──────────────────────────────────────────────────────────────
-
-function CommentsTab({
-  componentId,
-  comments,
-  commentDraft,
-  setCommentDraft,
-  authorDraft,
-  setAuthorDraft,
-  addComment,
-  deleteComment,
-}: {
-  componentId: string;
-  comments: any[];
-  commentDraft: string;
-  setCommentDraft: (v: string) => void;
-  authorDraft: string;
-  setAuthorDraft: (v: string) => void;
-  addComment: (params: { componentId?: string; message: string; author?: string }) => void;
-  deleteComment: (commentId: string) => void;
-}) {
-  return (
-    <div className="space-y-3">
-      {comments.length > 0 && (
-        <div className="space-y-2 max-h-40 overflow-auto">
-          {comments.map((c) => (
-            <div key={c.id} className="rounded-xl border border-charcoal/10 bg-cream/40 p-3">
-              <div className="flex items-center justify-between gap-2 mb-1">
-                <span className="font-mono-label text-[9px] uppercase tracking-widest text-charcoal/40">
-                  {c.author ? `${c.author} · ` : ""}
-                  {formatRelativeTime(c.createdAt)}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => deleteComment(c.id)}
-                  className="text-charcoal/30 hover:text-clay text-xs"
-                  title="Delete comment"
-                >
-                  ✕
-                </button>
-              </div>
-              <p className="text-sm text-charcoal/75">{c.message}</p>
-            </div>
-          ))}
-        </div>
-      )}
-
-      <input
-        value={authorDraft}
-        onChange={(e) => setAuthorDraft(e.target.value)}
-        placeholder="Your name (optional)"
-        className="w-full rounded-xl border border-charcoal/15 bg-white px-3 py-2 text-sm text-charcoal outline-none focus:ring-2 focus:ring-moss/30"
-        data-studio-ui="1"
-      />
-      <textarea
-        value={commentDraft}
-        onChange={(e) => setCommentDraft(e.target.value)}
-        placeholder="Leave a comment on this component…"
-        rows={2}
-        className="w-full rounded-xl border border-charcoal/15 bg-white px-3 py-2 text-sm text-charcoal outline-none focus:ring-2 focus:ring-moss/30"
-        data-studio-ui="1"
-      />
-      <div className="flex justify-end">
-        <button
-          type="button"
-          onClick={() => {
-            addComment({ componentId, message: commentDraft, author: authorDraft });
-            setCommentDraft("");
-          }}
-          disabled={!commentDraft.trim()}
-          className="rounded-full bg-charcoal text-cream px-4 py-2 text-[10px] font-mono-label uppercase tracking-widest disabled:opacity-40"
-        >
-          Add comment
-        </button>
-      </div>
-    </div>
-  );
-}
-
-// ── Image slot row ────────────────────────────────────────────────────────────
-
 function ImageSlotRow({
   slotKey,
   uploadedUrl,
@@ -342,8 +588,8 @@ function ImageSlotRow({
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [showConfirm, setShowConfirm] = useState(false);
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
     if (!file) return;
     const objectUrl = URL.createObjectURL(file);
     setPendingFile(file);
@@ -372,18 +618,26 @@ function ImageSlotRow({
     setShowConfirm(false);
   };
 
-  const label = slotKey.split(".").pop() ?? slotKey;
+  const label = slotKey
+    .split(".")
+    .slice(-2)
+    .join(" ")
+    .replace(/[-_]+/g, " ");
 
   return (
     <>
       <div className="flex items-center gap-3 py-2">
         <div
           className="w-14 h-10 rounded-xl border border-charcoal/10 bg-cream/60 overflow-hidden flex-none"
-          style={localPreview ? { backgroundImage: `url("${localPreview}")`, backgroundSize: "cover", backgroundPosition: "center" } : {}}
+          style={
+            localPreview
+              ? { backgroundImage: `url("${localPreview}")`, backgroundSize: "cover", backgroundPosition: "center" }
+              : {}
+          }
         >
-          {!localPreview && (
+          {!localPreview ? (
             <div className="w-full h-full flex items-center justify-center text-charcoal/20 text-lg">⬚</div>
-          )}
+          ) : null}
         </div>
 
         <div className="flex-1 min-w-0">
@@ -410,7 +664,7 @@ function ImageSlotRow({
         />
       </div>
 
-      {showConfirm && localPreview && (
+      {showConfirm && localPreview ? (
         <div className="rounded-xl border border-charcoal/10 bg-cream/60 p-3 space-y-2">
           <div className="font-mono-label text-[9px] uppercase tracking-widest text-charcoal/50">Preview</div>
           <img src={localPreview} alt="Preview" className="w-full max-h-32 object-contain rounded-lg" />
@@ -433,32 +687,7 @@ function ImageSlotRow({
             </button>
           </div>
         </div>
-      )}
+      ) : null}
     </>
-  );
-}
-
-// ── History tab ───────────────────────────────────────────────────────────────
-
-function HistoryTab({ componentEdits }: { componentEdits: any[] }) {
-  if (componentEdits.length === 0) {
-    return <div className="text-sm text-charcoal/50 text-center py-3">No changes recorded yet.</div>;
-  }
-
-  return (
-    <div className="space-y-2 max-h-48 overflow-auto">
-      {[...componentEdits].reverse().map((e: any, i) => (
-        <div key={e.id ?? e.key ?? i} className="rounded-xl border border-charcoal/10 bg-cream/30 p-3">
-          <div className="font-mono-label text-[9px] uppercase tracking-widest text-charcoal/40 mb-1">
-            {e.key ?? (e.target && ("fieldKey" in e.target ? e.target.fieldKey : e.target.autoId)) ?? "text"}
-            {e.author && ` · ${e.author}`}
-          </div>
-          {e.oldValue && (
-            <div className="text-[11px] text-charcoal/40 line-through mb-0.5">{e.oldValue}</div>
-          )}
-          <div className="text-sm text-charcoal">{e.newValue ?? e.value}</div>
-        </div>
-      ))}
-    </div>
   );
 }

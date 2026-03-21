@@ -12,14 +12,14 @@ Stakeholder Studio review tool - allows stakeholders to review the site, add com
 |------|-------------|
 | `StudioProvider.tsx` | React context for studio state management |
 | `StudioPanel.tsx` | Studio overlay UI (comment form, toolbar) |
-| `StudioTypes.ts` | TypeScript types for studio sessions |
+| `studioTypes.ts` | TypeScript types for studio sessions |
 
 ## How It Works
 
 1. **Session Mode**: URL param `?studio=<UUID>` activates session mode
 2. **Local Mode**: URL param `?studio=1` activates localStorage-only mode
 3. **Password Gate**: Protected sessions require bcrypt password
-4. **Sync**: Polls `/api/studio/sessions/:id` every 5s for multi-user sync
+4. **Sync**: Polls `/api/studio/sessions/:id` every 10s for multi-user sync
 5. **Persistence**: Debounced PATCH to D1 for state persistence
 
 ## For AI Agents

@@ -31,11 +31,11 @@ interface StudioSession {
 
 ## Flow
 
-1. **Create**: POST `/api/studio/sessions` → Returns { id, url }
+1. **Create**: POST `/api/studio/sessions` → Returns `{ id, shareUrl, name, protected }`
 2. **Load**: GET `/api/studio/sessions/:id` → Returns session data
-3. **Sync**: Client polls GET every 5 seconds
+3. **Sync**: Client polls GET every 10 seconds
 4. **Update**: PATCH `/api/studio/sessions/:id` with changes
-5. **Password**: Optional bcrypt protection
+5. **Password**: POST `/api/studio/sessions/:id` authenticates protected sessions and sets `studio_auth_<sessionId>`
 
 ## For AI Agents
 

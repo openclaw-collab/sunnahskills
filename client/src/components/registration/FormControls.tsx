@@ -27,7 +27,7 @@ export function RadioGroup({ label, name, options, value, onChange, error }: Rad
                 selected
                   ? "border-clay bg-clay/8 shadow-[0_0_0_1px_rgba(206,88,51,0.3)]"
                   : "border-charcoal/12 bg-white hover:border-charcoal/25 hover:bg-charcoal/[0.02]"
-              }`}
+              } active:scale-[0.98] motion-safe:transform-gpu`}
               style={{
                 transform: selected ? "scale(1.02)" : "scale(1)",
                 transition: "transform 120ms cubic-bezier(0.34,1.56,0.64,1), border-color 120ms ease, background 120ms ease",
@@ -98,7 +98,7 @@ export function CheckboxGroup({ label, options, values, onChange, error }: Check
                 checked
                   ? "border-clay bg-clay/8 shadow-[0_0_0_1px_rgba(206,88,51,0.3)]"
                   : "border-charcoal/12 bg-white hover:border-charcoal/25"
-              }`}
+              } active:scale-[0.98] motion-safe:transform-gpu`}
               style={{
                 transform: checked ? "scale(1.01)" : "scale(1)",
                 transition: "transform 120ms cubic-bezier(0.34,1.56,0.64,1), border-color 120ms ease",

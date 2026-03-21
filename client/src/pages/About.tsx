@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Link } from "wouter";
 import { ClayButton } from "@/components/brand/ClayButton";
 import { DarkCard } from "@/components/brand/DarkCard";
@@ -6,6 +7,7 @@ import { PremiumCard } from "@/components/brand/PremiumCard";
 import { SectionHeader } from "@/components/brand/SectionHeader";
 import { StudioBlock } from "@/studio/StudioBlock";
 import { StudioText } from "@/studio/StudioText";
+import { MotionDiv, MotionPage, MotionSection } from "@/components/motion/PageMotion";
 
 const milestones = [
   {
@@ -139,6 +141,77 @@ const reasons = [
   },
 ];
 
+function TimelineCard({
+  milestone,
+  side,
+}: {
+  milestone: (typeof milestones)[number];
+  side: "left" | "right";
+}) {
+  const alignRight = side === "left";
+
+  return (
+    <PremiumCard
+      className={`bg-white border border-charcoal/10 max-w-xl ${
+        alignRight ? "lg:ml-auto lg:text-right" : "lg:mr-auto"
+      }`}
+    >
+      <div className={`font-mono-label text-[10px] uppercase tracking-[0.18em] text-clay mb-1 ${alignRight ? "lg:justify-end" : ""}`}>
+        <StudioText k={`about.timeline.${milestone.key}.label`} defaultText={milestone.label} as="span" className="inline" />
+      </div>
+      <div className="font-heading text-lg text-charcoal mb-2">
+        <StudioText k={`about.timeline.${milestone.key}.title`} defaultText={milestone.title} as="span" className="inline" />
+      </div>
+      <p className="font-body text-sm text-charcoal/70 leading-relaxed">
+        <StudioText
+          k={`about.timeline.${milestone.key}.body`}
+          defaultText={milestone.body}
+          as="span"
+          className="inline"
+          multiline
+        />
+      </p>
+    </PremiumCard>
+  );
+}
+
+function TimelineItem({
+  milestone,
+  index,
+  reduceMotion,
+}: {
+  milestone: (typeof milestones)[number];
+  index: number;
+  reduceMotion: boolean;
+}) {
+  const leftSide = index % 2 === 0;
+
+  return (
+    <motion.div
+      className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_72px_minmax(0,1fr)] items-start gap-4 lg:gap-6"
+      initial={{ opacity: 0, y: 18, x: reduceMotion ? 0 : leftSide ? -18 : 18 }}
+      whileInView={{ opacity: 1, y: 0, x: 0 }}
+      viewport={{ once: true, margin: "-12% 0px -12% 0px" }}
+      transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] as const }}
+    >
+      <div className={leftSide ? "lg:pr-2" : "lg:col-start-1 lg:pr-2"}>
+        {leftSide ? <TimelineCard milestone={milestone} side="left" /> : null}
+      </div>
+
+      <div className="relative hidden items-start justify-start lg:flex lg:justify-center">
+        <div className="absolute left-5 top-0 h-full w-px bg-charcoal/10 lg:left-1/2 lg:-translate-x-1/2" />
+        <span className="relative z-10 mt-2 flex h-4 w-4 items-center justify-center rounded-full border border-clay/30 bg-cream shadow-sm">
+          <span className="h-2 w-2 rounded-full bg-clay" />
+        </span>
+      </div>
+
+      <div className={leftSide ? "lg:col-start-3 lg:pl-2" : "lg:pl-2"}>
+        {!leftSide ? <TimelineCard milestone={milestone} side="right" /> : null}
+      </div>
+    </motion.div>
+  );
+}
+
 function CoachCard({ coach }: { coach: (typeof coaches)[number] }) {
   const [open, setOpen] = useState(false);
   return (
@@ -179,80 +252,90 @@ function CoachCard({ coach }: { coach: (typeof coaches)[number] }) {
           multiline
         />
       </p>
-      {open && (
-        <div className="mt-4 space-y-3 border-t border-charcoal/10 pt-4">
-          <div>
-            <div className="font-mono-label text-[9px] uppercase tracking-[0.18em] text-charcoal/40 mb-1">
-              <StudioText
-                k={`about.coaches.card.${coach.key}.achievementsLabel`}
-                defaultText="Achievements"
-                as="span"
-                className="inline"
-              />
+      <AnimatePresence initial={false}>
+        {open ? (
+          <motion.div
+            initial={{ opacity: 0, height: 0, y: -8 }}
+            animate={{ opacity: 1, height: "auto", y: 0 }}
+            exit={{ opacity: 0, height: 0, y: -4 }}
+            transition={{ duration: 0.24, ease: [0.16, 1, 0.3, 1] }}
+            className="mt-4 space-y-3 border-t border-charcoal/10 pt-4 overflow-hidden"
+          >
+            <div>
+              <div className="font-mono-label text-[9px] uppercase tracking-[0.18em] text-charcoal/40 mb-1">
+                <StudioText
+                  k={`about.coaches.card.${coach.key}.achievementsLabel`}
+                  defaultText="Achievements"
+                  as="span"
+                  className="inline"
+                />
+              </div>
+              <p className="font-body text-xs text-charcoal/70">
+                <StudioText
+                  k={`about.coaches.card.${coach.key}.achievements`}
+                  defaultText={coach.achievements}
+                  as="span"
+                  className="inline"
+                  multiline
+                />
+              </p>
             </div>
-            <p className="font-body text-xs text-charcoal/70">
-              <StudioText
-                k={`about.coaches.card.${coach.key}.achievements`}
-                defaultText={coach.achievements}
-                as="span"
-                className="inline"
-                multiline
-              />
-            </p>
-          </div>
-          <div>
-            <div className="font-mono-label text-[9px] uppercase tracking-[0.18em] text-charcoal/40 mb-1">
-              <StudioText
-                k={`about.coaches.card.${coach.key}.specialtiesLabel`}
-                defaultText="Specialties"
-                as="span"
-                className="inline"
-              />
+            <div>
+              <div className="font-mono-label text-[9px] uppercase tracking-[0.18em] text-charcoal/40 mb-1">
+                <StudioText
+                  k={`about.coaches.card.${coach.key}.specialtiesLabel`}
+                  defaultText="Specialties"
+                  as="span"
+                  className="inline"
+                />
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {coach.specialties.map((s, i) => (
+                  <span
+                    key={s}
+                    className="inline-flex items-center rounded-full border border-charcoal/10 px-2 py-1 text-[10px] font-mono-label uppercase tracking-[0.12em] text-charcoal/60"
+                  >
+                    <StudioText
+                      k={`about.coaches.card.${coach.key}.specialties.${i}`}
+                      defaultText={s}
+                      as="span"
+                      className="inline"
+                    />
+                  </span>
+                ))}
+              </div>
             </div>
-            <div className="flex flex-wrap gap-2">
-              {coach.specialties.map((s, i) => (
-                <span
-                  key={s}
-                  className="inline-flex items-center rounded-full border border-charcoal/10 px-2 py-1 text-[10px] font-mono-label uppercase tracking-[0.12em] text-charcoal/60"
-                >
-                  <StudioText
-                    k={`about.coaches.card.${coach.key}.specialties.${i}`}
-                    defaultText={s}
-                    as="span"
-                    className="inline"
-                  />
-                </span>
-              ))}
+            <div>
+              <div className="font-mono-label text-[9px] uppercase tracking-[0.18em] text-charcoal/40 mb-1">
+                <StudioText
+                  k={`about.coaches.card.${coach.key}.funFactLabel`}
+                  defaultText="Fun Fact"
+                  as="span"
+                  className="inline"
+                />
+              </div>
+              <p className="font-body text-xs text-charcoal/60 italic">
+                <StudioText
+                  k={`about.coaches.card.${coach.key}.funFact`}
+                  defaultText={coach.funFact}
+                  as="span"
+                  className="inline"
+                  multiline
+                />
+              </p>
             </div>
-          </div>
-          <div>
-            <div className="font-mono-label text-[9px] uppercase tracking-[0.18em] text-charcoal/40 mb-1">
-              <StudioText
-                k={`about.coaches.card.${coach.key}.funFactLabel`}
-                defaultText="Fun Fact"
-                as="span"
-                className="inline"
-              />
-            </div>
-            <p className="font-body text-xs text-charcoal/60 italic">
-              <StudioText
-                k={`about.coaches.card.${coach.key}.funFact`}
-                defaultText={coach.funFact}
-                as="span"
-                className="inline"
-                multiline
-              />
-            </p>
-          </div>
-        </div>
-      )}
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
     </PremiumCard>
   );
 }
 
 export default function About() {
+  const reduceMotion = useReducedMotion();
+
   return (
-    <div className="bg-cream min-h-screen pb-24">
+    <MotionPage className="bg-cream min-h-screen pb-24">
       <div className="noise-overlay" />
 
       {/* PAGE HEADER */}
@@ -277,35 +360,28 @@ export default function About() {
 
       {/* TIMELINE */}
       <StudioBlock id="about.timeline" label="Our Journey" page="About">
-        <section className="max-w-6xl mx-auto px-6 py-16">
+        <MotionSection className="max-w-6xl mx-auto px-6 py-16">
           <SectionHeader
             eyebrow={<StudioText k="about.timeline.eyebrow" defaultText="Our Journey" as="span" className="inline" />}
             title={<StudioText k="about.timeline.title" defaultText="A Timeline of Growth" as="span" className="inline" />}
             className="mb-12"
           />
-          <div className="relative pl-6 border-l-2 border-charcoal/10 space-y-10">
-            {milestones.map((m) => (
-              <div key={m.key} className="relative">
-                <div className="absolute -left-[25px] top-1 w-3 h-3 rounded-full bg-clay border-2 border-cream" />
-                <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-clay mb-1">
-                  <StudioText k={`about.timeline.${m.key}.label`} defaultText={m.label} as="span" className="inline" />
-                </div>
-                <div className="font-heading text-lg text-charcoal mb-1">
-                  <StudioText k={`about.timeline.${m.key}.title`} defaultText={m.title} as="span" className="inline" />
-                </div>
-                <p className="font-body text-sm text-charcoal/70 max-w-2xl leading-relaxed">
-                  <StudioText
-                    k={`about.timeline.${m.key}.body`}
-                    defaultText={m.body}
-                    as="span"
-                    className="inline"
-                    multiline
-                  />
-                </p>
-              </div>
-            ))}
+          <div className="relative">
+            <motion.div
+              className="absolute left-5 top-0 h-full w-px bg-charcoal/10 lg:left-1/2 lg:-translate-x-1/2"
+              initial={{ scaleY: 0, opacity: 0 }}
+              whileInView={{ scaleY: 1, opacity: 1 }}
+              viewport={{ once: true, margin: "-10% 0px -10% 0px" }}
+              transition={{ duration: 0.34, ease: [0.16, 1, 0.3, 1] }}
+              style={{ transformOrigin: "top" }}
+            />
+            <div className="space-y-8 lg:space-y-10">
+              {milestones.map((m, index) => (
+                <TimelineItem key={m.key} milestone={m} index={index} reduceMotion={!!reduceMotion} />
+              ))}
+            </div>
           </div>
-        </section>
+        </MotionSection>
       </StudioBlock>
 
       {/* PROMISE QUOTE */}
@@ -339,7 +415,7 @@ export default function About() {
 
       {/* MISSION & VALUES */}
       <StudioBlock id="about.values" label="Mission & Values" page="About">
-        <section className="max-w-6xl mx-auto px-6 py-16">
+        <MotionSection className="max-w-6xl mx-auto px-6 py-16">
           <SectionHeader
             eyebrow={<StudioText k="about.values.eyebrow" defaultText="Core Values" as="span" className="inline" />}
             title={<StudioText k="about.values.title" defaultText="Our Mission & Values" as="span" className="inline" />}
@@ -355,32 +431,34 @@ export default function About() {
             />
           </p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {values.map((v) => (
-              <PremiumCard key={v.key} className="bg-white border border-charcoal/10">
-                <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-clay mb-3">
-                  <StudioText k={`about.values.${v.key}.num`} defaultText={v.num} as="span" className="inline" />
-                </div>
-                <div className="font-heading text-xl text-charcoal mb-2">
-                  <StudioText k={`about.values.${v.key}.title`} defaultText={v.title} as="span" className="inline" />
-                </div>
-                <p className="font-body text-sm text-charcoal/70 leading-relaxed">
-                  <StudioText
-                    k={`about.values.${v.key}.desc`}
-                    defaultText={v.desc}
-                    as="span"
-                    className="inline"
-                    multiline
-                  />
-                </p>
-              </PremiumCard>
+            {values.map((v, index) => (
+              <MotionDiv key={v.key} delay={index * 0.04}>
+                <PremiumCard className="bg-white border border-charcoal/10">
+                  <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-clay mb-3">
+                    <StudioText k={`about.values.${v.key}.num`} defaultText={v.num} as="span" className="inline" />
+                  </div>
+                  <div className="font-heading text-xl text-charcoal mb-2">
+                    <StudioText k={`about.values.${v.key}.title`} defaultText={v.title} as="span" className="inline" />
+                  </div>
+                  <p className="font-body text-sm text-charcoal/70 leading-relaxed">
+                    <StudioText
+                      k={`about.values.${v.key}.desc`}
+                      defaultText={v.desc}
+                      as="span"
+                      className="inline"
+                      multiline
+                    />
+                  </p>
+                </PremiumCard>
+              </MotionDiv>
             ))}
           </div>
-        </section>
+        </MotionSection>
       </StudioBlock>
 
       {/* MEET THE COACHES */}
       <StudioBlock id="about.coaches" label="Meet the Coaches" page="About">
-        <section className="max-w-6xl mx-auto px-6 py-16 bg-cream">
+        <MotionSection className="max-w-6xl mx-auto px-6 py-16 bg-cream">
           <SectionHeader
             eyebrow={<StudioText k="about.coaches.eyebrow" defaultText="The Team" as="span" className="inline" />}
             title={<StudioText k="about.coaches.title" defaultText="Meet the Coaches" as="span" className="inline" />}
@@ -396,16 +474,18 @@ export default function About() {
             />
           </p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {coaches.map((c) => (
-              <CoachCard key={c.key} coach={c} />
+            {coaches.map((c, index) => (
+              <MotionDiv key={c.key} delay={index * 0.04}>
+                <CoachCard coach={c} />
+              </MotionDiv>
             ))}
           </div>
-        </section>
+        </MotionSection>
       </StudioBlock>
 
       {/* WHY PARENTS CHOOSE */}
       <StudioBlock id="about.why" label="Why Parents Choose" page="About">
-        <section className="max-w-6xl mx-auto px-6 py-16">
+        <MotionSection className="max-w-6xl mx-auto px-6 py-16">
           <SectionHeader
             eyebrow={<StudioText k="about.why.eyebrow" defaultText="Why Us" as="span" className="inline" />}
             title={<StudioText k="about.why.title" defaultText="Why Parents Choose Sunnah Skills" as="span" className="inline" />}
@@ -421,21 +501,23 @@ export default function About() {
             />
           </p>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 mb-8">
-            {reasons.map((r) => (
-              <PremiumCard key={r.key} className="bg-white border border-charcoal/10">
-                <div className="font-heading text-base text-charcoal mb-2">
-                  <StudioText k={`about.why.${r.key}.title`} defaultText={r.title} as="span" className="inline" />
-                </div>
-                <p className="font-body text-sm text-charcoal/70 leading-relaxed">
-                  <StudioText
-                    k={`about.why.${r.key}.desc`}
-                    defaultText={r.desc}
-                    as="span"
-                    className="inline"
-                    multiline
-                  />
-                </p>
-              </PremiumCard>
+            {reasons.map((r, index) => (
+              <MotionDiv key={r.key} delay={index * 0.04}>
+                <PremiumCard className="bg-white border border-charcoal/10">
+                  <div className="font-heading text-base text-charcoal mb-2">
+                    <StudioText k={`about.why.${r.key}.title`} defaultText={r.title} as="span" className="inline" />
+                  </div>
+                  <p className="font-body text-sm text-charcoal/70 leading-relaxed">
+                    <StudioText
+                      k={`about.why.${r.key}.desc`}
+                      defaultText={r.desc}
+                      as="span"
+                      className="inline"
+                      multiline
+                    />
+                  </p>
+                </PremiumCard>
+              </MotionDiv>
             ))}
           </div>
           <DarkCard className="rounded-3xl">
@@ -460,12 +542,12 @@ export default function About() {
               />
             </p>
           </DarkCard>
-        </section>
+        </MotionSection>
       </StudioBlock>
 
       {/* CTA */}
       <StudioBlock id="about.cta" label="CTA" page="About">
-        <section className="max-w-6xl mx-auto px-6 py-20 text-center">
+        <MotionSection className="max-w-6xl mx-auto px-6 py-20 text-center">
           <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-charcoal/40 mb-4">
             <StudioText k="about.cta.locationsLabel" defaultText="Locations" as="span" className="inline" />
           </div>
@@ -496,22 +578,18 @@ export default function About() {
             </span>
           </div>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Link href="/programs">
-              <ClayButton className="px-8 py-3.5 text-[11px] uppercase tracking-[0.18em]">
-                View Our Programs
-              </ClayButton>
-            </Link>
-            <Link href="/contact">
-              <button
-                type="button"
-                className="px-8 py-3.5 rounded-full border border-charcoal/20 text-charcoal/70 text-[11px] font-mono-label uppercase tracking-[0.18em] hover:bg-charcoal hover:text-cream transition-colors"
-              >
-                Contact Us Today
-              </button>
+            <ClayButton asChild className="px-8 py-3.5 text-[11px] uppercase tracking-[0.18em]">
+              <Link href="/programs">View Our Programs</Link>
+            </ClayButton>
+            <Link
+              href="/contact"
+              className="px-8 py-3.5 rounded-full border border-charcoal/20 text-charcoal/70 text-[11px] font-mono-label uppercase tracking-[0.18em] hover:bg-charcoal hover:text-cream transition-colors"
+            >
+              Contact Us Today
             </Link>
           </div>
-        </section>
+        </MotionSection>
       </StudioBlock>
-    </div>
+    </MotionPage>
   );
 }

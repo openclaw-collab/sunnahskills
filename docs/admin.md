@@ -6,7 +6,7 @@ URL: `/admin`
 
 Login with the admin email + password seeded into `admin_users`. Authentication uses bcrypt and a D1-backed session token stored in an HttpOnly cookie `admin_session`.
 
-Default session lifetime: **24 hours**.
+Default session lifetime: **7 days**.
 
 ## First-time admin setup
 
@@ -33,6 +33,7 @@ npx wrangler d1 execute sunnahskills-admin-v2 --command \
 | `SessionManager` | Sessions tab | View/edit `program_sessions` — capacity, dates, status |
 | `DiscountsManager` | Discounts tab | Create/deactivate promo codes |
 | `ContactsTable` | Contacts tab | Submitted contact form messages |
+| `AdminSequences` | `/admin/sequences` | Sequence builder for GrappleMap catalog entries |
 
 ## Admin API routes (`functions/api/admin/`)
 
@@ -49,9 +50,11 @@ All routes require a valid `admin_session` cookie (checked by `adminAuth` utilit
 | `/api/admin/payments` | `GET` | Payment list + aggregate by program |
 | `/api/admin/programs` | `GET` | Program catalog |
 | `/api/admin/programs` | `PATCH` | Update program status or metadata |
-| `/api/admin/sessions` | `GET` | All program sessions |
-| `/api/admin/sessions` | `POST` | Create new session |
+| `/api/admin/sessions` | `PATCH` | Update session visibility/status |
 | `/api/admin/sessions/:id` | `PATCH` | Update session (capacity, dates, status) |
+| `/api/admin/positions` | `GET` | Static GrappleMap positions catalog |
+| `/api/admin/sequences` | `GET` | GrappleMap sequence catalog from static assets |
+| `/api/admin/sequences` | `POST` | Sequence creation stub (returns not supported) |
 | `/api/admin/discounts` | `GET` | All discount codes |
 | `/api/admin/discounts` | `POST` | Create new discount code |
 | `/api/admin/discounts/:id` | `PATCH` | Activate / deactivate |

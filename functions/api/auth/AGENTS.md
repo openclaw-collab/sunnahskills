@@ -17,7 +17,7 @@ Admin authentication endpoints. Handles login, logout, and session validation.
 ## Authentication Flow
 
 1. **Login**: POST credentials → bcrypt compare → create session → set cookie
-2. **Session**: Cookie `admin_session` contains 32-byte hex token
+2. **Session**: Cookie `admin_session` contains a UUID token
 3. **Validation**: Token checked against `admin_sessions` table with TTL
 4. **Logout**: Delete session row, clear cookie
 
@@ -26,7 +26,7 @@ Admin authentication endpoints. Handles login, logout, and session validation.
 ```sql
 CREATE TABLE admin_sessions (
   id INTEGER PRIMARY KEY,
-  admin_id INTEGER NOT NULL,
+  admin_user_id INTEGER NOT NULL,
   token TEXT NOT NULL UNIQUE,
   expires_at DATETIME NOT NULL,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP
@@ -37,9 +37,9 @@ CREATE TABLE admin_sessions (
 
 ### Working In This Directory
 - bcrypt.compare for password verification
-- 32-byte hex token for session
-- 24-hour session expiry
-- HttpOnly, Secure, SameSite=Strict cookies
+- UUID token for session
+- 7-day session expiry
+- HttpOnly, Secure, SameSite=Lax cookies
 
 ### Security
 - Never return password hash in responses

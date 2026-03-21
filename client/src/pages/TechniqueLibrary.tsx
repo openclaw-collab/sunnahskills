@@ -1,16 +1,33 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
+import { motion } from "framer-motion";
+import { Search, Maximize2 } from "lucide-react";
 import { SectionHeader } from "@/components/brand/SectionHeader";
 import { TechniqueViewer } from "@/components/grapplemap/TechniqueViewer";
 import { StudioBlock } from "@/studio/StudioBlock";
 import { StudioText } from "@/studio/StudioText";
-import { X, Maximize2 } from "lucide-react";
+import { TechniqueModal } from "@/components/TechniqueModal";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
+import { MotionPage, MotionDiv } from "@/components/motion/PageMotion";
+import type { PositionCategory } from "@/lib/grapplemap-types";
+
+type Difficulty = "beginner" | "intermediate" | "advanced";
 
 type SceneMeta = {
   transitionId?: number;
+  slug?: string;
   name: string;
   tags: string[];
   description: string[];
   dataPath: string;
+  positionCategory?: PositionCategory | "guard-pass";
+  startingPosition?: string;
+  endingPosition?: string;
+  source?: string;
+  totalFrames?: number;
+  difficulty?: Difficulty;
+  curriculumStage?: Exclude<TechniqueStage["slug"], "all">;
+  curriculumOrder?: number;
 };
 
 type SceneEntry = {
@@ -18,42 +35,228 @@ type SceneEntry = {
   meta: SceneMeta;
 };
 
-const CATEGORY_DEFINITIONS = [
-  { slug: "guards", label: "Guards", keywords: ["guard"] },
-  { slug: "submissions", label: "Submissions", keywords: ["submission", "choke", "armbar", "triangle", "kimura"] },
-  { slug: "escapes", label: "Escapes", keywords: ["escape"] },
-  { slug: "passes", label: "Passes", keywords: ["pass"] },
+type LibraryManifestSequence = {
+  id: string;
+  name: string;
+  slug: string;
+  positionCategory: string;
+  difficulty: Difficulty;
+  startingPosition: string;
+  endingPosition: string;
+};
+
+type TechniqueStage = {
+  slug: "all" | "standing" | "guard" | "escapes" | "sweeps" | "passing" | "control" | "submissions";
+  label: string;
+  keywords: string[];
+};
+
+const TECHNIQUE_STAGES: TechniqueStage[] = [
+  { slug: "all", label: "All", keywords: [] },
+  { slug: "standing", label: "Standing", keywords: ["standing", "clinch", "takedown", "throw", "trip"] },
+  { slug: "guard", label: "Guard", keywords: ["guard", "closed guard", "open guard", "half guard"] },
+  { slug: "escapes", label: "Escapes", keywords: ["escape", "recover", "bridge"] },
   { slug: "sweeps", label: "Sweeps", keywords: ["sweep"] },
-  { slug: "takedowns", label: "Takedowns", keywords: ["takedown", "throw", "trip", "shot", "wrestling"] },
-  { slug: "transitions", label: "Transitions", keywords: ["transition", "transitioning"] },
-] as const;
+  { slug: "passing", label: "Passing", keywords: ["guard pass", "guard-pass", "pass", "side control"] },
+  { slug: "control", label: "Control", keywords: ["back", "mount", "control", "ride"] },
+  { slug: "submissions", label: "Submissions", keywords: ["submission", "armbar", "kimura", "choke", "guillotine"] },
+];
+
+const STAGE_ORDER: Record<TechniqueStage["slug"], number> = {
+  all: 0,
+  standing: 1,
+  guard: 2,
+  escapes: 3,
+  sweeps: 4,
+  passing: 5,
+  control: 6,
+  submissions: 7,
+};
+
+const TECHNIQUE_ALIASES: Record<string, string> = {
+  "guard-pass-bullfighter": "bullfighter-pass",
+  "guard-pass-leg-over": "leg-over-pass",
+};
+
+const TECHNIQUE_OVERRIDES: Record<string, Partial<SceneMeta>> = {
+  "armbar-from-guard": {
+    source: "GrappleMap.txt • closed-guard submission chain",
+  },
+  "kimura-from-guard": {
+    source: "GrappleMap.txt • closed-guard submission chain",
+  },
+  guillotine: {
+    source: "GrappleMap.txt • standing-to-guard front headlock work",
+  },
+  "half-guard-sweep": {
+    source: "GrappleMap.txt • half-guard sweep study",
+  },
+  "guard-pass-bullfighter": {
+    source: "GrappleMap.txt • standing guard pass series",
+  },
+  "guard-pass-leg-over": {
+    source: "GrappleMap.txt • standing guard pass series",
+  },
+  "side-control-escape": {
+    source: "GrappleMap.txt • mount escape fundamentals",
+  },
+  "back-take": {
+    source: "GrappleMap.txt • back control transition",
+  },
+};
 
 function toStudioKeyPart(value: string) {
   return value.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
 }
 
-function getTechniqueCategorySlug(scene: SceneEntry) {
-  const searchable = [scene.meta.name, ...scene.meta.tags].join(" ").toLowerCase();
-  const matched = CATEGORY_DEFINITIONS.find((category) =>
-    category.keywords.some((keyword) => searchable.includes(keyword)),
-  );
-  return matched?.slug ?? "other";
+function deriveTechniqueSlug(scene: { id: string; meta: SceneMeta }) {
+  return scene.meta.slug ?? scene.id;
 }
 
-function useScenesCatalog() {
+function normalizeSource(source?: string) {
+  if (!source) return "GrappleMap";
+  return source.replace(/\.txt$/i, "");
+}
+
+function deriveStage(scene: SceneEntry): TechniqueStage["slug"] {
+  if (scene.meta.curriculumStage) return scene.meta.curriculumStage;
+
+  const searchable = [
+    scene.meta.name,
+    ...(scene.meta.tags ?? []),
+    scene.meta.startingPosition ?? "",
+    scene.meta.endingPosition ?? "",
+    scene.meta.positionCategory ?? "",
+  ]
+    .join(" ")
+    .toLowerCase();
+
+  for (const stage of TECHNIQUE_STAGES) {
+    if (stage.slug === "all") continue;
+    if (stage.keywords.some((keyword) => searchable.includes(keyword))) {
+      return stage.slug;
+    }
+  }
+
+  return "guard";
+}
+
+function useTechniqueScenes() {
   const [scenes, setScenes] = useState<SceneEntry[]>([]);
+
   useEffect(() => {
-    fetch("/data/scenes.json")
-      .then((r) => r.json())
-      .then((data: { scenes: Record<string, { meta: SceneMeta }> }) => {
-        const entries = Object.entries(data.scenes).map(([id, val]) => ({
-          id,
-          meta: val.meta,
-        }));
-        setScenes(entries);
-      })
-      .catch(() => {});
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const [scenesRes, manifestRes, publishedRes] = await Promise.all([
+          fetch("/data/scenes.json"),
+          fetch("/data/library/sequences/manifest.json").catch(() => null),
+          fetch("/api/techniques").catch(() => null),
+        ]);
+
+        if (!scenesRes.ok) {
+          if (!cancelled) setScenes([]);
+          return;
+        }
+
+        const scenesJson = (await scenesRes.json()) as { scenes?: Record<string, { meta: SceneMeta }> };
+        const manifestJson = manifestRes && manifestRes.ok
+          ? ((await manifestRes.json()) as { sequences?: LibraryManifestSequence[] })
+          : { sequences: [] as LibraryManifestSequence[] };
+        const publishedJson =
+          publishedRes && publishedRes.ok
+            ? ((await publishedRes.json()) as { techniques?: SceneEntry[] })
+            : { techniques: [] as SceneEntry[] };
+
+        const manifestBySlug = new Map((manifestJson.sequences ?? []).map((sequence) => [sequence.slug, sequence]));
+        const rawScenes = [
+          ...Object.entries(scenesJson.scenes ?? {}).map(([id, value]) => ({
+            id,
+            meta: value.meta,
+          })),
+          ...(publishedJson.techniques ?? []),
+        ];
+
+        const enriched = await Promise.all(
+          rawScenes.map(async (scene) => {
+            try {
+              const detailRes = await fetch(scene.meta.dataPath);
+              if (!detailRes.ok) return scene;
+
+              const detail = (await detailRes.json()) as {
+                meta?: Partial<SceneMeta>;
+                markers?: Array<{ name: string; frame: number; type: "position" | "transition" }>;
+              };
+
+              const slug = deriveTechniqueSlug(scene);
+              const manifestSlug = TECHNIQUE_ALIASES[slug] ?? slug;
+              const manifestMeta = manifestBySlug.get(manifestSlug);
+              const override = TECHNIQUE_OVERRIDES[slug] ?? {};
+              const markers = detail.markers ?? [];
+              const firstPosition = markers.find((marker) => marker.type === "position")?.name;
+              const lastPosition = [...markers].reverse().find((marker) => marker.type === "position")?.name;
+
+              const nextScene: SceneEntry = {
+                id: scene.id,
+                meta: {
+                  ...scene.meta,
+                  ...detail.meta,
+                  ...override,
+                  slug,
+                  transitionId: detail.meta?.transitionId ?? scene.meta.transitionId,
+                  description: detail.meta?.description ?? scene.meta.description,
+                  tags: detail.meta?.tags ?? scene.meta.tags,
+                  positionCategory:
+                    override.positionCategory ??
+                    (manifestMeta?.positionCategory as PositionCategory | "guard-pass" | undefined) ??
+                    detail.meta?.positionCategory ??
+                    scene.meta.positionCategory,
+                  startingPosition:
+                    override.startingPosition ??
+                    manifestMeta?.startingPosition ??
+                    detail.meta?.startingPosition ??
+                    scene.meta.startingPosition ??
+                    firstPosition,
+                  endingPosition:
+                    override.endingPosition ??
+                    manifestMeta?.endingPosition ??
+                    detail.meta?.endingPosition ??
+                    scene.meta.endingPosition ??
+                    lastPosition,
+                  source: normalizeSource(
+                    override.source ??
+                      detail.meta?.source ??
+                      scene.meta.source ??
+                      (manifestMeta ? "GrappleMap • curriculum aligned" : "GrappleMap"),
+                  ),
+                  totalFrames: detail.meta?.totalFrames ?? scene.meta.totalFrames,
+                  difficulty: override.difficulty ?? manifestMeta?.difficulty ?? detail.meta?.difficulty ?? scene.meta.difficulty,
+                  curriculumStage: override.curriculumStage ?? detail.meta?.curriculumStage ?? scene.meta.curriculumStage,
+                  curriculumOrder: override.curriculumOrder ?? detail.meta?.curriculumOrder ?? scene.meta.curriculumOrder,
+                },
+              };
+
+              return nextScene;
+            } catch {
+              return scene;
+            }
+          }),
+        );
+
+        if (!cancelled) {
+          setScenes(enriched);
+        }
+      } catch {
+        if (!cancelled) setScenes([]);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
+
   return scenes;
 }
 
@@ -66,21 +269,26 @@ function TechniqueCard({
   onExpand: () => void;
   onClick: () => void;
 }) {
-  const desc = scene.meta.description[1] ?? "";
+  const desc = scene.meta.description?.[1] ?? scene.meta.description?.[0] ?? "";
   const sceneKey = toStudioKeyPart(scene.id || scene.meta.name);
+  const stage = deriveStage(scene);
 
   return (
-    <div
+    <motion.article
+      layout
+      whileHover={{ y: -4 }}
+      transition={{ duration: 0.2 }}
       className="group relative flex flex-col bg-charcoal rounded-3xl overflow-hidden border border-moss/20 hover:border-moss/50 transition-colors cursor-pointer"
       onClick={onClick}
     >
-      {/* 3D Viewer */}
-      <div className="relative w-full h-52">
+      <div className="relative w-full h-72">
         <TechniqueViewer className="w-full h-full" sequencePath={scene.meta.dataPath} />
+        <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-charcoal/80 via-charcoal/20 to-transparent pointer-events-none" />
         <button
+          type="button"
           className="absolute top-3 right-3 z-10 bg-charcoal/80 text-cream/70 hover:text-cream rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity"
-          onClick={(e) => {
-            e.stopPropagation();
+          onClick={(event) => {
+            event.stopPropagation();
             onExpand();
           }}
           aria-label="Fullscreen"
@@ -89,11 +297,23 @@ function TechniqueCard({
         </button>
       </div>
 
-      {/* Card body */}
       <div className="px-5 py-4 flex flex-col gap-2 flex-1">
-        <p className="font-mono-label text-[10px] uppercase tracking-[0.2em] text-moss">
-          Technique
-        </p>
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-[10px] uppercase tracking-[0.18em] bg-moss/20 text-moss px-2 py-0.5 rounded-full">
+            {TECHNIQUE_STAGES.find((item) => item.slug === stage)?.label ?? stage}
+          </span>
+          {scene.meta.positionCategory ? (
+            <span className="text-[10px] uppercase tracking-[0.18em] text-cream/40">
+              {scene.meta.positionCategory.replace(/-/g, " ")}
+            </span>
+          ) : null}
+          {typeof scene.meta.totalFrames === "number" ? (
+            <span className="text-[10px] uppercase tracking-[0.18em] text-cream/40">
+              {scene.meta.totalFrames} frames
+            </span>
+          ) : null}
+        </div>
+
         <h3 className="font-heading text-cream text-base capitalize leading-tight">
           <StudioText
             k={`techniques.${sceneKey}.name`}
@@ -102,7 +322,8 @@ function TechniqueCard({
             className="inline"
           />
         </h3>
-        {desc && (
+
+        {desc ? (
           <p className="text-cream/60 text-xs font-body line-clamp-2">
             <StudioText
               k={`techniques.${sceneKey}.description.short`}
@@ -111,8 +332,15 @@ function TechniqueCard({
               className="inline"
             />
           </p>
-        )}
-        {scene.meta.tags.length > 0 && (
+        ) : null}
+
+        <div className="mt-1 flex items-center justify-between gap-3 text-[10px] uppercase tracking-[0.16em] text-cream/45">
+          <span>{scene.meta.startingPosition ?? "Entry"}</span>
+          <span>→</span>
+          <span>{scene.meta.endingPosition ?? "Finish"}</span>
+        </div>
+
+        {scene.meta.tags.length > 0 ? (
           <div className="flex flex-wrap gap-1.5 mt-1">
             {scene.meta.tags.map((tag) => (
               <span
@@ -123,170 +351,69 @@ function TechniqueCard({
               </span>
             ))}
           </div>
-        )}
+        ) : null}
       </div>
-    </div>
-  );
-}
-
-function DetailPanel({
-  scene,
-  onClose,
-}: {
-  scene: SceneEntry;
-  onClose: () => void;
-}) {
-  const panelRef = useRef<HTMLDivElement>(null);
-  const sceneKey = toStudioKeyPart(scene.id || scene.meta.name);
-
-  useEffect(() => {
-    const handleKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    document.addEventListener("keydown", handleKey);
-    return () => document.removeEventListener("keydown", handleKey);
-  }, [onClose]);
-
-  return (
-    <div className="fixed inset-0 z-50 flex" aria-modal="true" role="dialog">
-      {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-charcoal/70 backdrop-blur-sm"
-        onClick={onClose}
-      />
-
-      {/* Slide-in panel */}
-      <div
-        ref={panelRef}
-        className="relative ml-auto h-full w-full max-w-lg bg-charcoal border-l border-moss/20 flex flex-col overflow-y-auto animate-in slide-in-from-right duration-300"
-      >
-        <div className="flex items-center justify-between px-6 py-5 border-b border-moss/15">
-          <p className="font-mono-label text-[10px] uppercase tracking-[0.2em] text-moss">
-            Technique Detail
-          </p>
-          <button
-            className="text-cream/60 hover:text-cream transition-colors"
-            onClick={onClose}
-            aria-label="Close"
-          >
-            <X size={18} />
-          </button>
-        </div>
-
-        <div className="w-full h-72 flex-shrink-0">
-          <TechniqueViewer className="w-full h-full" sequencePath={scene.meta.dataPath} />
-        </div>
-
-        <div className="px-6 py-6 space-y-4 flex-1">
-          <h2 className="font-heading text-cream text-2xl capitalize">
-            <StudioText
-              k={`techniques.${sceneKey}.name`}
-              defaultText={scene.meta.name}
-              as="span"
-              className="inline"
-            />
-          </h2>
-
-          {scene.meta.tags.length > 0 && (
-            <div className="flex flex-wrap gap-1.5">
-              {scene.meta.tags.map((tag) => (
-                <span
-                  key={tag}
-                  className="text-[10px] uppercase tracking-[0.15em] bg-moss/20 text-moss px-2 py-0.5 rounded-full"
-                >
-                  {tag}
-                </span>
-              ))}
-            </div>
-          )}
-
-          <div className="space-y-2 text-sm font-body text-cream/70">
-            {scene.meta.description.map((line, i) => (
-              <p key={i}>
-                <StudioText
-                  k={`techniques.${sceneKey}.description.line_${i + 1}`}
-                  defaultText={line}
-                  as="span"
-                  className="inline"
-                  multiline
-                />
-              </p>
-            ))}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function FullscreenModal({
-  scene,
-  onClose,
-}: {
-  scene: SceneEntry;
-  onClose: () => void;
-}) {
-  const sceneKey = toStudioKeyPart(scene.id || scene.meta.name);
-
-  useEffect(() => {
-    const handleKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    document.addEventListener("keydown", handleKey);
-    return () => document.removeEventListener("keydown", handleKey);
-  }, [onClose]);
-
-  return (
-    <div className="fixed inset-0 z-50 bg-charcoal flex flex-col" aria-modal="true" role="dialog">
-      <div className="flex items-center justify-between px-6 py-4 border-b border-moss/15">
-        <p className="font-mono-label text-[10px] uppercase tracking-[0.2em] text-moss capitalize">
-          <StudioText
-            k={`techniques.${sceneKey}.name`}
-            defaultText={scene.meta.name}
-            as="span"
-            className="inline"
-          />
-        </p>
-        <button
-          className="text-cream/60 hover:text-cream transition-colors"
-          onClick={onClose}
-          aria-label="Close fullscreen"
-        >
-          <X size={20} />
-        </button>
-      </div>
-      <div className="flex-1">
-        <TechniqueViewer className="w-full h-full" sequencePath={scene.meta.dataPath} />
-      </div>
-    </div>
+    </motion.article>
   );
 }
 
 const TechniqueLibrary = () => {
-  const scenes = useScenesCatalog();
+  const scenes = useTechniqueScenes();
   const [selected, setSelected] = useState<SceneEntry | null>(null);
-  const [fullscreen, setFullscreen] = useState<SceneEntry | null>(null);
+  const [modalMode, setModalMode] = useState<"default" | "fullscreen">("default");
+  const [selectedStage, setSelectedStage] = useState<TechniqueStage["slug"]>("all");
+  const [searchQuery, setSearchQuery] = useState("");
 
-  const groupedScenes = scenes.reduce<Record<string, SceneEntry[]>>((acc, scene) => {
-    const categorySlug = getTechniqueCategorySlug(scene);
-    if (!acc[categorySlug]) {
-      acc[categorySlug] = [];
-    }
-    acc[categorySlug].push(scene);
-    return acc;
-  }, {});
+  const filteredScenes = useMemo(() => {
+    return scenes
+      .filter((scene) => {
+        const searchable = [
+          scene.meta.name,
+          ...scene.meta.tags,
+          scene.meta.startingPosition ?? "",
+          scene.meta.endingPosition ?? "",
+          scene.meta.source ?? "",
+        ]
+          .join(" ")
+          .toLowerCase();
+        const matchesStage = selectedStage === "all" || deriveStage(scene) === selectedStage;
+        const matchesSearch = !searchQuery || searchable.includes(searchQuery.toLowerCase());
+        return matchesStage && matchesSearch;
+      })
+      .sort((left, right) => {
+        const leftOrder = left.meta.curriculumOrder ?? STAGE_ORDER[deriveStage(left)] * 10;
+        const rightOrder = right.meta.curriculumOrder ?? STAGE_ORDER[deriveStage(right)] * 10;
+        if (leftOrder !== rightOrder) return leftOrder - rightOrder;
+        if ((left.meta.transitionId ?? 0) !== (right.meta.transitionId ?? 0)) {
+          return (left.meta.transitionId ?? 0) - (right.meta.transitionId ?? 0);
+        }
+        return left.meta.name.localeCompare(right.meta.name);
+      });
+  }, [scenes, searchQuery, selectedStage]);
 
-  const categoryOrder = [
-    ...CATEGORY_DEFINITIONS.map((category) => category.slug),
-    "other",
-  ];
-
-  const presentCategorySlugs = categoryOrder.filter(
-    (slug) => (groupedScenes[slug] ?? []).length > 0,
-  );
+  const stageCounts = useMemo(() => {
+    return scenes.reduce<Record<TechniqueStage["slug"], number>>(
+      (counts, scene) => {
+        const stage = deriveStage(scene);
+        counts[stage] += 1;
+        counts.all += 1;
+        return counts;
+      },
+      {
+        all: 0,
+        standing: 0,
+        guard: 0,
+        escapes: 0,
+        sweeps: 0,
+        passing: 0,
+        control: 0,
+        submissions: 0,
+      },
+    );
+  }, [scenes]);
 
   return (
-    <div className="bg-cream min-h-screen pb-24">
+    <MotionPage className="bg-cream min-h-screen pb-24">
       <main className="max-w-6xl mx-auto px-6 pt-32">
         <StudioBlock id="techniques.header" label="Header" page="TechniqueLibrary">
           <SectionHeader
@@ -301,17 +428,17 @@ const TechniqueLibrary = () => {
             title={
               <StudioText
                 k="techniques.header.title"
-                defaultText="GrappleMap Sequences"
+                defaultText="Techniques"
                 as="span"
                 className="inline"
               />
             }
-            className="mb-10"
+            className="mb-6"
           />
-          <p className="font-body text-sm text-charcoal/70 max-w-2xl mb-10">
+          <p className="font-body text-sm text-charcoal/70 max-w-2xl mb-10 leading-relaxed">
             <StudioText
               k="techniques.header.intro"
-              defaultText="Explore curated sequences from the training curriculum. Browse techniques, tap a card for details, or expand to fullscreen."
+              defaultText="Browse the real GrappleMap technique set with filters for stage, position, and finish. The viewer, modal, and fullscreen flow stay familiar, but the metadata now follows a cleaner grappling progression for public use."
               as="span"
               className="inline"
               multiline
@@ -319,41 +446,81 @@ const TechniqueLibrary = () => {
           </p>
         </StudioBlock>
 
+        <MotionDiv className="flex flex-col gap-4 mb-8">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-charcoal/40" size={16} />
+            <Input
+              placeholder="Search techniques, tags, positions, or source..."
+              value={searchQuery}
+              onChange={(event) => setSearchQuery(event.target.value)}
+              className="pl-10 bg-white/60 border-moss/20"
+            />
+          </div>
+
+          <Tabs value={selectedStage} onValueChange={(value) => setSelectedStage(value as TechniqueStage["slug"])}>
+            <TabsList className="bg-white/50 flex flex-wrap gap-1 h-auto p-1">
+              {TECHNIQUE_STAGES.map((stage) => (
+                <TabsTrigger key={stage.slug} value={stage.slug}>
+                  {stage.label}
+                  {stageCounts[stage.slug] ? ` (${stageCounts[stage.slug]})` : ""}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </Tabs>
+        </MotionDiv>
+
         {scenes.length === 0 ? (
           <div className="text-charcoal/40 text-sm font-body py-16 text-center">
             Loading techniques…
           </div>
+        ) : filteredScenes.length === 0 ? (
+          <div className="text-charcoal/40 text-sm font-body py-16 text-center">
+            No techniques match that filter.
+          </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-6">
-            {presentCategorySlugs.map((categorySlug) => (
-              <StudioBlock
-                key={categorySlug}
-                id={`techniques.${categorySlug}`}
-                label={`Category ${categorySlug}`}
-                page="TechniqueLibrary"
-              >
-                {groupedScenes[categorySlug].map((scene) => (
+          <div className="space-y-8">
+            <div className="flex items-center justify-between gap-4 flex-wrap">
+              <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-moss">
+                {selectedStage === "all"
+                  ? "All techniques"
+                  : TECHNIQUE_STAGES.find((stage) => stage.slug === selectedStage)?.label ?? "Techniques"}
+              </div>
+              <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-charcoal/45">
+                {filteredScenes.length} item{filteredScenes.length === 1 ? "" : "s"}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-6">
+              {filteredScenes.map((scene) => (
+                <motion.div key={scene.id} layout>
                   <TechniqueCard
-                    key={scene.id}
                     scene={scene}
-                    onClick={() => setSelected(scene)}
-                    onExpand={() => setFullscreen(scene)}
+                    onClick={() => {
+                      setSelected(scene);
+                      setModalMode("default");
+                    }}
+                    onExpand={() => {
+                      setSelected(scene);
+                      setModalMode("fullscreen");
+                    }}
                   />
-                ))}
-              </StudioBlock>
-            ))}
+                </motion.div>
+              ))}
+            </div>
           </div>
         )}
       </main>
 
-      {selected && !fullscreen && (
-        <DetailPanel scene={selected} onClose={() => setSelected(null)} />
-      )}
-
-      {fullscreen && (
-        <FullscreenModal scene={fullscreen} onClose={() => setFullscreen(null)} />
-      )}
-    </div>
+      <TechniqueModal
+        scene={selected}
+        mode={modalMode}
+        onModeChange={setModalMode}
+        onClose={() => {
+          setSelected(null);
+          setModalMode("default");
+        }}
+      />
+    </MotionPage>
   );
 };
 

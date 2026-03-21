@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useStudio } from "./useStudio";
+import { applyStudioComponentOffset, clearStudioComponentOffset, getStudioComponentRect } from "./studioDom";
 
 type OutlineRect = {
   top: number;
@@ -27,6 +28,21 @@ export function ComponentHighlighter({ disabled }: { disabled?: boolean }) {
   const dragRef = useRef<DragState | null>(null);
   const isDragging = useRef(false);
 
+  const refreshOutline = useCallback((componentId: string | null) => {
+    if (!componentId) {
+      setOutline(null);
+      return;
+    }
+    const component = document.querySelector<HTMLElement>(`[data-studio-component="${CSS.escape(componentId)}"]`);
+    const rect = getStudioComponentRect(componentId);
+    if (!component || !rect) {
+      setOutline(null);
+      return;
+    }
+    const label = component.dataset.studioLabel ?? componentId;
+    setOutline({ ...rect, label, id: componentId });
+  }, []);
+
   // ── Hover tracking ──────────────────────────────────────────────────────────
 
   useEffect(() => {
@@ -42,17 +58,15 @@ export function ComponentHighlighter({ disabled }: { disabled?: boolean }) {
       }
       const comp = (e.target as Element | null)?.closest<HTMLElement>("[data-studio-component]");
       if (!comp) {
-        setOutline(null);
+        if (!pinnedComponentId) setOutline(null);
         setHoveredComponentId(null);
         return;
       }
       cancelAnimationFrame(frameRef.current);
       frameRef.current = requestAnimationFrame(() => {
-        const rect = comp.getBoundingClientRect();
         const id = comp.dataset.studioComponent ?? "";
-        const label = comp.dataset.studioLabel ?? id;
         setHoveredComponentId(id);
-        setOutline({ top: rect.top, left: rect.left, width: rect.width, height: rect.height, label, id });
+        refreshOutline(id);
       });
     };
 
@@ -60,15 +74,22 @@ export function ComponentHighlighter({ disabled }: { disabled?: boolean }) {
       if (isDragging.current) return;
       if ((e.target as Element | null)?.closest?.("[data-studio-ui='1']")) return;
       const comp = (e.target as Element | null)?.closest<HTMLElement>("[data-studio-component]");
-      if (!comp) return;
+      if (!comp) {
+        setPinnedComponentId(null);
+        setHoveredComponentId(null);
+        setOutline(null);
+        return;
+      }
       e.preventDefault();
       e.stopPropagation();
-      setPinnedComponentId(comp.dataset.studioComponent ?? null);
+      const id = comp.dataset.studioComponent ?? null;
+      setPinnedComponentId(id);
+      refreshOutline(id);
     };
 
     const onLeave = () => {
       if (isDragging.current) return;
-      setOutline(null);
+      if (!pinnedComponentId) setOutline(null);
       setHoveredComponentId(null);
     };
 
@@ -82,7 +103,12 @@ export function ComponentHighlighter({ disabled }: { disabled?: boolean }) {
       window.removeEventListener("click", onClick, true);
       document.documentElement.removeEventListener("mouseleave", onLeave);
     };
-  }, [state.enabled, disabled, setPinnedComponentId, setHoveredComponentId]);
+  }, [state.enabled, disabled, pinnedComponentId, refreshOutline, setPinnedComponentId, setHoveredComponentId]);
+
+  useEffect(() => {
+    if (!state.enabled || disabled || !pinnedComponentId) return;
+    refreshOutline(pinnedComponentId);
+  }, [state.enabled, disabled, pinnedComponentId, positions, refreshOutline]);
 
   // ── Drag handle ─────────────────────────────────────────────────────────────
 
@@ -100,40 +126,15 @@ export function ComponentHighlighter({ disabled }: { disabled?: boolean }) {
       };
       isDragging.current = true;
 
-      const el = document.querySelector<HTMLElement>(
-        `[data-studio-component="${CSS.escape(componentId)}"]`,
-      );
-
       const onMouseMove = (me: MouseEvent) => {
         const drag = dragRef.current;
         if (!drag) return;
         const dx = drag.startDx + (me.clientX - drag.startMouseX);
         const dy = drag.startDy + (me.clientY - drag.startMouseY);
 
-        // Apply transform live
-        if (el) el.style.transform = `translate(${dx}px, ${dy}px)`;
-
-        // Update outline position live
-        setOutline((prev) => {
-          if (!prev || prev.id !== drag.componentId) return prev;
-          return {
-            ...prev,
-            top: prev.top + (me.clientY - (dragRef.current?.startMouseY ?? me.clientY) - (dy - drag.startDy - (me.clientY - drag.startMouseY - (me.clientY - me.clientY)))),
-            left: prev.left,
-          };
-        });
-
-        // Simpler: just recompute outline from element rect on rAF
+        applyStudioComponentOffset(drag.componentId, dx, dy);
         cancelAnimationFrame(frameRef.current);
-        frameRef.current = requestAnimationFrame(() => {
-          if (!el) return;
-          const rect = el.getBoundingClientRect();
-          setOutline((prev) =>
-            prev
-              ? { ...prev, top: rect.top, left: rect.left, width: rect.width, height: rect.height }
-              : prev,
-          );
-        });
+        frameRef.current = requestAnimationFrame(() => refreshOutline(drag.componentId));
       };
 
       const onMouseUp = (me: MouseEvent) => {
@@ -146,21 +147,13 @@ export function ComponentHighlighter({ disabled }: { disabled?: boolean }) {
         dragRef.current = null;
         window.removeEventListener("mousemove", onMouseMove);
         window.removeEventListener("mouseup", onMouseUp);
-        // Refresh outline from final element rect
-        if (el) {
-          const rect = el.getBoundingClientRect();
-          setOutline((prev) =>
-            prev
-              ? { ...prev, top: rect.top, left: rect.left, width: rect.width, height: rect.height }
-              : prev,
-          );
-        }
+        refreshOutline(drag.componentId);
       };
 
       window.addEventListener("mousemove", onMouseMove);
       window.addEventListener("mouseup", onMouseUp);
     },
-    [positions, setPosition],
+    [positions, refreshOutline, setPosition],
   );
 
   if (!state.enabled || disabled || !outline) return null;
@@ -175,6 +168,20 @@ export function ComponentHighlighter({ disabled }: { disabled?: boolean }) {
       aria-hidden
       style={{ position: "fixed", inset: 0, zIndex: 60, pointerEvents: "none" }}
     >
+      <div
+        style={{
+          position: "fixed",
+          top: Math.max(0, outline.top - 2),
+          left: outline.left,
+          width: outline.width,
+          height: 4,
+          borderRadius: 999,
+          background: isPinned ? "rgba(206, 88, 51, 0.96)" : "rgba(206, 88, 51, 0.55)",
+          boxShadow: isPinned ? "0 0 0 1px rgba(255,255,255,0.35)" : "none",
+          pointerEvents: "none",
+        }}
+      />
+
       {/* Component outline box */}
       <div
         style={{
@@ -184,13 +191,13 @@ export function ComponentHighlighter({ disabled }: { disabled?: boolean }) {
           width: outline.width,
           height: outline.height,
           outline: isPinned
-            ? "2px solid rgba(206, 88, 51, 0.9)"
-            : "2px dashed rgba(206, 88, 51, 0.55)",
+            ? "1px solid rgba(206, 88, 51, 0.32)"
+            : "1px dashed rgba(206, 88, 51, 0.35)",
           outlineOffset: 2,
-          background: isPinned ? "rgba(206, 88, 51, 0.06)" : "rgba(206, 88, 51, 0.03)",
+          background: isPinned ? "rgba(206, 88, 51, 0.04)" : "rgba(206, 88, 51, 0.02)",
           transition: "outline-color 0.1s, background 0.1s",
           pointerEvents: "none",
-          borderRadius: 4,
+          borderRadius: 12,
         }}
       />
 
@@ -233,10 +240,7 @@ export function ComponentHighlighter({ disabled }: { disabled?: boolean }) {
             onClick={(e) => {
               e.stopPropagation();
               setPosition(outline.id, 0, 0);
-              const el = document.querySelector<HTMLElement>(
-                `[data-studio-component="${CSS.escape(outline.id)}"]`,
-              );
-              if (el) el.style.transform = "";
+              clearStudioComponentOffset(outline.id);
             }}
             style={{
               pointerEvents: "auto",
@@ -257,34 +261,35 @@ export function ComponentHighlighter({ disabled }: { disabled?: boolean }) {
         )}
       </div>
 
-      {/* Drag handle — top-right of the outline, pointer-events: auto */}
-      <button
-        data-studio-ui="1"
-        onMouseDown={(e) => startDrag(e, outline.id)}
-        title="Drag to reposition"
-        style={{
-          position: "fixed",
-          top: outline.top + 6,
-          left: outline.left + outline.width - 34,
-          width: 28,
-          height: 28,
-          background: isPinned ? "rgba(206,88,51,0.9)" : "rgba(26,26,26,0.65)",
-          border: "none",
-          borderRadius: 6,
-          color: "#fff",
-          fontSize: 14,
-          cursor: "grab",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          pointerEvents: "auto",
-          zIndex: 1,
-          userSelect: "none",
-          boxShadow: "0 2px 8px rgba(0,0,0,0.25)",
-        }}
-      >
-        ⠿
-      </button>
+      {isPinned ? (
+        <button
+          data-studio-ui="1"
+          onMouseDown={(e) => startDrag(e, outline.id)}
+          title="Drag to reposition"
+          style={{
+            position: "fixed",
+            top: outline.top + 8,
+            left: outline.left + outline.width - 38,
+            width: 30,
+            height: 30,
+            background: "rgba(206,88,51,0.92)",
+            border: "1px solid rgba(255,255,255,0.32)",
+            borderRadius: 999,
+            color: "#fff",
+            fontSize: 14,
+            cursor: "grab",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            pointerEvents: "auto",
+            zIndex: 1,
+            userSelect: "none",
+            boxShadow: "0 12px 26px rgba(0,0,0,0.18)",
+          }}
+        >
+          ⠿
+        </button>
+      ) : null}
     </div>
   );
 }

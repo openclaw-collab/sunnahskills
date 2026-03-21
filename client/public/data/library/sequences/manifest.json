@@ -1,0 +1,76 @@
+{
+  "sequences": [
+    {
+      "id": "guard-pull",
+      "name": "Guard Pull",
+      "slug": "guard-pull",
+      "positionCategory": "standing",
+      "difficulty": "beginner",
+      "startingPosition": "Standing",
+      "endingPosition": "Closed Guard"
+    },
+    {
+      "id": "double-leg-takedown",
+      "name": "Double Leg Takedown",
+      "slug": "double-leg-takedown",
+      "positionCategory": "standing",
+      "difficulty": "beginner",
+      "startingPosition": "Standing",
+      "endingPosition": "Top Position"
+    },
+    {
+      "id": "scissor-sweep",
+      "name": "Scissor Sweep",
+      "slug": "scissor-sweep",
+      "positionCategory": "closed-guard",
+      "difficulty": "beginner",
+      "startingPosition": "Closed Guard",
+      "endingPosition": "Mount"
+    },
+    {
+      "id": "elevator-sweep",
+      "name": "Elevator Sweep",
+      "slug": "elevator-sweep",
+      "positionCategory": "closed-guard",
+      "difficulty": "beginner",
+      "startingPosition": "Closed Guard",
+      "endingPosition": "Top Side Control"
+    },
+    {
+      "id": "bullfighter-pass",
+      "name": "Bullfighter Pass",
+      "slug": "bullfighter-pass",
+      "positionCategory": "guard-pass",
+      "difficulty": "beginner",
+      "startingPosition": "Open Guard",
+      "endingPosition": "Side Control"
+    },
+    {
+      "id": "leg-over-pass",
+      "name": "Leg-Over Pass",
+      "slug": "leg-over-pass",
+      "positionCategory": "guard-pass",
+      "difficulty": "intermediate",
+      "startingPosition": "Open Guard",
+      "endingPosition": "Side Control"
+    },
+    {
+      "id": "armbar-from-mount",
+      "name": "Armbar from Mount",
+      "slug": "armbar-from-mount",
+      "positionCategory": "mount",
+      "difficulty": "beginner",
+      "startingPosition": "Mount",
+      "endingPosition": "Submission"
+    },
+    {
+      "id": "cross-collar-choke",
+      "name": "Cross Collar Choke",
+      "slug": "cross-collar-choke",
+      "positionCategory": "mount",
+      "difficulty": "beginner",
+      "startingPosition": "Mount",
+      "endingPosition": "Submission"
+    }
+  ]
+}

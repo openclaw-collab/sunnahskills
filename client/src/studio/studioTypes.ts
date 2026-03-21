@@ -4,9 +4,12 @@ export type StudioThemePresetId = "brand" | "sage" | "ink" | "clay" | "custom";
 
 /** The 3-slot custom palette model */
 export type StudioCustomTheme = {
-  background: string;   // main page background
-  subtheme1: string;    // component/card surfaces
-  highlight: string;    // CTAs, accent strokes
+  pageBackground: string;
+  surfaceMain: string;
+  surfaceSub: string;
+  textMain: string;
+  textSub: string;
+  accent: string;
 };
 
 export type StudioThemePreset = {

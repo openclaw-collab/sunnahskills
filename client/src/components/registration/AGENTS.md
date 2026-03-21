@@ -14,24 +14,26 @@ Multi-step registration wizard components. Handles the complete registration flo
 | `ProgramSummaryCard.tsx` | Selected program display with pricing |
 | `StepGuardianInfo.tsx` | Step 1: Parent/guardian information |
 | `StepStudentInfo.tsx` | Step 2: Student information |
-| `StepMedicalInfo.tsx` | Step 3: Medical information |
-| `StepReview.tsx` | Step 4: Review all information |
-| `StepWaivers.tsx` | Step 5: Liability waivers and signatures |
+| `StepProgramDetails.tsx` | Step 3: Program-specific fields + sibling discount |
+| `StepWaivers.tsx` | Step 4: Liability waivers and signatures |
+| `StepPayment.tsx` | Step 5: Order summary + Stripe Elements |
+| `OrderSummaryCard.tsx` | Pricing breakdown + discount code field |
+| `ResumeBanner.tsx` | Draft recovery prompt for saved registrations |
 
 ## Registration Flow
 
-1. **Step 1**: Guardian info (name, email, phone, emergency contact)
-2. **Step 2**: Student info (name, DOB, school, experience)
-3. **Step 3**: Medical info (conditions, allergies, medications)
-4. **Step 4**: Review all data, select payment method
-5. **Step 5**: Sign waivers, submit & pay
+1. **Step 1**: Guardian info (name, email, phone, emergency contact, relationship)
+2. **Step 2**: Student info (name, DOB, experience, medical notes)
+3. **Step 3**: Program details (BJJ / Archery / Outdoor / Bullyproofing branching)
+4. **Step 4**: Waivers and signature
+5. **Step 5**: Payment and confirmation
 
 ## State Management
 
 - `useRegistration` hook manages draft state
 - Draft persisted to localStorage (key: `ss-reg-draft-{slug}`)
 - Validation via `useStepValidation` hook
-- Zod schemas in `lib/programSchemas.ts`
+- Program config and payment behavior come from `lib/programConfig.ts`
 
 ## For AI Agents
 
@@ -43,8 +45,9 @@ Multi-step registration wizard components. Handles the complete registration flo
 
 ### Payment Integration
 - One-time programs: Stripe PaymentIntent
-- BJJ (recurring): Stripe Subscription
+- BJJ (recurring): Stripe Subscription with a one-time fallback
 - Waits for capacity check before payment creation
+- Waivers now require a typed signature plus a valid date before the wizard can advance
 
 ### Patterns
 ```typescript
@@ -54,7 +57,7 @@ export function StepComponent({
   onChange,
   onValidate
 }: StepProps) {
-  const { validate, errors } = useStepValidation(schema);
+  const { errors, validateAndTouch } = useStepValidation("guardian", draft);
 
   return (
     <form>

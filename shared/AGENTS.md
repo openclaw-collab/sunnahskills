@@ -10,26 +10,22 @@ Shared TypeScript types and Zod schemas used by both frontend and backend. Ensur
 
 | File | Description |
 |------|-------------|
-| `types.ts` | Core TypeScript interfaces (Program, Registration, Student, etc.) |
+| `types.ts` | Core TypeScript aliases derived from `schema.ts` |
 | `schema.ts` | Zod validation schemas for API payloads |
 | `schema.frontend.ts` | Frontend-specific schema extensions |
 
 ## Exports Overview
 
 ### types.ts
-- `Program`, `ProgramSession` - Program definitions
-- `Registration`, `RegistrationInput` - Registration data
-- `Guardian`, `Student` - Person entities
-- `PaymentIntent`, `PaymentStatus` - Payment types
-- `AdminUser`, `AdminSession` - Admin auth types
-- `StudioSession`, `StudioEdit` - Studio types
+- `RegistrationStatus`, `PaymentStatus`
+- `Guardian`, `Student`, `Registration`, `Waiver`, `Payment`, `Discount`
+- `AdminUser`, `Contact`
 
 ### schema.ts
 - `registrationSchema` - Zod schema for registration payload
-- `paymentIntentSchema` - Schema for payment creation
-- `contactSchema` - Contact form validation
-- `loginSchema` - Admin login validation
-- `discountCodeSchema` - Promo code validation
+- `guardianSchema`, `studentSchema`, `registrationSchema`, `waiverSchema`
+- `paymentSchema`, `discountSchema`, `adminUserSchema`, `contactSchema`
+- `registrationStatusEnum`, `paymentStatusEnum`
 
 ## For AI Agents
 
@@ -49,7 +45,8 @@ Shared TypeScript types and Zod schemas used by both frontend and backend. Ensur
 
 ```typescript
 // Frontend
-import { Registration, registrationSchema } from '../../shared/types';
+import type { Registration } from '../../shared/types';
+import { registrationSchema } from '../../shared/schema';
 const data: Registration = { ... };
 
 // Backend

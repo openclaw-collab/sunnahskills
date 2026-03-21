@@ -1,4 +1,4 @@
-import { getAdminFromRequest } from "../../_utils/adminAuth";
+import { getAdminFromRequest, hasAdminPermission } from "../../_utils/adminAuth";
 
 interface Env {
   DB: D1Database;
@@ -15,6 +15,7 @@ export async function onRequestGet({ request, env }: { request: Request; env: En
   if (!env.DB) return json({ error: "DB not configured" }, { status: 500 });
   const admin = await getAdminFromRequest(env, request);
   if (!admin) return json({ error: "Unauthorized" }, { status: 401 });
+  if (!hasAdminPermission(admin, "discounts", "read")) return json({ error: "Forbidden" }, { status: 403 });
 
   const { results } = await env.DB.prepare(`SELECT * FROM discounts ORDER BY created_at DESC LIMIT 500`).all();
   return json({ discounts: results ?? [] });
@@ -24,6 +25,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
   if (!env.DB) return json({ error: "DB not configured" }, { status: 500 });
   const admin = await getAdminFromRequest(env, request);
   if (!admin) return json({ error: "Unauthorized" }, { status: 401 });
+  if (!hasAdminPermission(admin, "discounts", "write")) return json({ error: "Forbidden" }, { status: 403 });
 
   const body = (await request.json().catch(() => null)) as
     | {
@@ -67,6 +69,7 @@ export async function onRequestPatch({ request, env }: { request: Request; env: 
   if (!env.DB) return json({ error: "DB not configured" }, { status: 500 });
   const admin = await getAdminFromRequest(env, request);
   if (!admin) return json({ error: "Unauthorized" }, { status: 401 });
+  if (!hasAdminPermission(admin, "discounts", "write")) return json({ error: "Forbidden" }, { status: 403 });
 
   const body = (await request.json().catch(() => null)) as
     | { id: number; active?: number; maxUses?: number | null; validUntil?: string | null }
@@ -87,4 +90,3 @@ export async function onRequestPatch({ request, env }: { request: Request; env: 
 
   return json({ ok: true });
 }
-

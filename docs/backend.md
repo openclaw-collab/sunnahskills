@@ -38,12 +38,14 @@ Cloudflare Pages Functions use file-based routing under `functions/`. A file at 
 | `functions/api/admin/registrations/[id].ts` | GET, PATCH | `/api/admin/registrations/:id` |
 | `functions/api/admin/payments.ts` | GET | `/api/admin/payments` |
 | `functions/api/admin/programs.ts` | GET, PATCH | `/api/admin/programs` |
-| `functions/api/admin/sessions.ts` | GET, POST, PATCH | `/api/admin/sessions` |
+| `functions/api/admin/sessions.ts` | PATCH | `/api/admin/sessions` |
 | `functions/api/admin/discounts.ts` | GET, POST, PATCH | `/api/admin/discounts` |
 | `functions/api/admin/contacts.ts` | GET | `/api/admin/contacts` |
 | `functions/api/admin/export.ts` | GET | `/api/admin/export` |
+| `functions/api/admin/positions.ts` | GET | `/api/admin/positions` |
+| `functions/api/admin/sequences.ts` | GET, POST | `/api/admin/sequences` |
 | `functions/api/studio/sessions.ts` | POST | `/api/studio/sessions` |
-| `functions/api/studio/sessions/[id].ts` | GET, PATCH | `/api/studio/sessions/:id` |
+| `functions/api/studio/sessions/[id].ts` | GET, POST, PATCH | `/api/studio/sessions/:id` |
 | `functions/api/studio/uploads.ts` | POST | `/api/studio/uploads` |
 
 ## Function signature
@@ -156,7 +158,10 @@ const body = parsed.data;
 
 ## Stripe integration (server-side)
 
-Stripe is called directly via `fetch` to the Stripe REST API (no Stripe SDK — Workers bundle size constraints):
+The payment code uses both patterns:
+
+- `create-intent.ts` calls the Stripe REST API directly with `fetch`
+- `create-subscription.ts` and `webhook.ts` use the Stripe SDK for subscription and event handling
 
 ```typescript
 const stripeRes = await fetch("https://api.stripe.com/v1/payment_intents", {
@@ -169,7 +174,7 @@ const stripeRes = await fetch("https://api.stripe.com/v1/payment_intents", {
 });
 ```
 
-Webhook verification also uses the Stripe REST API with the raw request body and `STRIPE_WEBHOOK_SECRET`.
+Webhook verification uses the Stripe SDK with the raw request body and `STRIPE_WEBHOOK_SECRET`.
 
 ### Payment flow
 
@@ -180,7 +185,7 @@ POST /api/payments/create-intent
   3. Create Stripe PaymentIntent via REST API
   4. Insert payments row (status: 'pending', payment_type: 'one_time')
   5. Update registrations.status → 'pending_payment'
-  6. Return { clientSecret }
+  6. Return { clientSecret, paymentIntentId }
 
 POST /api/payments/create-subscription (BJJ only)
   1. Create/retrieve Stripe Customer by email
@@ -190,6 +195,7 @@ POST /api/payments/create-subscription (BJJ only)
   5. Expand latest_invoice.payment_intent to get clientSecret
   6. Insert payments row (payment_type: 'subscription')
   7. Return { clientSecret }
+  8. If subscriptions are not configured, return `{ error: "subscriptions_not_configured" }` and let the client fall back to a one-time intent
 
 POST /api/payments/webhook
   1. Verify Stripe-Signature header

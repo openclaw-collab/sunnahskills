@@ -35,7 +35,7 @@ describe("Registration Endpoint", () => {
       phone: "555-1234",
       emergencyContactName: "Jane Doe",
       emergencyContactPhone: "555-5678",
-      relationship: "Parent",
+      relationship: "father",
       notes: "Test notes",
     },
     student: {
@@ -52,7 +52,7 @@ describe("Registration Endpoint", () => {
       priceId: 1,
       preferredStartDate: "2024-01-15",
       scheduleChoice: "weekday-afternoon",
-      programSpecific: {},
+      programSpecific: { bjjTrack: "men-14", trialClass: "no", notes: "" },
     },
     waivers: {
       liabilityWaiver: true,
@@ -186,9 +186,9 @@ describe("Registration Endpoint", () => {
 
     it("should handle session capacity check when session is full", async () => {
       const mockDb = env.DB as any;
-      mockDb.setMockData("programs", [{ id: 1, slug: "bjj" }]);
+      mockDb.setMockData("programs", [{ id: "bjj", slug: "bjj", name: "BJJ", status: "active" }]);
       mockDb.setMockData("program_sessions", [
-        { id: 1, capacity: 10, enrolled_count: 10 },
+        { id: 1, capacity: 10, enrolled_count: 10, age_group: "men-14", program_id: "bjj" },
       ]);
 
       const request = createMockRequest("POST", "https://example.com/api/register", {
@@ -206,9 +206,9 @@ describe("Registration Endpoint", () => {
 
     it("should allow registration when session has capacity", async () => {
       const mockDb = env.DB as any;
-      mockDb.setMockData("programs", [{ id: 1, slug: "bjj", name: "BJJ Program" }]);
+      mockDb.setMockData("programs", [{ id: "bjj", slug: "bjj", name: "BJJ Program", status: "active" }]);
       mockDb.setMockData("program_sessions", [
-        { id: 1, capacity: 10, enrolled_count: 5 },
+        { id: 1, capacity: 10, enrolled_count: 5, age_group: "men-14", program_id: "bjj" },
       ]);
 
       const request = createMockRequest("POST", "https://example.com/api/register", {
@@ -226,7 +226,7 @@ describe("Registration Endpoint", () => {
 
     it("should skip capacity check when no session is specified", async () => {
       const mockDb = env.DB as any;
-      mockDb.setMockData("programs", [{ id: 1, slug: "bjj", name: "BJJ Program" }]);
+      mockDb.setMockData("programs", [{ id: "bjj", slug: "bjj", name: "BJJ Program", status: "active" }]);
 
       const payloadWithoutSession = {
         ...validRegistrationPayload,
@@ -248,7 +248,7 @@ describe("Registration Endpoint", () => {
   describe("Database Operations", () => {
     it("should create guardian record", async () => {
       const mockDb = env.DB as any;
-      mockDb.setMockData("programs", [{ id: 1, slug: "bjj", name: "BJJ Program" }]);
+      mockDb.setMockData("programs", [{ id: "bjj", slug: "bjj", name: "BJJ Program", status: "active" }]);
 
       const request = createMockRequest("POST", "https://example.com/api/register", {
         body: validRegistrationPayload,
@@ -263,7 +263,7 @@ describe("Registration Endpoint", () => {
 
     it("should create student record", async () => {
       const mockDb = env.DB as any;
-      mockDb.setMockData("programs", [{ id: 1, slug: "bjj", name: "BJJ Program" }]);
+      mockDb.setMockData("programs", [{ id: "bjj", slug: "bjj", name: "BJJ Program", status: "active" }]);
 
       const request = createMockRequest("POST", "https://example.com/api/register", {
         body: validRegistrationPayload,
@@ -278,7 +278,7 @@ describe("Registration Endpoint", () => {
 
     it("should create registration record", async () => {
       const mockDb = env.DB as any;
-      mockDb.setMockData("programs", [{ id: 1, slug: "bjj", name: "BJJ Program" }]);
+      mockDb.setMockData("programs", [{ id: "bjj", slug: "bjj", name: "BJJ Program", status: "active" }]);
 
       const request = createMockRequest("POST", "https://example.com/api/register", {
         body: validRegistrationPayload,
@@ -293,7 +293,7 @@ describe("Registration Endpoint", () => {
 
     it("should create waiver record", async () => {
       const mockDb = env.DB as any;
-      mockDb.setMockData("programs", [{ id: 1, slug: "bjj", name: "BJJ Program" }]);
+      mockDb.setMockData("programs", [{ id: "bjj", slug: "bjj", name: "BJJ Program", status: "active" }]);
 
       const request = createMockRequest("POST", "https://example.com/api/register", {
         body: validRegistrationPayload,
@@ -308,7 +308,7 @@ describe("Registration Endpoint", () => {
 
     it("should handle guardian creation failure", async () => {
       const mockDb = env.DB as any;
-      mockDb.setMockData("programs", [{ id: 1, slug: "bjj", name: "BJJ Program" }]);
+      mockDb.setMockData("programs", [{ id: "bjj", slug: "bjj", name: "BJJ Program", status: "active" }]);
       mockDb.prepare.mockReturnValue({
         bind: vi.fn().mockReturnThis(),
         run: vi.fn().mockResolvedValue({ success: true, meta: {} }),
@@ -327,48 +327,87 @@ describe("Registration Endpoint", () => {
     });
   });
 
-  describe("All Program Types", () => {
-    const programTypes = ["bjj", "archery", "outdoor", "bullyproofing"];
+  describe("Program enrollment gate", () => {
+    it("accepts bjj when program is active", async () => {
+      const mockDb = env.DB as any;
+      mockDb.setMockData("programs", [{ id: "bjj", slug: "bjj", name: "BJJ Program", status: "active" }]);
+      mockDb.setMockData("program_sessions", [
+        { id: 1, capacity: 10, enrolled_count: 0, age_group: "men-14", program_id: "bjj" },
+      ]);
 
-    programTypes.forEach((programType) => {
-      it(`should accept ${programType} program slug`, async () => {
-        const mockDb = env.DB as any;
-        mockDb.setMockData("programs", [{ id: 1, slug: programType, name: `${programType} Program` }]);
-
-        const request = createMockRequest("POST", "https://example.com/api/register", {
-          body: { ...validRegistrationPayload, programSlug: programType },
-        });
-
-        const response = await onRequestPost({ request, env });
-
-        expect(response.status).toBe(200);
+      const request = createMockRequest("POST", "https://example.com/api/register", {
+        body: validRegistrationPayload,
       });
+
+      const response = await onRequestPost({ request, env });
+      expect(response.status).toBe(200);
+    });
+
+    it("returns 403 for non-bjj programs (enrollment not open)", async () => {
+      const mockDb = env.DB as any;
+      mockDb.setMockData("programs", [{ id: "archery", slug: "archery", name: "Archery", status: "coming_soon" }]);
+
+      const request = createMockRequest("POST", "https://example.com/api/register", {
+        body: {
+          ...validRegistrationPayload,
+          programSlug: "archery",
+          programDetails: {
+            sessionId: null,
+            priceId: null,
+            programSpecific: {
+              dominantHand: "right",
+              experience: "never",
+              sessionDate: "summer-2026-a",
+              notes: "",
+            },
+          },
+        },
+      });
+
+      const response = await onRequestPost({ request, env });
+      const data = await parseJsonResponse(response);
+      expect(response.status).toBe(403);
+      expect(String(data.error)).toContain("only open");
     });
   });
 
   describe("Optional Fields", () => {
-    it("should handle minimal payload with only required fields", async () => {
+    it("rejects incomplete BJJ program details", async () => {
       const mockDb = env.DB as any;
-      mockDb.setMockData("programs", [{ id: 1, slug: "bjj", name: "BJJ Program" }]);
+      mockDb.setMockData("programs", [{ id: "bjj", slug: "bjj", name: "BJJ Program", status: "active" }]);
 
       const minimalPayload = {
         programSlug: "bjj",
         guardian: {
           fullName: "John Doe",
           email: "john@example.com",
-          phone: "555-1234",
+          phone: "555-1234567890",
+          emergencyContactName: "",
+          emergencyContactPhone: "",
+          relationship: "father",
+          notes: "",
         },
         student: {
           fullName: "Jimmy Doe",
+          preferredName: "",
+          dateOfBirth: "2010-01-01",
+          age: 14,
+          gender: "male",
+          skillLevel: "",
+          medicalNotes: "",
         },
         programDetails: {
-          programSpecific: {},
+          sessionId: 1,
+          priceId: 1,
+          programSpecific: { bjjTrack: "", trialClass: "", notes: "" },
         },
         waivers: {
           liabilityWaiver: true,
           photoConsent: true,
           medicalConsent: true,
           termsAgreement: true,
+          signatureText: "John Doe",
+          signedAt: "2024-01-01T00:00:00Z",
         },
       };
 
@@ -377,8 +416,9 @@ describe("Registration Endpoint", () => {
       });
 
       const response = await onRequestPost({ request, env });
-
-      expect(response.status).toBe(200);
+      const data = await parseJsonResponse(response);
+      expect(response.status).toBe(400);
+      expect(data.error).toMatch(/track|trial/i);
     });
   });
 });

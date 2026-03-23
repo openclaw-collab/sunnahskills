@@ -9,9 +9,8 @@ import {
   archeryDominantHandOptions,
   archeryExperienceOptions,
   archerySessionOptions,
-  bjjAgeGroupOptions,
-  bjjClassGroupOptions,
   bjjTrialClassOptions,
+  bjjTrackOptions,
   bullyproofingAgeGroupOptions,
   bullyproofingConcernOptions,
   guardianRelationshipOptions,
@@ -101,12 +100,10 @@ function isAllowedValue(value: string, allowed: readonly { value: string }[]) {
 function sanitizeProgramSpecific(programSlug: string, programSpecific: Record<string, unknown>) {
   switch (programSlug) {
     case "bjj": {
-      const gender = typeof programSpecific.gender === "string" ? programSpecific.gender.trim() : "";
-      const ageGroup = typeof programSpecific.ageGroup === "string" ? programSpecific.ageGroup.trim() : "";
+      const bjjTrack = typeof programSpecific.bjjTrack === "string" ? programSpecific.bjjTrack.trim() : "";
       const trialClass = typeof programSpecific.trialClass === "string" ? programSpecific.trialClass.trim() : "";
       return {
-        gender: isAllowedValue(gender, bjjClassGroupOptions) ? gender : "",
-        ageGroup: isAllowedValue(ageGroup, bjjAgeGroupOptions) ? ageGroup : "",
+        bjjTrack: isAllowedValue(bjjTrack, bjjTrackOptions) ? bjjTrack : "",
         trialClass: isAllowedValue(trialClass, bjjTrialClassOptions) ? trialClass : "",
         notes: sanitizeFreeText(typeof programSpecific.notes === "string" ? programSpecific.notes : "", 1000),
       };
@@ -214,8 +211,7 @@ function validateRegistrationPayload(body: ReturnType<typeof sanitizeRegistratio
   const ps = body.programDetails.programSpecific as Record<string, unknown>;
   switch (body.programSlug) {
     case "bjj":
-      if (!isAllowedValue(String(ps.gender ?? ""), bjjClassGroupOptions)) return "Please select a valid class group";
-      if (!isAllowedValue(String(ps.ageGroup ?? ""), bjjAgeGroupOptions)) return "Please select a valid age group";
+      if (!isAllowedValue(String(ps.bjjTrack ?? ""), bjjTrackOptions)) return "Please select a valid class track";
       if (!isAllowedValue(String(ps.trialClass ?? ""), bjjTrialClassOptions)) return "Please select a valid trial option";
       break;
     case "archery":
@@ -458,10 +454,24 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
     return json({ error: validationError }, { status: 400 });
   }
 
-  const program = await env.DB.prepare(`SELECT id, slug, name FROM programs WHERE slug = ?`)
+  const program = await env.DB.prepare(`SELECT id, slug, name, status FROM programs WHERE slug = ?`)
     .bind(body.programSlug)
-    .first<{ id: string; slug: string; name: string }>();
+    .first<{ id: string; slug: string; name: string; status: string | null }>();
   if (!program?.id) return json({ error: "Program not found" }, { status: 404 });
+
+  if (program.slug !== "bjj") {
+    return json({ error: "Registration is only open for Brazilian Jiu-Jitsu right now." }, { status: 403 });
+  }
+
+  if (body.programSlug === "bjj" && body.programDetails.sessionId) {
+    const sess = await env.DB.prepare(`SELECT age_group FROM program_sessions WHERE id = ? AND program_id = 'bjj'`)
+      .bind(body.programDetails.sessionId)
+      .first<{ age_group: string | null }>();
+    const track = String((body.programDetails.programSpecific as { bjjTrack?: string }).bjjTrack ?? "");
+    if (sess?.age_group && track && sess.age_group !== track) {
+      return json({ error: "Selected session does not match the chosen track." }, { status: 400 });
+    }
+  }
 
   let waitlisted = false;
   let waitlistPosition: number | null = null;

@@ -17,11 +17,22 @@ export const studentSkillLevelOptions = [
   { value: "intermediate", label: "Intermediate" },
 ] as const;
 
+/** BJJ track keys align with `program_sessions.age_group` / pricing rows (merged plan). */
+export const bjjTrackOptions = [
+  { value: "girls-5-10", label: "Girls 5–10" },
+  { value: "boys-7-13", label: "Boys 7–13" },
+  { value: "women-11-tue", label: "Teens+ Women 11+ — Tuesday" },
+  { value: "women-11-thu", label: "Teens+ Women 11+ — Thursday" },
+  { value: "men-14", label: "Teens+ Men 14+" },
+] as const;
+
+/** @deprecated Use bjjTrackOptions */
 export const bjjClassGroupOptions = [
   { value: "boys", label: "Boys' class" },
   { value: "girls", label: "Girls' class" },
 ] as const;
 
+/** @deprecated Use bjjTrackOptions */
 export const bjjAgeGroupOptions = [
   { value: "6-10", label: "6–10 yrs" },
   { value: "11-14", label: "11–14 yrs" },

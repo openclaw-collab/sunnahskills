@@ -31,6 +31,7 @@ import RegistrationWaitlist from "@/pages/registration/RegistrationWaitlist";
 import TechniqueLibrary from "@/pages/TechniqueLibrary";
 import About from "@/pages/About";
 import RegistrationHub from "@/pages/RegistrationHub";
+import CartPage from "@/pages/registration/CartPage";
 import { StudioProvider } from "@/studio/StudioProvider";
 import StudioPanel from "@/studio/StudioPanel";
 
@@ -46,6 +47,7 @@ function Router() {
           <Route path="/" component={Home} />
           <Route path="/programs" component={Programs} />
           <Route path="/register" component={RegistrationHub} />
+          <Route path="/registration/cart" component={CartPage} />
           <Route path="/programs/bjj" component={BJJProgram} />
           <Route path="/programs/archery" component={ArcheryProgram} />
           <Route path="/programs/outdoor" component={OutdoorWorkshopsProgram} />

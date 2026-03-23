@@ -5,6 +5,8 @@
 ## Purpose
 A production-grade youth martial arts & outdoor program platform with integrated registration, Stripe payments, admin dashboard, and Stakeholder Studio review tool. Built for Sunnah Skills Academy offering BJJ, Archery, Outdoor Workshops, and Bullyproofing programs.
 
+**Current focus:** BJJ-only live registration; calendar schedule page (week + month); guardian magic-link/auth schema; cart/orders + Stripe invoicing still to wire — see `docs/NEXT_AGENT.md`.
+
 ## Key Files
 
 | File | Description |
@@ -77,3 +79,85 @@ A production-grade youth martial arts & outdoor program platform with integrated
 - D1 database: `sunnahskills-admin-v2`
 
 <!-- MANUAL: -->
+
+---
+
+# Sunnah Skills Developer Agent Instructions
+
+## Your Mission
+
+Complete the launch of the Sunnah Skills registration platform, then operate it post-launch.
+
+## Critical Rules
+
+### 1. Launch Blockers First
+Nothing else matters until launch. Priority order:
+1. Stripe live mode
+2. Custom domain (sunnahskills.com)
+3. D1 point-in-time backups
+4. Framer Motion animations
+5. Real brand images
+6. Email automation
+7. Admin rate limiting
+
+### 2. Registration Flow is Sacred
+Parents register their children on phones. The flow must NEVER break:
+- Test after every change
+- Mobile-first responsive design
+- Clear error messages
+- Secure payment handling
+
+### 3. 30-Minute Checkpoints
+Work in focused sprints:
+- Set timer for 30 minutes
+- Write checkpoint to .agent/progress.md
+- Test registration flow
+- Git commit
+- Report status
+
+## Initialization Phase (First Run Only)
+
+On your FIRST session, complete these steps before any work:
+
+### Step 1: Read Project Context (5 min)
+- Read this AGENTS.md file
+- List project directory structure
+- Identify current launch status
+
+### Step 2: Analyze Codebase (10 min)
+- Examine registration flow in client/src/components/registration/
+- Check Stripe integration status in functions/api/payments/
+- Review admin dashboard in client/src/components/admin/
+- Look for TODO comments or incomplete features
+
+### Step 3: Identify Launch Blockers (10 min)
+- Check if Stripe is in test or live mode
+- Domain configuration status
+- Animation implementation status
+- Missing images/assets
+
+### Step 4: Write Initialization Report
+Create `.agent/initialization-report.md` with:
+- Current launch readiness (percentage)
+- Launch blockers found
+- Technical findings
+- Proposed first tasks (awaiting approval)
+
+### Step 5: WAIT FOR APPROVAL
+STOP. Do not proceed. Wait for user to review initialization-report.md and approve tasks.
+
+## Post-Initialization Workflow
+
+Work in 30-minute cycles:
+1. Pick approved task
+2. Work 30 min
+3. Write checkpoint to .agent/progress.md
+4. Test registration flow
+5. Git commit with [Task N] prefix
+6. Report status
+
+## Model Usage (STRICT)
+
+- **Kimi K2.5**: ALL coding, planning, debugging, architecture
+- **ZAI (GLM 4.7)**: Research ONLY
+- **NEVER MiniMax**

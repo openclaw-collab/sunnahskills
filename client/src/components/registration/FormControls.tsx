@@ -146,10 +146,14 @@ interface SelectFieldProps {
 }
 
 export function SelectField({ label, value, onChange, options, placeholder, error, onBlur }: SelectFieldProps) {
+  const id = React.useId();
   return (
     <div className="space-y-2">
-      <label className="font-body text-sm text-charcoal font-medium">{label}</label>
+      <label htmlFor={id} className="font-body text-sm text-charcoal font-medium">
+        {label}
+      </label>
       <select
+        id={id}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         onBlur={onBlur}

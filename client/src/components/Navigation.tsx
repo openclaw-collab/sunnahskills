@@ -97,14 +97,22 @@ const Navigation = () => {
           }}
         >
           <div className="flex items-center gap-1">
-            <Link href="/programs">
-              <a className="hover:opacity-70 transition-opacity">Programs</a>
-            </Link>
+            <button
+              type="button"
+              className="hover:opacity-70 transition-opacity uppercase tracking-[0.18em]"
+              aria-expanded={programsOpen}
+              aria-haspopup="true"
+              onMouseEnter={openPrograms}
+              onFocus={openPrograms}
+            >
+              Programs
+            </button>
             <ChevronDown
               className={cn(
                 "h-3.5 w-3.5 opacity-70 transition-transform duration-200",
                 programsOpen ? "rotate-180" : "rotate-0",
               )}
+              aria-hidden
             />
           </div>
 
@@ -183,8 +191,11 @@ const Navigation = () => {
         <div className="absolute top-full mt-3 left-0 right-0 rounded-3xl bg-charcoal/95 text-cream border border-cream/10 shadow-xl md:hidden">
           <div className="flex flex-col gap-3 px-4 py-4 text-xs uppercase tracking-[0.18em]">
             <div className="py-1.5 border-b border-cream/5">
+              <div className="mb-2 font-mono-label text-[10px] uppercase tracking-[0.18em] text-cream/50">Programs</div>
               <Link href="/programs">
-                <a className="mb-2 block">Programs</a>
+                <a className="mb-2 block text-cream" onClick={() => setMobileOpen(false)}>
+                  All programs
+                </a>
               </Link>
               <div className="space-y-1">
                 {programLinks.map((item) => (

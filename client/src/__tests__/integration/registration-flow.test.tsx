@@ -66,13 +66,15 @@ describe("Registration Flow Integration", () => {
 
     await user.click(screen.getByRole("button", { name: /continue/i }));
 
-    // Step 3: Program Details (BJJ uses RadioGroups for class group and age group)
+    // Step 3: Program Details — BJJ track + session + trial
     await waitFor(() => {
       expect(screen.getByText(/step 3/i)).toBeInTheDocument();
     }, { timeout: 500 });
 
-    await user.click(await screen.findByLabelText(/boys' class/i));
-    await user.click(await screen.findByLabelText(/6.10 yrs/i));
+    await user.click(await screen.findByLabelText(/Boys 7–13/i));
+    const sessionSelect = await screen.findByLabelText(/pick your session/i);
+    await user.selectOptions(sessionSelect, "1");
+    await user.click(await screen.findByLabelText(/No, enrol directly/i));
 
     await user.click(screen.getByRole("button", { name: /continue/i }));
 
@@ -126,7 +128,7 @@ describe("Registration Flow Integration", () => {
     };
     Object.defineProperty(window, "localStorage", { value: localStorageMock, writable: true });
 
-    const { unmount } = render(<ProgramRegistrationPage slug="archery" />);
+    const { unmount } = render(<ProgramRegistrationPage slug="bjj" />);
 
     // Fill out guardian info
     await user.type(screen.getByLabelText("Full name"), "Sarah Smith");
@@ -137,7 +139,7 @@ describe("Registration Flow Integration", () => {
 
     // Verify localStorage was called with draft data
     await waitFor(() => {
-      const draftKey = Object.keys(localStorageData).find((k) => k.includes("archery"));
+      const draftKey = Object.keys(localStorageData).find((k) => k.includes("bjj"));
       expect(draftKey).toBeDefined();
 
       const draft = JSON.parse(localStorageData[draftKey!]);
@@ -173,7 +175,7 @@ describe("Registration Flow Integration", () => {
         sessionId: null,
         priceId: null,
         siblingCount: 0,
-        programSpecific: { gender: "", ageGroup: "", trialClass: "", notes: "" },
+        programSpecific: { bjjTrack: "", trialClass: "", notes: "" },
       },
       waivers: {
         liabilityWaiver: false,
@@ -277,8 +279,10 @@ describe("Registration Flow Integration", () => {
       expect(screen.getByText(/step 3/i)).toBeInTheDocument();
     }, { timeout: 500 });
 
-    await user.click(await screen.findByLabelText(/boys' class/i));
-    await user.click(await screen.findByLabelText(/6.10 yrs/i));
+    await user.click(await screen.findByLabelText(/Boys 7–13/i));
+    const sessionSelectWl = await screen.findByLabelText(/pick your session/i);
+    await user.selectOptions(sessionSelectWl, "1");
+    await user.click(await screen.findByLabelText(/No, enrol directly/i));
 
     await user.click(screen.getByRole("button", { name: /continue/i }));
 

@@ -6,26 +6,33 @@ import { PricingManager } from "@/components/admin/PricingManager";
 describe("PricingManager", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
-    (globalThis as any).fetch = vi.fn(async () => ({
-      ok: true,
-      json: async () => ({
-        programs: [
-          { id: "bjj", name: "Brazilian Jiu-Jitsu", slug: "bjj" },
-        ],
-        prices: [
-          {
-            id: 1,
-            program_id: "bjj",
-            age_group: "6-10",
-            label: "Youth",
-            amount: 15000,
-            frequency: "monthly",
-            registration_fee: 5000,
-            active: 1,
-          },
-        ],
-      }),
-    }));
+    (globalThis as any).fetch = vi.fn(async (input: RequestInfo | URL) => {
+      const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
+      if (url.includes("/api/admin/semesters")) {
+        return {
+          ok: true,
+          json: async () => ({ semesters: [] }),
+        };
+      }
+      return {
+        ok: true,
+        json: async () => ({
+          programs: [{ id: "bjj", name: "Brazilian Jiu-Jitsu", slug: "bjj" }],
+          prices: [
+            {
+              id: 1,
+              program_id: "bjj",
+              age_group: "6-10",
+              label: "Youth",
+              amount: 15000,
+              frequency: "monthly",
+              registration_fee: 5000,
+              active: 1,
+            },
+          ],
+        }),
+      };
+    });
   });
 
   it("renders header and description", async () => {

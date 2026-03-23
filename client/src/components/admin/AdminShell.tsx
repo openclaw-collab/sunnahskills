@@ -150,6 +150,13 @@ export function hasAdminAccess(
 ) {
   if (!user) return false;
   if (user.role === "tech") return true;
+  // Legacy admin accounts: full access when no granular permissions are stored
+  if (
+    user.role === "admin" &&
+    (user.permissions == null || Object.keys(user.permissions).length === 0)
+  ) {
+    return true;
+  }
   const level = user.permissions?.[key] ?? "none";
   if (required === "read") return level === "read" || level === "write";
   return level === "write";

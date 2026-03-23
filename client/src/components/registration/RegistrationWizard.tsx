@@ -21,6 +21,8 @@ export type RegistrationWizardProps = {
   onNext: () => void;
   onSubmit: () => void;
   sidebar?: ReactNode;
+  /** Extra actions beside the main Continue CTA (e.g. Add to cart). */
+  footerExtra?: ReactNode;
   renderStep: (args: WizardStepRenderArgs) => ReactNode;
 };
 
@@ -58,6 +60,7 @@ export function RegistrationWizard({
   onNext,
   onSubmit,
   sidebar,
+  footerExtra,
   renderStep,
 }: RegistrationWizardProps) {
   const step = steps[currentStepIndex];
@@ -99,23 +102,26 @@ export function RegistrationWizard({
                 </motion.div>
               </AnimatePresence>
 
-              <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-between">
-                <OutlineButton
-                  type="button"
-                  onClick={onBack}
-                  disabled={currentStepIndex === 0}
-                  className="px-7 py-3.5 text-[11px] uppercase tracking-[0.18em] disabled:opacity-50"
-                >
-                  Back
-                </OutlineButton>
+              <div className="mt-8 flex flex-col gap-4">
+                {footerExtra ? <div className="flex flex-wrap gap-3 justify-end">{footerExtra}</div> : null}
+                <div className="flex flex-col sm:flex-row gap-3 justify-between">
+                  <OutlineButton
+                    type="button"
+                    onClick={onBack}
+                    disabled={currentStepIndex === 0}
+                    className="px-7 py-3.5 text-[11px] uppercase tracking-[0.18em] disabled:opacity-50"
+                  >
+                    Back
+                  </OutlineButton>
 
-                <ClayButton
-                  type="button"
-                  onClick={isLast ? onSubmit : onNext}
-                  className="px-7 py-3.5 text-[11px] uppercase tracking-[0.18em]"
-                >
-                  {footerCta}
-                </ClayButton>
+                  <ClayButton
+                    type="button"
+                    onClick={isLast ? onSubmit : onNext}
+                    className="px-7 py-3.5 text-[11px] uppercase tracking-[0.18em]"
+                  >
+                    {footerCta}
+                  </ClayButton>
+                </div>
               </div>
             </PremiumCard>
           </div>

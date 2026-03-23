@@ -29,7 +29,7 @@ const createDraft = (overrides: Partial<RegistrationDraft> = {}): RegistrationDr
     sessionId: null,
     priceId: null,
     siblingCount: 0,
-    programSpecific: { gender: "", ageGroup: "", trialClass: "", notes: "" },
+    programSpecific: { bjjTrack: "", trialClass: "", notes: "" },
     ...(overrides.programDetails ? {
       ...overrides.programDetails,
       programSpecific: {
@@ -150,15 +150,16 @@ describe("useStepValidation", () => {
       const draft = createDraft({
         programSlug: "bjj",
         programDetails: {
-          programSpecific: { gender: "", ageGroup: "", trialClass: "", notes: "" },
+          programSpecific: { bjjTrack: "", trialClass: "", notes: "" },
         },
       });
       const { result } = renderHook(() => useStepValidation("details", draft));
 
       act(() => result.current.validateAndTouch());
 
-      expect(result.current.errors["programSpecific.gender"]).toBe("Please select a class group");
-      expect(result.current.errors["programSpecific.ageGroup"]).toBe("Please select an age group");
+      expect(result.current.errors["programSpecific.bjjTrack"]).toBe("Please select a class track");
+      expect(result.current.errors["programSpecific.trialClass"]).toBe("Please choose a trial class option");
+      expect(result.current.errors["programDetails.sessionId"]).toBe("Please select a class session");
     });
 
     it("validates archery-specific fields", async () => {

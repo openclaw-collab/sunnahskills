@@ -49,6 +49,7 @@ export function createMockD1Database() {
     payments: [],
     waivers: [],
     discounts: [],
+    semesters: [],
     contacts: [],
     waitlist: [],
     studio_sessions: [],

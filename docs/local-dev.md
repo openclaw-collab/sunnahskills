@@ -78,7 +78,7 @@ This requires the [Stripe CLI](https://stripe.com/docs/stripe-cli). The webhook 
 | `VITE_STRIPE_PUBLISHABLE_KEY` | `.env` in project root (Vite) |
 | `STRIPE_SECRET_KEY` | `.dev.vars` (Wrangler) |
 | `STRIPE_WEBHOOK_SECRET` | `.dev.vars` (Wrangler) |
-| `SITE_URL` | `wrangler.toml` [vars] — already set to `http://localhost:8788` |
+| `SITE_URL` | `.dev.vars` / `wrangler.toml` — default worker origin `http://localhost:8788`. For **guardian magic links** that should open the Vite app, set `SITE_URL=http://localhost:5173` while testing email links (verify route must match where you want users to land). |
 | `EMAIL_FROM` / `EMAIL_TO` | `wrangler.toml` [vars] — already set |
 
 ## Running tests

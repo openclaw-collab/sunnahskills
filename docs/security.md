@@ -172,6 +172,14 @@ If a separate frontend domain is ever used, CORS will need to be added explicitl
 
 ---
 
+## Guardian (family) authentication
+
+- Magic links: opaque token stored hashed in D1; **~30 minute** expiry; generic success message to avoid email enumeration.
+- Sessions: HttpOnly cookies (see `functions/_utils/guardianAuth.ts`).
+- **Rate limiting:** not yet enforced in code — add per-IP / per-email limits on `POST /api/guardian/request-link` and `POST /api/guardian/signup` (e.g. Cloudflare WAF or D1 sliding window) before production traffic.
+
+---
+
 ## Dependency security
 
 Run `npm audit` regularly to check for known vulnerabilities in dependencies:

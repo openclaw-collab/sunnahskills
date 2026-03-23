@@ -186,13 +186,164 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
     if (event.type === "payment_intent.succeeded") {
       const pi = event.data.object as Stripe.PaymentIntent;
       const payment = await loadPaymentByIntent(env, pi.id);
-      const registrationIdFromMeta = pi.metadata?.registration_id ? Number(pi.metadata.registration_id) : null;
-      const registrationId = payment?.registration_id ?? (Number.isInteger(registrationIdFromMeta) ? registrationIdFromMeta : null);
       const receiptUrl = (pi.charges?.data?.[0]?.receipt_url as string) ?? null;
 
       if (payment?.status === "paid") {
         return json({ ok: true });
       }
+
+      const orderIdFromMeta = pi.metadata?.enrollment_order_id ? Number(pi.metadata.enrollment_order_id) : null;
+      const payPhase = String(pi.metadata?.pay_phase ?? "first");
+
+      if (Number.isInteger(orderIdFromMeta) && orderIdFromMeta! > 0) {
+        await env.DB.prepare(
+          `UPDATE payments SET status='paid', receipt_url=COALESCE(?, receipt_url), updated_at=datetime('now')
+           WHERE stripe_payment_intent_id = ?`,
+        )
+          .bind(receiptUrl, pi.id)
+          .run();
+        await incrementDiscountUse(env, payment?.metadata ?? null);
+
+        const regIdsStr = String(pi.metadata?.registration_ids ?? "");
+        const regIds = regIdsStr
+          .split(",")
+          .map((x) => Number(x.trim()))
+          .filter((n) => Number.isInteger(n) && n > 0);
+
+        if (payPhase === "second") {
+          await env.DB.prepare(`UPDATE enrollment_orders SET status = 'paid' WHERE id = ?`).bind(orderIdFromMeta).run();
+
+          let firstReg: {
+            guardian_name: string;
+            guardian_email: string;
+            student_name: string;
+            program_name: string;
+          } | null = null;
+
+          for (const rid of regIds) {
+            const reg = await env.DB.prepare(
+              `
+              SELECT g.full_name as guardian_name, g.email as guardian_email,
+                     s.full_name as student_name, p.name as program_name
+              FROM registrations r
+              JOIN guardians g ON g.id = r.guardian_id
+              JOIN students s ON s.id = r.student_id
+              JOIN programs p ON p.id = r.program_id
+              WHERE r.id = ?
+              LIMIT 1
+              `,
+            )
+              .bind(rid)
+              .first<{
+                guardian_name: string;
+                guardian_email: string;
+                student_name: string;
+                program_name: string;
+              }>();
+            if (reg && !firstReg) firstReg = reg;
+          }
+
+          if (firstReg?.guardian_email) {
+            await sendPaymentEmails(env, {
+              guardianName: firstReg.guardian_name,
+              guardianEmail: firstReg.guardian_email,
+              studentName:
+                regIds.length > 1 ? `Household — remaining balance (${regIds.length} enrollments)` : firstReg.student_name,
+              programName: firstReg.program_name,
+              amount: Number(pi.amount_received ?? 0),
+              currency: String(pi.currency ?? "usd"),
+              registrationId: regIds[0] ?? 0,
+              receiptUrl,
+            });
+          }
+
+          return json({ ok: true });
+        }
+
+        const orderRow = await env.DB.prepare(`SELECT later_amount_cents FROM enrollment_orders WHERE id = ?`)
+          .bind(orderIdFromMeta)
+          .first<{ later_amount_cents: number | null }>();
+        const laterDue = Math.max(0, Number(orderRow?.later_amount_cents ?? 0));
+
+        const pmRef = pi.payment_method;
+        const pmId =
+          typeof pmRef === "string"
+            ? pmRef
+            : pmRef && typeof pmRef === "object" && pmRef !== null && "id" in pmRef
+              ? String((pmRef as { id: string }).id)
+              : null;
+        const customerId =
+          typeof pi.customer === "string"
+            ? pi.customer
+            : pi.customer && typeof pi.customer === "object" && "id" in pi.customer
+              ? String((pi.customer as { id: string }).id)
+              : null;
+        if (pmId && customerId) {
+          try {
+            await stripe.customers.update(customerId, { invoice_settings: { default_payment_method: pmId } });
+          } catch {
+            /* best-effort: off-session second charge may still work if PM saved */
+          }
+        }
+
+        let firstReg: {
+          session_id: number | null;
+          guardian_name: string;
+          guardian_email: string;
+          student_name: string;
+          program_name: string;
+        } | null = null;
+
+        for (const rid of regIds) {
+          await markRegistrationActive(env, rid);
+          const reg = await env.DB.prepare(
+            `
+            SELECT r.session_id, g.full_name as guardian_name, g.email as guardian_email,
+                   s.full_name as student_name, p.name as program_name
+            FROM registrations r
+            JOIN guardians g ON g.id = r.guardian_id
+            JOIN students s ON s.id = r.student_id
+            JOIN programs p ON p.id = r.program_id
+            WHERE r.id = ?
+            LIMIT 1
+            `,
+          )
+            .bind(rid)
+            .first<{
+              session_id: number | null;
+              guardian_name: string;
+              guardian_email: string;
+              student_name: string;
+              program_name: string;
+            }>();
+          if (reg) {
+            await incrementSessionEnrollment(env, reg.session_id);
+            if (!firstReg) firstReg = reg;
+          }
+        }
+
+        const newOrderStatus = laterDue > 0 ? "partially_paid" : "paid";
+        await env.DB.prepare(`UPDATE enrollment_orders SET status = ? WHERE id = ?`).bind(newOrderStatus, orderIdFromMeta).run();
+
+        if (firstReg?.guardian_email) {
+          await sendPaymentEmails(env, {
+            guardianName: firstReg.guardian_name,
+            guardianEmail: firstReg.guardian_email,
+            studentName:
+              regIds.length > 1 ? `Household (${regIds.length} students)` : firstReg.student_name,
+            programName: firstReg.program_name,
+            amount: Number(pi.amount_received ?? 0),
+            currency: String(pi.currency ?? "usd"),
+            registrationId: regIds[0] ?? 0,
+            receiptUrl,
+          });
+        }
+
+        return json({ ok: true });
+      }
+
+      const registrationIdFromMeta = pi.metadata?.registration_id ? Number(pi.metadata.registration_id) : null;
+      const registrationId = payment?.registration_id ?? (Number.isInteger(registrationIdFromMeta) ? registrationIdFromMeta : null);
 
       await env.DB.prepare(
         `UPDATE payments SET status='paid', receipt_url=COALESCE(?, receipt_url), updated_at=datetime('now')

@@ -1,9 +1,9 @@
+import { computeLineTuitionCents, type SemesterRow } from "../../_utils/orderPricing";
+
 interface Env {
   DB: D1Database;
   STRIPE_SECRET_KEY?: string;
 }
-
-const SIBLING_DISCOUNT_PERCENT = 10;
 
 type CreateIntentRequest = {
   registrationId: number;
@@ -33,35 +33,73 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
     SELECT r.id as registration_id,
            r.program_id as program_id,
            r.price_id as price_id,
+           r.program_specific_data as program_specific_data,
            p.id as program_price_row_id,
            p.amount as amount,
            p.registration_fee as registration_fee,
-           p.frequency as frequency
+           p.frequency as frequency,
+           p.metadata as price_metadata
     FROM registrations r
     LEFT JOIN program_prices p ON p.id = r.price_id
     WHERE r.id = ?
     `,
   )
     .bind(body.registrationId)
-    .first();
+    .first<{
+      registration_id: number;
+      program_id: string;
+      price_id: number | null;
+      program_specific_data: string | null;
+      amount: number | null;
+      registration_fee: number | null;
+      frequency: string | null;
+      price_metadata: string | null;
+    }>();
 
   if (!reg) return json({ error: "Registration not found" }, { status: 404 });
   if (!Number.isInteger(Number(reg.price_id ?? null)) || !Number.isInteger(Number(reg.amount ?? null))) {
     return json({ error: "Registration has no price selected" }, { status: 400 });
   }
 
-  const subtotal = Math.max(0, Number(reg.amount) + Number(reg.registration_fee ?? 0));
-  let siblingDiscount = 0;
-  let promoDiscount = 0;
+  let track = "";
+  try {
+    const ps = JSON.parse(String(reg.program_specific_data ?? "{}")) as { bjjTrack?: string };
+    track = String(ps.bjjTrack ?? "");
+  } catch {
+    track = "";
+  }
 
-  // Sibling discount (applied before promo codes)
+  const semesterRow = await env.DB.prepare(
+    `SELECT classes_in_semester, price_per_class_cents, registration_fee_cents, later_payment_date, start_date, end_date
+     FROM semesters WHERE program_id = ? AND active = 1 ORDER BY id DESC LIMIT 1`,
+  )
+    .bind(reg.program_id)
+    .first<SemesterRow>();
+
   const siblingCount = Number(body.siblingCount ?? 0);
   if (!Number.isInteger(siblingCount) || siblingCount < 0 || siblingCount > 2) {
     return json({ error: "siblingCount must be between 0 and 2" }, { status: 400 });
   }
-  if (siblingCount > 0) {
-    siblingDiscount = Math.floor((subtotal * SIBLING_DISCOUNT_PERCENT) / 100);
-  }
+
+  const isKids = track === "girls-5-10" || track === "boys-7-13";
+  const siblingRank = siblingCount >= 1 && isKids ? 1 : 0;
+
+  const linePricing = computeLineTuitionCents({
+    track,
+    priceId: Number(reg.price_id),
+    programPriceAmount: reg.amount,
+    programPriceRegFee: reg.registration_fee,
+    programPriceFrequency: reg.frequency,
+    priceMetadataJson: reg.price_metadata,
+    paymentChoice: "full",
+    siblingRankAmongKidsStudents: siblingRank,
+    semester: semesterRow ?? null,
+  });
+
+  const subtotal = linePricing.lineSubtotalCents;
+  let siblingDiscount = linePricing.siblingDiscountCents;
+  const afterSibling = linePricing.afterSiblingCents;
+  let promoDiscount = 0;
 
   if (body.discountCode) {
     const disc = await env.DB.prepare(
@@ -86,14 +124,13 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
         Number(disc.current_uses) < Number(disc.max_uses);
 
       if (withinWindow && underMaxUses) {
-        const afterSibling = Math.max(0, subtotal - siblingDiscount);
         if (disc.type === "fixed") promoDiscount = Math.min(afterSibling, Number(disc.value));
         if (disc.type === "percentage") promoDiscount = Math.floor((afterSibling * Number(disc.value)) / 100);
       }
     }
   }
   const discountAmount = siblingDiscount + promoDiscount;
-  const total = Math.max(0, subtotal - discountAmount);
+  const total = Math.max(0, afterSibling - promoDiscount);
   if (total <= 0) {
     return json({ error: "Payment total must be greater than zero" }, { status: 400 });
   }

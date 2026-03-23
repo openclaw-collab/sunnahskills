@@ -1,9 +1,16 @@
 import { useCallback, useMemo, useState } from "react";
 import type { ProgramSlug } from "@/lib/programConfig";
 
+export type BjjTrackValue =
+  | "girls-5-10"
+  | "boys-7-13"
+  | "women-11-tue"
+  | "women-11-thu"
+  | "men-14"
+  | "";
+
 export type BjjSpecific = {
-  gender: "boys" | "girls" | "";
-  ageGroup: "6-10" | "11-14" | "15-17" | "";
+  bjjTrack: BjjTrackValue;
   trialClass: "yes" | "no" | "";
   notes: string;
 };
@@ -53,6 +60,8 @@ export type RegistrationDraft = {
     sessionId: number | null;
     priceId: number | null;
     siblingCount: 0 | 1 | 2;
+    /** Pay full tuition today vs split (server uses semester later date). */
+    paymentChoice: "full" | "plan";
     programSpecific: ProgramSpecificData;
   };
   waivers: {
@@ -69,7 +78,7 @@ export type RegistrationDraft = {
 };
 
 function defaultProgramSpecific(slug: ProgramSlug): ProgramSpecificData {
-  if (slug === "bjj") return { gender: "", ageGroup: "", trialClass: "", notes: "" };
+  if (slug === "bjj") return { bjjTrack: "", trialClass: "", notes: "" };
   if (slug === "archery") return { dominantHand: "", experience: "", sessionDate: "", notes: "" };
   if (slug === "outdoor") return { workshopDate: "", gear: [], notes: "" };
   return { concernType: "", ageGroup: "", notes: "" };
@@ -100,6 +109,7 @@ function createEmptyDraft(programSlug: ProgramSlug): RegistrationDraft {
       sessionId: null,
       priceId: null,
       siblingCount: 0,
+      paymentChoice: "full",
       programSpecific: defaultProgramSpecific(programSlug),
     },
     waivers: {
@@ -122,7 +132,16 @@ function loadSavedDraft(slug: ProgramSlug): RegistrationDraft | null {
   try {
     const raw = localStorage.getItem(DRAFT_KEY(slug));
     if (!raw) return null;
-    return JSON.parse(raw) as RegistrationDraft;
+    const saved = JSON.parse(raw) as RegistrationDraft;
+    const defaults = createEmptyDraft(slug);
+    return {
+      ...saved,
+      programDetails: {
+        ...defaults.programDetails,
+        ...saved.programDetails,
+        paymentChoice: saved.programDetails?.paymentChoice === "plan" ? "plan" : "full",
+      },
+    };
   } catch {
     return null;
   }

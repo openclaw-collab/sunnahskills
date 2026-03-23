@@ -4,7 +4,7 @@ import * as THREE from "three";
 import { OrbitControls as ThreeOrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 
 type Marker = { name: string; frame: number; type: string };
-type SequenceData = { frames: number[][][][]; markers?: Marker[] };
+type SequenceData = { frames: number[][][][]; markers?: Marker[]; posterFrame?: number };
 
 type PlaybackState = {
   paused: boolean;
@@ -333,6 +333,22 @@ function MannequinSceneInner({
     };
   }, [sequenceData, sequencePath]);
 
+  /** Paused by default: start on poster / first marker / midpoint (merged plan §15). */
+  useEffect(() => {
+    if (!data?.frames?.length) return;
+    const total = Math.max(1, data.frames.length - 1);
+    let startFrame = 0;
+    const poster = data.posterFrame;
+    if (typeof poster === "number" && Number.isFinite(poster) && poster >= 0 && poster <= total) {
+      startFrame = Math.floor(poster);
+    } else if (data.markers?.length) {
+      startFrame = Math.min(total, Math.max(0, Math.floor(data.markers[0]!.frame)));
+    } else {
+      startFrame = Math.floor(total / 2);
+    }
+    timeRef.current = startFrame;
+  }, [data]);
+
   useFrame((_state, delta) => {
     if (playbackRef.current.paused) return;
     timeRef.current += Math.min(delta, 0.05) * 8.0 * playbackRef.current.speed;
@@ -381,7 +397,7 @@ function PlaybackOverlay({
   sequenceData?: SequenceData;
   playbackRef: React.MutableRefObject<PlaybackState>;
 }) {
-  const [paused, setPaused] = useState(false);
+  const [paused, setPaused] = useState(true);
   const [speed, setSpeed] = useState(1);
   const [frame, setFrame] = useState(0);
   const [totalFrames, setTotalFrames] = useState(36);
@@ -420,10 +436,15 @@ function PlaybackOverlay({
     return () => cancelAnimationFrame(rafRef.current);
   }, [playbackRef, totalFrames]);
 
+  useEffect(() => {
+    playbackRef.current.paused = paused;
+  }, [paused, playbackRef]);
+
   const togglePause = useCallback(() => {
     setPaused((p) => {
-      playbackRef.current.paused = !p;
-      return !p;
+      const next = !p;
+      playbackRef.current.paused = next;
+      return next;
     });
   }, [playbackRef]);
 
@@ -547,7 +568,7 @@ export function MannequinViewer({
       return false;
     }
   })[0];
-  const playbackRef = useRef<PlaybackState>({ paused: false, speed: 1, timeRef: null });
+  const playbackRef = useRef<PlaybackState>({ paused: true, speed: 1, timeRef: null });
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const thumbnailCaptured = useRef(false);
 

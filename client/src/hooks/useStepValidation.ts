@@ -4,8 +4,7 @@ import {
   archeryDominantHandOptions,
   archeryExperienceOptions,
   archerySessionOptions,
-  bjjAgeGroupOptions,
-  bjjClassGroupOptions,
+  bjjTrackOptions,
   bjjTrialClassOptions,
   bullyproofingAgeGroupOptions,
   bullyproofingConcernOptions,
@@ -65,17 +64,16 @@ const detailsValidator: ValidatorFn = (draft) => {
   const errors: ValidationErrors = {};
   const ps = draft.programDetails.programSpecific as any;
   if (draft.programSlug === "bjj") {
-    if (!ps.gender) errors["programSpecific.gender"] = "Please select a class group";
-    if (ps.gender && !bjjClassGroupOptions.some((opt) => opt.value === ps.gender)) {
-      errors["programSpecific.gender"] = "Please select a valid class group";
+    if (!ps.bjjTrack) errors["programSpecific.bjjTrack"] = "Please select a class track";
+    if (ps.bjjTrack && !bjjTrackOptions.some((opt) => opt.value === ps.bjjTrack)) {
+      errors["programSpecific.bjjTrack"] = "Please select a valid class track";
     }
-    if (!ps.ageGroup) errors["programSpecific.ageGroup"] = "Please select an age group";
-    if (ps.ageGroup && !bjjAgeGroupOptions.some((opt) => opt.value === ps.ageGroup)) {
-      errors["programSpecific.ageGroup"] = "Please select a valid age group";
-    }
+    if (!ps.trialClass) errors["programSpecific.trialClass"] = "Please choose a trial class option";
     if (ps.trialClass && !bjjTrialClassOptions.some((opt) => opt.value === ps.trialClass)) {
       errors["programSpecific.trialClass"] = "Please select a valid trial option";
     }
+    if (!draft.programDetails.sessionId) errors["programDetails.sessionId"] = "Please select a class session";
+    if (!draft.programDetails.priceId) errors["programDetails.priceId"] = "Pricing is missing — pick a track again";
   }
   if (draft.programSlug === "archery") {
     if (!ps.dominantHand) errors["programSpecific.dominantHand"] = "Please select your dominant hand";
@@ -137,6 +135,17 @@ const VALIDATORS: Record<string, ValidatorFn> = {
   details: detailsValidator,
   waivers: waiversValidator,
 };
+
+/** Returns first blocking message for guardian + student + program details (e.g. before “Add to cart”). */
+export function blockingMessageThroughDetails(draft: RegistrationDraft): string | null {
+  const errors = {
+    ...guardianValidator(draft),
+    ...studentValidator(draft),
+    ...detailsValidator(draft),
+  };
+  const k = Object.keys(errors)[0];
+  return k ? errors[k]! : null;
+}
 
 export function useStepValidation(stepId: string, draft: RegistrationDraft) {
   const [touched, setTouched] = useState<Record<string, boolean>>({});

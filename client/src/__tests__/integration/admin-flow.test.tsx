@@ -1,20 +1,55 @@
+import React, { useCallback, useState } from "react";
 import { describe, it, expect, vi } from "vitest";
-import { screen, waitFor, within } from "@testing-library/react";
+import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { Router } from "wouter";
 import { render } from "./test-utils";
 import AdminLogin from "@/pages/admin/AdminLogin";
 import AdminDashboard from "@/pages/admin/AdminDashboard";
 import { mockStore } from "./mocks/handlers";
 
-// Mock wouter
 const mockNavigate = vi.fn();
-vi.mock("wouter", async () => {
-  const actual = await vi.importActual("wouter");
-  return {
-    ...actual,
-    useLocation: () => ["/admin", mockNavigate],
-  };
-});
+
+function renderWithLoginRouter(ui: React.ReactElement) {
+  function useLoginLocation(_router: unknown) {
+    const [loc, setLoc] = useState("/admin");
+    const nav = useCallback((to: string) => {
+      mockNavigate(to);
+      setLoc(to);
+    }, []);
+    return [loc, nav] as [string, (to: string) => void];
+  }
+  return render(<Router hook={useLoginLocation}>{ui}</Router>);
+}
+
+function renderDashboardAt(path = "/admin/dashboard") {
+  function useDashboardLocation(_router: unknown) {
+    const [loc, setLoc] = useState(path);
+    return [loc, setLoc] as [string, React.Dispatch<React.SetStateAction<string>>];
+  }
+  return render(
+    <Router hook={useDashboardLocation}>
+      <AdminDashboard />
+    </Router>,
+  );
+}
+
+/** Tracks SPA navigations via `mockNavigate` (for assertions after sign-out, etc.). */
+function renderDashboardTracked(path = "/admin/dashboard") {
+  function useTrackedDashboard(_router: unknown) {
+    const [loc, setLoc] = useState(path);
+    const nav = useCallback((to: string) => {
+      mockNavigate(to);
+      setLoc(to);
+    }, []);
+    return [loc, nav] as [string, (to: string) => void];
+  }
+  return render(
+    <Router hook={useTrackedDashboard}>
+      <AdminDashboard />
+    </Router>,
+  );
+}
 
 // Mock toast
 vi.mock("@/hooks/use-toast", () => ({
@@ -31,7 +66,7 @@ describe("Admin Flow Integration", () => {
   describe("Login Flow", () => {
     it("successfully logs in with valid credentials", async () => {
       const user = userEvent.setup();
-      render(<AdminLogin />);
+      renderWithLoginRouter(<AdminLogin />);
 
       await user.type(screen.getByLabelText(/email/i), "admin@sunnahskills.com");
       await user.type(screen.getByLabelText(/password/i), "admin123");
@@ -50,7 +85,7 @@ describe("Admin Flow Integration", () => {
 
     it("shows error for invalid credentials", async () => {
       const user = userEvent.setup();
-      render(<AdminLogin />);
+      renderWithLoginRouter(<AdminLogin />);
 
       await user.type(screen.getByLabelText(/email/i), "wrong@example.com");
       await user.type(screen.getByLabelText(/password/i), "wrongpassword");
@@ -65,7 +100,7 @@ describe("Admin Flow Integration", () => {
 
     it("disables submit button while loading", async () => {
       const user = userEvent.setup();
-      render(<AdminLogin />);
+      renderWithLoginRouter(<AdminLogin />);
 
       await user.type(screen.getByLabelText(/email/i), "admin@sunnahskills.com");
       await user.type(screen.getByLabelText(/password/i), "admin123");
@@ -86,7 +121,19 @@ describe("Admin Flow Integration", () => {
 
   describe("Dashboard Flow", () => {
     it("redirects to login when not authenticated", async () => {
-      render(<AdminDashboard />);
+      function useTrackedDashboard(_router: unknown) {
+        const [loc, setLoc] = useState("/admin/dashboard");
+        const nav = useCallback((to: string) => {
+          mockNavigate(to);
+          setLoc(to);
+        }, []);
+        return [loc, nav] as [string, (to: string) => void];
+      }
+      render(
+        <Router hook={useTrackedDashboard}>
+          <AdminDashboard />
+        </Router>,
+      );
 
       await waitFor(() => {
         expect(mockNavigate).toHaveBeenCalledWith("/admin");
@@ -130,15 +177,14 @@ describe("Admin Flow Integration", () => {
         },
       ];
 
-      render(<AdminDashboard />);
+      renderDashboardAt("/admin/dashboard");
 
       // Should show dashboard content
       await waitFor(() => {
         expect(screen.getByText(/dashboard/i)).toBeInTheDocument();
       });
 
-      // Should show overview tab content
-      expect(screen.getByText(/overview/i)).toBeInTheDocument();
+      expect(screen.getByRole("tab", { name: /^overview$/i })).toHaveAttribute("data-state", "active");
     });
 
     it("allows signing out", async () => {
@@ -150,7 +196,7 @@ describe("Admin Flow Integration", () => {
         role: "admin",
       };
 
-      render(<AdminDashboard />);
+      renderDashboardTracked("/admin/dashboard");
 
       await waitFor(() => {
         expect(screen.getByText(/dashboard/i)).toBeInTheDocument();
@@ -191,14 +237,15 @@ describe("Admin Flow Integration", () => {
     });
 
     it("displays registrations in table", async () => {
-      render(<AdminDashboard />);
+      const user = userEvent.setup();
+      renderDashboardAt("/admin/dashboard");
 
       await waitFor(() => {
         expect(screen.getByText(/dashboard/i)).toBeInTheDocument();
       });
 
       // Navigate to registrations tab
-      await userEvent.click(screen.getByRole("tab", { name: /registrations/i }));
+      await user.click(screen.getByRole("tab", { name: /registrations/i }));
 
       await waitFor(() => {
         expect(screen.getByText("John Doe")).toBeInTheDocument();
@@ -209,7 +256,7 @@ describe("Admin Flow Integration", () => {
     it("updates registration status", async () => {
       const user = userEvent.setup();
 
-      render(<AdminDashboard />);
+      renderDashboardAt("/admin/dashboard");
 
       await waitFor(() => {
         expect(screen.getByText(/dashboard/i)).toBeInTheDocument();
@@ -232,7 +279,7 @@ describe("Admin Flow Integration", () => {
     it("deletes a registration", async () => {
       const user = userEvent.setup();
 
-      render(<AdminDashboard />);
+      renderDashboardAt("/admin/dashboard");
 
       await waitFor(() => {
         expect(screen.getByText(/dashboard/i)).toBeInTheDocument();
@@ -282,14 +329,15 @@ describe("Admin Flow Integration", () => {
     });
 
     it("displays payments summary", async () => {
-      render(<AdminDashboard />);
+      const user = userEvent.setup();
+      renderDashboardAt("/admin/dashboard");
 
       await waitFor(() => {
         expect(screen.getByText(/dashboard/i)).toBeInTheDocument();
       });
 
       // Navigate to payments tab
-      await userEvent.click(screen.getByRole("tab", { name: /payments/i }));
+      await user.click(screen.getByRole("tab", { name: /payments/i }));
 
       // Should show payment information (formatted as $100 with no decimals)
       await waitFor(() => {
@@ -310,7 +358,7 @@ describe("Admin Flow Integration", () => {
     it("navigates between all tabs", async () => {
       const user = userEvent.setup();
 
-      render(<AdminDashboard />);
+      renderDashboardAt("/admin/dashboard");
 
       await waitFor(() => {
         expect(screen.getByText(/dashboard/i)).toBeInTheDocument();
@@ -320,8 +368,11 @@ describe("Admin Flow Integration", () => {
       const tabs = ["overview", "registrations", "payments", "discounts", "pricing", "sessions", "contacts", "export"];
 
       for (const tab of tabs) {
-        await user.click(screen.getByRole("tab", { name: new RegExp(tab, "i") }));
-        expect(screen.getByRole("tab", { name: new RegExp(tab, "i") })).toHaveAttribute("data-state", "active");
+        const tabRe = new RegExp(`^${tab}$`, "i");
+        await user.click(screen.getByRole("tab", { name: tabRe }));
+        await waitFor(() => {
+          expect(screen.getByRole("tab", { name: tabRe })).toHaveAttribute("data-state", "active");
+        });
       }
     });
   });

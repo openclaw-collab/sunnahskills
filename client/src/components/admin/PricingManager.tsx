@@ -17,6 +17,19 @@ type Price = {
   active: number;
 };
 
+type SemesterRow = {
+  id: number;
+  name: string;
+  program_id: string;
+  start_date: string | null;
+  end_date: string | null;
+  classes_in_semester: number;
+  price_per_class_cents: number | null;
+  registration_fee_cents: number | null;
+  later_payment_date: string | null;
+  active: number;
+};
+
 function money(cents: number) {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(
     cents / 100,
@@ -26,15 +39,18 @@ function money(cents: number) {
 export function PricingManager() {
   const [programs, setPrograms] = useState<Program[]>([]);
   const [prices, setPrices] = useState<Price[]>([]);
+  const [semesters, setSemesters] = useState<SemesterRow[]>([]);
   const [loading, setLoading] = useState(false);
 
   async function refresh() {
     setLoading(true);
     try {
-      const res = await fetch("/api/admin/programs");
-      const json = (await res.json().catch(() => null)) as any;
+      const [pRes, sRes] = await Promise.all([fetch("/api/admin/programs"), fetch("/api/admin/semesters")]);
+      const json = (await pRes.json().catch(() => null)) as any;
       setPrograms((json?.programs ?? []) as Program[]);
       setPrices((json?.prices ?? []) as Price[]);
+      const sjson = (await sRes.json().catch(() => null)) as any;
+      setSemesters((sjson?.semesters ?? []) as SemesterRow[]);
     } finally {
       setLoading(false);
     }
@@ -69,6 +85,17 @@ export function PricingManager() {
           {loading ? "Refreshing…" : "Refresh"}
         </OutlineButton>
       </div>
+
+      {semesters.length > 0 ? (
+        <div className="mb-8 rounded-[1.5rem] border border-moss/20 bg-moss/5 p-4">
+          <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-moss mb-3">Semesters (BJJ totals)</div>
+          <div className="space-y-4">
+            {semesters.map((sem) => (
+              <SemesterEditor key={sem.id} semester={sem} onSaved={refresh} />
+            ))}
+          </div>
+        </div>
+      ) : null}
 
       <div className="space-y-4">
         {programs.map((prog) => {
@@ -133,6 +160,84 @@ export function PricingManager() {
         })}
       </div>
     </PremiumCard>
+  );
+}
+
+function SemesterEditor({ semester, onSaved }: { semester: SemesterRow; onSaved: () => Promise<void> }) {
+  const [classesN, setClassesN] = useState(String(semester.classes_in_semester));
+  const [ppc, setPpc] = useState(String(semester.price_per_class_cents ?? ""));
+  const [regFee, setRegFee] = useState(String(semester.registration_fee_cents ?? 0));
+  const [later, setLater] = useState(semester.later_payment_date ?? "");
+  const [start, setStart] = useState(semester.start_date ?? "");
+  const [end, setEnd] = useState(semester.end_date ?? "");
+  const [saving, setSaving] = useState(false);
+
+  return (
+    <div className="rounded-2xl border border-charcoal/10 bg-white p-4">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <div className="font-body font-medium text-charcoal">{semester.name}</div>
+          <div className="font-mono-label text-[9px] uppercase tracking-[0.15em] text-charcoal/50">
+            {semester.program_id} · id {semester.id} {semester.active ? "· active" : ""}
+          </div>
+        </div>
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <label className="text-xs text-charcoal/70">
+          Classes in semester
+          <Input value={classesN} onChange={(e) => setClassesN(e.target.value)} type="number" className="mt-1 bg-white" />
+        </label>
+        <label className="text-xs text-charcoal/70">
+          Price / class (¢)
+          <Input value={ppc} onChange={(e) => setPpc(e.target.value)} type="number" className="mt-1 bg-white" />
+        </label>
+        <label className="text-xs text-charcoal/70">
+          Registration fee (¢)
+          <Input value={regFee} onChange={(e) => setRegFee(e.target.value)} type="number" className="mt-1 bg-white" />
+        </label>
+        <label className="text-xs text-charcoal/70">
+          Later payment date
+          <Input value={later} onChange={(e) => setLater(e.target.value)} placeholder="YYYY-MM-DD" className="mt-1 bg-white" />
+        </label>
+        <label className="text-xs text-charcoal/70">
+          Start date
+          <Input value={start} onChange={(e) => setStart(e.target.value)} placeholder="YYYY-MM-DD" className="mt-1 bg-white" />
+        </label>
+        <label className="text-xs text-charcoal/70">
+          End date
+          <Input value={end} onChange={(e) => setEnd(e.target.value)} placeholder="YYYY-MM-DD" className="mt-1 bg-white" />
+        </label>
+      </div>
+      <div className="mt-3">
+        <ClayButton
+          className="px-4 py-2 text-[11px] uppercase tracking-[0.18em]"
+          disabled={saving}
+          onClick={async () => {
+            setSaving(true);
+            try {
+              await fetch("/api/admin/semesters", {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  id: semester.id,
+                  classesInSemester: Number(classesN || 12),
+                  pricePerClassCents: ppc === "" ? null : Number(ppc),
+                  registrationFeeCents: Number(regFee || 0),
+                  laterPaymentDate: later.trim() || null,
+                  startDate: start.trim() || null,
+                  endDate: end.trim() || null,
+                }),
+              });
+              await onSaved();
+            } finally {
+              setSaving(false);
+            }
+          }}
+        >
+          Save semester
+        </ClayButton>
+      </div>
+    </div>
   );
 }
 

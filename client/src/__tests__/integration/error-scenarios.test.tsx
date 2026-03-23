@@ -179,14 +179,13 @@ describe("Error Scenarios Integration", () => {
 
       render(<AdminLogin />);
 
-      await user.type(screen.getByLabelText(/email/i), "not-an-email");
+      const emailInput = screen.getByLabelText(/email/i);
+      await user.type(emailInput, "not-an-email");
       await user.type(screen.getByLabelText(/password/i), "password123");
       await user.click(screen.getByRole("button", { name: /sign in/i }));
 
-      // Should show error for invalid email
-      await waitFor(() => {
-        expect(screen.getByText(/invalid credentials/i)).toBeInTheDocument();
-      });
+      // Native email validation blocks submit before the API runs
+      expect(emailInput).toBeInvalid();
     });
 
     it("rejects empty required fields", async () => {

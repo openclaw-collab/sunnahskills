@@ -18,6 +18,13 @@ Browser
               └── MailChannels ──  transactional email
 ```
 
+## Registration & payments (in progress)
+
+- **Programs:** Only **BJJ** is `enrollmentStatus: "open"` in `programConfig`; others are coming soon (waitlist UI + `403` from `register` API).
+- **D1:** `db/migrations/001_registration_accounts_orders.sql` adds `guardian_accounts`, magic tokens, sessions, `saved_students`, `enrollment_orders`, `semesters`, and links `registrations` / `payments` to orders where applicable.
+- **Target checkout model:** One parent order, multiple registration lines, waivers once at checkout, Stripe **invoicing / installments** (Option D) with webhooks updating D1 — cart UI and full webhook fan-out are still to complete; see `docs/NEXT_AGENT.md`.
+- **Kids pricing:** $12.50/class × classes in semester + **10%** off each additional sibling’s **kids** lines — shared pure helpers in `shared/pricing.ts` (server must recompute).
+
 ## Tech stack
 
 | Layer | Technology |

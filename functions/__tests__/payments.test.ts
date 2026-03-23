@@ -103,10 +103,22 @@ describe("Payment Endpoints", () => {
       expect(data.error).toBe("Registration not found");
     });
 
+    const baseRegRow = (patch: Record<string, unknown> = {}) => ({
+      id: 1,
+      program_id: "bjj",
+      price_id: 1,
+      amount: 10000,
+      registration_fee: 5000,
+      frequency: null as string | null,
+      price_metadata: null as string | null,
+      program_specific_data: JSON.stringify({ bjjTrack: "men-14" }),
+      ...patch,
+    });
+
     it("should return 400 if registration has no price", async () => {
       const mockDb = env.DB as any;
       mockDb.setMockData("registrations", [
-        { id: 1, program_id: 1, price_id: null, amount: null },
+        { id: 1, program_id: "bjj", price_id: null, amount: null, program_specific_data: "{}" },
       ]);
 
       const request = createMockRequest("POST", "https://example.com/api/payments/create-intent", {
@@ -122,9 +134,7 @@ describe("Payment Endpoints", () => {
 
     it("should return 500 if Stripe is not configured", async () => {
       const mockDb = env.DB as any;
-      mockDb.setMockData("registrations", [
-        { id: 1, program_id: 1, price_id: 1, amount: 10000, registration_fee: 5000 },
-      ]);
+      mockDb.setMockData("registrations", [baseRegRow()]);
 
       const request = createMockRequest("POST", "https://example.com/api/payments/create-intent", {
         body: { registrationId: 1 },
@@ -142,9 +152,7 @@ describe("Payment Endpoints", () => {
 
     it("should create payment intent successfully", async () => {
       const mockDb = env.DB as any;
-      mockDb.setMockData("registrations", [
-        { id: 1, program_id: 1, price_id: 1, amount: 10000, registration_fee: 5000 },
-      ]);
+      mockDb.setMockData("registrations", [baseRegRow()]);
 
       global.fetch = vi.fn().mockResolvedValue({
         ok: true,
@@ -169,7 +177,7 @@ describe("Payment Endpoints", () => {
     it("should apply sibling discount", async () => {
       const mockDb = env.DB as any;
       mockDb.setMockData("registrations", [
-        { id: 1, program_id: 1, price_id: 1, amount: 10000, registration_fee: 5000 },
+        baseRegRow({ program_specific_data: JSON.stringify({ bjjTrack: "boys-7-13" }) }),
       ]);
 
       global.fetch = vi.fn().mockResolvedValue({
@@ -196,9 +204,7 @@ describe("Payment Endpoints", () => {
 
     it("should apply discount code", async () => {
       const mockDb = env.DB as any;
-      mockDb.setMockData("registrations", [
-        { id: 1, program_id: 1, price_id: 1, amount: 10000, registration_fee: 5000 },
-      ]);
+      mockDb.setMockData("registrations", [baseRegRow()]);
       mockDb.setMockData("discounts", [
         {
           code: "SAVE20",
@@ -237,9 +243,7 @@ describe("Payment Endpoints", () => {
 
     it("should handle Stripe API error", async () => {
       const mockDb = env.DB as any;
-      mockDb.setMockData("registrations", [
-        { id: 1, program_id: 1, price_id: 1, amount: 10000, registration_fee: 5000 },
-      ]);
+      mockDb.setMockData("registrations", [baseRegRow()]);
 
       global.fetch = vi.fn().mockResolvedValue({
         ok: false,
@@ -259,9 +263,7 @@ describe("Payment Endpoints", () => {
 
     it("should update registration status to pending_payment", async () => {
       const mockDb = env.DB as any;
-      mockDb.setMockData("registrations", [
-        { id: 1, program_id: 1, price_id: 1, amount: 10000, registration_fee: 5000 },
-      ]);
+      mockDb.setMockData("registrations", [baseRegRow()]);
 
       global.fetch = vi.fn().mockResolvedValue({
         ok: true,

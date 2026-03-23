@@ -7,6 +7,7 @@
 | `VITE_STRIPE_PUBLISHABLE_KEY` | `pk_test_...` or `pk_live_...` |
 | `STRIPE_SECRET_KEY` | `sk_test_...` or `sk_live_...` |
 | `STRIPE_WEBHOOK_SECRET` | `whsec_...` |
+| `CRON_SECRET` (optional) | Random string — protects `POST /api/payments/collect-order-balance` for automated second charges |
 
 Set `VITE_STRIPE_PUBLISHABLE_KEY` in a `.env` file at the project root for local dev. Set the other two as **Cloudflare Pages secrets** (never in `wrangler.toml`):
 
@@ -55,7 +56,13 @@ The admin price editor validates `stripe_price_id` values before saving them, so
 
 A Stripe Coupon `SIBLING_10PCT` (10% off, `forever` duration) is auto-created on first use by `create-subscription.ts`. It is retrieved by ID on subsequent uses. No manual Stripe dashboard action needed.
 
-For one-time payments, the 10% sibling discount is calculated in `create-intent.ts` before creating the PaymentIntent (no Stripe coupon involved).
+For one-time payments, the 10% sibling discount on **kids** lines (when registering an additional sibling) is calculated in `create-intent.ts` via `functions/_utils/orderPricing.ts` before creating the PaymentIntent (no Stripe coupon involved).
+
+## Multi-line family cart
+
+- `POST /api/payments/create-order-intent` — first PaymentIntent for the batch; creates a Stripe **Customer**, sets `setup_future_usage=off_session`, and stores `metadata.enrollment_order_id` + `metadata.registration_ids`.
+- Webhook (`payment_intent.succeeded`) activates **all** registrations in the batch and sets the customer’s **default payment method** when possible.
+- `POST /api/payments/collect-order-balance` — **Bearer `CRON_SECRET`**; finds `partially_paid` orders past `later_payment_date` and confirms an **off-session** PaymentIntent for the remainder. Schedule this from an external cron (e.g. daily). Requires migration `db/migrations/002_enrollment_order_installments.sql` on D1.
 
 Valid promo codes are now honored in both payment flows:
 - One-time checkout applies the discount in D1 before the PaymentIntent is created.

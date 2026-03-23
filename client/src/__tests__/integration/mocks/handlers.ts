@@ -60,6 +60,8 @@ export const mockStore = {
   shouldFailNextRequest: false,
   shouldFailPayment: false,
   networkError: false,
+  /** When true, BJJ flows hit create-intent after subscription endpoint declines (Vitest). */
+  subscriptionUnavailable: false,
 };
 
 export function resetMockStore() {
@@ -73,6 +75,7 @@ export function resetMockStore() {
   mockStore.shouldFailNextRequest = false;
   mockStore.shouldFailPayment = false;
   mockStore.networkError = false;
+  mockStore.subscriptionUnavailable = false;
 }
 
 // MSW Handlers
@@ -135,7 +138,7 @@ export const handlers = [
 
     mockStore.registrations.push(registration);
 
-    return HttpResponse.json({ registrationId });
+    return HttpResponse.json({ ok: true, registrationId, status: "submitted" });
   }),
 
   // Payment endpoints
@@ -171,6 +174,10 @@ export const handlers = [
       return HttpResponse.error();
     }
 
+    if (mockStore.subscriptionUnavailable) {
+      return HttpResponse.json({ error: "subscriptions_not_configured" }, { status: 400 });
+    }
+
     const body = (await request.json()) as { registrationId: number; discountCode?: string; siblingCount?: number };
 
     // Simulate subscriptions_not_configured fallback
@@ -204,6 +211,33 @@ export const handlers = [
   }),
 
   // Admin endpoints
+  http.get("/api/admin/dashboard", () => {
+    if (!mockStore.currentUser) {
+      return HttpResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    return HttpResponse.json({
+      metrics: {
+        registrations: {
+          total: mockStore.registrations.length,
+          active: mockStore.registrations.filter((r: any) => r.status === "completed" || r.registration_status === "completed").length,
+          pending_payment: mockStore.registrations.filter(
+            (r: any) => r.status === "pending_payment" || r.registration_status === "pending_payment",
+          ).length,
+          waitlisted: 0,
+        },
+        payments: {
+          total: mockStore.payments.length,
+          paid_revenue: mockStore.payments.reduce((s: number, p: any) => s + (p.amount ?? 0), 0),
+          pending_revenue: 0,
+        },
+        contacts: { total: 0 },
+        sessions: { total_sessions: 0, active_capacity: 0, enrolled_total: 0 },
+        users: { total_users: 0, tech_users: 0, active_users: 0 },
+      },
+      activity: [],
+    });
+  }),
+
   http.get("/api/admin/registrations", () => {
     if (!mockStore.currentUser) {
       return HttpResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -280,6 +314,35 @@ export const handlers = [
     });
   }),
 
+  http.get("/api/admin/semesters", () => {
+    if (!mockStore.currentUser) {
+      return HttpResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    return HttpResponse.json({
+      semesters: [
+        {
+          id: 1,
+          name: "Spring 2026",
+          program_id: "bjj",
+          start_date: "2026-03-01",
+          end_date: "2026-06-15",
+          classes_in_semester: 12,
+          price_per_class_cents: 1250,
+          registration_fee_cents: 2500,
+          later_payment_date: null,
+          active: 1,
+        },
+      ],
+    });
+  }),
+
+  http.patch("/api/admin/semesters", async () => {
+    if (!mockStore.currentUser) {
+      return HttpResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    return HttpResponse.json({ ok: true });
+  }),
+
   http.get("/api/admin/discounts", () => {
     return HttpResponse.json({ discounts: [] });
   }),
@@ -305,9 +368,54 @@ export const handlers = [
 
   http.get("/api/programs", () => {
     return HttpResponse.json({
-      sessions: [
-        { id: 1, programId: 1, name: "Session 1", capacity: 20 },
-        { id: 2, programId: 1, name: "Session 2", capacity: 15 },
+      programs: [
+        {
+          id: "bjj",
+          slug: "bjj",
+          name: "Brazilian Jiu-Jitsu",
+          status: "active",
+          sessions: [
+            {
+              id: 1,
+              program_id: "bjj",
+              name: "Boys 7–13 — Friday",
+              day_of_week: "Friday",
+              start_time: "10:00",
+              end_time: "11:00",
+              age_group: "boys-7-13",
+              gender_group: "male",
+              capacity: 20,
+              enrolled_count: 0,
+              visible: 1,
+            },
+            {
+              id: 2,
+              program_id: "bjj",
+              name: "Boys 7–13 — Tuesday",
+              day_of_week: "Tuesday",
+              start_time: "14:30",
+              end_time: "15:30",
+              age_group: "boys-7-13",
+              gender_group: "male",
+              capacity: 20,
+              enrolled_count: 0,
+              visible: 1,
+            },
+          ],
+          prices: [
+            {
+              id: 1,
+              program_id: "bjj",
+              age_group: "boys-7-13",
+              label: "Boys 7–13 (per class)",
+              amount: 1250,
+              frequency: "per_session",
+              registration_fee: 2500,
+              metadata: '{"classes_in_semester_default":12}',
+              active: 1,
+            },
+          ],
+        },
       ],
     });
   }),

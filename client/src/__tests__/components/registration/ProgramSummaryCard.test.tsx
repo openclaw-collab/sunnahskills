@@ -29,7 +29,7 @@ describe("ProgramSummaryCard", () => {
     );
 
     expect(screen.getByText("Schedule")).toBeInTheDocument();
-    expect(screen.getByText("Recurring weekly sessions with age-group tracks.")).toBeInTheDocument();
+    expect(screen.getByText(PROGRAMS.bjj.scheduleBlurb)).toBeInTheDocument();
   });
 
   it("displays program pricing", () => {
@@ -38,7 +38,7 @@ describe("ProgramSummaryCard", () => {
     );
 
     expect(screen.getByText("Pricing")).toBeInTheDocument();
-    expect(screen.getByText("Monthly tuition + optional one-time registration fee (admin-editable).")).toBeInTheDocument();
+    expect(screen.getByText(PROGRAMS.bjj.pricingBlurb)).toBeInTheDocument();
   });
 
   it("uses selected session label when provided", () => {

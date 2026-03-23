@@ -3,12 +3,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, CheckboxGroup, SelectField } from "./FormControls";
 import type { RegistrationStepProps } from "@/components/registration/steps";
 import type { BjjSpecific, ArcherySpecific, OutdoorSpecific, BullyproofingSpecific } from "@/hooks/useRegistration";
+import { useProgramsCatalog } from "@/hooks/useProgramsCatalog";
 import {
   archeryDominantHandOptions,
   archeryExperienceOptions,
   archerySessionOptions,
-  bjjAgeGroupOptions,
-  bjjClassGroupOptions,
+  bjjTrackOptions,
   bjjTrialClassOptions,
   bullyproofingAgeGroupOptions,
   bullyproofingConcernOptions,
@@ -17,7 +17,13 @@ import {
 } from "@shared/registration-options";
 
 function BjjFields({ draft, updateDraft }: RegistrationStepProps) {
+  const { data, isLoading } = useProgramsCatalog();
   const ps = draft.programDetails.programSpecific as BjjSpecific;
+  const bjj = data?.programs?.find((p) => p.id === "bjj");
+  const sessions = (bjj?.sessions ?? []).filter((s) => s.age_group === ps.bjjTrack);
+  const prices = (bjj?.prices ?? []).filter((p) => p.age_group === ps.bjjTrack);
+  const priceRow = prices[0] ?? null;
+
   const set = (patch: Partial<BjjSpecific>) =>
     updateDraft((prev) => ({
       ...prev,
@@ -27,26 +33,72 @@ function BjjFields({ draft, updateDraft }: RegistrationStepProps) {
       },
     }));
 
+  const sessionOptions = sessions.map((s) => ({
+    value: String(s.id),
+    label: `${s.day_of_week ?? "Day"} ${s.start_time ?? ""}–${s.end_time ?? ""} · ${s.name}`,
+  }));
+
   return (
     <div className="space-y-6">
+      {isLoading && (
+        <p className="font-body text-sm text-charcoal/60">Loading class schedule…</p>
+      )}
       <RadioGroup
-        label="Class group"
-        name="bjj-gender"
-        value={ps.gender}
-        onChange={(v) => set({ gender: v as BjjSpecific["gender"] })}
-        options={[...bjjClassGroupOptions]}
-      />
-      <RadioGroup
-        label="Age group"
-        name="bjj-age"
-        value={ps.ageGroup}
-        onChange={(v) => set({ ageGroup: v as BjjSpecific["ageGroup"] })}
-        options={bjjAgeGroupOptions.map((opt) => ({
+        label="Class track"
+        name="bjj-track"
+        value={ps.bjjTrack}
+        onChange={(v) => {
+          const track = v as BjjSpecific["bjjTrack"];
+          const list = (bjj?.sessions ?? []).filter((s) => s.age_group === track);
+          const pr = (bjj?.prices ?? []).find((p) => p.age_group === track);
+          updateDraft((prev) => ({
+            ...prev,
+            programDetails: {
+              ...prev.programDetails,
+              sessionId: list.length === 1 ? list[0].id : null,
+              priceId: pr?.id ?? null,
+              programSpecific: { ...(prev.programDetails.programSpecific as BjjSpecific), bjjTrack: track },
+            },
+          }));
+        }}
+        options={bjjTrackOptions.map((opt) => ({
           ...opt,
           sublabel:
-            opt.value === "6-10" ? "Fundamentals" : opt.value === "11-14" ? "Intermediate" : "Advanced",
+            opt.value === "women-11-tue" || opt.value === "women-11-thu"
+              ? "Separate enrollments — both nights means double tuition"
+              : undefined,
         }))}
       />
+      {ps.bjjTrack && sessions.length > 1 && (
+        <SelectField
+          label="Pick your session"
+          value={draft.programDetails.sessionId ? String(draft.programDetails.sessionId) : ""}
+          onChange={(v) => {
+            const sid = Number(v);
+            updateDraft((prev) => ({
+              ...prev,
+              programDetails: {
+                ...prev.programDetails,
+                sessionId: Number.isFinite(sid) ? sid : null,
+                priceId: priceRow?.id ?? null,
+              },
+            }));
+          }}
+          options={sessionOptions}
+          placeholder="Select day and time"
+        />
+      )}
+      {ps.bjjTrack && sessions.length === 1 && (
+        <p className="rounded-xl border border-charcoal/10 bg-moss/5 px-4 py-3 font-body text-xs text-charcoal/70 leading-relaxed">
+          <strong>Session:</strong> {sessionOptions[0]?.label}
+          {ps.bjjTrack.startsWith("girls") || ps.bjjTrack.startsWith("boys") ? (
+            <>
+              {" "}
+              · On Tuesdays, kids class follows the women&apos;s block — different rooms/tracks.
+            </>
+          ) : null}
+        </p>
+      )}
       <RadioGroup
         label="Would you like to start with a trial class?"
         name="bjj-trial"
@@ -223,6 +275,32 @@ export function StepProgramDetails(props: RegistrationStepProps) {
 
       {/* Sibling discount — shown for all programs */}
       <div className="border-t border-charcoal/10 pt-6">
+        {slug === "bjj" ? (
+          <div className="mb-6">
+            <RadioGroup
+              label="Tuition payment"
+              name="bjj-payment-choice"
+              value={draft.programDetails.paymentChoice}
+              onChange={(v) =>
+                updateDraft((prev) => ({
+                  ...prev,
+                  programDetails: {
+                    ...prev.programDetails,
+                    paymentChoice: v as "full" | "plan",
+                  },
+                }))
+              }
+              options={[
+                { value: "full", label: "Pay in full today", sublabel: "Single payment for this enrollment" },
+                {
+                  value: "plan",
+                  label: "Pay part today",
+                  sublabel: "Remaining balance is charged automatically on the semester date (see confirmation email)",
+                },
+              ]}
+            />
+          </div>
+        ) : null}
         <RadioGroup
           label="Registering siblings at the same time?"
           name="sibling-count"
@@ -244,7 +322,9 @@ export function StepProgramDetails(props: RegistrationStepProps) {
         />
         {draft.programDetails.siblingCount > 0 && (
           <p className="mt-2 font-body text-xs text-moss">
-            A 10% sibling discount will be applied at checkout.
+            {slug === "bjj"
+              ? "Multi-student cart: additional siblings receive 10% off each kids track line. Single-registration checkout uses your selection above."
+              : "A 10% sibling discount will be applied at checkout."}
           </p>
         )}
       </div>

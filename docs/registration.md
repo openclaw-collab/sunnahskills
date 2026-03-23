@@ -4,16 +4,26 @@
 
 Each program has its own registration route that wraps a shared 5-step wizard (`RegistrationWizard`). The wizard is program-aware: field sets, pricing logic, and payment type (one-time vs. subscription) all vary by program slug.
 
-## Routes
+## Routes & enrollment status
 
-| Slug | URL | Payment type |
-|---|---|---|
-| `bjj` | `/programs/bjj/register` | Recurring subscription (monthly) |
-| `archery` | `/programs/archery/register` | Seasonal one-time |
-| `outdoor` | `/programs/outdoor/register` | Per-workshop one-time |
-| `bullyproofing` | `/programs/bullyproofing/register` | Workshop / package one-time |
+| Slug | URL | Enrollment | Payment (when open) |
+|---|---|---|---|
+| `bjj` | `/programs/bjj/register` | **Open** — full wizard | Subscription if configured, else PaymentIntent fallback |
+| `archery` | `/programs/archery/register` | **Coming soon** — waitlist screen | — |
+| `outdoor` | `/programs/outdoor/register` | **Coming soon** — waitlist screen | — |
+| `bullyproofing` | `/programs/bullyproofing/register` | **Coming soon** — waitlist screen | — |
 
-The `/register` route is a lightweight program chooser that links into these four flows.
+Non-BJJ `/programs/{slug}/register` URLs render a short **waitlist** message with links to **Contact** and the program detail page. The `/register` hub still lists all programs.
+
+**Server:** `POST /api/register` returns **403** for non-BJJ slugs even if called directly.
+
+## Family cart (`/registration/cart`)
+
+- **Add to cart** (BJJ only): on the **Details** step, use **Add to cart** / **View cart** next to **Continue**. Lines are stored in `localStorage` (`client/src/lib/familyCart.ts`). Guardian email must match across lines.
+- **Checkout:** One **waivers + signature** block covers **all** lines in the order. Submit calls:
+  1. `POST /api/register/cart` — creates `enrollment_orders`, linked `registrations`, per-line `payment_choice` (`full` | `plan`), kids/sibling math via `functions/_utils/orderPricing.ts`.
+  2. `POST /api/payments/create-order-intent` — Stripe **Customer** + **PaymentIntent** for “pay today” (`setup_future_usage=off_session` for the later balance). Webhook fan-out: `functions/api/payments/webhook.ts` reads `metadata.enrollment_order_id` + `registration_ids`.
+- **Installments:** Remaining balance is stored on the order; `POST /api/payments/collect-order-balance` (Bearer `CRON_SECRET`) attempts **off-session** second charges after `later_payment_date`. Configure `CRON_SECRET` in the worker environment and call it from a daily cron job.
 
 ## Wizard steps
 
@@ -42,11 +52,23 @@ Validation: full name and date of birth are required. The age field is derived f
 Branched by `program.slug`:
 
 **BJJ:**
-- Class group (Boys' class / Girls' class) — radio
-- Age group (6–10 / 11–14 / 15–17) — radio
-- Want a trial class first? (Yes / No) — radio
+- **Class track** (radio): Girls 5–10 · Boys 7–13 · Teens+ Women 11+ — Tuesday · Teens+ Women 11+ — Thursday · Teens+ Men 14+  
+  (Tuesday vs Thursday women sessions are **separate enrollments**; both = double tuition.)
+- **Session** (`Pick your session`) when more than one row exists for that track in `/api/programs`
+- **Tuition payment** (radio): Pay in full today · Pay part today (remainder on semester date; automated second charge when cron + saved card allow)
+- Trial class first? (Yes / No) — radio
 - Optional notes textarea
-- Sibling enrollment (0 / 1 / 2+) — shared radio
+- Sibling enrollment (0 / 1 / 2+) — shared radio (10% off **additional** siblings’ **kids** lines — see `shared/pricing.ts`; server must recompute)
+
+### Required-fields matrix (high level)
+
+| Step | Required |
+|------|----------|
+| Guardian | Full name, email, phone, relationship, emergency name & phone |
+| Student | Full name, DOB, gender, skill level |
+| BJJ details | `bjjTrack`, `trialClass`, `sessionId`, `priceId` (when catalog loaded) |
+| Waivers | Liability, medical, terms checkboxes + typed signature + date |
+| Payment | Stripe confirmation (after waivers) |
 
 **Archery:**
 - Dominant hand (Right / Left) — radio

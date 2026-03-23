@@ -1,7 +1,11 @@
 import React from "react";
-import { useLocation } from "wouter";
+import { Link, useLocation } from "wouter";
 import type { ProgramSlug } from "@/lib/programConfig";
 import { getProgramConfig } from "@/lib/programConfig";
+import { PremiumCard } from "@/components/brand/PremiumCard";
+import { ClayButton } from "@/components/brand/ClayButton";
+import { OutlineButton } from "@/components/brand/OutlineButton";
+import { SectionHeader } from "@/components/brand/SectionHeader";
 import { useRegistration } from "@/hooks/useRegistration";
 import { RegistrationWizard } from "@/components/registration/RegistrationWizard";
 import { ProgramSummaryCard } from "@/components/registration/ProgramSummaryCard";
@@ -12,6 +16,8 @@ import { StepWaivers } from "@/components/registration/StepWaivers";
 import { StepPayment } from "@/components/registration/StepPayment";
 import { ResumeBanner } from "@/components/registration/ResumeBanner";
 import { OrderSummaryCard } from "@/components/registration/OrderSummaryCard";
+import { blockingMessageThroughDetails } from "@/hooks/useStepValidation";
+import { addLineToFamilyCart, loadFamilyCart } from "@/lib/familyCart";
 
 export function ProgramRegistrationPage({ slug }: { slug: ProgramSlug }) {
   const program = getProgramConfig(slug);
@@ -24,6 +30,31 @@ export function ProgramRegistrationPage({ slug }: { slug: ProgramSlug }) {
   const [error, setError] = React.useState<string | null>(null);
 
   if (!program) return null;
+
+  if (program.enrollmentStatus !== "open") {
+    return (
+      <div className="bg-cream min-h-screen pb-24">
+        <div className="noise-overlay" />
+        <main className="mx-auto max-w-2xl px-6 pt-28">
+          <SectionHeader eyebrow="Registration" title={`${program.name}`} className="mb-8" />
+          <PremiumCard className="space-y-6 border border-charcoal/10 bg-white p-8">
+            <p className="font-body text-sm leading-relaxed text-charcoal/75">
+              Online registration for this program isn&apos;t open yet. Join the waitlist and we&apos;ll reach out when a cohort
+              is scheduled.
+            </p>
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <ClayButton asChild className="px-6 py-3 text-[11px] uppercase tracking-[0.18em]">
+                <Link href={`/contact?interest=${program.slug}`}>Join waitlist</Link>
+              </ClayButton>
+              <OutlineButton asChild className="px-6 py-3 text-[11px] uppercase tracking-[0.18em]">
+                <Link href={program.detailPath}>Back to program</Link>
+              </OutlineButton>
+            </div>
+          </PremiumCard>
+        </main>
+      </div>
+    );
+  }
 
   async function setupPayment(regId: number) {
     const isRecurring = program!.type === "recurring";
@@ -100,6 +131,41 @@ export function ProgramRegistrationPage({ slug }: { slug: ProgramSlug }) {
         program={program}
         steps={steps}
         currentStepIndex={currentStepIndex}
+        footerExtra={
+          program.slug === "bjj" && steps[currentStepIndex]?.id === "details" ? (
+            <div className="flex flex-wrap gap-3 justify-end w-full">
+              <OutlineButton
+                type="button"
+                className="px-5 py-2.5 text-[10px] uppercase tracking-[0.18em]"
+                onClick={() => {
+                  const msg = blockingMessageThroughDetails(draft);
+                  if (msg) {
+                    window.alert(msg);
+                    return;
+                  }
+                  const existing = loadFamilyCart();
+                  const email = draft.guardian.email.trim().toLowerCase();
+                  if (existing && existing.guardian.email.trim().toLowerCase() !== email) {
+                    window.alert(
+                      "Your cart was started with a different guardian email. Clear the cart from the cart page or use the same email.",
+                    );
+                    return;
+                  }
+                  addLineToFamilyCart(draft.guardian, {
+                    student: draft.student,
+                    programDetails: draft.programDetails,
+                  });
+                  navigate("/registration/cart");
+                }}
+              >
+                Add to cart
+              </OutlineButton>
+              <OutlineButton asChild className="px-5 py-2.5 text-[10px] uppercase tracking-[0.18em]">
+                <Link href="/registration/cart">View cart</Link>
+              </OutlineButton>
+            </div>
+          ) : null
+        }
         onBack={goBack}
         onNext={() => {
           if (steps[currentStepIndex]?.id !== "waivers") {

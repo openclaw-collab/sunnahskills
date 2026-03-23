@@ -3,6 +3,7 @@ import { SectionHeader } from "@/components/brand/SectionHeader";
 import { PremiumCard } from "@/components/brand/PremiumCard";
 import { ClayButton } from "@/components/brand/ClayButton";
 import { PROGRAMS, getProgramTypeLabel } from "@/lib/programConfig";
+import { OutlineButton } from "@/components/brand/OutlineButton";
 import { MotionDiv, MotionPage } from "@/components/motion/PageMotion";
 
 const RegistrationHub = () => {
@@ -13,9 +14,15 @@ const RegistrationHub = () => {
       <div className="noise-overlay" />
       <main className="max-w-6xl mx-auto px-6 pt-28">
         <SectionHeader eyebrow="Registration" title="Choose a Program" className="mb-8" />
-        <p className="font-body text-pretty text-sm text-charcoal/70 max-w-2xl mb-10">
+        <p className="font-body text-pretty text-sm text-charcoal/70 max-w-2xl mb-6">
           Start by selecting a program below. Each registration flow is tailored to that discipline and will guide you
           through student details, waivers, and payment.
+        </p>
+        <p className="font-body text-pretty text-xs text-charcoal/55 max-w-2xl mb-10">
+          <Link href="/registration/cart" className="text-moss underline-offset-2 hover:underline">
+            Family cart
+          </Link>{" "}
+          (multi-student checkout) is coming soon — link reserved for the next release.
         </p>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -35,15 +42,21 @@ const RegistrationHub = () => {
                   </p>
                 </div>
 
-                <div className="mt-6 flex items-center justify-between gap-4">
+                <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div className="text-[11px] font-mono-label uppercase tracking-[0.18em] text-charcoal/50">
                     Registration Flow
                   </div>
-                  <ClayButton asChild className="px-5 py-2.5 text-[11px] uppercase tracking-[0.18em]">
-                    <Link href={program.registerPath}>
-                      Register for {program.slug === "bjj" ? "BJJ" : program.name}
-                    </Link>
-                  </ClayButton>
+                  {program.enrollmentStatus === "open" ? (
+                    <ClayButton asChild className="px-5 py-2.5 text-[11px] uppercase tracking-[0.18em]">
+                      <Link href={program.registerPath}>
+                        Register for {program.slug === "bjj" ? "BJJ" : program.name}
+                      </Link>
+                    </ClayButton>
+                  ) : (
+                    <OutlineButton asChild className="px-5 py-2.5 text-[11px] uppercase tracking-[0.18em]">
+                      <Link href={`/contact?interest=${program.slug}`}>Join waitlist</Link>
+                    </OutlineButton>
+                  )}
                 </div>
               </PremiumCard>
             </MotionDiv>

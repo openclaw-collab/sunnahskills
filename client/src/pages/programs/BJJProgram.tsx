@@ -6,7 +6,7 @@ import { PremiumCard } from "@/components/brand/PremiumCard";
 import { SectionHeader } from "@/components/brand/SectionHeader";
 import { TelemetryCard } from "@/components/brand/TelemetryCard";
 import { StatusDot } from "@/components/brand/StatusDot";
-import { ProgramVisual } from "@/components/programs/ProgramVisual";
+import { ProgramPageHeroMedia } from "@/components/programs/ProgramPageHeroMedia";
 import { MotionDiv, MotionPage, MotionSection } from "@/components/motion/PageMotion";
 import { PROGRAMS, getProgramTypeLabel } from "@/lib/programConfig";
 
@@ -49,16 +49,14 @@ const BJJProgram = () => {
     <MotionPage className="bg-cream min-h-screen">
       <div className="noise-overlay" />
 
-      <header className="relative overflow-hidden bg-charcoal text-cream">
+      <header className="relative min-h-[420px] overflow-hidden bg-charcoal text-cream md:min-h-[480px]">
         <div className="absolute inset-0">
-          <div className="absolute inset-0 bg-charcoal/86" />
-          <div className="absolute -left-24 top-0 h-72 w-72 rounded-full bg-moss/10 blur-3xl" />
-          <div className="absolute right-0 top-20 h-64 w-64 rounded-full bg-clay/10 blur-3xl" />
+          <ProgramPageHeroMedia program={program} />
         </div>
 
-        <div className="relative z-10 max-w-6xl mx-auto px-6 pt-28 pb-16 md:pt-36 md:pb-20">
-          <div className="grid gap-10 lg:grid-cols-[1.1fr_0.9fr] items-center">
-            <MotionDiv className="max-w-2xl" delay={0.04}>
+        <div className="relative z-10 mx-auto max-w-6xl px-6 pb-16 pt-28 md:pb-20 md:pt-36">
+          <div className="max-w-3xl">
+            <MotionDiv delay={0.04}>
               <p className="text-clay font-mono-label text-xs uppercase tracking-[0.18em] mb-6 flex items-center gap-2">
                 <StatusDot ariaLabel="Enrollment Open" />
                 {getProgramTypeLabel(program.type)}
@@ -93,10 +91,6 @@ const BJJProgram = () => {
                   </OutlineButton>
                 </Link>
               </div>
-            </MotionDiv>
-
-            <MotionDiv className="lg:justify-self-end" delay={0.08}>
-              <ProgramVisual slug="bjj" variant="hero" className="shadow-2xl shadow-black/30" />
             </MotionDiv>
           </div>
         </div>

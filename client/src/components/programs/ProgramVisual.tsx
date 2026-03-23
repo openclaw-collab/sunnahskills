@@ -1,5 +1,6 @@
 import { cn } from "@/lib/utils";
 import type { ProgramSlug } from "@/lib/programConfig";
+import { PROGRAMS } from "@/lib/programConfig";
 
 type ProgramVisualProps = {
   slug: ProgramSlug;
@@ -7,169 +8,111 @@ type ProgramVisualProps = {
   className?: string;
 };
 
-const copyBySlug: Record<ProgramSlug, { label: string; subtitle: string }> = {
+type OverlayCopy = {
+  label: string;
+  subtitle: string;
+  footer: string;
+  leftChip: string;
+  rightChip: (v: "card" | "hero") => string;
+  /** Optional chip / center pill styling tweaks */
+  centerClassName?: string;
+};
+
+const overlayBySlug: Record<ProgramSlug, OverlayCopy> = {
   bjj: {
     label: "Mat Control",
     subtitle: "Close the distance / control / finish",
+    footer: "Age-group training on the mats",
+    leftChip: "Youth Grappling",
+    rightChip: (v) => (v === "hero" ? "Recurring" : "Technique-first"),
   },
   archery: {
     label: "Target Focus",
     subtitle: "Target / breath / release",
+    footer: "Controlled release and consistent stance",
+    leftChip: "Sunnah Practice",
+    rightChip: () => "Seasonal",
+    centerClassName: "border-cream/20 bg-cream/10 text-cream",
   },
   outdoor: {
     label: "Fieldcraft",
     subtitle: "Map / shelter / stewardship",
+    footer: "Navigation, shelter, and stewardship",
+    leftChip: "Field Ready",
+    rightChip: () => "Workshops",
+    centerClassName: "border-moss/20 bg-charcoal/75 text-cream",
   },
   bullyproofing: {
     label: "Boundaries First",
     subtitle: "Boundaries / awareness / calm",
+    footer: "Boundaries, awareness, and calm response",
+    leftChip: "Safety First",
+    rightChip: () => "Short Series",
+    centerClassName: "border-cream/20 bg-white/10 text-cream",
   },
 };
 
 export function ProgramVisual({ slug, variant = "card", className }: ProgramVisualProps) {
-  const meta = copyBySlug[slug];
+  const program = PROGRAMS[slug];
+  const meta = overlayBySlug[slug];
+  const { src, alt, objectPosition } = program.heroImage;
 
-  if (slug === "bjj") {
-    return (
-      <div
-        className={cn(
-          "relative overflow-hidden rounded-[2rem] border border-white/10 bg-charcoal text-cream",
-          variant === "hero" ? "min-h-[340px]" : "aspect-[16/10]",
-          className,
-        )}
-      >
-        <div className="absolute inset-0 grid grid-cols-2 gap-3 p-4">
-          <div className="rounded-[1.5rem] border border-moss/15 bg-white/5" />
-          <div className="rounded-[1.5rem] border border-white/10 bg-white/8" />
-          <div className="rounded-[1.5rem] border border-white/10 bg-white/8" />
-          <div className="rounded-[1.5rem] border border-moss/15 bg-white/5" />
-        </div>
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(201,138,88,0.14)_0%,rgba(26,26,26,0.92)_70%)]" />
-        <div className="relative z-10 flex h-full flex-col justify-between p-5 md:p-6">
-          <div className="flex items-start justify-between gap-3">
-            <div className="rounded-full border border-moss/20 bg-white/5 px-3 py-1 text-[10px] font-mono-label uppercase tracking-[0.18em] text-moss">
-              Youth Grappling
-            </div>
-            <div className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[10px] font-mono-label uppercase tracking-[0.18em] text-cream/70">
-              {variant === "hero" ? "Recurring" : "Technique-first"}
-            </div>
-          </div>
-          <div className="self-center rounded-full border border-moss/20 bg-white px-5 py-3 text-[10px] font-mono-label uppercase tracking-[0.2em] text-charcoal/65 shadow-sm">
-            {meta.label}
-          </div>
-          <div className="space-y-1 text-[10px] font-mono-label uppercase tracking-[0.18em] text-cream/70">
-            <div>{meta.subtitle}</div>
-            <div>Age-group training on the mats</div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (slug === "archery") {
-    return (
-      <div
-        className={cn(
-          "relative overflow-hidden rounded-[2rem] border border-white/10 bg-charcoal text-cream",
-          variant === "hero" ? "min-h-[340px]" : "aspect-[16/10]",
-          className,
-        )}
-      >
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(204,88,51,0.18)_0%,rgba(26,26,26,0.92)_68%)]" />
-        <div className="absolute inset-0">
-          <div className="absolute left-1/2 top-1/2 h-52 w-52 -translate-x-1/2 -translate-y-1/2 rounded-full border border-cream/20" />
-          <div className="absolute left-1/2 top-1/2 h-36 w-36 -translate-x-1/2 -translate-y-1/2 rounded-full border border-cream/20" />
-          <div className="absolute left-1/2 top-1/2 h-20 w-20 -translate-x-1/2 -translate-y-1/2 rounded-full border border-cream/35" />
-          <div className="absolute left-[14%] top-[22%] h-px w-[64%] rotate-[18deg] bg-cream/30" />
-          <div className="absolute left-[72%] top-[33%] size-2 rounded-full bg-clay shadow-[0_0_0_8px_rgba(204,88,51,0.18)]" />
-        </div>
-        <div className="relative z-10 flex h-full flex-col justify-between p-5 md:p-6">
-          <div className="flex items-start justify-between gap-3">
-            <div className="rounded-full border border-clay/25 bg-white/5 px-3 py-1 text-[10px] font-mono-label uppercase tracking-[0.18em] text-clay">
-              Sunnah Practice
-            </div>
-            <div className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[10px] font-mono-label uppercase tracking-[0.18em] text-cream/70">
-              Seasonal
-            </div>
-          </div>
-          <div className="self-center rounded-full border border-cream/20 bg-cream/10 px-5 py-3 text-[10px] font-mono-label uppercase tracking-[0.2em] text-cream">
-            {meta.label}
-          </div>
-          <div className="space-y-1 text-[10px] font-mono-label uppercase tracking-[0.18em] text-cream/70">
-            <div>{meta.subtitle}</div>
-            <div>Controlled release and consistent stance</div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (slug === "outdoor") {
-    return (
-      <div
-        className={cn(
-          "relative overflow-hidden rounded-[2rem] border border-white/10 bg-charcoal text-cream",
-          variant === "hero" ? "min-h-[340px]" : "aspect-[16/10]",
-          className,
-        )}
-      >
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(201,138,88,0.12)_0%,rgba(26,26,26,0.95)_72%)]" />
-        <svg viewBox="0 0 200 200" className="absolute inset-0 h-full w-full opacity-30 text-moss">
-          <path d="M20 100 Q 60 50, 100 100 T 180 100" fill="none" stroke="currentColor" strokeWidth="2" />
-          <path d="M10 120 Q 50 70, 90 120 T 190 120" fill="none" stroke="currentColor" strokeWidth="1" />
-          <path d="M30 80 Q 70 30, 110 80 T 170 80" fill="none" stroke="currentColor" strokeWidth="1" />
-          <path d="M 0 100 L 200 100" fill="none" stroke="#CC5833" strokeWidth="0.5" strokeDasharray="4 4" />
-          <circle cx="100" cy="100" r="3" fill="#CC5833" />
-        </svg>
-        <div className="relative z-10 flex h-full flex-col justify-between p-5 md:p-6">
-          <div className="flex items-start justify-between gap-3">
-            <div className="rounded-full border border-moss/25 bg-white/5 px-3 py-1 text-[10px] font-mono-label uppercase tracking-[0.18em] text-moss">
-              Field Ready
-            </div>
-            <div className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[10px] font-mono-label uppercase tracking-[0.18em] text-cream/70">
-              Workshops
-            </div>
-          </div>
-          <div className="self-center rounded-full border border-moss/20 bg-charcoal/75 px-5 py-3 text-[10px] font-mono-label uppercase tracking-[0.2em] text-cream">
-            {meta.label}
-          </div>
-          <div className="space-y-1 text-[10px] font-mono-label uppercase tracking-[0.18em] text-cream/70">
-            <div>{meta.subtitle}</div>
-            <div>Navigation, shelter, and stewardship</div>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const centerPill = cn(
+    "self-center rounded-full border px-5 py-3 text-[10px] font-mono-label uppercase tracking-[0.2em] shadow-sm",
+    meta.centerClassName ??
+      "border-moss/20 bg-white px-5 py-3 text-charcoal/65 shadow-sm",
+  );
 
   return (
     <div
       className={cn(
         "relative overflow-hidden rounded-[2rem] border border-white/10 bg-charcoal text-cream",
-        variant === "hero" ? "min-h-[340px]" : "aspect-[16/10]",
+        variant === "hero" ? "min-h-[320px] md:min-h-[400px]" : "aspect-[16/10]",
         className,
       )}
     >
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(204,88,51,0.16)_0%,rgba(26,26,26,0.95)_70%)]" />
-      <div className="absolute inset-0 flex items-center justify-center">
-        <div className="w-32 h-32 rounded-full border-2 border-cream/20" />
-        <div className="absolute w-48 h-48 rounded-full border border-cream/10" />
-      </div>
-      <div className="relative z-10 flex h-full flex-col justify-between p-5 md:p-6">
+      <img
+        src={src}
+        alt={alt}
+        className="absolute inset-0 h-full w-full object-cover"
+        style={{ objectPosition: objectPosition ?? "center" }}
+        loading={variant === "hero" ? "eager" : "lazy"}
+        decoding="async"
+      />
+
+      {/* Readability scrim — full-bleed photo + brand-consistent darkening */}
+      <div
+        className="absolute inset-0 bg-gradient-to-t from-charcoal via-charcoal/55 to-charcoal/20"
+        aria-hidden
+      />
+      <div
+        className="absolute inset-0 bg-[radial-gradient(ellipse_120%_80%_at_50%_40%,transparent_0%,rgba(26,26,26,0.35)_100%)]"
+        aria-hidden
+      />
+
+      <div className="relative z-10 flex h-full min-h-0 flex-col justify-between p-5 md:p-6">
         <div className="flex items-start justify-between gap-3">
-          <div className="rounded-full border border-cream/20 bg-white/5 px-3 py-1 text-[10px] font-mono-label uppercase tracking-[0.18em] text-cream/75">
-            Safety First
+          <div
+            className={cn(
+              "rounded-full border bg-white/5 px-3 py-1 text-[10px] font-mono-label uppercase tracking-[0.18em]",
+              slug === "bjj" && "border-moss/20 text-moss",
+              slug === "archery" && "border-clay/25 text-clay",
+              slug === "outdoor" && "border-moss/25 text-moss",
+              slug === "bullyproofing" && "border-cream/20 text-cream/75",
+            )}
+          >
+            {meta.leftChip}
           </div>
           <div className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[10px] font-mono-label uppercase tracking-[0.18em] text-cream/70">
-            Short Series
+            {meta.rightChip(variant)}
           </div>
         </div>
-        <div className="self-center rounded-full border border-cream/20 bg-white/10 px-5 py-3 text-[10px] font-mono-label uppercase tracking-[0.2em] text-cream">
-          {meta.label}
-        </div>
-        <div className="space-y-1 text-[10px] font-mono-label uppercase tracking-[0.18em] text-cream/70">
+
+        <div className={centerPill}>{meta.label}</div>
+
+        <div className="space-y-1 text-[10px] font-mono-label uppercase tracking-[0.18em] text-cream/80">
           <div>{meta.subtitle}</div>
-          <div>Boundaries, awareness, and calm response</div>
+          <div className="text-cream/65">{meta.footer}</div>
         </div>
       </div>
     </div>

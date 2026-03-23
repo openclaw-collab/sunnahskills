@@ -31,3 +31,6 @@ playwright-report/
 
 # Wrangler test state (separate from dev state)
 .wrangler/test-state/
+
+# superturtle
+.superturtle/

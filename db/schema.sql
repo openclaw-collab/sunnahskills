@@ -258,6 +258,32 @@ CREATE TABLE IF NOT EXISTS studio_sessions (
 
 CREATE INDEX IF NOT EXISTS idx_studio_sessions_created ON studio_sessions(created_at);
 
+-- Rate limiting for admin login
+CREATE TABLE IF NOT EXISTS rate_limits (
+  key TEXT PRIMARY KEY,
+  attempts INTEGER DEFAULT 1,
+  first_attempt_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  blocked_until DATETIME,
+  expires_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_rate_limits_expires ON rate_limits(expires_at);
+CREATE INDEX IF NOT EXISTS idx_rate_limits_blocked ON rate_limits(blocked_until);
+
+-- Login attempt audit log
+CREATE TABLE IF NOT EXISTS login_attempts (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  email TEXT NOT NULL,
+  ip_address TEXT,
+  success INTEGER DEFAULT 0,
+  reason TEXT,
+  attempted_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_login_attempts_email ON login_attempts(email);
+CREATE INDEX IF NOT EXISTS idx_login_attempts_ip ON login_attempts(ip_address);
+CREATE INDEX IF NOT EXISTS idx_login_attempts_time ON login_attempts(attempted_at);
+
 -- Guardian passwordless accounts (magic link + account number)
 CREATE TABLE IF NOT EXISTS guardian_accounts (
   id INTEGER PRIMARY KEY AUTOINCREMENT,

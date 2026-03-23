@@ -62,6 +62,9 @@ export type RegistrationDraft = {
     siblingCount: 0 | 1 | 2;
     /** Pay full tuition today vs split (server uses semester later date). */
     paymentChoice: "full" | "plan";
+    /** Optional; cart API accepts for D1 program_specific_json parity. */
+    preferredStartDate?: string;
+    scheduleChoice?: string;
     programSpecific: ProgramSpecificData;
   };
   waivers: {
@@ -110,6 +113,8 @@ function createEmptyDraft(programSlug: ProgramSlug): RegistrationDraft {
       priceId: null,
       siblingCount: 0,
       paymentChoice: "full",
+      preferredStartDate: "",
+      scheduleChoice: "",
       programSpecific: defaultProgramSpecific(programSlug),
     },
     waivers: {

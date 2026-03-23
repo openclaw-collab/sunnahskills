@@ -2,7 +2,7 @@ import {
   KIDS_PER_CLASS_CENTS_DEFAULT,
   kidsLineSubtotalCents,
   lineTotalAfterSiblingCents,
-} from "../../shared/pricing";
+} from "./pricing";
 
 export type BjjTrack = string;
 
@@ -79,7 +79,7 @@ export type LinePricingResult = {
   dueLaterCents: number;
 };
 
-function classesInSemesterFromPriceMeta(meta: string | null, sem: SemesterRow | null): number {
+export function resolveClassesInSemester(meta: string | null, sem: SemesterRow | null): number {
   const fromSem = sem?.classes_in_semester;
   if (Number.isInteger(fromSem) && fromSem! > 0) return fromSem!;
   if (!meta) return 12;
@@ -93,20 +93,28 @@ function classesInSemesterFromPriceMeta(meta: string | null, sem: SemesterRow | 
   return 12;
 }
 
-/**
- * Full line tuition + reg fee (before sibling / promo / pay split).
- */
-export function computeLineTuitionCents(input: LinePricingInput): Omit<LinePricingResult, "dueTodayCents" | "dueLaterCents"> {
+type LineCore = {
+  classesN: number;
+  perClassCents: number | null;
+  tuitionCents: number;
+  registrationFeeCents: number;
+  lineSubtotalCents: number;
+  siblingDiscountCents: number;
+  afterSiblingCents: number;
+};
+
+function linePricingCore(input: LinePricingInput): LineCore {
   const sem = input.semester;
-  const classesN = classesInSemesterFromPriceMeta(input.priceMetadataJson, sem);
+  const classesN = resolveClassesInSemester(input.priceMetadataJson, sem);
   const regFeeSem = sem?.registration_fee_cents ?? 0;
   const regFeePrice = input.programPriceRegFee ?? 0;
   const regFee = Number.isInteger(regFeeSem) && regFeeSem > 0 ? regFeeSem : regFeePrice;
 
   let tuitionCents = 0;
+  let perClassCents: number | null = null;
   if (isKidsBjjTrack(input.track)) {
-    const perClass = sem?.price_per_class_cents ?? KIDS_PER_CLASS_CENTS_DEFAULT;
-    tuitionCents = kidsLineSubtotalCents(perClass, classesN);
+    perClassCents = sem?.price_per_class_cents ?? KIDS_PER_CLASS_CENTS_DEFAULT;
+    tuitionCents = kidsLineSubtotalCents(perClassCents, classesN);
   } else {
     const unit = Number(input.programPriceAmount ?? 0);
     const freq = String(input.programPriceFrequency ?? "");
@@ -117,17 +125,46 @@ export function computeLineTuitionCents(input: LinePricingInput): Omit<LinePrici
     }
   }
 
-  const lineSubtotalCents = Math.max(0, tuitionCents + Math.max(0, regFee));
+  const registrationFeeCents = Math.max(0, regFee);
+  const lineSubtotalCents = Math.max(0, tuitionCents + registrationFeeCents);
 
-  const kidsLineIndex = input.siblingRankAmongKidsStudents; // 0 = first child’s kids line(s), 1+ = sibling
-  const afterSiblingCents = lineTotalAfterSiblingCents(
-    kidsLineIndex,
-    lineSubtotalCents,
-    isKidsBjjTrack(input.track),
-  );
+  const kidsLineIndex = input.siblingRankAmongKidsStudents;
+  const afterSiblingCents = lineTotalAfterSiblingCents(kidsLineIndex, lineSubtotalCents, isKidsBjjTrack(input.track));
   const siblingDiscountCents = lineSubtotalCents - afterSiblingCents;
 
-  return { lineSubtotalCents, siblingDiscountCents, afterSiblingCents };
+  return {
+    classesN,
+    perClassCents,
+    tuitionCents,
+    registrationFeeCents,
+    lineSubtotalCents,
+    siblingDiscountCents,
+    afterSiblingCents,
+  };
+}
+
+/** Per-line tuition + fees + sibling + pay split + later date (for UI preview; server uses same math). */
+export function getLinePriceBreakdown(input: LinePricingInput) {
+  const core = linePricingCore(input);
+  const { dueToday, dueLater } = splitPaymentPlan(core.afterSiblingCents, input.paymentChoice);
+  return {
+    ...core,
+    dueTodayCents: dueToday,
+    dueLaterCents: dueLater,
+    laterPaymentDateIso: computeLaterPaymentDateIso(input.semester),
+  };
+}
+
+/**
+ * Full line tuition + reg fee (before sibling / promo / pay split).
+ */
+export function computeLineTuitionCents(input: LinePricingInput): Omit<LinePricingResult, "dueTodayCents" | "dueLaterCents"> {
+  const core = linePricingCore(input);
+  return {
+    lineSubtotalCents: core.lineSubtotalCents,
+    siblingDiscountCents: core.siblingDiscountCents,
+    afterSiblingCents: core.afterSiblingCents,
+  };
 }
 
 export function splitPaymentPlan(afterSiblingCents: number, choice: "full" | "plan"): { dueToday: number; dueLater: number } {

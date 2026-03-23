@@ -23,6 +23,20 @@ export type CatalogPrice = {
   metadata: string | null;
 };
 
+/** Active semester from D1 (public catalog); drives kids per-class × N and default reg fee. */
+export type CatalogActiveSemester = {
+  id: number;
+  name: string;
+  program_id: string;
+  start_date: string | null;
+  end_date: string | null;
+  classes_in_semester: number;
+  price_per_class_cents: number | null;
+  registration_fee_cents: number | null;
+  later_payment_date: string | null;
+  active: number;
+};
+
 export type CatalogProgram = {
   id: string;
   slug: string;
@@ -30,6 +44,7 @@ export type CatalogProgram = {
   status: string;
   sessions: CatalogSession[];
   prices: CatalogPrice[];
+  active_semester: CatalogActiveSemester | null;
 };
 
 export function useProgramsCatalog() {

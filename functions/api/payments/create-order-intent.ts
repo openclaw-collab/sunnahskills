@@ -5,7 +5,7 @@ import {
   kidsSiblingRankForLine,
   splitPaymentPlan,
   type SemesterRow,
-} from "../../_utils/orderPricing";
+} from "../../../shared/orderPricing";
 
 interface Env {
   DB: D1Database;

@@ -6,7 +6,7 @@ import { PremiumCard } from "@/components/brand/PremiumCard";
 import { ClayButton } from "@/components/brand/ClayButton";
 import { OutlineButton } from "@/components/brand/OutlineButton";
 import { SectionHeader } from "@/components/brand/SectionHeader";
-import { useRegistration } from "@/hooks/useRegistration";
+import { useRegistration, type BjjSpecific } from "@/hooks/useRegistration";
 import { RegistrationWizard } from "@/components/registration/RegistrationWizard";
 import { ProgramSummaryCard } from "@/components/registration/ProgramSummaryCard";
 import { StepGuardianInfo } from "@/components/registration/StepGuardianInfo";
@@ -112,6 +112,15 @@ export function ProgramRegistrationPage({ slug }: { slug: ProgramSlug }) {
           discountCode={draft.payment.discountCode}
           onDiscountCodeChange={(code) =>
             updateDraft((prev) => ({ ...prev, payment: { ...prev.payment, discountCode: code } }))
+          }
+          bjjLinePreview={
+            program.slug === "bjj"
+              ? {
+                  track: (draft.programDetails.programSpecific as BjjSpecific).bjjTrack,
+                  paymentChoice: draft.programDetails.paymentChoice,
+                  priceId: draft.programDetails.priceId,
+                }
+              : undefined
           }
         />
       )}

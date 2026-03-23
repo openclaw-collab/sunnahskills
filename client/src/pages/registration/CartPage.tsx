@@ -17,6 +17,18 @@ import { PaymentProvider } from "@/components/payment/PaymentProvider";
 import { PaymentForm } from "@/components/payment/PaymentForm";
 import type { RegistrationDraft } from "@/hooks/useRegistration";
 
+function formatScheduleDate(iso: string | null | undefined) {
+  if (!iso?.trim()) return null;
+  const t = Date.parse(`${iso.trim()}T12:00:00`);
+  if (!Number.isFinite(t)) return iso.trim();
+  return new Intl.DateTimeFormat("en-US", {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  }).format(t);
+}
+
 function trackLabel(track: string) {
   const map: Record<string, string> = {
     "girls-5-10": "Girls 5–10",
@@ -51,6 +63,8 @@ export default function CartPage() {
   } | null>(null);
   const [error, setError] = React.useState<string | null>(null);
   const [loading, setLoading] = React.useState(false);
+  /** Required before card step when a second installment exists (exact $/date from server). */
+  const [installmentScheduleAck, setInstallmentScheduleAck] = React.useState(false);
 
   function refreshCart() {
     setCart(loadFamilyCart());
@@ -88,6 +102,7 @@ export default function CartPage() {
 
   async function submitCheckout() {
     setError(null);
+    if (!cart || cart.lines.length === 0) return;
     if (
       !waivers.liabilityWaiver ||
       !waivers.medicalConsent ||
@@ -100,6 +115,7 @@ export default function CartPage() {
     }
 
     setLoading(true);
+    setInstallmentScheduleAck(false);
     try {
       const regRes = await fetch("/api/register/cart", {
         method: "POST",
@@ -155,6 +171,7 @@ export default function CartPage() {
         dueLaterCents: Number(payJson.dueLaterCents ?? 0),
         laterPaymentDate: payJson.laterPaymentDate ?? null,
       });
+      setInstallmentScheduleAck(Number(payJson.dueLaterCents ?? 0) <= 0);
       setPhase("pay");
       clearFamilyCart();
       setCart(null);
@@ -174,7 +191,8 @@ export default function CartPage() {
       <main className="mx-auto max-w-2xl px-6 pt-28">
         <SectionHeader eyebrow="Registration" title="Family cart" className="mb-6" />
         <p className="font-body text-sm text-charcoal/70 mb-6">
-          One set of waivers covers every line in this order. Totals are calculated on the server when you pay.
+          One set of waivers covers every line in this order. If you chose a payment plan, you&apos;ll see the{" "}
+          <strong>exact</strong> second installment amount and date before you enter your card.
         </p>
 
         {phase === "review" ? (
@@ -310,26 +328,70 @@ export default function CartPage() {
 
         {phase === "pay" && clientSecret ? (
           <PremiumCard className="space-y-6 border border-charcoal/10 bg-white p-6">
-            <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-moss">Pay today</div>
+            <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-moss">Payment schedule</div>
             {summary ? (
-              <p className="font-body text-sm text-charcoal/80">
-                <strong>{money(summary.dueTodayCents)}</strong> due now
+              <div className="rounded-2xl border border-moss/25 bg-moss/5 p-4 space-y-3">
+                <div className="font-body text-sm text-charcoal">
+                  <span className="font-semibold">Due today:</span> {money(summary.dueTodayCents)}
+                </div>
                 {summary.dueLaterCents > 0 ? (
                   <>
-                    {" "}
-                    · Remaining <strong>{money(summary.dueLaterCents)}</strong>
-                    {summary.laterPaymentDate ? ` on or after ${summary.laterPaymentDate}` : " later this semester"} (charged
-                    automatically if a card is on file).
+                    <div className="font-body text-sm text-charcoal leading-relaxed">
+                      <span className="font-semibold">Second installment:</span>{" "}
+                      <strong className="text-charcoal">{money(summary.dueLaterCents)}</strong>
+                      {summary.laterPaymentDate ? (
+                        <>
+                          {" "}
+                          on or after{" "}
+                          <strong>
+                            {formatScheduleDate(summary.laterPaymentDate) ?? summary.laterPaymentDate}
+                          </strong>
+                        </>
+                      ) : (
+                        <> (date set by your semester — check your confirmation email)</>
+                      )}
+                      . This amount will be charged <strong>automatically</strong> to the same card you use below — you will
+                      not be asked to check out again for this installment.
+                    </div>
+                    <p className="font-body text-xs text-charcoal/65 leading-relaxed">
+                      Amounts include any promo code you entered.
+                    </p>
+                    <label className="flex items-start gap-3 rounded-xl border border-charcoal/15 bg-white p-3 cursor-pointer">
+                      <Checkbox
+                        checked={installmentScheduleAck}
+                        onCheckedChange={(v) => setInstallmentScheduleAck(v === true)}
+                        aria-label="Authorize second installment charge"
+                      />
+                      <span className="font-body text-sm text-charcoal leading-snug">
+                        I agree that <strong>{money(summary.dueLaterCents)}</strong> will be charged automatically on or
+                        after{" "}
+                        <strong>
+                          {formatScheduleDate(summary.laterPaymentDate) ?? summary.laterPaymentDate ?? "the date above"}
+                        </strong>{" "}
+                        to the same card I use below.
+                      </span>
+                    </label>
                   </>
-                ) : null}
+                ) : (
+                  <p className="font-body text-sm text-charcoal/80">You are paying in full today — no second charge.</p>
+                )}
+              </div>
+            ) : null}
+
+            {summary && summary.dueLaterCents > 0 && !installmentScheduleAck ? (
+              <p className="font-body text-sm text-charcoal/60 text-center py-2">
+                Confirm the installment agreement above to enter your card.
               </p>
             ) : null}
-            <PaymentProvider clientSecret={clientSecret}>
-              <PaymentForm
-                returnUrl={returnUrl}
-                onSuccess={() => navigate(`/registration/success?rid=${firstRegistrationId ?? ""}&order=${enrollmentOrderId ?? ""}`)}
-              />
-            </PaymentProvider>
+
+            {clientSecret && ((summary?.dueLaterCents ?? 0) <= 0 || installmentScheduleAck) ? (
+              <PaymentProvider clientSecret={clientSecret}>
+                <PaymentForm
+                  returnUrl={returnUrl}
+                  onSuccess={() => navigate(`/registration/success?rid=${firstRegistrationId ?? ""}&order=${enrollmentOrderId ?? ""}`)}
+                />
+              </PaymentProvider>
+            ) : null}
           </PremiumCard>
         ) : null}
       </main>

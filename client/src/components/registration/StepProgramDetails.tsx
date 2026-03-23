@@ -295,7 +295,8 @@ export function StepProgramDetails(props: RegistrationStepProps) {
                 {
                   value: "plan",
                   label: "Pay part today",
-                  sublabel: "Remaining balance is charged automatically on the semester date (see confirmation email)",
+                  sublabel:
+                    "Half of tuition after discounts is due today; the rest is due on the semester’s second-payment date. In family cart checkout you’ll see the exact dollar amount and date and must agree before paying.",
                 },
               ]}
             />

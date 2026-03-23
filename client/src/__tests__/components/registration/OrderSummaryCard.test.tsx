@@ -17,7 +17,7 @@ describe("OrderSummaryCard", () => {
 
     expect(screen.getByText("Order Summary")).toBeInTheDocument();
     expect(screen.getByText("Brazilian Jiu-Jitsu")).toBeInTheDocument();
-    expect(screen.getByText("Monthly tuition")).toBeInTheDocument();
+    expect(screen.getByText("Semester tuition")).toBeInTheDocument();
   });
 
   it("shows registration fee for BJJ program", () => {
@@ -59,6 +59,7 @@ describe("OrderSummaryCard", () => {
 
     expect(screen.getByText("Sibling discount")).toBeInTheDocument();
     expect(screen.getByText(/1 sibling/)).toBeInTheDocument();
+    expect(screen.getByText(/kids tracks/)).toBeInTheDocument();
   });
 
   it("shows plural form for multiple siblings", () => {

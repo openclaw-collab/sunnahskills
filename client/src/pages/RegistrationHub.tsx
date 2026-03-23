@@ -19,10 +19,11 @@ const RegistrationHub = () => {
           through student details, waivers, and payment.
         </p>
         <p className="font-body text-pretty text-xs text-charcoal/55 max-w-2xl mb-10">
+          Use the{" "}
           <Link href="/registration/cart" className="text-moss underline-offset-2 hover:underline">
-            Family cart
+            family cart
           </Link>{" "}
-          (multi-student checkout) is coming soon — link reserved for the next release.
+          to combine multiple students or class lines in one checkout (BJJ only).
         </p>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

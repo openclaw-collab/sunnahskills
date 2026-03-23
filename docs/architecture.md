@@ -22,8 +22,9 @@ Browser
 
 - **Programs:** Only **BJJ** is `enrollmentStatus: "open"` in `programConfig`; others are coming soon (waitlist UI + `403` from `register` API).
 - **D1:** `db/migrations/001_registration_accounts_orders.sql` adds `guardian_accounts`, magic tokens, sessions, `saved_students`, `enrollment_orders`, `semesters`, and links `registrations` / `payments` to orders where applicable.
-- **Target checkout model:** One parent order, multiple registration lines, waivers once at checkout, Stripe **invoicing / installments** (Option D) with webhooks updating D1 — cart UI and full webhook fan-out are still to complete; see `docs/NEXT_AGENT.md`.
-- **Kids pricing:** $12.50/class × classes in semester + **10%** off each additional sibling’s **kids** lines — shared pure helpers in `shared/pricing.ts` (server must recompute).
+- **Checkout model:** Family cart (`/registration/cart`), `POST /api/register/cart` → `enrollment_orders` + linked `registrations`; waivers once at checkout; Stripe invoicing / installments with webhooks updating D1 — see `docs/NEXT_AGENT.md` for ops (e.g. `collect-order-balance`).
+- **Pricing (single source):** Line math for kids/sibling, pay-today vs plan split, and semester dates live in **`shared/orderPricing.ts`** (used by payment endpoints and mirrored in **`OrderSummaryCard`** via `GET /api/programs`, which includes **`active_semester`** per program for public estimates).
+- **Kids pricing:** $12.50/class × classes in semester + **10%** off each additional sibling’s **kids** lines — low-level cents helpers in `shared/pricing.ts`; server always recomputes.
 
 ## Tech stack
 

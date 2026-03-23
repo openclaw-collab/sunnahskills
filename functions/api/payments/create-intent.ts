@@ -1,4 +1,4 @@
-import { computeLineTuitionCents, type SemesterRow } from "../../_utils/orderPricing";
+import { computeLineTuitionCents, type SemesterRow } from "../../../shared/orderPricing";
 
 interface Env {
   DB: D1Database;

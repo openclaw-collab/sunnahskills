@@ -26,6 +26,9 @@ const BASE_DRAFT: RegistrationDraft = {
     sessionId: 1,
     priceId: 1,
     siblingCount: 0,
+    paymentChoice: 'full',
+    preferredStartDate: '',
+    scheduleChoice: '',
     programSpecific: { bjjTrack: 'boys-7-13', trialClass: 'no', notes: '' },
   },
   waivers: {

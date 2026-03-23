@@ -415,6 +415,18 @@ export const handlers = [
               active: 1,
             },
           ],
+          active_semester: {
+            id: 1,
+            name: "Spring 2026",
+            program_id: "bjj",
+            start_date: "2026-01-01",
+            end_date: "2026-06-30",
+            classes_in_semester: 12,
+            price_per_class_cents: 1250,
+            registration_fee_cents: 2500,
+            later_payment_date: null,
+            active: 1,
+          },
         },
       ],
     });

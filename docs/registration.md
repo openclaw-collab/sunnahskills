@@ -21,9 +21,9 @@ Non-BJJ `/programs/{slug}/register` URLs render a short **waitlist** message wit
 
 - **Add to cart** (BJJ only): on the **Details** step, use **Add to cart** / **View cart** next to **Continue**. Lines are stored in `localStorage` (`client/src/lib/familyCart.ts`). Guardian email must match across lines.
 - **Checkout:** One **waivers + signature** block covers **all** lines in the order. Submit calls:
-  1. `POST /api/register/cart` — creates `enrollment_orders`, linked `registrations`, per-line `payment_choice` (`full` | `plan`), kids/sibling math via `functions/_utils/orderPricing.ts`.
+  1. `POST /api/register/cart` — creates `enrollment_orders`, linked `registrations`, per-line `payment_choice` (`full` | `plan`), kids/sibling math via `shared/orderPricing.ts`.
   2. `POST /api/payments/create-order-intent` — Stripe **Customer** + **PaymentIntent** for “pay today” (`setup_future_usage=off_session` for the later balance). Webhook fan-out: `functions/api/payments/webhook.ts` reads `metadata.enrollment_order_id` + `registration_ids`.
-- **Installments:** Remaining balance is stored on the order; `POST /api/payments/collect-order-balance` (Bearer `CRON_SECRET`) attempts **off-session** second charges after `later_payment_date`. Configure `CRON_SECRET` in the worker environment and call it from a daily cron job.
+- **Installments:** Remaining balance is stored on the order. Checkout shows the **exact** second amount and date (after promo codes) and requires agreement before card entry. **Operations:** run `POST /api/payments/collect-order-balance` (Bearer `CRON_SECRET`) on a schedule so the second **off-session** charge is attempted on or after `later_payment_date`.
 
 ## Wizard steps
 
@@ -55,7 +55,7 @@ Branched by `program.slug`:
 - **Class track** (radio): Girls 5–10 · Boys 7–13 · Teens+ Women 11+ — Tuesday · Teens+ Women 11+ — Thursday · Teens+ Men 14+  
   (Tuesday vs Thursday women sessions are **separate enrollments**; both = double tuition.)
 - **Session** (`Pick your session`) when more than one row exists for that track in `/api/programs`
-- **Tuition payment** (radio): Pay in full today · Pay part today (remainder on semester date; automated second charge when cron + saved card allow)
+- **Tuition payment** (radio): Pay in full today · Pay part today (remainder on the semester date; charged automatically to the same card after checkout)
 - Trial class first? (Yes / No) — radio
 - Optional notes textarea
 - Sibling enrollment (0 / 1 / 2+) — shared radio (10% off **additional** siblings’ **kids** lines — see `shared/pricing.ts`; server must recompute)

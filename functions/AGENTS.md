@@ -10,8 +10,9 @@ Cloudflare Pages Functions (Workers runtime) providing API endpoints. All backen
 
 | File | Description |
 |------|-------------|
-| `api/register.ts` | POST /api/register - Main registration endpoint |
-| `api/programs.ts` | GET /api/programs - List available programs |
+| `api/register.ts` | POST /api/register — single-student registration |
+| `api/register/cart.ts` | POST /api/register/cart — family cart → enrollment_orders |
+| `api/programs.ts` | GET /api/programs — catalog + sessions + prices + `active_semester` |
 | `api/contact.ts` | POST /api/contact - Contact form submission |
 | `api/waitlist.ts` | POST /api/waitlist - Add to waitlist |
 | `api/discounts/validate.ts` | POST /api/discounts/validate - Validate promo codes |
@@ -21,7 +22,8 @@ Cloudflare Pages Functions (Workers runtime) providing API endpoints. All backen
 | Directory | Purpose |
 |-----------|---------|
 | `_utils/` | Shared utility modules (see `_utils/AGENTS.md`) |
-| `api/auth/` | Authentication endpoints (login/logout/me) (see `api/auth/AGENTS.md`) |
+| `api/guardian/` | Family auth: magic link, account number, session |
+| `api/auth/` | **Admin** authentication (login/logout/me) (see `api/auth/AGENTS.md`) |
 | `api/payments/` | Stripe payment endpoints (see `api/payments/AGENTS.md`) |
 | `api/admin/` | Admin-only API routes (see `api/admin/AGENTS.md`) |
 | `api/studio/` | Stakeholder Studio sync API (see `api/studio/AGENTS.md`) |
@@ -53,8 +55,12 @@ Cloudflare Pages Functions (Workers runtime) providing API endpoints. All backen
 
 | Endpoint | File | Purpose |
 |----------|------|---------|
-| `/api/register` | `api/register.ts` | Create registration |
-| `/api/programs` | `api/programs.ts` | Get programs |
+| `/api/register` | `api/register.ts` | Create single registration |
+| `/api/register/cart` | `api/register/cart.ts` | Family cart checkout |
+| `/api/programs` | `api/programs.ts` | Programs + sessions + prices + semester |
+| `/api/guardian/*` | `api/guardian/*.ts` | Guardian magic link + account session |
+| `/api/payments/create-order-intent` | `api/payments/create-order-intent.ts` | Cart PaymentIntent |
+| `/api/payments/collect-order-balance` | `api/payments/collect-order-balance.ts` | Second installment (cron) |
 | `/api/contact` | `api/contact.ts` | Submit contact form |
 | `/api/waitlist` | `api/waitlist.ts` | Join waitlist |
 | `/api/auth/*` | `api/auth/*.ts` | Login/logout/session |
@@ -68,8 +74,10 @@ Cloudflare Pages Functions (Workers runtime) providing API endpoints. All backen
 ## Dependencies
 
 ### Internal
-- `_utils/adminAuth.ts` - Session validation
+- `_utils/adminAuth.ts` - Admin session validation
+- `_utils/guardianAuth.ts` - Guardian session validation
 - `_utils/cookies.ts` - Cookie helpers
+- `shared/orderPricing.ts` - Pricing math for payments + cart
 - `_utils/email.ts` - MailChannels integration
 - `_utils/emailTemplates.ts` - HTML email templates
 - `shared/schema.ts` - Zod schemas

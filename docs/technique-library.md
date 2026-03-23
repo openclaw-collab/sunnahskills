@@ -101,7 +101,7 @@ The navbar (`Navigation.tsx`) includes `{ label: "Techniques", href: "/technique
 
 To add a new technique:
 
-1. Extract the sequence from `GrappleMap.txt` using the extraction script:
+1. Extract the sequence from **`GrappleMap/GrappleMap.txt`** (vendored at repo root) using the extraction script:
    ```bash
    node scripts/extract-techniques.mjs
    ```

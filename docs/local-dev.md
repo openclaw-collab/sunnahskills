@@ -37,6 +37,9 @@ If you haven't already:
 ```bash
 npx wrangler d1 execute sunnahskills-admin-v2 --file=db/schema.sql
 npx wrangler d1 execute sunnahskills-admin-v2 --file=db/seed.sql
+# If your DB predates family cart / installments, also apply:
+# npx wrangler d1 execute sunnahskills-admin-v2 --file=db/migrations/001_registration_accounts_orders.sql
+# npx wrangler d1 execute sunnahskills-admin-v2 --file=db/migrations/002_enrollment_order_installments.sql
 ```
 
 ### 3. Create a local `.dev.vars` file

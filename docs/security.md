@@ -53,6 +53,8 @@ This is a youth program registration platform. The primary concerns are:
 4. Sibling discount is applied server-side before creating the PaymentIntent
 5. The Stripe PaymentIntent is created with the **server-calculated amount**
 
+**Family cart:** `POST /api/payments/create-order-intent` loads **`enrollment_orders`** and linked registrations from D1 and recomputes line totals with **`shared/orderPricing.ts`** — same rule: client cannot set amounts.
+
 A client that manipulates the request body cannot reduce the payment amount — the server always recomputes the total from authoritative database values.
 
 ### Stripe webhook verification

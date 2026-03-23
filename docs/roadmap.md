@@ -125,17 +125,17 @@ This document describes planned improvements, known gaps, and future feature dir
 - Move to a lightweight headless CMS (e.g., Sanity, Contentful) so staff can update content without code changes
 
 ### Image optimisation
-- Hero images currently load from Unsplash CDN (fast but external dependency)
-- Upload final brand images to Cloudflare Images or R2 + a transform worker
-- Add `srcset` / `loading="lazy"` to all images
+- Program heroes and cards use **local** assets: `client/public/programs/*` and optional duplicates at repo root (`bjj.png`, `archery.png`, `outdoor.jpg`, `bully.jpeg`) — see `programConfig.heroImage`
+- Optional: Cloudflare Images or R2 + image worker for responsive `srcset` / transforms
+- `ProgramVisual` and `ProgramPageHeroMedia` use `loading="lazy"` on card variants; hero uses `fetchPriority="high"` where set
 
 ### Testimonials from DB
 - `Testimonials.tsx` uses hardcoded data
 - Add a `testimonials` table to D1 and an admin UI to manage entries
 
 ### Homepage GrappleMap
-- The homepage has a placeholder for the GrappleMap technique preview
-- Render a live `TechniqueViewer` with a curated default scene (e.g., Guard Position)
+- **Done:** Home curriculum section embeds live `TechniqueViewer` (default sequence path)
+- Optional: swap default sequence, add explicit “featured technique” CMS
 
 ### About + Schedule from CMS
 - Both pages use static in-file data

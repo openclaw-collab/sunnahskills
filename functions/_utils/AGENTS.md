@@ -11,6 +11,7 @@ Shared utility modules for Cloudflare Pages Functions. Auth helpers, email servi
 | File | Description |
 |------|-------------|
 | `adminAuth.ts` | Session validation from `admin_session` cookie |
+| `guardianAuth.ts` | Guardian/family session cookie + account validation for `/api/guardian/*` |
 | `cookies.ts` | Cookie parsing and setting helpers |
 | `email.ts` | MailChannels email sending integration |
 | `emailTemplates.ts` | HTML email templates |

@@ -28,6 +28,8 @@ Page-level React components mapped to routes. Each file represents a unique URL 
 | `registration/ArcheryRegistration.tsx` | `/programs/archery/register` | Archery registration |
 | `registration/OutdoorRegistration.tsx` | `/programs/outdoor/register` | Outdoor registration |
 | `registration/BullyproofingRegistration.tsx` | `/programs/bullyproofing/register` | Bullyproofing registration |
+| `registration/CartPage.tsx` | `/registration/cart` | Family cart: waivers once, multi-line BJJ checkout |
+| `registration/ProgramRegistrationPage.tsx` | `/programs/:slug/register` | Shared wizard shell per program |
 | `registration/RegistrationSuccess.tsx` | `/registration/success` | Payment success |
 | `registration/RegistrationCancel.tsx` | `/registration/cancel` | Payment cancelled |
 | `registration/RegistrationPending.tsx` | `/registration/pending` | Payment pending |

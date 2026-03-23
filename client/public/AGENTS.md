@@ -10,7 +10,8 @@ Static assets served directly. Contains images, fonts, and GrappleMap sequence d
 
 | Directory | Purpose |
 |-----------|---------|
-| `data/` | GrappleMap 3D animation data, catalogs, and manifests (see `data/AGENTS.md`) |
+| `programs/` | Program hero images (`bjj.png`, `archery.png`, `outdoor.jpg`, `bully.jpeg`) — URLs match `programConfig.heroImage.src` |
+| `data/` | Technique JSON, catalogs, manifests (see `data/AGENTS.md`) |
 
 ## For AI Agents
 

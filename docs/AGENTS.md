@@ -20,10 +20,11 @@ Extended project documentation covering architecture, features, deployment, and 
 ### Feature Guides
 | File | Description |
 |------|-------------|
-| `registration.md` | Registration + payment flow, per-program fields |
+| `NEXT_AGENT.md` | Short handoff: cart, guardian auth, GrappleMap vendoring, branch `prototype` |
+| `registration.md` | Registration + family cart + payment flow, per-program fields |
 | `admin.md` | Admin dashboard setup and usage |
 | `studio.md` | Stakeholder Studio review tool documentation |
-| `technique-library.md` | GrappleMap 3D visualization docs |
+| `technique-library.md` | GrappleMap 3D visualization + data paths |
 
 ### Setup & Deployment
 | File | Description |

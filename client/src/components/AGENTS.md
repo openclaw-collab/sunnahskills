@@ -16,6 +16,7 @@ React components organized by domain. Contains UI primitives (shadcn/ui), brand-
 | `payment/` | Stripe payment components (see `payment/AGENTS.md`) |
 | `admin/` | Admin dashboard panels (see `admin/AGENTS.md`) |
 | `grapplemap/` | 3D technique viewer components (see `grapplemap/AGENTS.md`) |
+| `programs/` | `ProgramVisual`, `ProgramPageHeroMedia` — program photos + scrims |
 
 ## Key Files
 

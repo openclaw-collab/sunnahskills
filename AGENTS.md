@@ -5,7 +5,7 @@
 ## Purpose
 A production-grade youth martial arts & outdoor program platform with integrated registration, Stripe payments, admin dashboard, and Stakeholder Studio review tool. Built for Sunnah Skills Academy offering BJJ, Archery, Outdoor Workshops, and Bullyproofing programs.
 
-**Current focus:** BJJ-only live registration; week+month schedule; guardian account + magic link; family cart + `shared/orderPricing` + `GET /api/programs` (`active_semester`) for UI estimates; Stripe + webhooks per `docs/NEXT_AGENT.md`.
+**Current focus:** BJJ-only live checkout; week+month schedule; guardian magic link + account number; **family cart**; **`shared/orderPricing`** + public **`GET /api/programs`** (`active_semester`); local program hero assets; **vendored `GrappleMap/`**; Stripe + webhooks — details in **`docs/NEXT_AGENT.md`**.
 
 ## Key Files
 

@@ -29,7 +29,7 @@ npx wrangler d1 execute sunnahskills-admin-v2 --command \
 | `RegistrationsTable` | Registrations tab | Full list with filters (program, status, search) |
 | `RegistrationDetail` | Drawer | Individual registration: guardian, student, waivers, payment, admin notes, status controls |
 | `PaymentsSummary` | Payments tab | Revenue by program, payment status breakdown |
-| `PricingManager` | Pricing tab | View/edit `program_prices` rows per program + age group |
+| `PricingManager` | Pricing tab | View/edit `program_prices` tiers **and** active **`semesters`** (classes in semester, price/class, reg fee, later-payment date) via `GET`/`PATCH` `/api/admin/semesters` |
 | `SessionManager` | Sessions tab | View/edit `program_sessions` — capacity, dates, status |
 | `DiscountsManager` | Discounts tab | Create/deactivate promo codes |
 | `ContactsTable` | Contacts tab | Submitted contact form messages |
@@ -60,6 +60,8 @@ All routes require a valid `admin_session` cookie (checked by `adminAuth` utilit
 | `/api/admin/discounts/:id` | `PATCH` | Activate / deactivate |
 | `/api/admin/contacts` | `GET` | Contact form submissions |
 | `/api/admin/export` | `GET` | CSV export of registrations (query params: `program`, `status`, `from`, `to`) |
+| `/api/admin/semesters` | `GET` | List semester rows (pricing inputs for BJJ / catalog) |
+| `/api/admin/semesters` | `PATCH` | Update semester fields (admin UI in Pricing tab) |
 
 ## Registration status flow
 

@@ -12,9 +12,9 @@
   - Rebuild the About timeline with alternating left/right reveals.
   - Finish Framer Motion pass for program pages, registration pages, and route transitions.
 - Homepage and programs:
-  - Revamp homepage program cards.
-  - Align each program hero with the actual discipline.
-  - Clean up public copy, footer/legal placeholders, and internal phrasing.
+  - ~~Revamp homepage program cards~~ — curriculum uses `ProgramVisual` with real photos.
+  - ~~Align each program hero~~ — `programConfig.heroImage` + `ProgramPageHeroMedia` full-bleed headers.
+  - Clean up public copy, footer/legal placeholders, and internal phrasing (ongoing).
 - Registration and Stripe:
   - Harden client and server validation.
   - Verify worker-mode registration flows against local D1.

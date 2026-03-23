@@ -47,6 +47,17 @@ Cloudflare Pages Functions use file-based routing under `functions/`. A file at 
 | `functions/api/studio/sessions.ts` | POST | `/api/studio/sessions` |
 | `functions/api/studio/sessions/[id].ts` | GET, POST, PATCH | `/api/studio/sessions/:id` |
 | `functions/api/studio/uploads.ts` | POST | `/api/studio/uploads` |
+| `functions/api/register/cart.ts` | POST | `/api/register/cart` |
+| `functions/api/payments/create-order-intent.ts` | POST | `/api/payments/create-order-intent` |
+| `functions/api/payments/collect-order-balance.ts` | POST | `/api/payments/collect-order-balance` |
+| `functions/api/guardian/request-link.ts` | POST | `/api/guardian/request-link` |
+| `functions/api/guardian/verify.ts` | GET | `/api/guardian/verify` |
+| `functions/api/guardian/signup.ts` | POST | `/api/guardian/signup` |
+| `functions/api/guardian/login-account.ts` | POST | `/api/guardian/login-account` |
+| `functions/api/guardian/me.ts` | GET | `/api/guardian/me` |
+| `functions/api/guardian/logout.ts` | POST | `/api/guardian/logout` |
+| `functions/api/admin/semesters.ts` | GET, PATCH | `/api/admin/semesters` |
+| `functions/api/techniques.ts` | GET | `/api/techniques` |
 
 ## Function signature
 
@@ -80,6 +91,10 @@ export async function onRequestGet({ request, env, params }: { request: Request;
 Method-specific handlers: `onRequestGet`, `onRequestPost`, `onRequestPatch`, `onRequestDelete`. Use `onRequest` to handle all methods and branch on `request.method`.
 
 ## Utility modules (`functions/_utils/`)
+
+### `guardianAuth.ts`
+
+Guardian session helpers: cookie name, validation against `guardian_sessions` / `guardian_accounts`, used by `functions/api/guardian/*`.
 
 ### `adminAuth.ts`
 
@@ -180,12 +195,15 @@ Webhook verification uses the Stripe SDK with the raw request body and `STRIPE_W
 
 ```
 POST /api/payments/create-intent
-  1. Look up registrations + program_prices from D1
-  2. Calculate total (amount + registration_fee - sibling_discount - promo_discount)
+  1. Look up registration + program_prices + active semester from D1
+  2. Calculate total via shared/orderPricing.ts (kids/sibling, plan split, promo)
   3. Create Stripe PaymentIntent via REST API
-  4. Insert payments row (status: 'pending', payment_type: 'one_time')
-  5. Update registrations.status → 'pending_payment'
-  6. Return { clientSecret, paymentIntentId }
+  4. Insert/update payments row; registration pending → paid via webhook
+
+POST /api/register/cart + POST /api/payments/create-order-intent
+  1. Cart payload creates enrollment_orders + N registrations (waivers once)
+  2. create-order-intent loads order lines; per-line pricing via shared/orderPricing.ts
+  3. Returns PaymentIntent clientSecret for “due today”; second installment via cron + collect-order-balance (see docs/stripe.md, docs/NEXT_AGENT.md)
 
 POST /api/payments/create-subscription (BJJ only)
   1. Create/retrieve Stripe Customer by email

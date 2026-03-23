@@ -173,21 +173,31 @@ The navbar is a fixed floating pill with backdrop blur. It adapts between two co
 
 The transition condition is `scrolled || !isHome`.
 
-The "Programs" item is a clickable link to `/programs` that also triggers a hover dropdown menu listing all four individual program routes. The primary registration CTA links to `/register`, which acts as the entry point to the program-specific wizards.
+The **Programs** control opens a **hover/focus** panel (desktop) with links to all four program pages plus **All programs** → `/programs` (no dead gap between trigger and panel). Mobile uses a disclosure. Primary registration CTA → `/register` (hub) or `/programs/bjj/register` from program pages.
 
 Mobile: hamburger menu with a charcoal overlay panel.
+
+## Program imagery (`components/programs/`)
+
+| File | Purpose |
+|---|---|
+| `ProgramVisual.tsx` | Card / compact hero: photo from `programConfig.heroImage`, `object-position`, scrim, chips |
+| `ProgramPageHeroMedia.tsx` | Full-bleed background image + gradients for program **page headers** (`BJJProgram`, etc.) |
+
+Used on **`Programs.tsx`** (listing cards), **`Home.tsx`** curriculum cards, and individual **`pages/programs/*`** headers (text column only; no duplicate photo column).
 
 ## GrappleMap 3D viewer (`components/grapplemap/`)
 
 | File | Purpose |
 |---|---|
-| `TechniqueViewer.tsx` | Top-level viewer: loads position data, renders a scene |
-| `grapplemapScene.tsx` | Three.js scene setup with `@react-three/fiber` |
-| `MannequinScene.tsx` | Renders a pair of mannequins for a given BJJ position |
+| `TechniqueViewer.tsx` | Suspense wrapper + default `sequencePath`; used on Home, technique library, modals |
+| `MannequinScene.tsx` | Canvas, two mannequins, playback overlay, fetches JSON by path |
+| `grapplemapScene.tsx` | Alternate line-segment skeleton scene (**unused** in routes) |
 
-Data comes from the `GrappleMap/` directory at the project root (static JSON position files).
+**Runtime data** is served as static JSON under **`client/public/data/`** (e.g. `library/sequences/*.json`, manifests).  
+**Source-of-truth text DB** for extraction pipelines is vendored at **`GrappleMap/GrappleMap.txt`** (see `docs/technique-library.md`, `scripts/`).
 
-The `TechniqueLibrary` page (`pages/TechniqueLibrary.tsx`) provides a browsable grid of positions with a `TechniqueViewer` embedded for the selected sequence. It loads catalog metadata from `/data/scenes.json` and sequence data from `/data/library/sequences/manifest.json` plus the individual technique JSON files in `/data/library/sequences/`.
+The **TechniqueLibrary** page (`pages/TechniqueLibrary.tsx`) browses the catalog with an embedded `TechniqueViewer`. **Home** (`Home.tsx`) also embeds `TechniqueViewer` for the curriculum section.
 
 ## Studio overlay (`studio/`)
 

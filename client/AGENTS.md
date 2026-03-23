@@ -25,7 +25,7 @@ React frontend application served as static assets. Contains the complete UI lay
 | `src/lib/` | Utility functions and configurations (see `src/lib/AGENTS.md`) |
 | `src/studio/` | Stakeholder Studio review tool (see `src/studio/AGENTS.md`) |
 | `src/__tests__/` | Vitest unit tests (see `src/__tests__/AGENTS.md`) |
-| `public/` | Static assets including GrappleMap data (see `public/AGENTS.md`) |
+| `public/` | Static assets: **`public/programs/`** hero images, GrappleMap JSON under **`public/data/`** (see `public/AGENTS.md`) |
 
 ## For AI Agents
 

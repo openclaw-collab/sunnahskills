@@ -4,12 +4,15 @@
 # shared
 
 ## Purpose
-Shared TypeScript types and Zod schemas used by both frontend and backend. Ensures type safety across the client-server boundary.
+Shared TypeScript types, Zod schemas, **pricing**, and registration option literals used by the **Vite client** and **Cloudflare Functions** (import via `@shared/*` / relative paths).
 
 ## Key Files
 
 | File | Description |
 |------|-------------|
+| `orderPricing.ts` | Line tuition, kids/sibling, plan split, semester dates — shared with payment endpoints + `OrderSummaryCard` |
+| `pricing.ts` | Cents helpers for kids lines and sibling discount |
+| `registration-options.ts` | Canonical arrays for registration UI + server Zod |
 | `types.ts` | Core TypeScript aliases derived from `schema.ts` |
 | `schema.ts` | Zod validation schemas for API payloads |
 | `schema.frontend.ts` | Frontend-specific schema extensions |

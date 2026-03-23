@@ -4,7 +4,7 @@
 # GrappleMap
 
 ## Purpose
-External GrappleMap project for 3D grappling technique visualization. Gitignored from main repo but present for data generation.
+Vendored **GrappleMap** project: source, scripts, and **`GrappleMap.txt`** for BJJ positions/transitions. Lives in the Sunnah Skills repo at **`GrappleMap/`**. Do not commit `preview/node_modules`, `**/dist`, or `.playwright-mcp/` (see `GrappleMap/.gitignore`).
 
 ## Structure
 
@@ -37,10 +37,9 @@ GrappleMap.txt (source database)
 ## For AI Agents
 
 ### Working In This Directory
-- Separate project with its own build system
-- Generates data for Sunnah Skills technique library
-- Not directly deployed - output is copied to `client/public/data/`
-- See `docs/technique-library.md` for integration details
+- Has its own preview app (`preview/`, run `npm install` there if needed)
+- Pipeline output is consumed as JSON under **`client/public/data/`** (not the whole C++ tree)
+- See **`docs/technique-library.md`** for integration and extraction scripts
 
 ### Integration
 1. Extract sequences from GrappleMap

@@ -10,8 +10,9 @@ Cloudflare D1 (SQLite) database schema and seed data. Single source of truth for
 
 | File | Description |
 |------|-------------|
-| `schema.sql` | Complete D1 schema - all tables, indexes, foreign keys |
-| `seed.sql` | Initial seed data for programs and sessions |
+| `schema.sql` | Complete D1 schema — all tables, indexes, foreign keys |
+| `seed.sql` | Initial seed data for programs, sessions, semesters, prices |
+| `migrations/` | Incremental SQL (e.g. `001_registration_accounts_orders.sql`, `002_enrollment_order_installments.sql`) — apply to existing DBs before relying on cart/installments |
 
 ## Schema Overview
 
@@ -24,11 +25,17 @@ Cloudflare D1 (SQLite) database schema and seed data. Single source of truth for
 - `waivers` - Signed liability waivers
 - `waitlist` - Waitlist entries for full sessions
 
-### Payment Tables
+### Payment & orders
 - `payments` - Payment records with Stripe IDs
+- `enrollment_orders` - Family-cart batch orders (totals, installment dates, Stripe metadata)
 - `stripe_customers` - Stripe customer mappings
 - `stripe_subscriptions` - BJJ subscription records
 - `discount_codes` - Promo codes for registration
+
+### Guardian / accounts (registration auth)
+- `guardian_accounts`, `guardian_magic_tokens`, `guardian_sessions` (see migrations) — magic link + account number sign-in
+- `saved_students` - Quick-pick student profiles per account
+- `semesters` - Active semester pricing inputs (classes in semester, price/class, reg fee, later payment date)
 
 ### Admin Tables
 - `admin_users` - Admin login credentials (bcrypt hashed)

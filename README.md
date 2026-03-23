@@ -48,7 +48,7 @@ See [`docs/local-dev.md`](docs/local-dev.md) for the full local setup.
 │   │   ├── Programs.tsx               # Programs listing
 │   │   ├── RegistrationHub.tsx        # Program chooser for /register
 │   │   ├── programs/                  # Individual program detail pages
-│   │   ├── registration/              # Registration wizard pages per program
+│   │   ├── registration/              # Wizard per program + CartPage, success/waitlist
 │   │   ├── admin/                     # Admin login, dashboard, sequence tools
 │   │   ├── Contact.tsx
 │   │   ├── Testimonials.tsx
@@ -60,18 +60,25 @@ See [`docs/local-dev.md`](docs/local-dev.md) for the full local setup.
 │   │   ├── programConfig.ts           # Program catalog (slugs, types, copy)
 │   │   └── stripe.ts                  # Stripe.js + appearance theme
 │   └── studio/                        # Stakeholder Studio (see docs/studio.md)
+├── shared/                            # orderPricing, pricing, registration-options, Zod schemas (client + Functions)
+├── GrappleMap/                        # Vendored source + GrappleMap.txt (technique extraction; see GrappleMap/AGENTS.md)
 ├── functions/
-│   ├── _utils/                        # Auth helpers, email, cookies
+│   ├── _utils/                        # adminAuth, guardianAuth, email, cookies
 │   └── api/
 │       ├── register.ts                # POST /api/register
-│       ├── programs.ts                # GET  /api/programs
+│       ├── register/cart.ts           # POST /api/register/cart (family cart)
+│       ├── programs.ts                # GET  /api/programs (+ active_semester)
+│       ├── guardian/                  # Magic link, account login, session
 │       ├── payments/
 │       │   ├── create-intent.ts       # POST /api/payments/create-intent
+│       │   ├── create-order-intent.ts # POST /api/payments/create-order-intent
+│       │   ├── collect-order-balance.ts # Second installment (cron + secret)
 │       │   ├── create-subscription.ts # POST /api/payments/create-subscription
 │       │   └── webhook.ts             # POST /api/payments/webhook
 │       ├── admin/                     # Admin API routes (auth-gated)
-│       ├── auth/                      # Login / logout / me
+│       ├── auth/                      # Admin login / logout / me
 │       └── studio/                    # Studio session sync API
+├── client/public/programs/            # Program hero images (bjj, archery, outdoor, bully)
 ├── db/
 │   ├── schema.sql                     # Full D1 schema (source of truth)
 │   └── seed.sql                       # Initial program/session seed data
@@ -110,6 +117,7 @@ See [`docs/local-dev.md`](docs/local-dev.md) for the full local setup.
 | `/programs/outdoor/register` | `OutdoorRegistration.tsx` | Registration wizard |
 | `/programs/bullyproofing/register` | `BullyproofingRegistration.tsx` | Registration wizard |
 | `/register` | `RegistrationHub.tsx` | Program chooser / registration entry point |
+| `/registration/cart` | `CartPage.tsx` | Family cart: waivers once, multi-line BJJ checkout |
 | `/registration/success?rid=N` | `RegistrationSuccess.tsx` | Post-payment confirmation |
 | `/registration/waitlist?pos=N&program=...` | `RegistrationWaitlist.tsx` | Session-full waitlist |
 | `/registration/cancel` | `RegistrationCancel.tsx` | Payment cancelled |
@@ -170,7 +178,8 @@ database_id = "fc0a958f-4bfe-487f-845f-bce49d4715d5"
 - **[docs/roadmap.md](docs/roadmap.md)** — Planned features, known gaps, technical debt
 
 ### Feature guides
-- **[docs/registration.md](docs/registration.md)** — Full registration + payment flow, per-program fields
+- **[docs/NEXT_AGENT.md](docs/NEXT_AGENT.md)** — Short handoff for the current stack (cart, auth, GrappleMap)
+- **[docs/registration.md](docs/registration.md)** — Full registration + family cart + payment flow, per-program fields
 - **[docs/studio.md](docs/studio.md)** — Stakeholder Studio setup and usage
 - **[docs/admin.md](docs/admin.md)** — Admin dashboard setup and usage
 - **[docs/technique-library.md](docs/technique-library.md)** — Technique Library (GrappleMap) current state + future roadmap

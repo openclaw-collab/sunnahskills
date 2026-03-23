@@ -18,10 +18,10 @@ Browser
               └── MailChannels ──  transactional email
 ```
 
-## Registration & payments (in progress)
+## Registration & payments (current)
 
 - **Programs:** Only **BJJ** is `enrollmentStatus: "open"` in `programConfig`; others are coming soon (waitlist UI + `403` from `register` API).
-- **D1:** `db/migrations/001_registration_accounts_orders.sql` adds `guardian_accounts`, magic tokens, sessions, `saved_students`, `enrollment_orders`, `semesters`, and links `registrations` / `payments` to orders where applicable.
+- **D1:** `db/migrations/001_registration_accounts_orders.sql` plus `002_enrollment_order_installments.sql` — `guardian_accounts`, magic tokens, sessions, `saved_students`, **`enrollment_orders`** (installment fields), **`semesters`**, linked `registrations` / `payments`, and order metadata for webhooks.
 - **Checkout model:** Family cart (`/registration/cart`), `POST /api/register/cart` → `enrollment_orders` + linked `registrations`; waivers once at checkout; Stripe invoicing / installments with webhooks updating D1 — see `docs/NEXT_AGENT.md` for ops (e.g. `collect-order-balance`).
 - **Pricing (single source):** Line math for kids/sibling, pay-today vs plan split, and semester dates live in **`shared/orderPricing.ts`** (used by payment endpoints and mirrored in **`OrderSummaryCard`** via `GET /api/programs`, which includes **`active_semester`** per program for public estimates).
 - **Kids pricing:** $12.50/class × classes in semester + **10%** off each additional sibling’s **kids** lines — low-level cents helpers in `shared/pricing.ts`; server always recomputes.
@@ -111,18 +111,30 @@ All API endpoints are Cloudflare Pages Functions. They receive a `context` with:
 | File | Purpose |
 |---|---|
 | `adminAuth.ts` | Reads `admin_session` cookie → validates against `admin_sessions` in D1 |
+| `guardianAuth.ts` | Guardian/family session cookie + account lookup for `functions/api/guardian/*` |
 | `cookies.ts` | `setCookie` / `getCookie` helpers with HttpOnly/Secure/SameSite |
 | `email.ts` | Sends via MailChannels (POST `https://api.mailchannels.net/tx/v1/send`) |
 | `emailTemplates.ts` | HTML templates: registration confirmation, payment receipt, waitlist, admin notification |
 
+### Shared modules (`shared/` — imported by Functions + Vite client)
+
+| File | Purpose |
+|---|---|
+| `orderPricing.ts` | Line tuition, kids/sibling rules, pay-today vs plan split, semester date helpers (same math as payments) |
+| `pricing.ts` | Low-level cents helpers for kids lines and sibling discount |
+| `registration-options.ts` | Canonical select options for registration Zod/UI |
+| `schema.ts` / `types.ts` | Cross-boundary Zod + types |
+
 ## Data flow: Registration + Payment
+
+### Path A — Single-student wizard (per program)
 
 ```
 User fills wizard (client)
   │
   ├── Draft saved to localStorage (key: ss-reg-draft-{slug})
   │
-  └── Step 5 "Submit & Pay"
+  └── Waivers step → "Submit & Pay"
         │
         ├── POST /api/register
         │     ├── Validates payload (Zod)
@@ -130,27 +142,38 @@ User fills wizard (client)
         │     ├── Inserts: guardians, students, registrations, waivers
         │     └── Returns { registrationId }
         │
-        ├── POST /api/payments/create-intent  (one-time programs)
-        │     ├── Calculates total (price + reg fee - sibling discount - promo code)
+        ├── POST /api/payments/create-intent  (typical for BJJ one-time / fallback)
+        │     ├── Loads `semesters` + `program_prices`; uses shared/orderPricing.ts
         │     ├── Creates Stripe PaymentIntent server-side
         │     └── Returns { clientSecret, paymentIntentId }
         │
-        ├── POST /api/payments/create-subscription  (recurring: BJJ)
-        │     ├── Creates/retrieves Stripe Customer by email
-        │     ├── Applies sibling coupon if siblingCount > 0
-        │     ├── Creates Stripe Subscription (payment_behavior: default_incomplete)
-        │     └── Returns { clientSecret } from latest_invoice.payment_intent
-        │
-        └── If subscriptions are not configured, returns { error: "subscriptions_not_configured" } and the client falls back to a one-time intent
+        ├── POST /api/payments/create-subscription  (optional recurring path)
+        │     ├── If subscriptions not configured → { error: "subscriptions_not_configured" } → client falls back to create-intent
+        │     └── Else returns { clientSecret } from invoice payment intent
         │
         └── Stripe Elements confirmPayment() (client)
-              │
-              ├── On success → redirects to /registration/success?rid=N
-              └── On webhook (invoice.paid / payment_intent.succeeded)
-                    POST /api/payments/webhook
-                          └── Updates payment status in D1
-                              Sends confirmation email via MailChannels
+              ├── On success → /registration/success?rid=N
+              └── Webhook → POST /api/payments/webhook → D1 + MailChannels
 ```
+
+### Path B — Family cart (BJJ, multi-line)
+
+```
+Cart lines in localStorage (familyCart) + /registration/cart
+  │
+  ├── POST /api/register/cart — one guardian, N lines, waivers once
+  │     └── Creates enrollment_orders row + linked registrations
+  │
+  ├── POST /api/payments/create-order-intent
+  │     ├── Totals from shared/orderPricing.ts per line; Stripe Customer + PaymentIntent (due today)
+  │     └── Returns { clientSecret, dueTodayCents, dueLaterCents, laterPaymentDate, ... }
+  │
+  ├── Optional: POST /api/payments/collect-order-balance (Bearer CRON_SECRET) for second installment
+  │
+  └── Webhook updates order + registrations consistently
+```
+
+**Public catalog:** `GET /api/programs` returns programs, sessions, prices, and **`active_semester`** per program (for `OrderSummaryCard` and schedule-aware UI).
 
 ## Data flow: Admin
 

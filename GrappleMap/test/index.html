@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GrappleMap Viewer</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0e0e0e;
+            --s1: #161620;
+            --s2: #1e1e2e;
+            --bdr: #2a2a40;
+            --txt: #e0e0f0;
+            --dim: #7070a0;
+            --acc: #6366f1;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--txt);
+            font-family: 'Inter', sans-serif;
+        }
+
+        .header {
+            padding: 20px 28px;
+            border-bottom: 1px solid var(--bdr);
+            background: var(--s1);
+        }
+
+        .header h1 {
+            font-size: 1.3rem;
+            color: var(--acc);
+        }
+
+        .header p {
+            color: var(--dim);
+            font-size: .8rem;
+            margin-top: 4px;
+        }
+
+        .toolbar {
+            padding: 16px 28px;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+            background: var(--s1);
+            border-bottom: 1px solid var(--bdr);
+        }
+
+        .toolbar label {
+            font-size: .8rem;
+            color: var(--dim);
+        }
+
+        .toolbar input[type=text] {
+            background: var(--s2);
+            border: 1px solid var(--bdr);
+            border-radius: 6px;
+            color: var(--txt);
+            padding: 6px 10px;
+            font-size: .8rem;
+            width: 260px;
+        }
+
+        .btn {
+            padding: 6px 14px;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: .78rem;
+            cursor: pointer;
+        }
+
+        .btn-go {
+            background: var(--acc);
+            color: #fff;
+        }
+
+        .btn-go:hover {
+            background: #818cf8;
+        }
+
+        .btn-file {
+            background: var(--s2);
+            color: var(--txt);
+            border: 1px solid var(--bdr);
+        }
+
+        #status {
+            font-size: .78rem;
+            color: var(--dim);
+            margin-left: auto;
+        }
+
+        #grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
+            gap: 16px;
+            padding: 20px 28px;
+        }
+
+        .card {
+            background: var(--s1);
+            border: 1px solid var(--bdr);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .card-head {
+            padding: 8px 12px;
+            background: var(--s2);
+            font-size: .8rem;
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .card-head .id {
+            color: var(--acc);
+        }
+
+        .card-canvas {
+            width: 100%;
+            height: 320px;
+            display: block;
+        }
+
+        .card-bar {
+            padding: 6px 12px;
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            border-top: 1px solid var(--bdr);
+            font-size: .75rem;
+            color: var(--dim);
+        }
+
+        .card-bar button {
+            background: var(--s2);
+            border: 1px solid var(--bdr);
+            color: var(--txt);
+            padding: 3px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: .85rem;
+        }
+
+        .card-bar input[type=range] {
+            width: 80px;
+            accent-color: var(--acc);
+        }
+
+        .load-section {
+            padding: 16px 28px;
+            background: var(--s1);
+            border-bottom: 1px solid var(--bdr);
+        }
+
+        .load-section textarea {
+            width: 100%;
+            height: 60px;
+            background: var(--s2);
+            border: 1px solid var(--bdr);
+            border-radius: 6px;
+            color: var(--txt);
+            font-family: monospace;
+            font-size: .7rem;
+            padding: 8px;
+            resize: vertical;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="header">
+        <h1>GrappleMap · Scene Viewer</h1>
+        <p>Paste GrappleMap.txt, then render transitions/positions by ID.</p>
+    </div>
+
+    <div class="load-section">
+        <div style="display:flex;gap:10px;align-items:flex-start">
+            <textarea id="dbInput" placeholder="Paste GrappleMap.txt here or use file upload..."></textarea>
+            <div style="display:flex;flex-direction:column;gap:6px">
+                <label class="btn btn-file" style="cursor:pointer">Upload<input type="file" id="fileIn" accept=".txt"
+                        hidden></label>
+                <button class="btn btn-go" id="parseBtn">Parse</button>
+            </div>
+        </div>
+        <div id="parseStatus" style="font-size:.78rem;margin-top:6px"></div>
+    </div>
+
+    <div class="toolbar">
+        <label>Transition IDs:</label>
+        <input type="text" id="idsInput" value="557,1383,558,1387,57" placeholder="e.g. 557,1383,558,1387,57">
+        <button class="btn btn-go" id="renderBtn" disabled>Render</button>
+        <span id="status"></span>
+    </div>
+
+    <div id="grid"></div>
+
+    <script type="module">
+        import { parseGrappleMap, prepareFrames, AnimationPlayer } from './grapplemap.js';
+        import { GrappleMapScene } from './renderer.js';
+
+        let db = null;
+        const scenes = [];
+
+        // ── Parse ──
+        document.getElementById('parseBtn').onclick = () => {
+            const text = document.getElementById('dbInput').value;
+            if (!text.trim()) return;
+            const t0 = performance.now();
+            try {
+                db = parseGrappleMap(text);
+                const ms = ((performance.now() - t0) / 1000).toFixed(2);
+                document.getElementById('parseStatus').innerHTML =
+                    `<span style="color:#22c55e">✓ ${db.positions.length} positions, ${db.transitions.length} transitions (${ms}s)</span>`;
+                document.getElementById('renderBtn').disabled = false;
+            } catch (e) {
+                document.getElementById('parseStatus').innerHTML =
+                    `<span style="color:#ee3344">✗ ${e.message}</span>`;
+                console.error(e);
+            }
+        };
+
+        document.getElementById('fileIn').onchange = (e) => {
+            const f = e.target.files[0];
+            if (!f) return;
+            const r = new FileReader();
+            r.onload = (ev) => {
+                document.getElementById('dbInput').value = ev.target.result;
+                document.getElementById('parseBtn').click();
+            };
+            r.readAsText(f);
+        };
+
+        // ── Render ──
+        document.getElementById('renderBtn').onclick = () => {
+            if (!db) return;
+            const raw = document.getElementById('idsInput').value.trim();
+            const ids = raw.split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n));
+            if (ids.length === 0) return;
+
+            // Clear previous
+            for (const s of scenes) s.scene.dispose();
+            scenes.length = 0;
+            document.getElementById('grid').innerHTML = '';
+
+            const status = document.getElementById('status');
+            status.textContent = `Rendering ${ids.length} card(s)...`;
+
+            for (const id of ids) {
+                // Try as transition first, then as position
+                const trans = db.transitions.find(t => t.id === id);
+                const pos = trans ? null : db.positions.find(p => p.id === id);
+
+                if (!trans && !pos) {
+                    console.warn('ID not found:', id);
+                    status.textContent = `Warning: ID ${id} not found`;
+                    continue;
+                }
+
+                const card = document.createElement('div');
+                card.className = 'card';
+
+                const label = trans
+                    ? `T${id}: ${trans.name}`
+                    : `P${id}: ${pos.name}`;
+
+                card.innerHTML = `
+          <div class="card-head">
+            <span>${label}</span>
+            <span class="id">#${id}</span>
+          </div>
+          <canvas class="card-canvas"></canvas>
+          <div class="card-bar">
+            <button class="pp-btn">⏸</button>
+            <label>Speed: <input type="range" class="spd" min="25" max="400" value="100" step="25"></label>
+            <span class="spd-label">1.0×</span>
+          </div>
+        `;
+                document.getElementById('grid').appendChild(card);
+
+                const canvas = card.querySelector('.card-canvas');
+
+                // Wait for layout then create scene
+                requestAnimationFrame(() => {
+                    const gmScene = new GrappleMapScene(canvas);
+                    gmScene.resize();
+
+                    let animPlayer = null;
+
+                    if (trans) {
+                        const frames = prepareFrames(trans);
+                        animPlayer = new AnimationPlayer(frames, { speed: 1.0, loop: true });
+                        gmScene.setAnimationPlayer(animPlayer);
+                    } else {
+                        gmScene.setFrame(pos.position);
+                    }
+
+                    scenes.push({ scene: gmScene, animPlayer });
+
+                    // Controls
+                    const ppBtn = card.querySelector('.pp-btn');
+                    ppBtn.onclick = () => {
+                        if (!animPlayer) return;
+                        if (animPlayer.playing) { animPlayer.pause(); ppBtn.textContent = '▶'; }
+                        else { animPlayer.play(); ppBtn.textContent = '⏸'; }
+                    };
+
+                    const spdSlider = card.querySelector('.spd');
+                    const spdLabel = card.querySelector('.spd-label');
+                    spdSlider.oninput = () => {
+                        const v = parseInt(spdSlider.value) / 100;
+                        if (animPlayer) animPlayer.setSpeed(v);
+                        spdLabel.textContent = v.toFixed(1) + '×';
+                    };
+                });
+            }
+
+            status.textContent = `${ids.length} card(s) rendered`;
+        };
+
+        // Resize handler
+        window.addEventListener('resize', () => {
+            for (const s of scenes) s.scene.resize();
+        });
+    </script>
+</body>
+
+</html>

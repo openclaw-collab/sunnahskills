@@ -208,7 +208,7 @@ Closes on Escape key.
 | `client/public/data/library/sequences/manifest.json` | Sequence manifest used by the sequence browser |
 | `client/public/data/library/sequences/<slug>.json` | Per-technique sequence data (frames + markers) |
 | `scripts/extract-techniques.mjs` | Pipeline script: GrappleMap.txt → per-technique JSON + manifest/catalog |
-| `GrappleMap/` | External GrappleMap project (gitignored) |
+| `GrappleMap/` | Vendored in monorepo (`GrappleMap.txt`, scripts, preview app); ignore only `preview/node_modules` and `dist` |
 
 ---
 

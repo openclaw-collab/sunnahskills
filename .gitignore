@@ -1,15 +1,9 @@
 node_modules
 dist
-
-# Canonical program images live in client/public/programs/ — ignore duplicate copies at repo root
-/bjj.png
-/archery.png
-/outdoor.jpg
-/bully.jpeg
 .DS_Store
 .wrangler/
 .omc/
-GrappleMap/
+# GrappleMap is tracked in-repo; keep heavy / generated paths out
 GrappleMap/preview/node_modules/
 GrappleMap/**/dist/
 !client/src/components/grapplemap/

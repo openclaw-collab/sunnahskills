@@ -32,7 +32,7 @@ A production-grade youth martial arts & outdoor program platform with integrated
 | `scripts/` | Build and utility scripts (see `scripts/AGENTS.md`) |
 | `.github/` | GitHub Actions workflows (see `.github/AGENTS.md`) |
 | `.cursor/` | Cursor IDE rules (see `.cursor/AGENTS.md`) |
-| `GrappleMap/` | External 3D grappling visualization project (see `GrappleMap/AGENTS.md`) |
+| `GrappleMap/` | Vendored 3D grappling source + `GrappleMap.txt` (see `GrappleMap/AGENTS.md`; `preview/node_modules` and `**/dist` gitignored) |
 
 ## For AI Agents
 

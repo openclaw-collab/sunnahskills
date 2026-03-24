@@ -1,0 +1,26 @@
+{
+  "meta": {
+    "id": "guard-pull",
+    "name": "Guard Pull",
+    "slug": "guard-pull",
+    "positionCategory": "standing",
+    "startingPosition": "Standing",
+    "endingPosition": "Closed Guard",
+    "difficulty": "beginner",
+    "description": [
+      "Guard pull to closed guard.",
+      "Break grip and pull guard to establish defensive position."
+    ],
+    "sources": ["Gracie Combatives"],
+    "totalFrames": 0,
+    "positions": 2,
+    "transitions": 1
+  },
+  "markers": [
+    { "name": "Standing", "frame": 0, "type": "position" },
+    { "name": "Guard Pull", "frame": 1, "type": "transition" },
+    { "name": "Closed Guard", "frame": 5, "type": "position" }
+  ],
+  "frames": [],
+  "verified": false
+}

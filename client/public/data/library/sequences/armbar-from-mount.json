@@ -1,0 +1,26 @@
+{
+  "meta": {
+    "id": "armbar-from-mount",
+    "name": "Armbar from Mount",
+    "slug": "armbar-from-mount",
+    "positionCategory": "mount",
+    "startingPosition": "Mount",
+    "endingPosition": "Submission",
+    "difficulty": "beginner",
+    "description": [
+      "Armbar from mount position.",
+      "Secure the arm, hip escape, and extend for the finish."
+    ],
+    "sources": ["Gracie Combatives"],
+    "totalFrames": 0,
+    "positions": 2,
+    "transitions": 1
+  },
+  "markers": [
+    { "name": "Mount", "frame": 0, "type": "position" },
+    { "name": "Armbar", "frame": 1, "type": "transition" },
+    { "name": "Tap", "frame": 10, "type": "position" }
+  ],
+  "frames": [],
+  "verified": false
+}

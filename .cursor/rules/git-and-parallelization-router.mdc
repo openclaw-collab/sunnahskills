@@ -1,0 +1,10 @@
+---
+description: Git workflow, worktrees, and parallelization routing
+alwaysApply: true
+---
+
+# Git workflow & parallelization
+
+- For isolated feature work or risky changes: prefer using-git-worktrees / git-worktree to avoid contaminating main work.
+- If work can be split (UI vs API vs docs vs tests): use dispatching-parallel-agents / subagent-driven-development.
+- If you need help shaping clean history (atomic commits, tidy branches/PRs): use git-master.

@@ -1,0 +1,12 @@
+---
+description: Docs + research lane (Tavily/Context7 + clear writeups)
+globs: "{docs/**,**/*.md}"
+alwaysApply: false
+---
+
+# Docs + research lane
+
+- If requirements depend on external info or current docs: use Tavily search/research first; use extract when URLs are known; use crawl for larger doc sets.
+- For complex research questions that benefit from parallel investigation + cross-validation: use `/sciomc` to decompose the goal into stages, run parallel investigations, verify consistency, then synthesize findings.
+- For library/framework API usage examples: use Context7 before finalizing recommendations.
+- When producing repo docs (README, deployment, runbooks): prefer concise, actionable writing and include a short verification/test plan.

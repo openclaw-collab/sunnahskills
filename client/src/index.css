@@ -1,59 +1,64 @@
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600&family=Outfit:wght@400;500&family=Cormorant+Garamond:ital,wght@0,400;1,400&family=JetBrains+Mono:wght@400&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  --background: hsl(0, 0%, 100%);
-  --foreground: hsl(20, 14.3%, 4.1%);
-  --muted: hsl(60, 4.8%, 95.9%);
-  --muted-foreground: hsl(25, 5.3%, 44.7%);
-  --popover: hsl(0, 0%, 100%);
-  --popover-foreground: hsl(20, 14.3%, 4.1%);
-  --card: hsl(0, 0%, 100%);
-  --card-foreground: hsl(20, 14.3%, 4.1%);
-  --border: hsl(20, 5.9%, 90%);
-  --input: hsl(20, 5.9%, 90%);
-  --primary: hsl(93, 44%, 19%);
-  --primary-foreground: hsl(0, 0%, 100%);
-  --secondary: hsl(20, 35%, 35%);
-  --secondary-foreground: hsl(0, 0%, 100%);
-  --accent: hsl(39, 35%, 90%);
-  --accent-foreground: hsl(20, 14.3%, 4.1%);
-  --destructive: hsl(0, 84.2%, 60.2%);
-  --destructive-foreground: hsl(60, 9.1%, 97.8%);
-  --ring: hsl(20, 14.3%, 4.1%);
+  /* Core palette from sunnahskills.html */
+  --background: #F2F0E9; /* cream */
+  --foreground: #1A1A1A; /* charcoal */
+
+  --card: #FFFFFF;
+  --card-foreground: #1A1A1A;
+
+  --popover: #FFFFFF;
+  --popover-foreground: #1A1A1A;
+
+  --border: rgba(42, 59, 49, 0.12); /* moss border */
+  --input: #FFFFFF;
+
+  --primary: #2E4036; /* moss */
+  --primary-foreground: #F2F0E9;
+
+  --secondary: #1A1A1A; /* charcoal blocks */
+  --secondary-foreground: #F2F0E9;
+
+  --accent: #CC5833; /* clay */
+  --accent-foreground: #F2F0E9;
+
+  --muted: #E4DED0;
+  --muted-foreground: rgba(26, 26, 26, 0.7);
+
+  --destructive: #CC5833;
+  --destructive-foreground: #F2F0E9;
+
+  --ring: #2E4036;
   --radius: 0.5rem;
-  --earthGreen: hsl(93, 25%, 40%);
-  --earthBrown: hsl(20, 35%, 35%);
-  --lightBeige: hsl(39, 35%, 97%);
 }
 
 .dark {
-  --background: hsl(240, 10%, 3.9%);
-  --foreground: hsl(0, 0%, 98%);
-  --muted: hsl(240, 3.7%, 15.9%);
-  --muted-foreground: hsl(240, 5%, 64.9%);
-  --popover: hsl(240, 10%, 3.9%);
-  --popover-foreground: hsl(0, 0%, 98%);
-  --card: hsl(240, 10%, 3.9%);
-  --card-foreground: hsl(0, 0%, 98%);
-  --border: hsl(240, 3.7%, 15.9%);
-  --input: hsl(240, 3.7%, 15.9%);
-  --primary: hsl(93, 44%, 19%);
-  --primary-foreground: hsl(0, 0%, 100%);
-  --secondary: hsl(240, 3.7%, 15.9%);
-  --secondary-foreground: hsl(0, 0%, 98%);
-  --accent: hsl(240, 3.7%, 15.9%);
-  --accent-foreground: hsl(0, 0%, 98%);
-  --destructive: hsl(0, 62.8%, 30.6%);
-  --destructive-foreground: hsl(0, 0%, 98%);
-  --ring: hsl(240, 4.9%, 83.9%);
+  /* Dark mode not primary for this brand, keep simple inverse */
+  --background: #1A1A1A;
+  --foreground: #F2F0E9;
+  --card: #111111;
+  --card-foreground: #F2F0E9;
+  --popover: #111111;
+  --popover-foreground: #F2F0E9;
+  --border: rgba(242, 240, 233, 0.14);
+  --input: #111111;
+  --primary: #F2F0E9;
+  --primary-foreground: #1A1A1A;
+  --secondary: #111111;
+  --secondary-foreground: #F2F0E9;
+  --accent: #CC5833;
+  --accent-foreground: #F2F0E9;
+  --muted: #222222;
+  --muted-foreground: rgba(242, 240, 233, 0.7);
+  --destructive: #CC5833;
+  --destructive-foreground: #F2F0E9;
+  --ring: #F2F0E9;
   --radius: 0.5rem;
-  --earthGreen: hsl(93, 25%, 40%);
-  --earthBrown: hsl(20, 35%, 35%);
-  --lightBeige: hsl(39, 35%, 97%);
 }
 
 @layer base {
@@ -63,52 +68,63 @@
 
   body {
     @apply font-sans antialiased bg-background text-foreground;
-    font-family: 'Inter', sans-serif;
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+      sans-serif;
   }
 }
 
 @layer components {
-  .earth-gradient {
-    background: linear-gradient(135deg, hsl(93, 44%, 19%) 0%, hsl(93, 25%, 40%) 100%);
+  /* Utility classes reflecting reference HTML */
+  .hero-bg-gradient {
+    background: linear-gradient(to bottom, rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.8), #1A1A1A);
   }
-  
-  .hero-bg {
-    background: linear-gradient(135deg, hsl(93, 44%, 19%) 0%, hsl(93, 25%, 40%) 100%);
-  }
-  
-  .text-earthGreen {
-    color: hsl(93, 25%, 40%);
-  }
-  
-  .text-earthBrown {
-    color: hsl(20, 35%, 35%);
-  }
-  
-  .bg-lightBeige {
-    background-color: hsl(39, 35%, 97%);
-  }
-  
-  .bg-earthGreen {
-    background-color: hsl(93, 25%, 40%);
-  }
-  
-  .bg-earthBrown {
-    background-color: hsl(20, 35%, 35%);
-  }
-  
-  .hover\:bg-earthGreen:hover {
-    background-color: hsl(93, 25%, 40%);
-  }
-  
-  .hover\:text-earthGreen:hover {
-    color: hsl(93, 25%, 40%);
-  }
-}
 
-.font-poppins {
-  font-family: 'Poppins', sans-serif;
-}
+  .noise-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    pointer-events: none;
+    opacity: 0.05;
+    mix-blend-mode: multiply;
+  }
 
-.font-inter {
-  font-family: 'Inter', sans-serif;
+  .font-body {
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+      sans-serif;
+  }
+
+  .font-heading {
+    font-family: 'Outfit', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  }
+
+  .font-serif-accent {
+    font-family: 'Cormorant Garamond', "Times New Roman", serif;
+  }
+
+  .font-mono-label {
+    font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+      "Liberation Mono", "Courier New", monospace;
+  }
+
+  /* Stripe Elements overrides via class selector hook */
+  .stripe-elements-theme {
+    --stripe-primary: #2E4036;
+    --stripe-background: #F2F0E9;
+    --stripe-text: #1A1A1A;
+    --stripe-danger: #CC5833;
+    --stripe-radius: 12px;
+  }
+
+  [data-studio-bg-tone] {
+    background: var(--studio-component-bg) !important;
+  }
+
+  [data-studio-border-tone] {
+    border-color: var(--studio-component-border) !important;
+  }
+
+  [data-studio-text-tone],
+  [data-studio-text-tone] :where(*) {
+    color: var(--studio-component-text) !important;
+  }
 }

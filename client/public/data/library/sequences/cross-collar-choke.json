@@ -1,0 +1,26 @@
+{
+  "meta": {
+    "id": "cross-collar-choke",
+    "name": "Cross Collar Choke",
+    "slug": "cross-collar-choke",
+    "positionCategory": "mount",
+    "startingPosition": "Mount",
+    "endingPosition": "Submission",
+    "difficulty": "beginner",
+    "description": [
+      "Cross collar choke from mount.",
+      "Secure collar grips and squeeze to finish."
+    ],
+    "sources": ["Gracie Combatives"],
+    "totalFrames": 0,
+    "positions": 2,
+    "transitions": 1
+  },
+  "markers": [
+    { "name": "Mount", "frame": 0, "type": "position" },
+    { "name": "Cross Collar Choke", "frame": 1, "type": "transition" },
+    { "name": "Tap", "frame": 10, "type": "position" }
+  ],
+  "frames": [],
+  "verified": false
+}

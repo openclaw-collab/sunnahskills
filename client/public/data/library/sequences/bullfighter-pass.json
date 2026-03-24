@@ -1,0 +1,26 @@
+{
+  "meta": {
+    "id": "bullfighter-pass",
+    "name": "Bullfighter Pass",
+    "slug": "bullfighter-pass",
+    "positionCategory": "guard-pass",
+    "startingPosition": "Open Guard",
+    "endingPosition": "Side Control",
+    "difficulty": "beginner",
+    "description": [
+      "Bullfighter pass against open guard.",
+      "Walk through the guard, controlling the hips to pass."
+    ],
+    "sources": ["Gracie Combatives"],
+    "totalFrames": 5,
+    "positions": 2,
+    "transitions": 1
+  },
+  "markers": [
+    { "name": "Open Guard", "frame": 0, "type": "position" },
+    { "name": "Bullfighter Pass", "frame": 1, "type": "transition" },
+    { "name": "Side Control", "frame": 5, "type": "position" }
+  ],
+  "frames": [],
+  "verified": false
+}

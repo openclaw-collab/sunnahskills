@@ -1,0 +1,18 @@
+---
+description: Superpowers backbone workflow + skill routing gates
+alwaysApply: true
+---
+
+# Superpowers workflow backbone (always)
+
+- Start work with `/brainstorm` before any implementation.
+- In `/brainstorm`: invoke `/deep-init` first to load repo conventions/context. Once an initial direction exists, invoke `/deep-interview` as a checkpoint before proposing approaches/design.
+- After user-approved design: use `/write-plan` to produce an execution plan, then `/execute-plan` to implement in small verifiable batches.
+- If debugging a failure/regression: invoke systematic-debugging before changing behavior.
+- For new behavior/bugfixes: invoke test-driven-development (tests first) before implementation.
+- Before claiming “done”: run verification-before-completion (tests/build/lints) and confirm outputs.
+- After a meaningful milestone: request code review; when applying feedback: follow receiving-code-review discipline.
+
+# Research routing
+
+- If you need up-to-date docs/examples or external facts: use Tavily search/research/extract/crawl (as appropriate) or Context7 for library API usage before locking a plan.

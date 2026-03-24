@@ -1,6 +1,33 @@
 node_modules
 dist
 .DS_Store
+.wrangler/
+.omc/
+# GrappleMap is tracked in-repo; keep heavy / generated paths out
+GrappleMap/preview/node_modules/
+GrappleMap/**/dist/
+!client/src/components/grapplemap/
+Screenshot *.png
 server/public
 vite.config.ts.*
 *.tar.gz
+*storybook.log
+storybook-static
+
+# Playwright
+playwright/.auth/
+test-results/
+playwright-report/
+
+# Test environment secrets
+.dev.vars.test
+.dev.vars.*.local
+
+# Wrangler test state (separate from dev state)
+.wrangler/test-state/
+
+# superturtle
+.superturtle/
+
+# local agent state
+.agent/

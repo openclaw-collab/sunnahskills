@@ -1,0 +1,26 @@
+{
+  "meta": {
+    "id": "elevator-sweep",
+    "name": "Elevator Sweep",
+    "slug": "elevator-sweep",
+    "positionCategory": "closed-guard",
+    "startingPosition": "Closed Guard",
+    "endingPosition": "Top Side Control",
+    "difficulty": "beginner",
+    "description": [
+      "Elevator sweep from closed guard.",
+      "Use your legs to elevator their leg and sweep to side control."
+    ],
+    "sources": ["Gracie Combatives"],
+    "totalFrames": 0,
+    "positions": 2,
+    "transitions": 1
+  },
+  "markers": [
+    { "name": "Closed Guard", "frame": 0, "type": "position" },
+    { "name": "Elevator Sweep", "frame": 1, "type": "transition" },
+    { "name": "Top Side Control", "frame": 8, "type": "position" }
+  ],
+  "frames": [],
+  "verified": false
+}

@@ -1,0 +1,993 @@
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sunnah Skills | Built Through Discipline</title>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+
+
+    <!-- Iconify -->
+    <script src="https://code.iconify.design/iconify-icon/1.0.7/iconify-icon.min.js"></script>
+
+    <!-- Tailwind CSS (No Config) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- GSAP Core & ScrollTrigger -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+
+    <style>
+        html {
+            scroll-behavior: smooth;
+        }
+
+        /* Global Noise Texture */
+        .noise-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
+            pointer-events: none;
+            background-image: url('data:image/svg+xml;utf8,%3Csvg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"%3E%3Cfilter id="noiseFilter"%3E%3CfeTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3" stitchTiles="stitch"/%3E%3C/filter%3E%3Crect width="100%25" height="100%25" filter="url(%23noiseFilter)"/%3E%3C/svg%3E');
+            opacity: 0.05;
+            mix-blend-mode: multiply;
+        }
+
+        ::-webkit-scrollbar {
+            width: 0px;
+            background: transparent;
+        }
+
+        /* Shuffler Transitions */
+        .shuffler-card {
+            transition: all 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        /* Split Text Reveal Base */
+        .word-wrap {
+            display: inline-block;
+            overflow: hidden;
+        }
+
+        .word-inner {
+            display: inline-block;
+            transform: translateY(100%);
+        }
+
+        /* Magnetic Button Base */
+        .magnetic-btn {
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+        }
+
+        .magnetic-btn::before {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.1);
+            transition: top 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+            z-index: 0;
+        }
+
+        .magnetic-btn:hover {
+            transform: scale(1.02);
+        }
+
+        .magnetic-btn:hover::before {
+            top: 0;
+        }
+
+        .magnetic-btn>* {
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Wireframe Scanner */
+        .wireframe-grid {
+            background-size: 30px 30px;
+            background-image: linear-gradient(to right, rgba(204, 88, 51, 0.05) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(204, 88, 51, 0.05) 1px, transparent 1px);
+        }
+
+        @keyframes sweep {
+            0% {
+                transform: translateY(-100%);
+            }
+
+            100% {
+                transform: translateY(1000%);
+            }
+        }
+
+        .scanner-line {
+            position: absolute;
+            width: 100%;
+            height: 1px;
+            background: #CC5833;
+            box-shadow: 0 0 10px 1px rgba(204, 88, 51, 0.5);
+            animation: sweep 3s linear infinite;
+        }
+
+        /* Node Pulse Animation */
+        @keyframes pulse-node {
+
+            0%,
+            100% {
+                transform: scale(1);
+                opacity: 0.8;
+            }
+
+            50% {
+                transform: scale(1.3);
+                opacity: 1;
+                box-shadow: 0 0 10px rgba(204, 88, 51, 0.8);
+            }
+        }
+
+        .node-active {
+            animation: pulse-node 2s infinite ease-in-out;
+        }
+
+        @keyframes spin-slow {
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .animate-spin-slow {
+            animation: spin-slow 25s linear infinite;
+        }
+
+        @keyframes tracking-expand {
+            0% {
+                letter-spacing: 0em;
+                opacity: 0;
+                transform: scale(0.95);
+            }
+            100% {
+                letter-spacing: 0.3em;
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .animate-tracking-expand {
+            animation: tracking-expand 1.5s cubic-bezier(0.215, 0.61, 0.355, 1) forwards;
+        }
+    </style>
+</head>
+
+<body
+    class="bg-[#F2F0E9] text-[#1A1A1A] font-['Plus_Jakarta_Sans',sans-serif] antialiased overflow-x-hidden selection:bg-[#2E4036] selection:text-[#F2F0E9]">
+
+    <div class="noise-overlay"></div>
+
+    <!-- NAVBAR -->
+    <nav id="navbar"
+        class="fixed top-6 left-1/2 -translate-x-1/2 z-50 transition-all duration-500 rounded-full px-6 py-3 flex items-center justify-between w-[90%] max-w-5xl bg-transparent text-[#F2F0E9] border border-transparent">
+        <div class="animate-tracking-expand font-['JetBrains_Mono',monospace] font-normal text-sm uppercase text-[#F2F0E9]">
+            SUNNAH SKILLS
+        </div>
+        <div class="hidden md:flex items-center gap-8 font-normal text-xs tracking-wide uppercase">
+            <a href="#programs" class="hover:opacity-70 transition-opacity">Programs</a>
+            <a href="#schedule" class="hover:opacity-70 transition-opacity">Schedule</a>
+            <a href="#manifesto" class="hover:opacity-70 transition-opacity">About</a>
+            <a href="#enrollment" class="hover:opacity-70 transition-opacity">Contact</a>
+        </div>
+        <button
+            class="font-normal text-xs uppercase tracking-wide px-5 py-2.5 rounded-full backdrop-blur-sm transition-colors border bg-white/10 hover:bg-white/20 border-white/10 text-[#F2F0E9]">
+            Explore Programs
+        </button>
+    </nav>
+
+    <!-- HERO SECTION -->
+    <header class="relative h-[100dvh] w-full overflow-hidden flex items-end">
+        <div class="absolute inset-0 w-full h-full">
+            <img src="./hero-judo.jpg"
+                class="w-full h-20% object-cover object-[center_20%] grayscale brightness-75 contrast-125 opacity-80"
+                alt="Judo Throw Training">
+            <div class="absolute inset-0 bg-gradient-to-b from-black/40 via-black/60 to-[#1A1A1A]"></div>
+        </div>
+
+        <div class="relative z-10 w-full max-w-7xl mx-auto px-6 pb-24 md:pb-32">
+            <div class="max-w-4xl hero-content">
+                <p
+                    class="hero-anim text-[#CC5833] font-['JetBrains_Mono',monospace] text-xs uppercase tracking-widest mb-6 flex items-center gap-2">
+                    <span class="w-1.5 h-1.5 rounded-full bg-[#CC5833] animate-pulse"></span>
+                    System Initialized
+                </p>
+                <h1 class="flex flex-col gap-2">
+                    <span
+                        class="hero-anim font-['Outfit',sans-serif] font-normal text-5xl md:text-7xl lg:text-[6rem] tracking-tight text-[#F2F0E9] leading-none">
+                        Built Through
+                    </span>
+                    <span
+                        class="hero-anim font-['Cormorant_Garamond',serif] italic font-normal text-6xl md:text-8xl lg:text-[8rem] tracking-tight text-[#F2F0E9] leading-none mt-2 pr-4">
+                        Discipline.
+                    </span>
+                </h1>
+                <p
+                    class="hero-anim mt-10 text-[#F2F0E9]/70 font-['Plus_Jakarta_Sans',sans-serif] font-light text-sm md:text-base max-w-lg leading-relaxed">
+                    Train the body. Shape the character. Brazilian Jiu-Jitsu, archery, outdoor skills, and bullyproofing
+                    taught through a structured youth development system.
+                </p>
+                <div class="hero-anim mt-12 flex flex-col sm:flex-row gap-4">
+                    <button
+                        class="px-8 py-3.5 rounded-full bg-[#CC5833] text-[#F2F0E9] text-xs font-normal uppercase tracking-wide hover:bg-[#CC5833]/90 transition-colors">
+                        Explore Programs
+                    </button>
+                    <button
+                        class="px-8 py-3.5 rounded-full border border-[#F2F0E9]/20 text-[#F2F0E9] text-xs font-normal uppercase tracking-wide hover:bg-[#F2F0E9]/10 transition-colors">
+                        View Schedule
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- FEATURES (The Academy Dashboard) -->
+    <section id="features" class="py-32 bg-[#F2F0E9] relative z-20 rounded-t-[3rem] -mt-10 overflow-hidden">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="mb-20">
+                <h2 class="font-['Outfit',sans-serif] font-normal text-3xl md:text-5xl tracking-tight text-[#1A1A1A]">
+                    Academy Telemetry</h2>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+
+                <!-- Card 1: Academy Snapshot (Shuffler) -->
+                <div class="border border-[#2E4036]/10 rounded-[2rem] p-8 h-[28rem] relative flex flex-col bg-white">
+                    <div class="flex items-center justify-between mb-8">
+                        <span
+                            class="font-['JetBrains_Mono',monospace] text-xs text-[#2E4036] uppercase tracking-wider">Snapshot</span>
+                        <iconify-icon icon="solar:chart-square-linear" class="text-xl text-[#2E4036]/50"
+                            stroke-width="1.5"></iconify-icon>
+                    </div>
+                    <div class="relative flex-1 flex justify-center items-center mt-4 perspective-[1000px]"
+                        id="shuffler-container">
+                        <!-- Shuffled via JS -->
+                        <div
+                            class="shuffler-card absolute w-full max-w-[200px] bg-[#F2F0E9] border border-[#2E4036]/10 rounded-2xl p-4 shadow-sm flex flex-col items-center justify-center gap-2">
+                            <span class="text-xs text-[#1A1A1A]/60 uppercase tracking-wide">Active Participants</span>
+                            <span class="font-['Cormorant_Garamond',serif] italic text-4xl text-[#2E4036]">30+</span>
+                        </div>
+                        <div
+                            class="shuffler-card absolute w-full max-w-[200px] bg-[#F2F0E9] border border-[#2E4036]/10 rounded-2xl p-4 shadow-sm flex flex-col items-center justify-center gap-2">
+                            <span class="text-xs text-[#1A1A1A]/60 uppercase tracking-wide">Age Range</span>
+                            <span class="font-['Cormorant_Garamond',serif] italic text-4xl text-[#2E4036]">6–&infin;</span>
+                        </div>
+                        <div
+                            class="shuffler-card absolute w-full max-w-[200px] bg-[#F2F0E9] border border-[#2E4036]/10 rounded-2xl p-4 shadow-sm flex flex-col items-center justify-center gap-2">
+                            <span class="text-xs text-[#1A1A1A]/60 uppercase tracking-wide">Parent Rating</span>
+                            <span class="font-['Cormorant_Garamond',serif] italic text-4xl text-[#2E4036]">4.9/5</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card 2: Technique Viewer (Visual Replacement) -->
+                <div class="bg-[#1A1A1A] rounded-[2rem] p-8 h-[28rem] flex flex-col relative overflow-hidden group">
+                    <div class="absolute inset-0 wireframe-grid opacity-30"></div>
+                    <div class="scanner-line"></div>
+
+                    <div class="flex items-center justify-between mb-auto relative z-10">
+                        <div class="flex items-center gap-3">
+                            <span
+                                class="w-2 h-2 rounded-full bg-[#CC5833] animate-pulse shadow-[0_0_8px_rgba(204, 88, 51,0.6)]"></span>
+                            <span
+                                class="font-['JetBrains_Mono',monospace] text-xs text-[#F2F0E9]/70 uppercase tracking-wider">Technique
+                                Viewer</span>
+                        </div>
+                        <iconify-icon icon="solar:body-shape-linear" class="text-xl text-[#F2F0E9]/30"
+                            stroke-width="1.5"></iconify-icon>
+                    </div>
+
+                    <!-- Animated Wireframe SVG -->
+                    <div
+                        class="relative z-10 w-full h-full mt-4 bg-[#1A1A1A] rounded-2xl overflow-hidden border border-[#2E4036]/20">
+                        <iframe src="./GrappleMap/preview/dist/index.html" class="w-full h-full border-none"
+                            frameborder="0"></iframe>
+
+                        <!-- Telemetry Overlay Text -->
+                        <div
+                            class="absolute bottom-4 left-0 right-0 flex justify-between px-4 font-['JetBrains_Mono',monospace] text-[9px] text-[#F2F0E9]/80 uppercase backdrop-blur-sm bg-[#1A1A1A]/50 py-1">
+                            <span>Base: Locked</span>
+                            <span class="text-[#CC5833]">Posture: 98%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card 3: Schedule Preview (Mock Cursor) -->
+                <div class="border border-[#2E4036]/10 rounded-[2rem] p-8 h-[28rem] flex flex-col relative overflow-hidden bg-white"
+                    id="schedule">
+                    <div class="flex items-center justify-between mb-8">
+                        <span
+                            class="font-['JetBrains_Mono',monospace] text-xs text-[#2E4036] uppercase tracking-wider">Schedule</span>
+                        <iconify-icon icon="solar:calendar-linear" class="text-xl text-[#2E4036]/50"
+                            stroke-width="1.5"></iconify-icon>
+                    </div>
+
+                    <div class="grid grid-cols-7 gap-1.5 w-full mt-4">
+                        <div class="text-[10px] text-center text-[#1A1A1A]/40 mb-2 font-['Outfit',sans-serif]">S</div>
+                        <div class="text-[10px] text-center text-[#1A1A1A]/40 mb-2 font-['Outfit',sans-serif]">M</div>
+                        <div class="text-[10px] text-center text-[#1A1A1A]/40 mb-2 font-['Outfit',sans-serif]">T</div>
+                        <div class="text-[10px] text-center text-[#1A1A1A]/40 mb-2 font-['Outfit',sans-serif]">W</div>
+                        <div class="text-[10px] text-center text-[#1A1A1A]/40 mb-2 font-['Outfit',sans-serif]">T</div>
+                        <div class="text-[10px] text-center text-[#1A1A1A]/40 mb-2 font-['Outfit',sans-serif]">F</div>
+                        <div class="text-[10px] text-center text-[#1A1A1A]/40 mb-2 font-['Outfit',sans-serif]">S</div>
+
+                        <!-- Grid cells -->
+                        <div class="aspect-square rounded-md bg-[#F2F0E9] border border-[#2E4036]/5"></div>
+                        <div class="aspect-square rounded-md bg-[#2E4036]/5 border border-[#2E4036]/10 relative"><span
+                                class="absolute bottom-1 left-1 w-1 h-1 rounded-full bg-[#CC5833]"></span></div>
+                        <div class="aspect-square rounded-md bg-[#F2F0E9] border border-[#2E4036]/5 relative"
+                            id="target-day"></div>
+                        <div class="aspect-square rounded-md bg-[#2E4036]/5 border border-[#2E4036]/10 relative"><span
+                                class="absolute bottom-1 left-1 w-1 h-1 rounded-full bg-[#CC5833]"></span></div>
+                        <div class="aspect-square rounded-md bg-[#F2F0E9] border border-[#2E4036]/5"></div>
+                        <div class="aspect-square rounded-md bg-[#2E4036]/5 border border-[#2E4036]/10 relative"><span
+                                class="absolute bottom-1 left-1 w-1 h-1 rounded-full bg-[#2E4036]"></span></div>
+                        <div class="aspect-square rounded-md bg-[#F2F0E9] border border-[#2E4036]/5"></div>
+                    </div>
+
+                    <div
+                        class="mt-4 text-[10px] font-['Plus_Jakarta_Sans',sans-serif] text-[#1A1A1A]/60 flex flex-col gap-1.5">
+                        <div class="flex items-center gap-2"><span class="w-1.5 h-1.5 rounded-full bg-[#CC5833]"></span>
+                            BJJ Fundamentals</div>
+                        <div class="flex items-center gap-2"><span class="w-1.5 h-1.5 rounded-full bg-[#2E4036]"></span>
+                            Archery Skills</div>
+                    </div>
+
+                    <div class="mt-auto pt-4 flex justify-between items-center border-t border-[#2E4036]/5">
+                        <div class="text-xs text-[#1A1A1A]/60 font-light">Current Block</div>
+                        <div id="save-btn"
+                            class="text-[10px] uppercase tracking-wider font-normal bg-[#2E4036] text-[#F2F0E9] px-4 py-2 rounded-full transition-transform">
+                            View Full</div>
+                    </div>
+
+                    <!-- SVG Mock Cursor -->
+                    <svg id="mock-cursor" class="absolute w-5 h-5 drop-shadow-md z-20 pointer-events-none"
+                        style="top: 80%; left: 80%; transform: translate(-50%, -50%);" viewBox="0 0 24 24" fill="none"
+                        xmlns="http://www.w3.org/2000/svg">
+                        <path
+                            d="M4 4L10.3704 21.8385C10.603 22.4897 11.5367 22.4716 11.7423 21.8122L14.2885 13.6331C14.3828 13.3303 14.6158 13.0907 14.9163 12.9877L23.0134 10.213C23.6661 9.9894 23.6698 9.05607 23.018 8.82855L4 4Z"
+                            fill="#1A1A1A" stroke="white" stroke-width="1.5" stroke-linejoin="round"></path>
+                    </svg>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- PHILOSOPHY (The Manifesto) -->
+    <section id="manifesto"
+        class="py-40 bg-[#1A1A1A] text-[#F2F0E9] relative overflow-hidden rounded-[3rem] mx-2 md:mx-6 my-10">
+        <!-- Parallax BG -->
+        <div class="absolute inset-0 z-0">
+            <img src="https://hoirqrkdgbmvpwutwuwj.supabase.co/storage/v1/object/public/assets/assets/4734259a-bad7-422f-981e-ce01e79184f2_1600w.jpg"
+                class="w-full h-[120%] object-cover opacity-20 filter grayscale" id="parallax-bg" alt="Forest Texture">
+            <div class="absolute inset-0 bg-[#1A1A1A]/80 mix-blend-multiply"></div>
+        </div>
+
+        <div class="max-w-5xl mx-auto px-6 relative z-10 flex flex-col items-center text-center">
+            <p
+                class="font-['JetBrains_Mono',monospace] text-sm text-[#2E4036] mb-12 uppercase tracking-widest font-normal">
+                The Philosophy</p>
+
+            <h3
+                class="font-['Plus_Jakarta_Sans',sans-serif] text-xl md:text-3xl text-[#F2F0E9]/50 mb-8 font-light tracking-tight reveal-text">
+                Most programs keep children busy.
+            </h3>
+
+            <h2
+                class="font-['Cormorant_Garamond',serif] italic font-normal text-4xl md:text-6xl lg:text-[5.5rem] tracking-tight leading-[1.1] text-[#F2F0E9] reveal-text-main mt-4">
+                We build discipline.
+            </h2>
+            <p
+                class="mt-10 font-['Plus_Jakarta_Sans',sans-serif] font-light text-[#F2F0E9]/70 max-w-xl mx-auto text-sm md:text-base leading-relaxed reveal-text">
+                Strength without character is incomplete. Character without training is fragile. Sunnah Skills develops
+                confidence, restraint, and capability through serious, structured training.
+            </p>
+        </div>
+    </section>
+
+    <!-- PROGRAMS (Sticky Stacking Archive) -->
+    <section id="programs" class="relative bg-[#F2F0E9] pb-32">
+        <div class="max-w-6xl mx-auto px-6 pt-20 pb-10">
+            <h2 class="font-['Outfit',sans-serif] font-normal text-3xl md:text-5xl tracking-tight text-[#1A1A1A]">Core
+                Curriculum</h2>
+        </div>
+
+        <!-- Stack 1: BJJ -->
+        <div class="protocol-card sticky top-0 h-screen flex items-center justify-center p-6 pt-24"
+            style="z-index: 10;">
+            <div
+                class="protocol-content w-full max-w-5xl border border-[#2E4036]/10 rounded-[3rem] h-[80vh] shadow-xl p-10 md:p-16 flex flex-col md:flex-row items-center gap-12 overflow-hidden relative bg-white">
+                <div class="flex-1 z-10">
+                    <span
+                        class="font-['JetBrains_Mono',monospace] text-xs text-[#2E4036] uppercase tracking-wider mb-4 block">Discipline
+                        01</span>
+                    <h3 class="font-['Outfit',sans-serif] font-normal text-4xl tracking-tight text-[#1A1A1A] mb-6">
+                        Brazilian Jiu-Jitsu</h3>
+                    <p
+                        class="text-[#1A1A1A]/70 font-['Plus_Jakarta_Sans',sans-serif] font-light text-sm md:text-base max-w-md leading-relaxed mb-6">
+                        Ground-based grappling that emphasizes technique over strength
+                    </p>
+                    <ul
+                        class="text-xs font-['JetBrains_Mono',monospace] text-[#1A1A1A]/50 space-y-2 uppercase tracking-wide">
+                        <li>+ Ages 6-17</li>
+                        <li>+ Separate boys' & girls' classes</li>
+                        <li>+ Belt progression system</li>
+                        <li>+ Character building focus</li>
+                    </ul>
+                </div>
+                <div class="flex-1 relative h-full flex items-center justify-center min-h-[300px]">
+                    <svg viewBox="0 0 200 200" class="w-64 h-64 text-[#2E4036]/10 animate-spin-slow">
+                        <path
+                            d="M100 20 C140 20, 180 60, 180 100 C180 140, 140 180, 100 180 C60 180, 20 140, 20 100 C20 60, 60 20, 100 20 Z"
+                            fill="none" stroke="currentColor" stroke-width="2" stroke-dasharray="10 10"></path>
+                        <path
+                            d="M100 40 C130 40, 160 70, 160 100 C160 130, 130 160, 100 160 C70 160, 40 130, 40 100 C40 70, 70 40, 100 40 Z"
+                            fill="none" stroke="currentColor" stroke-width="1"></path>
+                        <circle cx="100" cy="20" r="4" fill="#CC5833" opacity="0.5"></circle>
+                        <circle cx="100" cy="180" r="4" fill="#CC5833" opacity="0.5"></circle>
+                    </svg>
+                    <iconify-icon icon="solar:shield-user-linear" class="text-7xl text-[#1A1A1A] absolute opacity-20"
+                        stroke-width="1"></iconify-icon>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stack 2: Archery -->
+        <div class="protocol-card sticky top-0 h-screen flex items-center justify-center p-6 pt-24"
+            style="z-index: 20;">
+            <div
+                class="protocol-content w-full max-w-5xl bg-[#2E4036] border border-[#1A1A1A]/20 rounded-[3rem] h-[80vh] shadow-2xl p-10 md:p-16 flex flex-col md:flex-row items-center gap-12 overflow-hidden relative text-[#F2F0E9]">
+                <div class="flex-1 z-10">
+                    <span
+                        class="font-['JetBrains_Mono',monospace] text-xs text-[#CC5833] uppercase tracking-wider mb-4 block">Discipline
+                        02</span>
+                    <h3 class="font-['Outfit',sans-serif] font-normal text-4xl tracking-tight text-[#F2F0E9] mb-6">
+                        Traditional Archery</h3>
+                    <p
+                        class="text-[#F2F0E9]/70 font-['Plus_Jakarta_Sans',sans-serif] font-light text-sm md:text-base max-w-md leading-relaxed mb-6">
+                        Following the Sunnah of Prophet Muhammad ﷺ
+                    </p>
+                    <ul
+                        class="text-xs font-['JetBrains_Mono',monospace] text-[#F2F0E9]/50 space-y-2 uppercase tracking-wide">
+                        <li>+ Summer & fall sessions</li>
+                        <li>+ Safety training included</li>
+                        <li>+ Mental focus development</li>
+                        <li>+ Traditional bows</li>
+                    </ul>
+                </div>
+                <div
+                    class="flex-1 relative w-full h-full min-h-[300px] bg-[#1A1A1A]/40 rounded-3xl overflow-hidden flex items-center justify-center border border-[#F2F0E9]/10">
+                    <div
+                        class="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,rgba(26,26,26,0.8)_100%)]">
+                    </div>
+                    <svg viewBox="0 0 200 200" class="w-full h-full absolute opacity-20">
+                        <circle cx="100" cy="100" r="80" fill="none" stroke="#F2F0E9" stroke-width="0.5"></circle>
+                        <circle cx="100" cy="100" r="60" fill="none" stroke="#F2F0E9" stroke-width="0.5"></circle>
+                        <circle cx="100" cy="100" r="40" fill="none" stroke="#F2F0E9" stroke-width="0.5"></circle>
+                        <line x1="100" y1="0" x2="100" y2="200" stroke="#F2F0E9" stroke-width="0.5"
+                            stroke-dasharray="2 4"></line>
+                        <line x1="0" y1="100" x2="200" y2="100" stroke="#F2F0E9" stroke-width="0.5"
+                            stroke-dasharray="2 4"></line>
+                    </svg>
+                    <iconify-icon icon="solar:target-linear" class="text-7xl text-[#CC5833] z-10"
+                        stroke-width="1.5"></iconify-icon>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stack 3: Outdoor Skills -->
+        <div class="protocol-card sticky top-0 h-screen flex items-center justify-center p-6 pt-24"
+            style="z-index: 30;">
+            <div
+                class="protocol-content w-full max-w-5xl bg-[#1A1A1A] border border-[#2E4036]/20 rounded-[3rem] h-[80vh] shadow-2xl p-10 md:p-16 flex flex-col md:flex-row items-center gap-12 overflow-hidden relative text-[#F2F0E9]">
+                <div class="flex-1 z-10">
+                    <span
+                        class="font-['JetBrains_Mono',monospace] text-xs text-[#2E4036] uppercase tracking-wider mb-4 block">Discipline
+                        03</span>
+                    <h3 class="font-['Outfit',sans-serif] font-normal text-4xl tracking-tight text-[#F2F0E9] mb-6">
+                        Outdoor Workshops</h3>
+                    <p
+                        class="text-[#F2F0E9]/70 font-['Plus_Jakarta_Sans',sans-serif] font-light text-sm md:text-base max-w-md leading-relaxed mb-6">
+                        Wilderness skills and environmental connection
+                    </p>
+                    <ul
+                        class="text-xs font-['JetBrains_Mono',monospace] text-[#F2F0E9]/50 space-y-2 uppercase tracking-wide">
+                        <li>+ Fire building</li>
+                        <li>+ Shelter construction</li>
+                        <li>+ Navigation skills</li>
+                        <li>+ Environmental awareness</li>
+                    </ul>
+                </div>
+                <div class="flex-1 relative w-full h-full flex items-center justify-center min-h-[300px]">
+                    <svg viewBox="0 0 200 200" class="w-full h-full opacity-30">
+                        <!-- Abstract Topography -->
+                        <path d="M20 100 Q 60 50, 100 100 T 180 100" fill="none" stroke="#2E4036" stroke-width="2">
+                        </path>
+                        <path d="M10 120 Q 50 70, 90 120 T 190 120" fill="none" stroke="#2E4036" stroke-width="1">
+                        </path>
+                        <path d="M30 80 Q 70 30, 110 80 T 170 80" fill="none" stroke="#2E4036" stroke-width="1"></path>
+                        <path d="M 0 100 L 200 100" fill="none" stroke="#CC5833" stroke-width="0.5"
+                            stroke-dasharray="4 4"></path>
+                        <circle cx="100" cy="100" r="3" fill="#CC5833"></circle>
+                    </svg>
+                    <iconify-icon icon="solar:map-point-linear" class="absolute text-5xl text-[#F2F0E9]/50"
+                        stroke-width="1.5"></iconify-icon>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stack 4: Bullyproofing -->
+        <div class="protocol-card sticky top-0 h-screen flex items-center justify-center p-6 pt-24"
+            style="z-index: 40;">
+            <div
+                class="protocol-content w-full max-w-5xl bg-[#CC5833] border border-[#1A1A1A]/20 rounded-[3rem] h-[80vh] shadow-2xl p-10 md:p-16 flex flex-col md:flex-row items-center gap-12 overflow-hidden relative text-[#F2F0E9]">
+                <div class="flex-1 z-10">
+                    <span
+                        class="font-['JetBrains_Mono',monospace] text-xs text-[#1A1A1A]/60 uppercase tracking-wider mb-4 block">Discipline
+                        04</span>
+                    <h3 class="font-['Outfit',sans-serif] font-normal text-4xl tracking-tight text-[#F2F0E9] mb-6">
+                        Bullyproofing</h3>
+                    <p
+                        class="text-[#F2F0E9]/90 font-['Plus_Jakarta_Sans',sans-serif] font-light text-sm md:text-base max-w-md leading-relaxed mb-6">
+                        Confidence and self-protection skills
+                    </p>
+                    <ul
+                        class="text-xs font-['JetBrains_Mono',monospace] text-[#1A1A1A]/60 space-y-2 uppercase tracking-wide">
+                        <li>+ Verbal assertiveness</li>
+                        <li>+ Situational awareness</li>
+                        <li>+ Basic grappling</li>
+                        <li>+ Confidence building</li>
+                    </ul>
+                </div>
+                <div class="flex-1 relative w-full h-full flex items-center justify-center min-h-[300px]">
+                    <div class="absolute inset-0 flex items-center justify-center">
+                        <div
+                            class="w-32 h-32 rounded-full border-2 border-[#F2F0E9]/20 animate-[ping_3s_cubic-bezier(0,0,0.2,1)_infinite]">
+                        </div>
+                        <div
+                            class="absolute w-48 h-48 rounded-full border border-[#F2F0E9]/10 animate-[ping_4s_cubic-bezier(0,0,0.2,1)_infinite]">
+                        </div>
+                    </div>
+                    <iconify-icon icon="solar:shield-warning-linear" class="text-8xl text-[#1A1A1A]/40 z-10 relative"
+                        stroke-width="1.5"></iconify-icon>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ENROLLMENT (Age Blocks) -->
+    <section id="enrollment" class="py-32 bg-[#F2F0E9]">
+        <div class="max-w-6xl mx-auto px-6">
+            <div class="text-center mb-20">
+                <h2
+                    class="font-['Outfit',sans-serif] font-normal text-3xl md:text-5xl tracking-tight text-[#1A1A1A] mb-4">
+                    Enrollment Tracks</h2>
+                <p class="text-[#1A1A1A]/60 font-['Plus_Jakarta_Sans',sans-serif] font-light text-sm">Select the
+                    appropriate development stage for your child.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8 items-center">
+
+                <!-- Age Block 1 -->
+                <div
+                    class="border border-[#1A1A1A]/10 rounded-[2rem] p-10 flex flex-col items-start shadow-sm bg-white h-full">
+                    <span
+                        class="font-['JetBrains_Mono',monospace] text-xs text-[#1A1A1A]/50 uppercase tracking-wider mb-2">Ages
+                        6–9</span>
+                    <h4 class="font-['Outfit',sans-serif] text-2xl text-[#1A1A1A] mb-2 font-normal">Foundations</h4>
+                    <p class="text-xs font-light text-[#1A1A1A]/60 mb-8 border-b border-[#1A1A1A]/10 pb-6 w-full">Focus,
+                        basic coordination, and introduction to discipline.</p>
+
+                    <ul class="space-y-4 text-sm font-light text-[#1A1A1A]/70 mb-10 w-full flex-grow">
+                        <li class="flex items-center gap-3"><iconify-icon icon="solar:check-circle-linear"
+                                class="text-[#2E4036]"></iconify-icon> Intro to BJJ Mechanics</li>
+                        <li class="flex items-center gap-3"><iconify-icon icon="solar:check-circle-linear"
+                                class="text-[#2E4036]"></iconify-icon> Bullyproof Posture Basics</li>
+                        <li class="flex items-center gap-3"><iconify-icon icon="solar:check-circle-linear"
+                                class="text-[#2E4036]"></iconify-icon> 2x Sessions / Week</li>
+                    </ul>
+                    <button
+                        class="w-full py-4 rounded-full border border-[#1A1A1A]/20 text-xs uppercase tracking-wide font-normal hover:bg-[#1A1A1A] hover:text-[#F2F0E9] transition-colors mt-auto">Learn
+                        More</button>
+                </div>
+
+                <!-- Age Block 2 (Recommended) -->
+                <div
+                    class="bg-[#2E4036] text-[#F2F0E9] border border-[#2E4036] rounded-[2.5rem] p-12 flex flex-col items-start shadow-2xl relative transform md:scale-105 z-10 h-[105%]">
+                    <div
+                        class="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-[#CC5833] text-[#F2F0E9] text-[10px] uppercase tracking-widest px-4 py-1.5 rounded-full font-['JetBrains_Mono',monospace]">
+                        Core Focus</div>
+                    <span
+                        class="font-['JetBrains_Mono',monospace] text-xs text-[#F2F0E9]/50 uppercase tracking-wider mb-2">Ages
+                        10–13</span>
+                    <h4 class="font-['Outfit',sans-serif] text-3xl text-[#F2F0E9] mb-2 font-normal">Development</h4>
+                    <p class="text-xs font-light text-[#F2F0E9]/60 mb-8 border-b border-[#F2F0E9]/10 pb-6 w-full">
+                        Technical growth, active pressure testing, and real-world application.</p>
+
+                    <ul class="space-y-4 text-sm font-light text-[#F2F0E9]/80 mb-10 w-full flex-grow">
+                        <li class="flex items-center gap-3"><iconify-icon icon="solar:check-circle-linear"
+                                class="text-[#CC5833]"></iconify-icon> Advanced BJJ Concepts</li>
+                        <li class="flex items-center gap-3"><iconify-icon icon="solar:check-circle-linear"
+                                class="text-[#CC5833]"></iconify-icon> Archery &amp; Alignment Focus</li>
+                        <li class="flex items-center gap-3"><iconify-icon icon="solar:check-circle-linear"
+                                class="text-[#CC5833]"></iconify-icon> Live De-escalation Drills</li>
+                        <li class="flex items-center gap-3"><iconify-icon icon="solar:check-circle-linear"
+                                class="text-[#CC5833]"></iconify-icon> 3x Sessions / Week</li>
+                    </ul>
+                    <button
+                        class="magnetic-btn w-full py-4 rounded-full bg-[#CC5833] text-[#F2F0E9] text-xs uppercase tracking-wide font-normal mt-auto">View
+                        Schedule</button>
+                </div>
+
+                <!-- Age Block 3 -->
+                <div
+                    class="border border-[#1A1A1A]/10 rounded-[2rem] p-10 flex flex-col items-start shadow-sm bg-white h-full">
+                    <span
+                        class="font-['JetBrains_Mono',monospace] text-xs text-[#1A1A1A]/50 uppercase tracking-wider mb-2">Ages
+                        14–17</span>
+                    <h4 class="font-['Outfit',sans-serif] text-2xl text-[#1A1A1A] mb-2 font-normal">Leadership</h4>
+                    <p class="text-xs font-light text-[#1A1A1A]/60 mb-8 border-b border-[#1A1A1A]/10 pb-6 w-full">
+                        Advanced capability, outdoor reliance, and guiding younger peers.</p>
+
+                    <ul class="space-y-4 text-sm font-light text-[#1A1A1A]/70 mb-10 w-full flex-grow">
+                        <li class="flex items-center gap-3"><iconify-icon icon="solar:check-circle-linear"
+                                class="text-[#2E4036]"></iconify-icon> Competitive BJJ Prep (Opt)</li>
+                        <li class="flex items-center gap-3"><iconify-icon icon="solar:check-circle-linear"
+                                class="text-[#2E4036]"></iconify-icon> Outdoor Survival Skills</li>
+                        <li class="flex items-center gap-3"><iconify-icon icon="solar:check-circle-linear"
+                                class="text-[#2E4036]"></iconify-icon> Mentorship Roles</li>
+                        <li class="flex items-center gap-3"><iconify-icon icon="solar:check-circle-linear"
+                                class="text-[#2E4036]"></iconify-icon> Unlimited Sessions</li>
+                    </ul>
+                    <button
+                        class="w-full py-4 rounded-full border border-[#1A1A1A]/20 text-xs uppercase tracking-wide font-normal hover:bg-[#1A1A1A] hover:text-[#F2F0E9] transition-colors mt-auto">Contact
+                        Us</button>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- TESTIMONIALS -->
+    <section class="py-24 bg-white border-t border-[#1A1A1A]/5">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="mb-16 flex flex-col items-center text-center gap-4">
+                <h3
+                    class="font-['Outfit',sans-serif] text-3xl md:text-5xl text-[#1A1A1A] tracking-tight font-normal">
+                    What Parents Say</h3>
+                <p class="font-['Plus_Jakarta_Sans',sans-serif] text-sm md:text-base text-[#1A1A1A]/60 font-light flex gap-2">
+                    Hear from families who have experienced the Sunnah Skills difference
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <!-- Testimonial 1 -->
+                <div class="bg-white p-8 rounded-2xl shadow-sm border border-[#1A1A1A]/10 flex flex-col gap-5 transition-all hover:shadow-md h-full">
+                    <div class="flex gap-1 items-center">
+                        <iconify-icon icon="solar:star-bold" class="text-lg text-yellow-400"></iconify-icon>
+                        <iconify-icon icon="solar:star-bold" class="text-lg text-yellow-400"></iconify-icon>
+                        <iconify-icon icon="solar:star-bold" class="text-lg text-yellow-400"></iconify-icon>
+                        <iconify-icon icon="solar:star-bold" class="text-lg text-yellow-400"></iconify-icon>
+                        <iconify-icon icon="solar:star-bold" class="text-lg text-yellow-400"></iconify-icon>
+                    </div>
+                    <div class="text-4xl leading-none text-[#CC5833] font-serif h-4 -mb-2">“</div>
+                    <p class="font-['Plus_Jakarta_Sans',sans-serif] text-[#1A1A1A]/70 italic text-sm leading-relaxed">
+                        "My daughter has gained so much confidence since joining Sunnah Skills. The coaches are amazing and truly care about character development."
+                    </p>
+                    <div class="mt-auto flex items-center gap-2 pt-4">
+                        <iconify-icon icon="solar:user-circle-linear" class="text-xl text-[#1A1A1A]/40"></iconify-icon>
+                        <span class="text-sm font-semibold font-['Outfit',sans-serif] text-[#1A1A1A] leading-none">Aisha's Mom</span>
+                    </div>
+                </div>
+
+                <!-- Testimonial 2 -->
+                <div class="bg-white p-8 rounded-2xl shadow-sm border border-[#1A1A1A]/10 flex flex-col gap-5 transition-all hover:shadow-md h-full">
+                    <div class="flex gap-1 items-center">
+                        <iconify-icon icon="solar:star-bold" class="text-lg text-yellow-400"></iconify-icon>
+                        <iconify-icon icon="solar:star-bold" class="text-lg text-yellow-400"></iconify-icon>
+                        <iconify-icon icon="solar:star-bold" class="text-lg text-yellow-400"></iconify-icon>
+                        <iconify-icon icon="solar:star-bold" class="text-lg text-yellow-400"></iconify-icon>
+                        <iconify-icon icon="solar:star-bold" class="text-lg text-yellow-400"></iconify-icon>
+                    </div>
+                    <div class="text-4xl leading-none text-[#CC5833] font-serif h-4 -mb-2">“</div>
+                    <p class="font-['Plus_Jakarta_Sans',sans-serif] text-[#1A1A1A]/70 italic text-sm leading-relaxed">
+                        "The BJJ program has taught my son discipline and respect. He's learned that true strength comes from technique, not just power."
+                    </p>
+                    <div class="mt-auto flex items-center gap-2 pt-4">
+                        <iconify-icon icon="solar:user-circle-linear" class="text-xl text-[#1A1A1A]/40"></iconify-icon>
+                        <span class="text-sm font-semibold font-['Outfit',sans-serif] text-[#1A1A1A] leading-none">Ahmed's Dad</span>
+                    </div>
+                </div>
+
+                <!-- Testimonial 3 -->
+                <div class="bg-white p-8 rounded-2xl shadow-sm border border-[#1A1A1A]/10 flex flex-col gap-5 transition-all hover:shadow-md h-full">
+                    <div class="flex gap-1 items-center">
+                        <iconify-icon icon="solar:star-bold" class="text-lg text-yellow-400"></iconify-icon>
+                        <iconify-icon icon="solar:star-bold" class="text-lg text-yellow-400"></iconify-icon>
+                        <iconify-icon icon="solar:star-bold" class="text-lg text-yellow-400"></iconify-icon>
+                        <iconify-icon icon="solar:star-bold" class="text-lg text-yellow-400"></iconify-icon>
+                        <iconify-icon icon="solar:star-bold" class="text-lg text-yellow-400"></iconify-icon>
+                    </div>
+                    <div class="text-4xl leading-none text-[#CC5833] font-serif h-4 -mb-2">“</div>
+                    <p class="font-['Plus_Jakarta_Sans',sans-serif] text-[#1A1A1A]/70 italic text-sm leading-relaxed">
+                        "The archery program is incredible! Our daughter loves learning this traditional skill and the focus it requires."
+                    </p>
+                    <div class="mt-auto flex items-center gap-2 pt-4">
+                        <iconify-icon icon="solar:user-circle-linear" class="text-xl text-[#1A1A1A]/40"></iconify-icon>
+                        <span class="text-sm font-semibold font-['Outfit',sans-serif] text-[#1A1A1A] leading-none">Fatima's Parents</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA & FOOTER -->
+    <footer class="bg-[#1A1A1A] text-[#F2F0E9] rounded-t-[4rem] pt-24 pb-12 px-6 relative z-10">
+        <div class="max-w-7xl mx-auto mb-24 text-center">
+            <h2 class="font-['Outfit',sans-serif] font-normal text-4xl md:text-6xl tracking-tight text-[#F2F0E9] mb-10">
+                Begin the Training.</h2>
+            <div class="flex flex-col sm:flex-row justify-center gap-4">
+                <button
+                    class="px-8 py-4 rounded-full bg-[#CC5833] text-[#F2F0E9] text-xs font-normal uppercase tracking-wide hover:bg-[#CC5833]/90 transition-colors">
+                    Explore Programs
+                </button>
+                <button
+                    class="px-8 py-4 rounded-full border border-[#F2F0E9]/20 text-[#F2F0E9] text-xs font-normal uppercase tracking-wide hover:bg-[#F2F0E9]/10 transition-colors">
+                    Contact Us
+                </button>
+                <button
+                    class="px-8 py-4 rounded-full border border-transparent text-[#F2F0E9]/70 hover:text-[#F2F0E9] text-xs font-normal uppercase tracking-wide transition-colors">
+                    About Us
+                </button>
+            </div>
+        </div>
+
+        <div
+            class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-start mb-20 gap-10 border-t border-[#F2F0E9]/10 pt-20">
+            <div class="max-w-xs">
+                <div class="font-['Outfit',sans-serif] font-normal tracking-[0.15em] text-xl uppercase mb-6">SUNNAH
+                    SKILLS</div>
+                <p class="text-xs font-light font-['Plus_Jakarta_Sans',sans-serif] text-[#F2F0E9]/70 leading-relaxed">
+                    Building confident, skilled, and resilient young people through traditional martial arts and outdoor education.
+                </p>
+                <div class="flex items-center gap-3 mt-6">
+                    <span
+                        class="w-2 h-2 rounded-full bg-[#CC5833] animate-pulse shadow-[0_0_8px_rgba(204, 88, 51,0.6)]"></span>
+                    <span
+                        class="font-['JetBrains_Mono',monospace] text-[10px] text-[#F2F0E9]/50 uppercase tracking-widest">Enrollment
+                        Open</span>
+                </div>
+            </div>
+
+            <div
+                class="grid grid-cols-1 sm:grid-cols-2 gap-12 md:gap-24 text-xs font-['Plus_Jakarta_Sans',sans-serif] font-light text-[#F2F0E9]/70">
+                <div class="flex flex-col gap-4">
+                    <span
+                        class="font-['JetBrains_Mono',monospace] uppercase text-[#2E4036] tracking-wider mb-2 text-[10px]">Programs</span>
+                    <ul class="space-y-3">
+                        <li><a href="#" class="hover:text-white transition-colors">Brazilian Jiu-Jitsu</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Archery</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Outdoor Workshops</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Bullyproofing</a></li>
+                    </ul>
+                </div>
+                <div class="flex flex-col gap-4">
+                    <span
+                        class="font-['JetBrains_Mono',monospace] uppercase text-[#2E4036] tracking-wider mb-2 text-[10px]">Locations</span>
+                    <ul class="space-y-3">
+                        <li><span class="text-[#F2F0E9] font-medium">BJJ & Most Programs:</span><br>918 Dundas St E</li>
+                        <li><span class="text-[#F2F0E9] font-medium">Archery:</span><br>E.T. Seaton Range</li>
+                        <li><span class="text-[#F2F0E9] font-medium">Outdoor Program:</span><br>Coming Soon</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div
+            class="max-w-7xl mx-auto border-t border-[#F2F0E9]/10 pt-8 flex flex-col md:flex-row justify-between items-center gap-4 text-[10px] font-['JetBrains_Mono',monospace] text-[#F2F0E9]/30 uppercase tracking-widest">
+            <p>Copyright &copy; 2024 Sunnah Skills. All rights reserved. Building character through traditional skills.</p>
+            <div class="flex gap-4">
+                <a href="#" class="hover:text-[#F2F0E9]/80 transition-colors">Terms</a>
+                <a href="#" class="hover:text-[#F2F0E9]/80 transition-colors">Privacy</a>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Initialization Scripts -->
+    <script>
+        document.addEventListener("DOMContentLoaded", (event) => {
+
+            gsap.registerPlugin(ScrollTrigger);
+
+            // 1. NAVBAR MORPH LOGIC
+            const nav = document.getElementById('navbar');
+            window.addEventListener('scroll', () => {
+                if (window.scrollY > 50) {
+                    nav.classList.remove('bg-transparent', 'text-[#F2F0E9]', 'border-transparent');
+                    nav.classList.add('bg-white/80', 'backdrop-blur-md', 'text-[#1A1A1A]', 'border-[#1A1A1A]/10');
+                    nav.querySelector('button').classList.replace('bg-white/10', 'bg-[#1A1A1A]');
+                    nav.querySelector('button').classList.replace('text-[#F2F0E9]', 'text-[#F2F0E9]');
+                    nav.querySelector('button').classList.replace('border-white/10', 'border-transparent');
+                } else {
+                    nav.classList.add('bg-transparent', 'text-[#F2F0E9]', 'border-transparent');
+                    nav.classList.remove('bg-white/80', 'backdrop-blur-md', 'text-[#1A1A1A]', 'border-[#1A1A1A]/10');
+                    nav.querySelector('button').classList.replace('bg-[#1A1A1A]', 'bg-white/10');
+                    nav.querySelector('button').classList.replace('border-transparent', 'border-white/10');
+                }
+            });
+
+            // 2. HERO GSAP FADE UP
+            gsap.fromTo('.hero-anim',
+                { y: 40, opacity: 0 },
+                { y: 0, opacity: 1, duration: 1.2, stagger: 0.15, ease: "power3.out", delay: 0.2 }
+            );
+
+            // 3. ACADEMY SHUFFLER
+            const cards = Array.from(document.querySelectorAll('.shuffler-card'));
+            let order = [0, 1, 2];
+
+            function updateCards() {
+                cards.forEach((card, i) => {
+                    const posIndex = order.indexOf(i);
+                    const yOffset = posIndex * 20;
+                    const scale = 1 - (posIndex * 0.08);
+                    const opacity = 1 - (posIndex * 0.4);
+                    const zIndex = 3 - posIndex;
+
+                    card.style.transform = `translateY(${yOffset}px) scale(${scale})`;
+                    card.style.opacity = opacity;
+                    card.style.zIndex = zIndex;
+                });
+            }
+            updateCards();
+            setInterval(() => {
+                order.unshift(order.pop());
+                updateCards();
+            }, 3000);
+
+            // 4. MOCK CURSOR SCHEDULE PREVIEW
+            const cursor = document.getElementById('mock-cursor');
+            const targetDay = document.getElementById('target-day');
+            const saveBtn = document.getElementById('save-btn');
+
+            setTimeout(() => {
+                const tlCursor = gsap.timeline({ repeat: -1, repeatDelay: 1 });
+
+                const containerRect = cursor.parentElement.getBoundingClientRect();
+                const dayRect = targetDay.getBoundingClientRect();
+                const btnRect = saveBtn.getBoundingClientRect();
+
+                const dayX = dayRect.left - containerRect.left + (dayRect.width / 2);
+                const dayY = dayRect.top - containerRect.top + (dayRect.height / 2);
+
+                const btnX = btnRect.left - containerRect.left + (btnRect.width / 2);
+                const btnY = btnRect.top - containerRect.top + (btnRect.height / 2);
+
+                tlCursor
+                    .to(cursor, { top: dayY, left: dayX, duration: 1.5, ease: "power2.inOut" })
+                    .to(cursor, { scale: 0.8, duration: 0.1 })
+                    .to(targetDay, { backgroundColor: '#CC5833', duration: 0.2 }, "<")
+                    .to(cursor, { scale: 1, duration: 0.1 })
+                    .to(cursor, { top: btnY, left: btnX, duration: 1, ease: "power2.inOut", delay: 0.5 })
+                    .to(cursor, { scale: 0.8, duration: 0.1 })
+                    .to(saveBtn, { scale: 0.95, duration: 0.1 }, "<")
+                    .to(cursor, { scale: 1, duration: 0.1 })
+                    .to(saveBtn, { scale: 1, duration: 0.1 }, "<")
+                    .to(cursor, { top: '80%', left: '80%', duration: 1.5, ease: "power2.inOut", delay: 0.5 })
+                    .to(targetDay, { backgroundColor: '#F2F0E9', duration: 0.5 }, "-=1");
+            }, 1000);
+
+            // 5. PHILOSOPHY SPLIT TEXT REVEAL
+            function setupSplitText(selector) {
+                const elements = document.querySelectorAll(selector);
+                elements.forEach(el => {
+                    const text = el.innerText;
+                    el.innerHTML = '';
+                    const words = text.split(' ');
+                    words.forEach((word, index) => {
+                        const wordWrap = document.createElement('span');
+                        wordWrap.className = 'word-wrap';
+                        const wordInner = document.createElement('span');
+                        wordInner.className = 'word-inner';
+                        wordInner.innerText = word + (index < words.length - 1 ? '\u00A0' : '');
+                        wordWrap.appendChild(wordInner);
+                        el.appendChild(wordWrap);
+                    });
+                });
+            }
+
+            setupSplitText('.reveal-text');
+            setupSplitText('.reveal-text-main');
+
+            gsap.utils.toArray('.reveal-text .word-inner').forEach((word, i) => {
+                gsap.to(word, {
+                    y: '0%',
+                    ease: 'power3.out',
+                    duration: 1,
+                    scrollTrigger: {
+                        trigger: '#manifesto',
+                        start: 'top 60%',
+                    },
+                    delay: i * 0.05
+                });
+            });
+
+            gsap.utils.toArray('.reveal-text-main .word-inner').forEach((word, i) => {
+                gsap.to(word, {
+                    y: '0%',
+                    ease: 'power4.out',
+                    duration: 1.2,
+                    scrollTrigger: {
+                        trigger: '#manifesto',
+                        start: 'top 50%',
+                    },
+                    delay: (i * 0.08) + 0.3
+                });
+            });
+
+            // Parallax BG
+            gsap.to('#parallax-bg', {
+                y: '20%',
+                ease: 'none',
+                scrollTrigger: {
+                    trigger: '#manifesto',
+                    start: 'top bottom',
+                    end: 'bottom top',
+                    scrub: true
+                }
+            });
+
+            // 6. PROGRAM STICKY STACKING ARCHIVE
+            const protocolCards = gsap.utils.toArray('.protocol-card');
+
+            protocolCards.forEach((card, i) => {
+                if (i === 0) return;
+
+                const prevCard = protocolCards[i - 1];
+                const prevContent = prevCard.querySelector('.protocol-content');
+
+                gsap.to(prevContent, {
+                    scale: 0.9,
+                    filter: 'blur(10px)',
+                    opacity: 0.5,
+                    scrollTrigger: {
+                        trigger: card,
+                        start: 'top bottom',
+                        end: 'top top',
+                        scrub: true,
+                    }
+                });
+            });
+
+            // 7. TECHNIQUE VIEWER ANIMATION (Subtle breathing/stance shift)
+            gsap.to("#wireframe-figure", {
+                y: 3,
+                scaleY: 0.98,
+                transformOrigin: "center bottom",
+                repeat: -1,
+                yoyo: true,
+                duration: 2,
+                ease: "sine.inOut"
+            });
+            gsap.to("#arm-left", { rotation: -5, transformOrigin: "right bottom", repeat: -1, yoyo: true, duration: 2, ease: "sine.inOut" });
+            gsap.to("#arm-right", { rotation: 5, transformOrigin: "left bottom", repeat: -1, yoyo: true, duration: 2, ease: "sine.inOut" });
+
+        });
+    </script>
+
+
+</body>
+
+</html>

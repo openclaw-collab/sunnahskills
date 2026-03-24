@@ -1,0 +1,14 @@
+---
+description: QA + browser automation routing for evidence-based walkthroughs
+alwaysApply: true
+---
+
+# Browser automation & QA (evidence)
+
+- For user-visible UI flows: use browser-use for interactive verification/screenshots when feasible.
+- For scripted E2E-ish flows, scraping, or repeatable checks: use Playwright / webapp-testing / agent-browser.
+- For more systematic CLI-driven validation sessions: use qa-tester.
+
+# Output requirement
+
+- Record what you tested as a short checklist and capture key evidence (screenshots/log snippets) when feasible.

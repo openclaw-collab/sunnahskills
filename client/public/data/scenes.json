@@ -1,0 +1,431 @@
+{
+  "meta": {
+    "updatedAt": "2026-03-20T15:52:10.152Z",
+    "source": "GrappleMap.txt",
+    "techniqueCount": 8
+  },
+  "skeleton": {
+    "jointNames": [
+      "LeftToe",
+      "RightToe",
+      "LeftHeel",
+      "RightHeel",
+      "LeftAnkle",
+      "RightAnkle",
+      "LeftKnee",
+      "RightKnee",
+      "LeftHip",
+      "RightHip",
+      "LeftShoulder",
+      "RightShoulder",
+      "LeftElbow",
+      "RightElbow",
+      "LeftWrist",
+      "RightWrist",
+      "LeftHand",
+      "RightHand",
+      "LeftFingers",
+      "RightFingers",
+      "Core",
+      "Neck",
+      "Head"
+    ],
+    "jointRadii": [
+      0.025,
+      0.025,
+      0.03,
+      0.03,
+      0.03,
+      0.03,
+      0.05,
+      0.05,
+      0.09,
+      0.09,
+      0.08,
+      0.08,
+      0.045,
+      0.045,
+      0.02,
+      0.02,
+      0.02,
+      0.02,
+      0.02,
+      0.02,
+      0.1,
+      0.05,
+      0.11
+    ],
+    "segments": [
+      {
+        "from": 0,
+        "to": 2,
+        "radius": 0.025,
+        "fromName": "LeftToe",
+        "toName": "LeftHeel"
+      },
+      {
+        "from": 0,
+        "to": 4,
+        "radius": 0.025,
+        "fromName": "LeftToe",
+        "toName": "LeftAnkle"
+      },
+      {
+        "from": 2,
+        "to": 4,
+        "radius": 0.025,
+        "fromName": "LeftHeel",
+        "toName": "LeftAnkle"
+      },
+      {
+        "from": 4,
+        "to": 6,
+        "radius": 0.055,
+        "fromName": "LeftAnkle",
+        "toName": "LeftKnee"
+      },
+      {
+        "from": 6,
+        "to": 8,
+        "radius": 0.085,
+        "fromName": "LeftKnee",
+        "toName": "LeftHip"
+      },
+      {
+        "from": 8,
+        "to": 20,
+        "radius": 0.1,
+        "fromName": "LeftHip",
+        "toName": "Core"
+      },
+      {
+        "from": 20,
+        "to": 10,
+        "radius": 0.075,
+        "fromName": "Core",
+        "toName": "LeftShoulder"
+      },
+      {
+        "from": 10,
+        "to": 12,
+        "radius": 0.06,
+        "fromName": "LeftShoulder",
+        "toName": "LeftElbow"
+      },
+      {
+        "from": 12,
+        "to": 14,
+        "radius": 0.03,
+        "fromName": "LeftElbow",
+        "toName": "LeftWrist"
+      },
+      {
+        "from": 14,
+        "to": 16,
+        "radius": 0.02,
+        "fromName": "LeftWrist",
+        "toName": "LeftHand"
+      },
+      {
+        "from": 16,
+        "to": 18,
+        "radius": 0.02,
+        "fromName": "LeftHand",
+        "toName": "LeftFingers"
+      },
+      {
+        "from": 1,
+        "to": 3,
+        "radius": 0.025,
+        "fromName": "RightToe",
+        "toName": "RightHeel"
+      },
+      {
+        "from": 1,
+        "to": 5,
+        "radius": 0.025,
+        "fromName": "RightToe",
+        "toName": "RightAnkle"
+      },
+      {
+        "from": 3,
+        "to": 5,
+        "radius": 0.025,
+        "fromName": "RightHeel",
+        "toName": "RightAnkle"
+      },
+      {
+        "from": 5,
+        "to": 7,
+        "radius": 0.055,
+        "fromName": "RightAnkle",
+        "toName": "RightKnee"
+      },
+      {
+        "from": 7,
+        "to": 9,
+        "radius": 0.085,
+        "fromName": "RightKnee",
+        "toName": "RightHip"
+      },
+      {
+        "from": 9,
+        "to": 20,
+        "radius": 0.1,
+        "fromName": "RightHip",
+        "toName": "Core"
+      },
+      {
+        "from": 20,
+        "to": 11,
+        "radius": 0.075,
+        "fromName": "Core",
+        "toName": "RightShoulder"
+      },
+      {
+        "from": 11,
+        "to": 13,
+        "radius": 0.06,
+        "fromName": "RightShoulder",
+        "toName": "RightElbow"
+      },
+      {
+        "from": 13,
+        "to": 15,
+        "radius": 0.03,
+        "fromName": "RightElbow",
+        "toName": "RightWrist"
+      },
+      {
+        "from": 15,
+        "to": 17,
+        "radius": 0.02,
+        "fromName": "RightWrist",
+        "toName": "RightHand"
+      },
+      {
+        "from": 17,
+        "to": 19,
+        "radius": 0.02,
+        "fromName": "RightHand",
+        "toName": "RightFingers"
+      },
+      {
+        "from": 10,
+        "to": 21,
+        "radius": 0.065,
+        "fromName": "LeftShoulder",
+        "toName": "Neck"
+      },
+      {
+        "from": 11,
+        "to": 21,
+        "radius": 0.065,
+        "fromName": "RightShoulder",
+        "toName": "Neck"
+      },
+      {
+        "from": 21,
+        "to": 22,
+        "radius": 0.05,
+        "fromName": "Neck",
+        "toName": "Head"
+      }
+    ]
+  },
+  "scenes": {
+    "side-control-escape": {
+      "meta": {
+        "name": "Upa Escape from Mount",
+        "tags": [
+          "escape",
+          "bottom",
+          "bridge",
+          "mount",
+          "upa"
+        ],
+        "description": [
+          "Bridge and roll from mount.",
+          "Trap the arm and leg, bridge explosively, and come up on top."
+        ],
+        "dataPath": "/data/techniques/side-control-escape.json",
+        "source": "GrappleMap.txt",
+        "positionCategory": "mount",
+        "startingPosition": "Mount (Bottom)",
+        "endingPosition": "Top Position",
+        "difficulty": "beginner",
+        "curriculumStage": "escapes",
+        "curriculumOrder": 10,
+        "shouldEndWithTap": false
+      }
+    },
+    "half-guard-sweep": {
+      "meta": {
+        "name": "Cop Sweep from Half Guard",
+        "tags": [
+          "half-guard",
+          "sweep",
+          "bottom",
+          "underhook"
+        ],
+        "description": [
+          "Half guard sweep using a cop sweep.",
+          "Underhook the leg, build angle, and roll to top position."
+        ],
+        "dataPath": "/data/techniques/half-guard-sweep.json",
+        "source": "GrappleMap.txt",
+        "positionCategory": "half-guard",
+        "startingPosition": "Half Guard (Bottom)",
+        "endingPosition": "Top Position",
+        "difficulty": "beginner",
+        "curriculumStage": "sweeps",
+        "curriculumOrder": 20,
+        "shouldEndWithTap": false
+      }
+    },
+    "guard-pass-bullfighter": {
+      "meta": {
+        "name": "Bullfighter Pass",
+        "tags": [
+          "guard-pass",
+          "passing",
+          "top",
+          "open_guard",
+          "toreando"
+        ],
+        "description": [
+          "Bullfighter pass against open guard.",
+          "Control both legs, redirect them, and step into side control."
+        ],
+        "dataPath": "/data/techniques/guard-pass-bullfighter.json",
+        "source": "GrappleMap.txt",
+        "positionCategory": "open-guard",
+        "startingPosition": "Open Guard",
+        "endingPosition": "Side Control",
+        "difficulty": "beginner",
+        "curriculumStage": "passing",
+        "curriculumOrder": 30,
+        "shouldEndWithTap": false
+      }
+    },
+    "guard-pass-leg-over": {
+      "meta": {
+        "name": "Leg-Over Pass",
+        "tags": [
+          "guard-pass",
+          "passing",
+          "top",
+          "open_guard",
+          "stack"
+        ],
+        "description": [
+          "Open-guard leg-over pass.",
+          "Stack the hips, step over the legs, and settle into side control."
+        ],
+        "dataPath": "/data/techniques/guard-pass-leg-over.json",
+        "source": "GrappleMap.txt",
+        "positionCategory": "open-guard",
+        "startingPosition": "Open Guard",
+        "endingPosition": "Side Control",
+        "difficulty": "intermediate",
+        "curriculumStage": "passing",
+        "curriculumOrder": 31,
+        "shouldEndWithTap": false
+      }
+    },
+    "back-take": {
+      "meta": {
+        "name": "Back Control Entry",
+        "tags": [
+          "back",
+          "control",
+          "transition",
+          "arm_drag"
+        ],
+        "description": [
+          "Back control entry from the top ride.",
+          "Use the arm drag or seatbelt to take the back and secure hooks."
+        ],
+        "dataPath": "/data/techniques/back-take.json",
+        "source": "GrappleMap.txt",
+        "positionCategory": "back-control",
+        "startingPosition": "Top Ride",
+        "endingPosition": "Back Control",
+        "difficulty": "intermediate",
+        "curriculumStage": "control",
+        "curriculumOrder": 40,
+        "shouldEndWithTap": false
+      }
+    },
+    "armbar-from-guard": {
+      "meta": {
+        "name": "Armbar from Guard",
+        "tags": [
+          "guard",
+          "submissions",
+          "armbar"
+        ],
+        "description": [
+          "Closed-guard armbar.",
+          "Break posture, pivot the hips, isolate the arm, and extend for the finish."
+        ],
+        "dataPath": "/data/techniques/armbar-from-guard.json",
+        "source": "GrappleMap.txt",
+        "positionCategory": "closed-guard",
+        "startingPosition": "Closed Guard",
+        "endingPosition": "Tap",
+        "difficulty": "beginner",
+        "curriculumStage": "submissions",
+        "curriculumOrder": 50,
+        "shouldEndWithTap": true
+      }
+    },
+    "kimura-from-guard": {
+      "meta": {
+        "name": "Kimura from Guard",
+        "tags": [
+          "guard",
+          "submissions",
+          "kimura"
+        ],
+        "description": [
+          "Closed-guard kimura.",
+          "Control the wrist, figure-four the arm, and rotate to the finish."
+        ],
+        "dataPath": "/data/techniques/kimura-from-guard.json",
+        "source": "GrappleMap.txt",
+        "positionCategory": "closed-guard",
+        "startingPosition": "Closed Guard",
+        "endingPosition": "Tap",
+        "difficulty": "beginner",
+        "curriculumStage": "submissions",
+        "curriculumOrder": 60,
+        "shouldEndWithTap": true
+      }
+    },
+    "guillotine": {
+      "meta": {
+        "name": "Arm-In Guillotine",
+        "tags": [
+          "guard",
+          "submissions",
+          "choke",
+          "front_headlock"
+        ],
+        "description": [
+          "Arm-in guillotine from a front headlock or guard tie.",
+          "Clamp the neck, finish the grip, and squeeze to tap."
+        ],
+        "dataPath": "/data/techniques/guillotine.json",
+        "source": "GrappleMap.txt",
+        "positionCategory": "closed-guard",
+        "startingPosition": "Guard Front Headlock",
+        "endingPosition": "Tap",
+        "difficulty": "intermediate",
+        "curriculumStage": "submissions",
+        "curriculumOrder": 70,
+        "shouldEndWithTap": true
+      }
+    }
+  }
+}

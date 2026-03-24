@@ -50,9 +50,11 @@ export default {
         border: "var(--border)",
         input: "var(--input)",
         ring: "var(--ring)",
-        earthGreen: "#63804d",
-        earthBrown: "#8B4513",
-        lightBeige: "#faf8f5",
+        // Brand aliases for convenience
+        cream: "#F2F0E9",
+        charcoal: "#1A1A1A",
+        moss: "#2E4036",
+        clay: "#CC5833",
         chart: {
           "1": "var(--chart-1)",
           "2": "var(--chart-2)",

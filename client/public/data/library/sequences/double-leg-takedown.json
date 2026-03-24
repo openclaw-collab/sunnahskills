@@ -1,0 +1,26 @@
+{
+  "meta": {
+    "id": "double-leg-takedown",
+    "name": "Double Leg Takedown",
+    "slug": "double-leg-takedown",
+    "positionCategory": "standing",
+    "startingPosition": "Standing",
+    "endingPosition": "Top Position",
+    "difficulty": "beginner",
+    "description": [
+      "Double leg takedown from standing.",
+      "Shot in on the opponent's legs and drive through to top position."
+    ],
+    "sources": ["Gracie Combatives"],
+    "totalFrames": 0,
+    "positions": 2,
+    "transitions": 1
+  },
+  "markers": [
+    { "name": "Standing", "frame": 0, "type": "position" },
+    { "name": "Double Leg", "frame": 1, "type": "transition" },
+    { "name": "Top Position", "frame": 12, "type": "position" }
+  ],
+  "frames": [],
+  "verified": false
+}

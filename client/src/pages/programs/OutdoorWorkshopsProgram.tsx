@@ -1,280 +1,266 @@
-
 import { Link } from "wouter";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { TreePine, Clock, Calendar, Award, Compass, Mountain, Leaf, Sun } from "lucide-react";
+import { ClayButton } from "@/components/brand/ClayButton";
+import { OutlineButton } from "@/components/brand/OutlineButton";
+import { DarkCard } from "@/components/brand/DarkCard";
+import { PremiumCard } from "@/components/brand/PremiumCard";
+import { SectionHeader } from "@/components/brand/SectionHeader";
+import { TelemetryCard } from "@/components/brand/TelemetryCard";
+import { StatusDot } from "@/components/brand/StatusDot";
+import { ProgramPageHeroMedia } from "@/components/programs/ProgramPageHeroMedia";
+import { MotionDiv, MotionPage, MotionSection } from "@/components/motion/PageMotion";
+import { PROGRAMS, getProgramTypeLabel } from "@/lib/programConfig";
 
 const OutdoorWorkshopsProgram = () => {
-  const features = [
-    { icon: <TreePine size={20} />, text: "Survival skills and outdoor preparedness" },
-    { icon: <Compass size={20} />, text: "Navigation skills and orienteering" },
-    { icon: <Mountain size={20} />, text: "Hiking, camping, and outdoor exploration" },
-    { icon: <Leaf size={20} />, text: "Environmental awareness and nature connection" },
-  ];
-
+  const program = PROGRAMS.outdoor;
   const workshops = [
-    { 
-      title: "Basic Survival Skills", 
-      age: "8-15 years", 
+    {
+      title: "Basic Survival Skills",
+      age: "8-15 years",
       duration: "Full Day",
-      skills: "Fire making, shelter building, navigation, and knot tying fundamentals"
+      skills: "Fire making, shelter building, navigation, and knot tying fundamentals",
     },
-    { 
-      title: "Advanced Fire Making", 
-      age: "10-16 years", 
+    {
+      title: "Advanced Fire Making",
+      age: "10-16 years",
       duration: "Half Day",
-      skills: "In-depth fire making techniques, different materials and methods"
+      skills: "In-depth fire making techniques, materials, and safe ignition methods",
     },
-    { 
-      title: "Shelter Building Mastery", 
-      age: "8-15 years", 
+    {
+      title: "Shelter Building Mastery",
+      age: "8-15 years",
       duration: "Half Day",
-      skills: "Advanced shelter construction for various weather conditions"
+      skills: "Advanced shelter construction for changing weather conditions",
     },
-    { 
-      title: "Navigation & Knot Tying", 
-      age: "10-16 years", 
+    {
+      title: "Navigation & Knot Tying",
+      age: "10-16 years",
       duration: "Full Day",
-      skills: "Advanced navigation techniques and comprehensive knot tying skills"
+      skills: "Navigation practice and a practical knot tying toolkit",
     },
   ];
 
   const seasons = [
-    { season: "Spring", focus: "Nature awakening, plant identification, hiking" },
-    { season: "Summer", focus: "Water activities, camping skills, extended outdoor time" },
-    { season: "Fall", focus: "Tracking, foraging basics, weather awareness" },
-    { season: "Winter", focus: "Cold weather skills, indoor planning, equipment care" },
+    { season: "Spring", focus: "Nature awakening, plant identification, and hiking" },
+    { season: "Summer", focus: "Water safety, camping skills, and extended outdoor time" },
+    { season: "Fall", focus: "Tracking, foraging basics, and weather awareness" },
+    { season: "Winter", focus: "Cold weather skills, planning, and equipment care" },
   ];
 
   return (
-    <div className="min-h-screen bg-lightBeige">
-      {/* Hero Section */}
-      <section className="relative bg-gradient-to-r from-primary to-secondary text-white py-20">
-        <div className="absolute inset-0 bg-black/20"></div>
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <h1 className="font-poppins font-bold text-4xl md:text-6xl mb-6">
-              Outdoor Workshops
-            </h1>
-            <p className="text-xl md:text-2xl mb-8 max-w-3xl mx-auto">
-              Connecting young Muslims with Allah's creation through hands-on outdoor education and survival skills
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button size="lg" className="bg-white text-primary hover:bg-gray-100">
-                <a href="#registration-form">Register Now</a>
-              </Button>
-              <Button size="lg" variant="outline" className="border-white text-white hover:bg-white hover:text-primary">
-                <Link href="/schedule">View Schedule</Link>
-              </Button>
-            </div>
-          </div>
-        </div>
-      </section>
+    <MotionPage className="bg-cream min-h-screen">
+      <div className="noise-overlay" />
 
-      {/* Program Overview */}
-      <section className="py-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid md:grid-cols-2 gap-12 items-center">
-            <div>
-              <h2 className="font-poppins font-bold text-3xl md:text-4xl text-primary mb-6">
-                Learning from Allah's Creation
-              </h2>
-              <p className="text-lg text-gray-700 mb-6">
-                Our outdoor workshops combine practical wilderness skills with Islamic values of environmental 
-                stewardship and appreciation for Allah's creation. Students learn essential outdoor skills while 
-                developing a deeper connection to the natural world.
+      <header className="relative min-h-[420px] overflow-hidden bg-charcoal text-cream md:min-h-[480px]">
+        <div className="absolute inset-0">
+          <ProgramPageHeroMedia program={program} />
+        </div>
+
+        <div className="relative z-10 mx-auto max-w-6xl px-6 pb-16 pt-28 md:pb-20 md:pt-36">
+          <div className="max-w-3xl">
+            <MotionDiv delay={0.04}>
+              <p className="text-clay font-mono-label text-xs uppercase tracking-[0.18em] mb-6 flex items-center gap-2">
+                <StatusDot ariaLabel="Workshop-based program" />
+                {getProgramTypeLabel(program.type)}
               </p>
-              <p className="text-lg text-gray-700 mb-8">
-                From basic survival techniques to advanced outdoor leadership, our programs build confidence, 
-                self-reliance, and respect for nature. Each workshop emphasizes safety, environmental awareness, 
-                and the Islamic principle of being good stewards of the Earth.
+              <h1 className="font-heading text-5xl md:text-7xl tracking-tight text-cream leading-none text-balance">
+                {program.name}
+              </h1>
+              <p className="mt-8 text-cream/75 font-body text-sm md:text-base max-w-2xl leading-relaxed text-pretty">
+                {program.heroLead}
               </p>
-              
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {features.map((feature, index) => (
-                  <div key={index} className="flex items-center gap-3 p-3 bg-white rounded-lg shadow-sm">
-                    <div className="text-primary">{feature.icon}</div>
-                    <span className="text-gray-700">{feature.text}</span>
-                  </div>
+
+              <div className="mt-8 flex flex-wrap gap-2">
+                {program.highlights.map((item) => (
+                  <span
+                    key={item}
+                    className="rounded-full border border-cream/20 bg-white/5 px-3 py-1 text-[10px] font-mono-label uppercase tracking-[0.18em] text-cream/80"
+                  >
+                    {item}
+                  </span>
                 ))}
               </div>
-            </div>
-            
-            <div className="relative">
-              <img
-                src="https://images.unsplash.com/photo-1537905569824-f89f14cceb68?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=800&h=600"
-                alt="Children learning outdoor skills in nature"
-                className="rounded-lg shadow-lg w-full h-[400px] object-cover"
-              />
-            </div>
+
+              <div className="mt-12 flex flex-col sm:flex-row gap-4">
+                <Link href="/programs/outdoor/register">
+                  <ClayButton className="px-8 py-3.5 text-[11px] uppercase tracking-[0.18em]">
+                    Register Now
+                  </ClayButton>
+                </Link>
+                <Link href="/schedule">
+                  <OutlineButton className="px-8 py-3.5 text-[11px] uppercase tracking-[0.18em] border-cream/20 text-cream hover:bg-cream/10">
+                    View Schedule
+                  </OutlineButton>
+                </Link>
+              </div>
+            </MotionDiv>
           </div>
         </div>
-      </section>
+      </header>
 
-      {/* Workshop Types */}
-      <section className="py-16 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <h2 className="font-poppins font-bold text-3xl md:text-4xl text-primary mb-4">
-              Hands-On Learning Workshops
-            </h2>
-            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              Each workshop focuses on specific outdoor skills with age-appropriate instruction and safety protocols
-            </p>
-          </div>
+      <MotionSection className="py-20">
+        <div className="max-w-6xl mx-auto px-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-start">
+            <MotionDiv delay={0.04} className="space-y-6">
+              <SectionHeader eyebrow="Overview" title="Readiness Through Stewardship" />
+              <p className="font-body text-pretty text-charcoal/70 leading-relaxed">
+                {program.shortPitch} The emphasis is on practical skill, calm decision making, and respect for the
+                land, the tools, and the people you are learning alongside.
+              </p>
+              <p className="font-body text-pretty text-charcoal/70 leading-relaxed">
+                Students leave each workshop with a clear checklist of what they practiced, what they learned, and how
+                to keep building the same skills at home or in the field.
+              </p>
 
-          <div className="grid md:grid-cols-2 gap-8">
-            {workshops.map((workshop, index) => (
-              <Card key={index} className="h-full">
-                <CardHeader>
-                  <CardTitle className="text-primary text-xl">{workshop.title}</CardTitle>
-                  <div className="flex justify-between text-sm text-gray-600">
-                    <span>Ages: {workshop.age}</span>
-                    <span>Duration: {workshop.duration}</span>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+                <MotionDiv delay={0.04}>
+                  <TelemetryCard title="Preparedness" label="pillar">
+                    Safety-first systems and calm decision making.
+                  </TelemetryCard>
+                </MotionDiv>
+                <MotionDiv delay={0.08}>
+                  <TelemetryCard title="Stewardship" label="ethos">
+                    Respect for land, tools, and community.
+                  </TelemetryCard>
+                </MotionDiv>
+              </div>
+            </MotionDiv>
+
+            <MotionDiv delay={0.08}>
+              <DarkCard>
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center gap-3">
+                    <StatusDot ariaLabel="Field notes" />
+                    <span className="font-mono-label text-[11px] text-cream/70 uppercase tracking-[0.2em]">
+                      Field Notes
+                    </span>
                   </div>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-gray-700">{workshop.skills}</p>
-                </CardContent>
-              </Card>
+                </div>
+                <div className="rounded-2xl border border-cream/10 bg-charcoal/40 p-6 text-sm leading-relaxed text-cream/80">
+                  Workshops are scheduled by date. Registration includes gear and readiness acknowledgements so families
+                  know exactly what to bring.
+                </div>
+              </DarkCard>
+            </MotionDiv>
+          </div>
+        </div>
+      </MotionSection>
+
+      <MotionSection className="py-20 bg-white border-y border-charcoal/5">
+        <div className="max-w-6xl mx-auto px-6">
+          <div className="flex items-end justify-between gap-6 flex-wrap">
+            <SectionHeader eyebrow="Workshops" title="Hands-On Learning Blocks" />
+            <Link href="/programs/outdoor/register">
+              <ClayButton className="text-[11px] uppercase tracking-[0.18em] px-6 py-3">
+                Choose a Workshop
+              </ClayButton>
+            </Link>
+          </div>
+
+          <div className="mt-10 grid grid-cols-1 md:grid-cols-2 gap-6">
+            {workshops.map((w, index) => (
+              <MotionDiv key={w.title} delay={index * 0.04}>
+                <PremiumCard className="bg-white border border-charcoal/10">
+                  <div className="flex items-center justify-between gap-4">
+                    <div>
+                      <div className="font-heading text-xl text-charcoal">{w.title}</div>
+                      <div className="mt-2 font-mono-label text-[10px] uppercase tracking-[0.18em] text-charcoal/50">
+                        Ages {w.age} · {w.duration}
+                      </div>
+                    </div>
+                  </div>
+                  <p className="mt-4 font-body text-sm text-charcoal/70 leading-relaxed">{w.skills}</p>
+                </PremiumCard>
+              </MotionDiv>
             ))}
           </div>
         </div>
-      </section>
+      </MotionSection>
 
-      {/* Seasonal Programs */}
-      <section className="py-16 bg-lightBeige">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <h2 className="font-poppins font-bold text-3xl md:text-4xl text-primary mb-4">
-              Year-Round Learning
-            </h2>
-            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              Our workshops adapt to the seasons, taking advantage of nature's changing classroom
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {seasons.map((season, index) => (
-              <Card key={index} className="text-center">
-                <CardHeader>
-                  <CardTitle className="text-primary text-lg">{season.season}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-gray-700 text-sm">{season.focus}</p>
-                </CardContent>
-              </Card>
+      <MotionSection className="py-20">
+        <div className="max-w-6xl mx-auto px-6">
+          <SectionHeader eyebrow="Seasonality" title="Year-Round Learning" />
+          <div className="mt-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {seasons.map((s, index) => (
+              <MotionDiv key={s.season} delay={index * 0.04}>
+                <TelemetryCard title={s.season} label="season">
+                  {s.focus}
+                </TelemetryCard>
+              </MotionDiv>
             ))}
           </div>
         </div>
-      </section>
+      </MotionSection>
 
-      {/* Safety & Preparation */}
-      <section className="py-16 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid md:grid-cols-2 gap-12">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-primary text-xl flex items-center gap-2">
-                  <TreePine size={24} />
-                  Safety & Equipment
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ul className="space-y-3 text-gray-700">
+      <MotionSection className="py-20 bg-white border-y border-charcoal/5">
+        <div className="max-w-6xl mx-auto px-6">
+          <SectionHeader eyebrow="Readiness" title="Safety and Preparation" />
+          <div className="mt-10 grid grid-cols-1 md:grid-cols-2 gap-6">
+            <MotionDiv delay={0.04}>
+              <PremiumCard className="bg-white border border-charcoal/10">
+                <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-moss">
+                  Safety &amp; Equipment
+                </div>
+                <ul className="mt-4 space-y-2 text-sm text-charcoal/70 font-body">
                   <li>• Certified outdoor education instructors</li>
                   <li>• First aid and emergency protocols</li>
-                  <li>• Age-appropriate tool safety training</li>
                   <li>• Weather monitoring and backup plans</li>
-                  <li>• All safety equipment provided</li>
                   <li>• Small instructor-to-student ratios</li>
                 </ul>
-              </CardContent>
-            </Card>
+              </PremiumCard>
+            </MotionDiv>
 
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-primary text-xl flex items-center gap-2">
-                  <Compass size={24} />
+            <MotionDiv delay={0.08}>
+              <PremiumCard className="bg-white border border-charcoal/10">
+                <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-moss">
                   What to Bring
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ul className="space-y-3 text-gray-700">
+                </div>
+                <ul className="mt-4 space-y-2 text-sm text-charcoal/70 font-body">
                   <li>• Weather-appropriate clothing</li>
-                  <li>• Sturdy outdoor shoes/boots</li>
+                  <li>• Sturdy outdoor shoes or boots</li>
                   <li>• Water bottle and healthy snacks</li>
-                  <li>• Sun protection (hat, sunscreen)</li>
-                  <li>• Personal medication if needed</li>
-                  <li>• Positive attitude and open mind!</li>
+                  <li>• Sun protection: hat and sunscreen</li>
                 </ul>
-              </CardContent>
-            </Card>
+              </PremiumCard>
+            </MotionDiv>
           </div>
         </div>
-      </section>
+      </MotionSection>
 
-      {/* Registration Form */}
-      <section id="registration-form" className="py-16 bg-lightBeige">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <h2 className="font-poppins font-bold text-3xl md:text-4xl text-primary mb-4">
-              Register for Outdoor Workshops
-            </h2>
-            <p className="text-lg text-gray-600">
-              Join us for hands-on outdoor learning experiences that build skills and character.
-            </p>
-          </div>
-
-          <Card className="max-w-2xl mx-auto">
-            <CardContent className="p-8">
-              <div className="text-center">
-                <h3 className="text-xl font-semibold text-primary mb-4">
-                  Complete Registration Online
-                </h3>
-                <p className="text-gray-600 mb-6">
-                  Click the button below to access our secure online registration form for Outdoor Workshops.
-                </p>
-                <Button size="lg" className="w-full sm:w-auto">
-                  <a 
-                    href="https://forms.google.com/outdoor-workshops-registration" 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-2"
-                  >
-                    <TreePine size={20} />
-                    Register for Outdoor Workshops
-                  </a>
-                </Button>
-                <p className="text-sm text-gray-500 mt-4">
-                  You'll be redirected to a secure Google Form to complete your registration
-                </p>
+      <MotionSection className="py-20">
+        <div className="max-w-6xl mx-auto px-6">
+          <MotionDiv delay={0.04}>
+            <PremiumCard className="bg-cream">
+              <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+                <div>
+                  <div className="font-mono-label text-[10px] uppercase tracking-[0.2em] text-moss">
+                    Next step
+                  </div>
+                  <h2 className="mt-2 font-heading text-3xl md:text-4xl tracking-tight text-charcoal">
+                    Pick a date. Confirm readiness. Complete enrollment.
+                  </h2>
+                  <p className="mt-4 font-body text-charcoal/70 max-w-2xl text-pretty">
+                    Registration is workshop-based: select a specific date, acknowledge gear requirements, then pay once
+                    in the same flow.
+                  </p>
+                </div>
+                <div className="flex w-full flex-col gap-3 md:w-auto sm:flex-row">
+                  <Link href="/programs/outdoor/register">
+                    <ClayButton className="w-full md:w-auto px-7 py-3.5 text-[11px] uppercase tracking-[0.18em]">
+                      Register Now
+                    </ClayButton>
+                  </Link>
+                  <Link href="/contact">
+                    <OutlineButton className="w-full md:w-auto px-7 py-3.5 text-[11px] uppercase tracking-[0.18em]">
+                      Contact Us
+                    </OutlineButton>
+                  </Link>
+                </div>
               </div>
-            </CardContent>
-          </Card>
+            </PremiumCard>
+          </MotionDiv>
         </div>
-      </section>
-
-      {/* Call to Action */}
-      <section className="py-16 bg-primary text-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="font-poppins font-bold text-3xl md:text-4xl mb-4">
-            Ready for Outdoor Adventure?
-          </h2>
-          <p className="text-xl mb-8 max-w-2xl mx-auto">
-            Have questions about specific workshops, skill levels, or what to expect? We're here to help!
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button size="lg" variant="outline" className="border-white text-white hover:bg-white hover:text-primary">
-              <Link href="/contact">Contact Us</Link>
-            </Button>
-            <Button size="lg" className="bg-white text-primary hover:bg-gray-100">
-              <Link href="/schedule">View Full Schedule</Link>
-            </Button>
-          </div>
-        </div>
-      </section>
-    </div>
+      </MotionSection>
+    </MotionPage>
   );
 };
 

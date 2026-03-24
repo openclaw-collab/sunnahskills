@@ -1,0 +1,10 @@
+---
+description: Record a feature walkthrough to confirm implementation
+alwaysApply: true
+---
+
+# Feature walkthrough (before calling a feature "done")
+
+- For any user-visible feature/change: produce a short "Feature walkthrough" checklist in the final update describing the exact steps exercised and the expected/observed results.
+- If the change is a web UI flow, use browser automation (browser-use or Playwright) to actually execute the walkthrough when feasible, capturing key screenshots for evidence.
+- If the change is an API/backend flow, exercise the key endpoints (happy path + one failure case) and record inputs/outputs at a high level (no secrets).

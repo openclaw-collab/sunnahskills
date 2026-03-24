@@ -10,6 +10,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { MotionPage, MotionDiv } from "@/components/motion/PageMotion";
 import type { PositionCategory } from "@/lib/grapplemap-types";
+import { LAUNCH_TECHNIQUE_BY_SLUG, LAUNCH_TECHNIQUE_SLUGS, LAUNCH_TECHNIQUE_SPECS } from "@/lib/launchTechniques";
 
 type Difficulty = "beginner" | "intermediate" | "advanced";
 
@@ -118,6 +119,26 @@ function normalizeSource(source?: string) {
   return source.replace(/\.txt$/i, "");
 }
 
+function buildLaunchStaticScenes(): SceneEntry[] {
+  return LAUNCH_TECHNIQUE_SPECS.filter((spec) => spec.dataPath).map((spec) => ({
+    id: spec.slug,
+    meta: {
+      slug: spec.slug,
+      name: spec.label,
+      tags: spec.tags ?? [],
+      description: spec.description ?? [],
+      dataPath: spec.dataPath ?? "/data/sequence.json",
+      source: spec.source ?? "Sunnah Skills",
+      positionCategory: spec.positionCategory,
+      startingPosition: spec.startingPosition,
+      endingPosition: spec.endingPosition,
+      difficulty: spec.difficulty,
+      curriculumStage: spec.curriculumStage,
+      curriculumOrder: spec.curriculumOrder,
+    },
+  }));
+}
+
 function deriveStage(scene: SceneEntry): TechniqueStage["slug"] {
   if (scene.meta.curriculumStage) return scene.meta.curriculumStage;
 
@@ -149,18 +170,10 @@ function useTechniqueScenes() {
 
     (async () => {
       try {
-        const [scenesRes, manifestRes, publishedRes] = await Promise.all([
-          fetch("/data/scenes.json"),
+        const [manifestRes, publishedRes] = await Promise.all([
           fetch("/data/library/sequences/manifest.json").catch(() => null),
           fetch("/api/techniques").catch(() => null),
         ]);
-
-        if (!scenesRes.ok) {
-          if (!cancelled) setScenes([]);
-          return;
-        }
-
-        const scenesJson = (await scenesRes.json()) as { scenes?: Record<string, { meta: SceneMeta }> };
         const manifestJson = manifestRes && manifestRes.ok
           ? ((await manifestRes.json()) as { sequences?: LibraryManifestSequence[] })
           : { sequences: [] as LibraryManifestSequence[] };
@@ -170,16 +183,22 @@ function useTechniqueScenes() {
             : { techniques: [] as SceneEntry[] };
 
         const manifestBySlug = new Map((manifestJson.sequences ?? []).map((sequence) => [sequence.slug, sequence]));
-        const rawScenes = [
-          ...Object.entries(scenesJson.scenes ?? {}).map(([id, value]) => ({
-            id,
-            meta: value.meta,
-          })),
-          ...(publishedJson.techniques ?? []),
-        ];
+        const launchStaticScenes = buildLaunchStaticScenes();
+        const publishedScenes = (publishedJson.techniques ?? []).filter((scene) =>
+          LAUNCH_TECHNIQUE_SLUGS.has(deriveTechniqueSlug(scene)),
+        );
+        const rawScenes = [...launchStaticScenes, ...publishedScenes];
+        const dedupedScenes = Array.from(
+          rawScenes.reduce<Map<string, SceneEntry>>((acc, scene) => {
+            const slug = deriveTechniqueSlug(scene);
+            if (!LAUNCH_TECHNIQUE_SLUGS.has(slug)) return acc;
+            acc.set(slug, scene);
+            return acc;
+          }, new Map()),
+        ).map(([, scene]) => scene);
 
         const enriched = await Promise.all(
-          rawScenes.map(async (scene) => {
+          dedupedScenes.map(async (scene) => {
             try {
               const detailRes = await fetch(scene.meta.dataPath);
               if (!detailRes.ok) return scene;
@@ -193,6 +212,7 @@ function useTechniqueScenes() {
               const manifestSlug = TECHNIQUE_ALIASES[slug] ?? slug;
               const manifestMeta = manifestBySlug.get(manifestSlug);
               const override = TECHNIQUE_OVERRIDES[slug] ?? {};
+              const launchSpec = LAUNCH_TECHNIQUE_BY_SLUG.get(slug);
               const markers = detail.markers ?? [];
               const firstPosition = markers.find((marker) => marker.type === "position")?.name;
               const lastPosition = [...markers].reverse().find((marker) => marker.type === "position")?.name;
@@ -204,36 +224,54 @@ function useTechniqueScenes() {
                   ...detail.meta,
                   ...override,
                   slug,
+                  name: scene.meta.name ?? detail.meta?.name ?? launchSpec?.label ?? slug,
                   transitionId: detail.meta?.transitionId ?? scene.meta.transitionId,
                   description: detail.meta?.description ?? scene.meta.description,
                   tags: detail.meta?.tags ?? scene.meta.tags,
                   positionCategory:
                     override.positionCategory ??
+                    launchSpec?.positionCategory ??
                     (manifestMeta?.positionCategory as PositionCategory | "guard-pass" | undefined) ??
                     detail.meta?.positionCategory ??
                     scene.meta.positionCategory,
                   startingPosition:
                     override.startingPosition ??
+                    launchSpec?.startingPosition ??
                     manifestMeta?.startingPosition ??
                     detail.meta?.startingPosition ??
                     scene.meta.startingPosition ??
                     firstPosition,
                   endingPosition:
                     override.endingPosition ??
+                    launchSpec?.endingPosition ??
                     manifestMeta?.endingPosition ??
                     detail.meta?.endingPosition ??
                     scene.meta.endingPosition ??
                     lastPosition,
                   source: normalizeSource(
                     override.source ??
+                      launchSpec?.source ??
                       detail.meta?.source ??
                       scene.meta.source ??
                       (manifestMeta ? "GrappleMap • curriculum aligned" : "GrappleMap"),
                   ),
                   totalFrames: detail.meta?.totalFrames ?? scene.meta.totalFrames,
-                  difficulty: override.difficulty ?? manifestMeta?.difficulty ?? detail.meta?.difficulty ?? scene.meta.difficulty,
-                  curriculumStage: override.curriculumStage ?? detail.meta?.curriculumStage ?? scene.meta.curriculumStage,
-                  curriculumOrder: override.curriculumOrder ?? detail.meta?.curriculumOrder ?? scene.meta.curriculumOrder,
+                  difficulty:
+                    override.difficulty ??
+                    launchSpec?.difficulty ??
+                    manifestMeta?.difficulty ??
+                    detail.meta?.difficulty ??
+                    scene.meta.difficulty,
+                  curriculumStage:
+                    override.curriculumStage ??
+                    launchSpec?.curriculumStage ??
+                    detail.meta?.curriculumStage ??
+                    scene.meta.curriculumStage,
+                  curriculumOrder:
+                    override.curriculumOrder ??
+                    launchSpec?.curriculumOrder ??
+                    detail.meta?.curriculumOrder ??
+                    scene.meta.curriculumOrder,
                 },
               };
 
@@ -438,7 +476,7 @@ const TechniqueLibrary = () => {
           <p className="font-body text-sm text-charcoal/70 max-w-2xl mb-10 leading-relaxed">
             <StudioText
               k="techniques.header.intro"
-              defaultText="Browse the real GrappleMap technique set with filters for stage, position, and finish. The viewer, modal, and fullscreen flow stay familiar, but the metadata now follows a cleaner grappling progression for public use."
+              defaultText="Browse the launch technique set with filters for stage, position, and finish. The viewer stays live, and new public chains can be published from admin as the curriculum expands."
               as="span"
               className="inline"
               multiline

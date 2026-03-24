@@ -18,7 +18,7 @@ const programLinks = [
   { label: "Bullyproofing Workshops", href: "/programs/bullyproofing" },
 ];
 
-const REGISTER_HREF = "/register";
+const PRIMARY_CTA_HREF = "/trial";
 
 const Navigation = () => {
   const [scrolled, setScrolled] = useState(false);
@@ -171,7 +171,7 @@ const Navigation = () => {
             useLightSurface ? "bg-charcoal text-cream" : "bg-clay text-cream",
           )}
         >
-          <Link href={REGISTER_HREF}>Register Now</Link>
+          <Link href={PRIMARY_CTA_HREF}>Start Your Free Trial</Link>
         </ClayButton>
       </div>
 
@@ -222,7 +222,7 @@ const Navigation = () => {
               </Link>
             ))}
             <ClayButton asChild className="w-full mt-1 text-[11px] tracking-[0.18em]">
-              <Link href={REGISTER_HREF}>Register Now</Link>
+              <Link href={PRIMARY_CTA_HREF}>Start Your Free Trial</Link>
             </ClayButton>
           </div>
         </div>

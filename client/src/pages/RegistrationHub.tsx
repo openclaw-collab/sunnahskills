@@ -3,11 +3,11 @@ import { Link, useLocation } from "wouter";
 import { SectionHeader } from "@/components/brand/SectionHeader";
 import { PremiumCard } from "@/components/brand/PremiumCard";
 import { ClayButton } from "@/components/brand/ClayButton";
-import { PROGRAMS, getProgramTypeLabel } from "@/lib/programConfig";
 import { OutlineButton } from "@/components/brand/OutlineButton";
-import { MotionDiv, MotionPage } from "@/components/motion/PageMotion";
+import { MotionPage } from "@/components/motion/PageMotion";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { queryClient } from "@/lib/queryClient";
 import { useGuardianSession, useGuardianStudents, type SavedStudent } from "@/hooks/useGuardianSession";
 
@@ -25,33 +25,43 @@ function errorMessage() {
   return "";
 }
 
-function studentAgeLabel(student: SavedStudent) {
-  if (!student.date_of_birth) return "Date of birth not saved yet";
-  const dob = Date.parse(student.date_of_birth);
-  if (!Number.isFinite(dob)) return student.date_of_birth;
+function ageLabel(participant: SavedStudent) {
+  if (!participant.date_of_birth) return "Date of birth required";
+  const dob = Date.parse(participant.date_of_birth);
+  if (!Number.isFinite(dob)) return participant.date_of_birth;
   const age = Math.floor((Date.now() - dob) / 31557600000);
-  return `${student.date_of_birth} · age ${Math.max(0, age)}`;
+  return `Age ${Math.max(0, age)}`;
 }
 
-const RegistrationHub = () => {
+export default function RegistrationHub() {
   const [, navigate] = useLocation();
-  const programs = Object.values(PROGRAMS);
   const targetPath = nextPath();
   const sessionQuery = useGuardianSession();
-  const studentsQuery = useGuardianStudents(Boolean(sessionQuery.data?.authenticated));
-  const [loginAccountNumber, setLoginAccountNumber] = React.useState("");
-  const [loginEmail, setLoginEmail] = React.useState("");
+  const participantsQuery = useGuardianStudents(Boolean(sessionQuery.data?.authenticated));
+
   const [signupFullName, setSignupFullName] = React.useState("");
-  const [signupPhone, setSignupPhone] = React.useState("");
   const [signupEmail, setSignupEmail] = React.useState("");
-  const [newStudentName, setNewStudentName] = React.useState("");
-  const [newStudentDob, setNewStudentDob] = React.useState("");
-  const [newStudentGender, setNewStudentGender] = React.useState("");
-  const [newStudentNotes, setNewStudentNotes] = React.useState("");
+  const [loginEmail, setLoginEmail] = React.useState("");
   const [busy, setBusy] = React.useState<string | null>(null);
   const [message, setMessage] = React.useState(errorMessage());
 
-  async function refreshGuardianData() {
+  const [completionForm, setCompletionForm] = React.useState({
+    fullName: "",
+    phone: "",
+    emergencyContactName: "",
+    emergencyContactPhone: "",
+    accountRole: "parent_guardian" as "parent_guardian" | "adult_student",
+  });
+
+  const [participantForm, setParticipantForm] = React.useState({
+    participantType: "child" as "self" | "child",
+    fullName: "",
+    dateOfBirth: "",
+    gender: "",
+    medicalNotes: "",
+  });
+
+  async function refresh() {
     await queryClient.invalidateQueries({ queryKey: ["/api/guardian/me"] });
     await queryClient.invalidateQueries({ queryKey: ["/api/guardian/students"] });
   }
@@ -63,7 +73,7 @@ const RegistrationHub = () => {
       credentials: "include",
       body: JSON.stringify(body),
     });
-    const json = (await res.json().catch(() => null)) as any;
+    const json = (await res.json().catch(() => null)) as { error?: string; message?: string } | null;
     if (!res.ok) throw new Error(json?.error ?? "Request failed");
     return json;
   }
@@ -75,35 +85,55 @@ const RegistrationHub = () => {
       credentials: "include",
       body: JSON.stringify(body),
     });
-    const json = (await res.json().catch(() => null)) as any;
+    const json = (await res.json().catch(() => null)) as { error?: string } | null;
     if (!res.ok) throw new Error(json?.error ?? "Request failed");
     return json;
   }
 
   async function destroy(path: string) {
-    const res = await fetch(path, {
-      method: "DELETE",
-      credentials: "include",
-    });
-    const json = (await res.json().catch(() => null)) as any;
+    const res = await fetch(path, { method: "DELETE", credentials: "include" });
+    const json = (await res.json().catch(() => null)) as { error?: string } | null;
     if (!res.ok) throw new Error(json?.error ?? "Request failed");
     return json;
   }
 
   const session = sessionQuery.data;
   const authenticated = Boolean(session?.authenticated);
-  const savedStudents = studentsQuery.data?.students ?? [];
+  const accountComplete = Boolean(session?.accountComplete);
+  const participants = participantsQuery.data?.students ?? [];
+
+  React.useEffect(() => {
+    if (!session) return;
+    setCompletionForm({
+      fullName: session.fullName ?? "",
+      phone: session.phone ?? "",
+      emergencyContactName: session.emergencyContactName ?? "",
+      emergencyContactPhone: session.emergencyContactPhone ?? "",
+      accountRole: (session.accountRole as "parent_guardian" | "adult_student" | undefined) ?? "parent_guardian",
+    });
+  }, [
+    session?.fullName,
+    session?.phone,
+    session?.emergencyContactName,
+    session?.emergencyContactPhone,
+    session?.accountRole,
+  ]);
 
   return (
-    <MotionPage className="bg-cream min-h-screen pb-24">
+    <MotionPage className="min-h-screen bg-cream pb-24">
       <div className="noise-overlay" />
-      <main className="max-w-6xl mx-auto px-6 pt-28">
-        <SectionHeader eyebrow="Registration" title={authenticated ? "Your Registration Hub" : "Sign In To Register"} className="mb-8" />
-        <p className="font-body text-pretty text-sm text-charcoal/70 max-w-2xl mb-6">
-          {authenticated
-            ? "BJJ enrollment is live. Start from your guardian account so saved students, payment plans, and follow-up actions stay attached to the right household."
-            : "BJJ enrollment is now account-based. Sign in with your account number or email link, or create your guardian account before starting registration."}
+      <main className="mx-auto max-w-6xl px-6 pt-28">
+        <SectionHeader
+          eyebrow="Family & Member Account"
+          title={authenticated ? "Account & participant profiles" : "Create your account before you register"}
+          className="mb-8"
+        />
+        <p className="mb-6 max-w-3xl text-sm leading-relaxed text-charcoal/70">
+          Adults and families use the same account system here. First we create the account, then we complete the
+          required contact details, then we add one or more participant profiles, and only after that do we unlock live
+          BJJ registration.
         </p>
+
         {message ? (
           <div className="mb-8 rounded-2xl border border-clay/20 bg-clay/5 px-4 py-3 text-sm text-clay">
             {message}
@@ -111,296 +141,301 @@ const RegistrationHub = () => {
         ) : null}
 
         {!authenticated ? (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <PremiumCard className="bg-white border border-charcoal/10 space-y-4">
-              <div>
-                <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-moss mb-2">Sign in</div>
-                <h2 className="font-heading text-2xl text-charcoal">Use your account number or email</h2>
-              </div>
-
-              <div className="space-y-3">
-                <label className="font-body text-sm text-charcoal font-medium">Account number</label>
-                <Input
-                  value={loginAccountNumber}
-                  onChange={(e) => setLoginAccountNumber(e.target.value)}
-                  placeholder="10–12 digits"
-                  inputMode="numeric"
-                />
-                <ClayButton
-                  className="w-full px-5 py-2.5 text-[11px] uppercase tracking-[0.18em]"
-                  disabled={busy === "account-login"}
-                  onClick={async () => {
-                    setBusy("account-login");
-                    setMessage("");
-                    try {
-                      await post("/api/guardian/login-account", { accountNumber: loginAccountNumber });
-                      await refreshGuardianData();
-                      navigate(targetPath);
-                    } catch (error) {
-                      setMessage(error instanceof Error ? error.message : "Could not sign in.");
-                    } finally {
-                      setBusy(null);
-                    }
-                  }}
-                >
-                  {busy === "account-login" ? "Signing in..." : "Sign in with account number"}
-                </ClayButton>
-              </div>
-
-              <div className="space-y-3 border-t border-charcoal/10 pt-4">
-                <label className="font-body text-sm text-charcoal font-medium">Email me a sign-in link</label>
-                <Input
-                  value={loginEmail}
-                  onChange={(e) => setLoginEmail(e.target.value)}
-                  placeholder="name@email.com"
-                  type="email"
-                />
-                <OutlineButton
-                  className="w-full px-5 py-2.5 text-[11px] uppercase tracking-[0.18em]"
-                  disabled={busy === "magic-link"}
-                  onClick={async () => {
-                    setBusy("magic-link");
-                    setMessage("");
-                    try {
-                      await post("/api/guardian/request-link", { email: loginEmail, next: targetPath });
-                      setMessage("If we found your account, we sent a sign-in link.");
-                    } catch (error) {
-                      setMessage(error instanceof Error ? error.message : "Could not send sign-in link.");
-                    } finally {
-                      setBusy(null);
-                    }
-                  }}
-                >
-                  {busy === "magic-link" ? "Sending..." : "Send sign-in link"}
-                </OutlineButton>
-              </div>
-            </PremiumCard>
-
-            <PremiumCard className="bg-white border border-charcoal/10 space-y-4">
+          <div className="grid gap-6 lg:grid-cols-2">
+            <PremiumCard className="space-y-4 border border-charcoal/10 bg-white p-6">
               <div>
                 <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-moss mb-2">Create account</div>
-                <h2 className="font-heading text-2xl text-charcoal">Create your guardian account</h2>
+                <h2 className="font-heading text-2xl text-charcoal">Start your Family &amp; Member Account</h2>
               </div>
-              <div className="space-y-3">
-                <Input value={signupFullName} onChange={(e) => setSignupFullName(e.target.value)} placeholder="Full name" />
-                <Input value={signupPhone} onChange={(e) => setSignupPhone(e.target.value)} placeholder="Phone number" type="tel" />
-                <Input value={signupEmail} onChange={(e) => setSignupEmail(e.target.value)} placeholder="Email" type="email" />
-                <ClayButton
-                  className="w-full px-5 py-2.5 text-[11px] uppercase tracking-[0.18em]"
-                  disabled={busy === "signup"}
-                  onClick={async () => {
-                    setBusy("signup");
-                    setMessage("");
-                    try {
-                      const json = await post("/api/guardian/signup", {
-                        fullName: signupFullName,
-                        phone: signupPhone,
-                        email: signupEmail,
-                        next: targetPath,
-                      });
-                      setMessage(
-                        json?.accountNumber
-                          ? `Account created. Your account number is ${json.accountNumber}. Check your email for the sign-in link.`
-                          : "Account created. Check your email for the sign-in link.",
-                      );
-                    } catch (error) {
-                      setMessage(error instanceof Error ? error.message : "Could not create account.");
-                    } finally {
-                      setBusy(null);
-                    }
-                  }}
-                >
-                  {busy === "signup" ? "Creating..." : "Create guardian account"}
-                </ClayButton>
+              <Input
+                value={signupFullName}
+                onChange={(event) => setSignupFullName(event.target.value)}
+                placeholder="Full name"
+              />
+              <Input
+                value={signupEmail}
+                onChange={(event) => setSignupEmail(event.target.value)}
+                placeholder="Email"
+                type="email"
+              />
+              <ClayButton
+                className="w-full px-5 py-2.5 text-[11px] uppercase tracking-[0.18em]"
+                disabled={busy === "signup"}
+                onClick={async () => {
+                  setBusy("signup");
+                  setMessage("");
+                  try {
+                    const json = await post("/api/guardian/signup", {
+                      fullName: signupFullName,
+                      email: signupEmail,
+                      next: targetPath,
+                    });
+                    setMessage(json?.message ?? "Check your email for the sign-in link.");
+                  } catch (caught) {
+                    setMessage(caught instanceof Error ? caught.message : "Could not create the account.");
+                  } finally {
+                    setBusy(null);
+                  }
+                }}
+              >
+                {busy === "signup" ? "Sending..." : "Email me the sign-in link"}
+              </ClayButton>
+            </PremiumCard>
+
+            <PremiumCard className="space-y-4 border border-charcoal/10 bg-white p-6">
+              <div>
+                <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-moss mb-2">Sign in</div>
+                <h2 className="font-heading text-2xl text-charcoal">Open an existing account</h2>
               </div>
+              <Input
+                value={loginEmail}
+                onChange={(event) => setLoginEmail(event.target.value)}
+                placeholder="Email"
+                type="email"
+              />
+              <OutlineButton
+                className="w-full px-5 py-2.5 text-[11px] uppercase tracking-[0.18em]"
+                disabled={busy === "magic-link"}
+                onClick={async () => {
+                  setBusy("magic-link");
+                  setMessage("");
+                  try {
+                    await post("/api/guardian/request-link", { email: loginEmail, next: targetPath });
+                    setMessage("If we found your account, we sent a sign-in link.");
+                  } catch (caught) {
+                    setMessage(caught instanceof Error ? caught.message : "Could not send a sign-in link.");
+                  } finally {
+                    setBusy(null);
+                  }
+                }}
+              >
+                {busy === "magic-link" ? "Sending..." : "Send sign-in link"}
+              </OutlineButton>
             </PremiumCard>
           </div>
         ) : (
-          <div className="space-y-8">
-            <PremiumCard className="bg-white border border-charcoal/10">
+          <div className="space-y-6">
+            <PremiumCard className="border border-charcoal/10 bg-white p-6">
               <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
                 <div>
-                  <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-moss mb-2">Guardian account</div>
+                  <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-moss mb-2">Account holder</div>
                   <h2 className="font-heading text-2xl text-charcoal">{session?.fullName || session?.email}</h2>
                   <p className="mt-2 text-sm text-charcoal/65">
                     Account #{session?.accountNumber} · {session?.email}
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-3">
-                  <ClayButton
-                    className="px-5 py-2.5 text-[11px] uppercase tracking-[0.18em]"
-                    onClick={() => navigate(targetPath)}
-                  >
-                    Continue to BJJ
-                  </ClayButton>
+                  {accountComplete && participants.length > 0 ? (
+                    <ClayButton className="px-5 py-2.5 text-[11px] uppercase tracking-[0.18em]" onClick={() => navigate(targetPath)}>
+                      Continue to BJJ
+                    </ClayButton>
+                  ) : null}
                   <OutlineButton
                     className="px-5 py-2.5 text-[11px] uppercase tracking-[0.18em]"
                     onClick={async () => {
-                      setBusy("logout");
-                      try {
-                        await post("/api/guardian/logout", {});
-                        await refreshGuardianData();
-                        navigate("/register");
-                      } finally {
-                        setBusy(null);
-                      }
+                      await post("/api/guardian/logout", {});
+                      await refresh();
+                      navigate("/register");
                     }}
                   >
-                    {busy === "logout" ? "Signing out..." : "Sign out"}
+                    Sign out
                   </OutlineButton>
                 </div>
               </div>
             </PremiumCard>
 
-            <div className="grid grid-cols-1 lg:grid-cols-[1.1fr_0.9fr] gap-6">
-              <PremiumCard className="bg-white border border-charcoal/10 space-y-4">
-                <div>
-                  <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-moss mb-2">Saved students</div>
-                  <h3 className="font-heading text-xl text-charcoal">Build your household once</h3>
+            {!accountComplete ? (
+              <PremiumCard className="border border-charcoal/10 bg-white p-6">
+                <div className="mb-4">
+                  <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-moss mb-2">Required step</div>
+                  <h3 className="font-heading text-xl text-charcoal">Complete the account before registration opens</h3>
                 </div>
-
-                <div className="space-y-3">
-                  {savedStudents.map((student) => (
-                    <div key={student.id} className="rounded-2xl border border-charcoal/10 bg-cream/35 p-4">
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <div className="font-body font-medium text-charcoal">{student.full_name}</div>
-                          <div className="mt-1 text-xs text-charcoal/60">{studentAgeLabel(student)}</div>
-                          {student.medical_notes ? (
-                            <div className="mt-2 text-xs text-charcoal/55">{student.medical_notes}</div>
-                          ) : null}
-                        </div>
-                        <div className="flex gap-2">
-                          <OutlineButton
-                            className="px-3 py-1.5 text-[10px] uppercase tracking-[0.18em]"
-                            onClick={async () => {
-                              setBusy(`edit-student-${student.id}`);
-                              setMessage("");
-                              try {
-                                await patch(`/api/guardian/students/${student.id}`, {
-                                  fullName: student.full_name,
-                                  dateOfBirth: student.date_of_birth ?? "",
-                                  gender: student.gender ?? "",
-                                  medicalNotes: student.medical_notes ?? "",
-                                });
-                                await refreshGuardianData();
-                                setMessage("Saved student synced.");
-                              } catch (error) {
-                                setMessage(error instanceof Error ? error.message : "Could not update student.");
-                              } finally {
-                                setBusy(null);
-                              }
-                            }}
-                          >
-                            Refresh
-                          </OutlineButton>
-                          <OutlineButton
-                            className="px-3 py-1.5 text-[10px] uppercase tracking-[0.18em]"
-                            onClick={async () => {
-                              setBusy(`delete-student-${student.id}`);
-                              setMessage("");
-                              try {
-                                await destroy(`/api/guardian/students/${student.id}`);
-                                await refreshGuardianData();
-                              } catch (error) {
-                                setMessage(error instanceof Error ? error.message : "Could not remove student.");
-                              } finally {
-                                setBusy(null);
-                              }
-                            }}
-                          >
-                            Remove
-                          </OutlineButton>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                  {savedStudents.length === 0 ? (
-                    <div className="rounded-2xl border border-dashed border-charcoal/15 bg-cream/25 px-4 py-5 text-sm text-charcoal/60">
-                      No saved students yet. Add one now or create them inside the BJJ registration flow.
-                    </div>
-                  ) : null}
+                <div className="grid gap-4 md:grid-cols-2">
+                  <label className="text-sm text-charcoal">
+                    Full name
+                    <Input className="mt-2 bg-cream/50 border-charcoal/10" value={completionForm.fullName} onChange={(event) => setCompletionForm((prev) => ({ ...prev, fullName: event.target.value }))} />
+                  </label>
+                  <label className="text-sm text-charcoal">
+                    Phone number
+                    <Input className="mt-2 bg-cream/50 border-charcoal/10" value={completionForm.phone} onChange={(event) => setCompletionForm((prev) => ({ ...prev, phone: event.target.value }))} />
+                  </label>
+                  <label className="text-sm text-charcoal">
+                    Emergency contact name
+                    <Input className="mt-2 bg-cream/50 border-charcoal/10" value={completionForm.emergencyContactName} onChange={(event) => setCompletionForm((prev) => ({ ...prev, emergencyContactName: event.target.value }))} />
+                  </label>
+                  <label className="text-sm text-charcoal">
+                    Emergency contact phone
+                    <Input className="mt-2 bg-cream/50 border-charcoal/10" value={completionForm.emergencyContactPhone} onChange={(event) => setCompletionForm((prev) => ({ ...prev, emergencyContactPhone: event.target.value }))} />
+                  </label>
+                  <label className="text-sm text-charcoal md:col-span-2">
+                    This account is for
+                    <Select value={completionForm.accountRole} onValueChange={(value) => setCompletionForm((prev) => ({ ...prev, accountRole: value as "parent_guardian" | "adult_student" }))}>
+                      <SelectTrigger className="mt-2 bg-cream/50 border-charcoal/10">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="parent_guardian">Parent / guardian</SelectItem>
+                        <SelectItem value="adult_student">Adult student</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </label>
                 </div>
-
-                <div className="border-t border-charcoal/10 pt-4 space-y-3">
-                  <div className="font-body text-sm text-charcoal font-medium">Add a saved student</div>
-                  <Input value={newStudentName} onChange={(e) => setNewStudentName(e.target.value)} placeholder="Student full name" />
-                  <Input value={newStudentDob} onChange={(e) => setNewStudentDob(e.target.value)} type="date" />
-                  <Input value={newStudentGender} onChange={(e) => setNewStudentGender(e.target.value)} placeholder="Gender (optional)" />
-                  <Textarea value={newStudentNotes} onChange={(e) => setNewStudentNotes(e.target.value)} placeholder="Medical notes or accessibility needs (optional)" rows={3} />
+                <div className="mt-6">
                   <ClayButton
-                    className="px-5 py-2.5 text-[11px] uppercase tracking-[0.18em]"
-                    disabled={busy === "add-student"}
+                    className="px-6 py-3 text-[11px] uppercase tracking-[0.18em]"
+                    disabled={busy === "complete-account"}
                     onClick={async () => {
-                      setBusy("add-student");
+                      setBusy("complete-account");
                       setMessage("");
                       try {
-                        await post("/api/guardian/students", {
-                          fullName: newStudentName,
-                          dateOfBirth: newStudentDob,
-                          gender: newStudentGender,
-                          medicalNotes: newStudentNotes,
-                        });
-                        setNewStudentName("");
-                        setNewStudentDob("");
-                        setNewStudentGender("");
-                        setNewStudentNotes("");
-                        await refreshGuardianData();
-                      } catch (error) {
-                        setMessage(error instanceof Error ? error.message : "Could not save student.");
+                        await patch("/api/guardian/me", completionForm);
+                        await refresh();
+                      } catch (caught) {
+                        setMessage(caught instanceof Error ? caught.message : "Could not save the account.");
                       } finally {
                         setBusy(null);
                       }
                     }}
                   >
-                    {busy === "add-student" ? "Saving..." : "Save student"}
+                    {busy === "complete-account" ? "Saving..." : "Save account details"}
                   </ClayButton>
                 </div>
               </PremiumCard>
+            ) : null}
 
-              <div className="grid grid-cols-1 gap-6">
-                {programs.map((program, index) => (
-                  <MotionDiv key={program.slug} delay={index * 0.04}>
-                    <PremiumCard className="bg-white border border-charcoal/10 flex flex-col justify-between h-full">
-                      <div>
-                        <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-moss mb-2">
-                          {getProgramTypeLabel(program.type)}
-                        </div>
-                        <h2 className="font-heading text-2xl text-charcoal">{program.name}</h2>
-                        <p className="mt-2 font-body text-xs text-charcoal/60 uppercase tracking-[0.16em]">
-                          {program.ageRangeLabel}
-                        </p>
-                        <p className="mt-4 font-body text-sm text-charcoal/70 leading-relaxed text-pretty">
-                          {program.shortPitch}
-                        </p>
-                      </div>
+            {accountComplete ? (
+              <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
+                <PremiumCard className="border border-charcoal/10 bg-white p-6">
+                  <div className="mb-4">
+                    <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-moss mb-2">Participant profiles</div>
+                    <h3 className="font-heading text-xl text-charcoal">Add myself or add a child</h3>
+                  </div>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <label className="text-sm text-charcoal">
+                      Profile type
+                      <Select value={participantForm.participantType} onValueChange={(value) => setParticipantForm((prev) => ({ ...prev, participantType: value as "self" | "child" }))}>
+                        <SelectTrigger className="mt-2 bg-cream/50 border-charcoal/10">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="self">Add myself</SelectItem>
+                          <SelectItem value="child">Add child</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </label>
+                    <label className="text-sm text-charcoal">
+                      Full name
+                      <Input className="mt-2 bg-cream/50 border-charcoal/10" value={participantForm.fullName} onChange={(event) => setParticipantForm((prev) => ({ ...prev, fullName: event.target.value }))} />
+                    </label>
+                    <label className="text-sm text-charcoal">
+                      Date of birth
+                      <Input className="mt-2 bg-cream/50 border-charcoal/10" type="date" value={participantForm.dateOfBirth} onChange={(event) => setParticipantForm((prev) => ({ ...prev, dateOfBirth: event.target.value }))} />
+                    </label>
+                    <label className="text-sm text-charcoal">
+                      Gender
+                      <Select value={participantForm.gender} onValueChange={(value) => setParticipantForm((prev) => ({ ...prev, gender: value }))}>
+                        <SelectTrigger className="mt-2 bg-cream/50 border-charcoal/10">
+                          <SelectValue placeholder="Select gender" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="female">Female</SelectItem>
+                          <SelectItem value="male">Male</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </label>
+                    <label className="text-sm text-charcoal md:col-span-2">
+                      Medical notes (optional)
+                      <Textarea className="mt-2 min-h-[120px] bg-cream/50 border-charcoal/10" value={participantForm.medicalNotes} onChange={(event) => setParticipantForm((prev) => ({ ...prev, medicalNotes: event.target.value }))} />
+                    </label>
+                  </div>
+                  <div className="mt-6">
+                    <ClayButton
+                      className="px-6 py-3 text-[11px] uppercase tracking-[0.18em]"
+                      disabled={busy === "add-participant"}
+                      onClick={async () => {
+                        setBusy("add-participant");
+                        setMessage("");
+                        try {
+                          await post("/api/guardian/students", participantForm);
+                          setParticipantForm({
+                            participantType: session?.accountRole === "adult_student" ? "self" : "child",
+                            fullName: "",
+                            dateOfBirth: "",
+                            gender: "",
+                            medicalNotes: "",
+                          });
+                          await refresh();
+                        } catch (caught) {
+                          setMessage(caught instanceof Error ? caught.message : "Could not save the participant.");
+                        } finally {
+                          setBusy(null);
+                        }
+                      }}
+                    >
+                      {busy === "add-participant" ? "Saving..." : "Save participant profile"}
+                    </ClayButton>
+                  </div>
+                </PremiumCard>
 
-                      <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                        <div className="text-[11px] font-mono-label uppercase tracking-[0.18em] text-charcoal/50">
-                          Registration Flow
-                        </div>
-                        {program.enrollmentStatus === "open" ? (
-                          <ClayButton asChild className="px-5 py-2.5 text-[11px] uppercase tracking-[0.18em]">
-                            <Link href={program.registerPath}>
-                              Register for {program.slug === "bjj" ? "BJJ" : program.name}
-                            </Link>
-                          </ClayButton>
-                        ) : (
-                          <OutlineButton asChild className="px-5 py-2.5 text-[11px] uppercase tracking-[0.18em]">
-                            <Link href={`/contact?interest=${program.slug}`}>Join waitlist</Link>
+                <PremiumCard className="border border-charcoal/10 bg-white p-6">
+                  <div className="mb-4">
+                    <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-moss mb-2">Ready for registration</div>
+                    <h3 className="font-heading text-xl text-charcoal">Profiles on this account</h3>
+                  </div>
+                  <div className="space-y-3">
+                    {participants.map((participant) => (
+                      <div key={participant.id} className="rounded-2xl border border-charcoal/10 bg-cream/40 p-4">
+                        <div className="flex items-start justify-between gap-4">
+                          <div>
+                            <div className="text-sm font-medium text-charcoal">{participant.full_name}</div>
+                            <div className="text-xs uppercase tracking-[0.16em] text-charcoal/55">
+                              {participant.participant_type === "self" ? "Self" : "Child"} · {ageLabel(participant)} · {participant.gender ?? "Gender needed"}
+                            </div>
+                          </div>
+                          <OutlineButton
+                            className="px-4 py-2 text-[11px] uppercase tracking-[0.18em]"
+                            onClick={async () => {
+                              setBusy(`delete-${participant.id}`);
+                              try {
+                                await destroy(`/api/guardian/students/${participant.id}`);
+                                await refresh();
+                              } finally {
+                                setBusy(null);
+                              }
+                            }}
+                          >
+                            {busy === `delete-${participant.id}` ? "Removing..." : "Remove"}
                           </OutlineButton>
-                        )}
+                        </div>
+                        {participant.medical_notes ? (
+                          <div className="mt-3 text-sm text-charcoal/65">{participant.medical_notes}</div>
+                        ) : null}
                       </div>
-                    </PremiumCard>
-                  </MotionDiv>
-                ))}
+                    ))}
+                    {participants.length === 0 ? (
+                      <div className="rounded-2xl border border-dashed border-charcoal/15 bg-cream/40 p-4 text-sm text-charcoal/65">
+                        Add at least one participant profile before live program registration opens.
+                      </div>
+                    ) : null}
+                  </div>
+                  <div className="mt-6 flex flex-wrap gap-3">
+                    <ClayButton
+                      className="px-6 py-3 text-[11px] uppercase tracking-[0.18em]"
+                      disabled={participants.length === 0}
+                      onClick={() => navigate(targetPath)}
+                    >
+                      Register for BJJ
+                    </ClayButton>
+                    <OutlineButton asChild className="px-6 py-3 text-[11px] uppercase tracking-[0.18em]">
+                      <Link href="/trial">Start with a free trial</Link>
+                    </OutlineButton>
+                  </div>
+                </PremiumCard>
               </div>
-            </div>
+            ) : null}
           </div>
         )}
       </main>
     </MotionPage>
   );
-};
-
-export default RegistrationHub;
+}

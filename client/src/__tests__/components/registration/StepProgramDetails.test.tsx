@@ -180,8 +180,8 @@ describe("StepProgramDetails", () => {
         expect(screen.queryByText(/loading class schedule/i)).not.toBeInTheDocument();
       });
 
-      expect(screen.getByLabelText(/Teens\+ Women 11\+ — Tuesday/i)).toBeInTheDocument();
-      expect(screen.getByLabelText(/Teens\+ Women 11\+ — Thursday/i)).toBeInTheDocument();
+      expect(screen.getByLabelText(/Teens\+ Women 11\+ Tuesday/i)).toBeInTheDocument();
+      expect(screen.getByLabelText(/Teens\+ Women 11\+ Thursday/i)).toBeInTheDocument();
     });
   });
 

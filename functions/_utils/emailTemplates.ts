@@ -280,3 +280,52 @@ Receipt: ${params.receiptUrl ?? "—"}`;
   return { subject: "Sunnah Skills — Payment received", text, html };
 }
 
+export function freeTrialConfirmationEmail(params: {
+  accountHolderName: string;
+  participantName: string;
+  participantType: "self" | "child";
+  desiredDate: string;
+  programName: string;
+  qrImageUrl: string;
+  qrVerifyUrl: string;
+}) {
+  const title = "Free trial confirmed";
+  const text = `Sunnah Skills — Free trial confirmed
+
+Account holder: ${params.accountHolderName}
+Participant: ${params.participantName}
+Program: ${params.programName}
+Trial date: ${params.desiredDate}
+
+Bring this QR code for check-in: ${params.qrVerifyUrl}`;
+
+  const html = wrapHtml(
+    title,
+    `
+      <p style="margin:0 0 12px 0;line-height:1.6;">
+        Assalamu alaykum ${escapeHtml(params.accountHolderName)} — your ${params.programName} free trial is booked.
+      </p>
+      <div style="border:1px solid rgba(46,64,54,0.12);border-radius:18px;background:${BRAND.cream};padding:14px 16px;margin:14px 0;">
+        <div style="font-size:11px;letter-spacing:0.18em;text-transform:uppercase;color:${BRAND.moss};">Trial details</div>
+        <div style="margin-top:8px;line-height:1.7;">
+          <div><strong>Participant:</strong> ${escapeHtml(params.participantName)}</div>
+          <div><strong>Booked for:</strong> ${escapeHtml(params.desiredDate)}</div>
+          <div><strong>Program:</strong> ${escapeHtml(params.programName)}</div>
+        </div>
+      </div>
+      <p style="margin:0 0 12px 0;line-height:1.6;color:rgba(26,26,26,0.8);">
+        Bring this QR code when you arrive so staff can verify the trial and apply your one-class credit later if you enroll.
+      </p>
+      <div style="text-align:center;margin:18px 0;">
+        <img src="${params.qrImageUrl}" alt="Trial check-in QR code" width="220" height="220" style="display:inline-block;border-radius:16px;border:1px solid rgba(26,26,26,0.08);background:#fff;padding:10px;" />
+      </div>
+      <p style="margin:0;line-height:1.6;color:rgba(26,26,26,0.8);">
+        If the image doesn’t load, staff can also open this verification link:
+        <br />
+        <a href="${params.qrVerifyUrl}">${params.qrVerifyUrl}</a>
+      </p>
+    `,
+  );
+
+  return { subject: "Sunnah Skills — Free trial confirmed", text, html };
+}

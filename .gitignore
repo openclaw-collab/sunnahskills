@@ -20,6 +20,7 @@ test-results/
 playwright-report/
 
 # Test environment secrets
+.dev.vars
 .dev.vars.test
 .dev.vars.*.local
 
@@ -31,3 +32,6 @@ playwright-report/
 
 # local agent state
 .agent/
+
+# local backups
+backups/

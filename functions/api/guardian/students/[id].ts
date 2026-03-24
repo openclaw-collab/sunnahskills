@@ -45,25 +45,34 @@ export async function onRequestPatch({
   if (!owned) return json({ error: "Not found." }, { status: 404 });
 
   const body = (await request.json().catch(() => null)) as {
+    participantType?: string;
     fullName?: string;
     dateOfBirth?: string;
     gender?: string;
     medicalNotes?: string;
   } | null;
 
+  const participantType = String(body?.participantType ?? "").trim();
   const fullName = compactWhitespace(String(body?.fullName ?? ""));
   const dateOfBirth = String(body?.dateOfBirth ?? "").trim();
   const gender = String(body?.gender ?? "").trim();
   const medicalNotes = compactWhitespace(String(body?.medicalNotes ?? "")).slice(0, 1500);
 
-  if (fullName.length < 2) return json({ error: "Student name is required." }, { status: 400 });
+  if (participantType !== "self" && participantType !== "child") {
+    return json({ error: "Participant type is required." }, { status: 400 });
+  }
+  if (fullName.length < 2) return json({ error: "Participant name is required." }, { status: 400 });
+  if (!dateOfBirth) return json({ error: "Date of birth is required." }, { status: 400 });
+  if (!gender) return json({ error: "Gender is required." }, { status: 400 });
 
   await env.DB.prepare(
     `UPDATE saved_students
-     SET full_name = ?, date_of_birth = ?, gender = ?, medical_notes = ?
+     SET participant_type = ?, is_account_holder = ?, full_name = ?, date_of_birth = ?, gender = ?, medical_notes = ?
      WHERE id = ? AND guardian_account_id = ?`,
   )
     .bind(
+      participantType,
+      participantType === "self" ? 1 : 0,
       fullName,
       dateOfBirth || null,
       gender || null,

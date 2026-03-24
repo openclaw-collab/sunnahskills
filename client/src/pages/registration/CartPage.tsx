@@ -1,52 +1,42 @@
 import React from "react";
 import { Link, useLocation } from "wouter";
-import { PremiumCard } from "@/components/brand/PremiumCard";
+import { MotionPage } from "@/components/motion/PageMotion";
 import { SectionHeader } from "@/components/brand/SectionHeader";
+import { PremiumCard } from "@/components/brand/PremiumCard";
 import { ClayButton } from "@/components/brand/ClayButton";
 import { OutlineButton } from "@/components/brand/OutlineButton";
-import { MotionPage } from "@/components/motion/PageMotion";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-  loadFamilyCart,
-  removeCartLine,
-  clearFamilyCart,
-  type FamilyCart,
-} from "@/lib/familyCart";
+import { Textarea } from "@/components/ui/textarea";
+import { loadFamilyCart, removeCartLine, clearFamilyCart, type FamilyCart } from "@/lib/familyCart";
+import { useGuardianSession } from "@/hooks/useGuardianSession";
 import { PaymentProvider } from "@/components/payment/PaymentProvider";
 import { PaymentForm } from "@/components/payment/PaymentForm";
-import type { RegistrationDraft } from "@/hooks/useRegistration";
-import { useGuardianSession } from "@/hooks/useGuardianSession";
+import { BJJ_TRACK_BY_KEY } from "../../../../shared/bjjCatalog";
 
-function formatScheduleDate(iso: string | null | undefined) {
-  if (!iso?.trim()) return null;
-  const t = Date.parse(`${iso.trim()}T12:00:00`);
-  if (!Number.isFinite(t)) return iso.trim();
-  return new Intl.DateTimeFormat("en-US", {
-    weekday: "long",
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  }).format(t);
-}
+type WaiverRecord = {
+  id: number;
+  title: string;
+  body_html: string;
+  version_label: string;
+};
 
-function trackLabel(track: string) {
-  const map: Record<string, string> = {
-    "girls-5-10": "Girls 5–10",
-    "boys-7-13": "Boys 7–13",
-    "women-11-tue": "Women 11+ (Tue)",
-    "women-11-thu": "Women 11+ (Thu)",
-    "men-14": "Men 14+",
-  };
-  return map[track] ?? track;
+function money(cents: number) {
+  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(cents / 100);
 }
 
 export default function CartPage() {
   const [, navigate] = useLocation();
   const [cart, setCart] = React.useState<FamilyCart | null>(() => loadFamilyCart());
-  const guardianSession = useGuardianSession();
-  const [discountCode, setDiscountCode] = React.useState("");
-  const [waivers, setWaivers] = React.useState<RegistrationDraft["waivers"]>({
+  const sessionQuery = useGuardianSession();
+  const [waiver, setWaiver] = React.useState<WaiverRecord | null>(null);
+  const [phase, setPhase] = React.useState<"review" | "pay">("review");
+  const [clientSecret, setClientSecret] = React.useState<string | null>(null);
+  const [orderId, setOrderId] = React.useState<number | null>(null);
+  const [firstRegistrationId, setFirstRegistrationId] = React.useState<number | null>(null);
+  const [summary, setSummary] = React.useState<{ dueTodayCents: number; dueLaterCents: number; laterPaymentDate: string | null } | null>(null);
+  const [prorationCode, setProrationCode] = React.useState("");
+  const [waivers, setWaivers] = React.useState({
     liabilityWaiver: false,
     photoConsent: false,
     medicalConsent: false,
@@ -54,55 +44,45 @@ export default function CartPage() {
     signatureText: "",
     signedAt: new Date().toISOString().slice(0, 10),
   });
-  const [phase, setPhase] = React.useState<"review" | "checkout" | "pay">("review");
-  const [enrollmentOrderId, setEnrollmentOrderId] = React.useState<number | null>(null);
-  const [firstRegistrationId, setFirstRegistrationId] = React.useState<number | null>(null);
-  const [clientSecret, setClientSecret] = React.useState<string | null>(null);
-  const [summary, setSummary] = React.useState<{
-    dueTodayCents: number;
-    dueLaterCents: number;
-    laterPaymentDate: string | null;
-  } | null>(null);
+  const [submitting, setSubmitting] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
-  const [loading, setLoading] = React.useState(false);
-  /** Required before card step when a second installment exists (exact $/date from server). */
-  const [installmentScheduleAck, setInstallmentScheduleAck] = React.useState(false);
 
-  function refreshCart() {
-    setCart(loadFamilyCart());
-  }
+  React.useEffect(() => {
+    (async () => {
+      const res = await fetch("/api/waivers?slug=registration");
+      const json = (await res.json().catch(() => null)) as { waiver?: WaiverRecord | null } | null;
+      if (res.ok) setWaiver(json?.waiver ?? null);
+    })();
+  }, []);
 
-  if (guardianSession.isLoading) {
+  if (sessionQuery.isLoading) {
     return (
       <MotionPage className="min-h-screen bg-cream pb-24">
         <div className="noise-overlay" />
-        <main className="mx-auto max-w-2xl px-6 pt-28">
-          <PremiumCard className="space-y-4 border border-charcoal/10 bg-white p-8">
-            <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-moss">Guardian account</div>
-            <p className="font-body text-sm text-charcoal/70">Loading your guardian session…</p>
+        <main className="mx-auto max-w-4xl px-6 pt-28">
+          <PremiumCard className="border border-charcoal/10 bg-white p-6">
+            <div className="text-sm text-charcoal/70">Loading your account...</div>
           </PremiumCard>
         </main>
       </MotionPage>
     );
   }
 
-  if (!guardianSession.data?.authenticated) {
+  if (!sessionQuery.data?.authenticated) {
     return (
       <MotionPage className="min-h-screen bg-cream pb-24">
         <div className="noise-overlay" />
-        <main className="mx-auto max-w-2xl px-6 pt-28">
-          <SectionHeader eyebrow="Registration" title="Sign in to open your cart" className="mb-6" />
-          <PremiumCard className="space-y-4 border border-charcoal/10 bg-white p-8">
-            <p className="font-body text-sm leading-relaxed text-charcoal/75">
-              Family checkout is tied to a guardian account so saved students, payment plans, and later balance collection stay on the correct household.
+        <main className="mx-auto max-w-3xl px-6 pt-28">
+          <SectionHeader eyebrow="Checkout" title="Sign in to finish checkout" className="mb-6" />
+          <PremiumCard className="border border-charcoal/10 bg-white p-6">
+            <p className="text-sm leading-relaxed text-charcoal/70">
+              Checkout is tied to your Family &amp; Member Account so participant records, waivers, and payment plans all
+              stay in one place.
             </p>
-            <div className="flex flex-col gap-3 sm:flex-row">
+            <div className="mt-6">
               <ClayButton asChild className="px-6 py-3 text-[11px] uppercase tracking-[0.18em]">
-                <Link href="/register?next=%2Fregistration%2Fcart">Sign in to continue</Link>
+                <Link href="/register?next=%2Fregistration%2Fcart">Open your account</Link>
               </ClayButton>
-              <OutlineButton asChild className="px-6 py-3 text-[11px] uppercase tracking-[0.18em]">
-                <Link href="/programs/bjj/register">Back to BJJ</Link>
-              </OutlineButton>
             </div>
           </PremiumCard>
         </main>
@@ -114,19 +94,19 @@ export default function CartPage() {
     return (
       <MotionPage className="min-h-screen bg-cream pb-24">
         <div className="noise-overlay" />
-        <main className="mx-auto max-w-2xl px-6 pt-28">
-          <SectionHeader eyebrow="Registration" title="Your cart" className="mb-6" />
-          <PremiumCard className="space-y-4 border border-charcoal/10 bg-white p-8">
-            <p className="font-body text-sm leading-relaxed text-charcoal/75">
-              Your cart is empty. Add a Brazilian Jiu-Jitsu enrollment from the program page, or register a single student in
-              one guided flow.
+        <main className="mx-auto max-w-3xl px-6 pt-28">
+          <SectionHeader eyebrow="Checkout" title="Your cart is empty" className="mb-6" />
+          <PremiumCard className="border border-charcoal/10 bg-white p-6">
+            <p className="text-sm leading-relaxed text-charcoal/70">
+              Add one or more BJJ registrations first, then come back here to review the order, confirm the waiver,
+              and pay.
             </p>
-            <div className="flex flex-col gap-3 sm:flex-row">
+            <div className="mt-6 flex flex-wrap gap-3">
               <ClayButton asChild className="px-6 py-3 text-[11px] uppercase tracking-[0.18em]">
-                <Link href="/programs/bjj/register">Register for BJJ</Link>
+                <Link href="/programs/bjj/register">Back to BJJ</Link>
               </ClayButton>
               <OutlineButton asChild className="px-6 py-3 text-[11px] uppercase tracking-[0.18em]">
-                <Link href="/register">All programs</Link>
+                <Link href="/trial">Start with a free trial</Link>
               </OutlineButton>
             </div>
           </PremiumCard>
@@ -137,311 +117,217 @@ export default function CartPage() {
 
   const returnUrl =
     typeof window !== "undefined"
-      ? `${window.location.origin}/registration/success?rid=${firstRegistrationId ?? ""}&order=${enrollmentOrderId ?? ""}`
+      ? `${window.location.origin}/registration/success?rid=${firstRegistrationId ?? ""}&order=${orderId ?? ""}`
       : "/registration/success";
 
   async function submitCheckout() {
+    if (!cart) return;
+    const currentCart = cart;
+    if (!waiver?.id) {
+      setError("The live waiver could not be loaded.");
+      return;
+    }
+    setSubmitting(true);
     setError(null);
-    if (!cart || cart.lines.length === 0) return;
-    const signedInEmail = guardianSession.data?.email?.trim().toLowerCase() ?? "";
-    const cartEmail = cart.guardian.email.trim().toLowerCase();
-    if (!signedInEmail || cartEmail !== signedInEmail) {
-      setError("Your signed-in guardian account does not match the cart email. Re-open BJJ registration from the same guardian account.");
-      return;
-    }
-    if (
-      !waivers.liabilityWaiver ||
-      !waivers.medicalConsent ||
-      !waivers.termsAgreement ||
-      !waivers.signatureText.trim() ||
-      !waivers.signedAt
-    ) {
-      setError("Please complete all waivers and sign before paying.");
-      return;
-    }
-
-    setLoading(true);
-    setInstallmentScheduleAck(false);
     try {
       const regRes = await fetch("/api/register/cart", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          guardian: {
-            ...cart.guardian,
-            email: signedInEmail,
+          account: {
+            ...currentCart.account,
+            email: sessionQuery.data?.email ?? currentCart.account.email,
           },
-          lines: cart.lines.map((l) => ({
-            student: l.student,
-            programDetails: {
-              sessionId: l.programDetails.sessionId,
-              priceId: l.programDetails.priceId,
-              preferredStartDate: l.programDetails.preferredStartDate ?? "",
-              scheduleChoice: l.programDetails.scheduleChoice ?? "",
-              programSpecific: l.programDetails.programSpecific,
-            },
-            paymentChoice: l.programDetails.paymentChoice === "plan" ? "plan" : "full",
-          })),
-          waivers,
+          lines: currentCart.lines,
+          prorationCode: prorationCode.trim() || undefined,
+          waivers: {
+            waiverId: waiver.id,
+            ...waivers,
+          },
         }),
       });
       const regJson = (await regRes.json().catch(() => null)) as any;
-      if (!regRes.ok) {
-        throw new Error(regJson?.error ?? "Could not submit enrollments");
-      }
+      if (!regRes.ok) throw new Error(regJson?.error ?? "Could not submit the registrations.");
       if (regJson?.summary?.waitlisted) {
         clearFamilyCart();
-        navigate(`/registration/waitlist?pos=1&program=${encodeURIComponent("Brazilian Jiu-Jitsu")}`);
+        navigate("/registration/waitlist");
         return;
       }
-      const oid = Number(regJson?.enrollmentOrderId);
-      const rids = regJson?.registrationIds as number[] | undefined;
-      if (!Number.isInteger(oid) || oid <= 0) {
-        throw new Error("Invalid order response");
-      }
-      setEnrollmentOrderId(oid);
-      setFirstRegistrationId(Array.isArray(rids) && rids.length ? rids[0]! : null);
+
+      const nextOrderId = Number(regJson?.enrollmentOrderId ?? 0);
+      const registrationIds = Array.isArray(regJson?.registrationIds) ? (regJson.registrationIds as number[]) : [];
+      setOrderId(nextOrderId);
+      setFirstRegistrationId(registrationIds[0] ?? null);
 
       const payRes = await fetch("/api/payments/create-order-intent", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          enrollmentOrderId: oid,
-          discountCode: discountCode.trim() || undefined,
-        }),
+        body: JSON.stringify({ enrollmentOrderId: nextOrderId }),
       });
       const payJson = (await payRes.json().catch(() => null)) as any;
       if (!payRes.ok || !payJson?.clientSecret) {
-        throw new Error(payJson?.error ?? "Could not start payment");
+        throw new Error(payJson?.error ?? "Could not start payment.");
       }
+
       setClientSecret(payJson.clientSecret as string);
       setSummary({
         dueTodayCents: Number(payJson.dueTodayCents ?? 0),
         dueLaterCents: Number(payJson.dueLaterCents ?? 0),
         laterPaymentDate: payJson.laterPaymentDate ?? null,
       });
-      setInstallmentScheduleAck(Number(payJson.dueLaterCents ?? 0) <= 0);
       setPhase("pay");
       clearFamilyCart();
       setCart(null);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Something went wrong");
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Could not finish checkout.");
     } finally {
-      setLoading(false);
+      setSubmitting(false);
     }
   }
-
-  const money = (cents: number) =>
-    new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(cents / 100);
 
   return (
     <MotionPage className="min-h-screen bg-cream pb-24">
       <div className="noise-overlay" />
-      <main className="mx-auto max-w-2xl px-6 pt-28">
-        <SectionHeader eyebrow="Registration" title="Family cart" className="mb-6" />
-        <p className="font-body text-sm text-charcoal/70 mb-6">
-          One set of waivers covers every line in this order. If you chose a payment plan, you&apos;ll see the{" "}
-          <strong>exact</strong> second installment amount and date before you enter your card.
-        </p>
+      <main className="mx-auto max-w-5xl px-6 pt-28">
+        <SectionHeader eyebrow="Checkout" title="Review the order and confirm the waiver" className="mb-6" />
 
         {phase === "review" ? (
-          <PremiumCard className="space-y-6 border border-charcoal/10 bg-white p-6">
-            <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-moss">Guardian</div>
-            <p className="font-body text-sm text-charcoal">
-              {cart.guardian.fullName} · {cart.guardian.email}
-            </p>
-
-            <div className="space-y-4">
-              <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-moss">Enrollments</div>
-              {cart.lines.map((line) => {
-                const ps = line.programDetails.programSpecific as { bjjTrack?: string };
-                return (
-                  <div
-                    key={line.id}
-                    className="flex flex-col gap-2 rounded-2xl border border-charcoal/10 bg-cream/40 p-4 sm:flex-row sm:items-center sm:justify-between"
-                  >
-                    <div>
-                      <div className="font-body font-medium text-charcoal">{line.student.fullName}</div>
-                      <div className="text-xs text-charcoal/60">
-                        {trackLabel(String(ps.bjjTrack ?? ""))} ·{" "}
-                        {line.programDetails.paymentChoice === "plan" ? "Pay part today" : "Pay in full"}
+          <div className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
+            <PremiumCard className="border border-charcoal/10 bg-white p-6">
+              <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-moss mb-3">Registration lines</div>
+              <div className="space-y-3">
+                {cart.lines.map((line) => (
+                  <div key={line.id} className="rounded-2xl border border-charcoal/10 bg-cream/40 p-4">
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <div className="text-sm font-medium text-charcoal">{line.participant.fullName}</div>
+                        <div className="mt-1 text-xs uppercase tracking-[0.16em] text-charcoal/55">
+                          {Object.prototype.hasOwnProperty.call(BJJ_TRACK_BY_KEY, line.programDetails.programSpecific.bjjTrack)
+                            ? BJJ_TRACK_BY_KEY[line.programDetails.programSpecific.bjjTrack as keyof typeof BJJ_TRACK_BY_KEY].registerLabel
+                            : line.programDetails.programSpecific.bjjTrack}
+                        </div>
+                        <div className="mt-2 text-sm text-charcoal/65">
+                          {line.paymentChoice === "plan" ? "Pay half now, half on May 12, 2026" : "Pay in full"}
+                        </div>
                       </div>
+                      <OutlineButton
+                        className="px-3 py-2 text-[10px] uppercase tracking-[0.18em]"
+                        onClick={() => {
+                          removeCartLine(line.id);
+                          setCart(loadFamilyCart());
+                        }}
+                      >
+                        Remove
+                      </OutlineButton>
                     </div>
-                    <OutlineButton
-                      type="button"
-                      className="text-[10px] uppercase tracking-[0.18em]"
-                      onClick={() => {
-                        removeCartLine(line.id);
-                        refreshCart();
-                      }}
-                    >
-                      Remove
-                    </OutlineButton>
                   </div>
-                );
-              })}
-            </div>
+                ))}
+              </div>
 
-            <div className="flex flex-wrap gap-3">
-              <OutlineButton asChild className="px-5 py-2.5 text-[11px] uppercase tracking-[0.18em]">
-                <Link href="/programs/bjj/register">Add another student</Link>
-              </OutlineButton>
-              <OutlineButton
-                type="button"
-                className="px-5 py-2.5 text-[11px] uppercase tracking-[0.18em]"
-                onClick={() => {
-                  clearFamilyCart();
-                  refreshCart();
-                }}
-              >
-                Clear cart
-              </OutlineButton>
-            </div>
-
-            <ClayButton
-              type="button"
-              className="w-full px-6 py-3 text-[11px] uppercase tracking-[0.18em]"
-              onClick={() => setPhase("checkout")}
-            >
-              Continue to waivers
-            </ClayButton>
-          </PremiumCard>
-        ) : null}
-
-        {phase === "checkout" ? (
-          <PremiumCard className="space-y-6 border border-charcoal/10 bg-white p-6">
-            <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-moss">Promo code (optional)</div>
-            <Input value={discountCode} onChange={(e) => setDiscountCode(e.target.value)} className="bg-white" />
-
-            <div className="space-y-3">
-              <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-moss">Waivers (whole order)</div>
-              {[
-                ["liabilityWaiver", "I agree to the liability waiver."] as const,
-                ["photoConsent", "I consent to photo/media use for program communications."] as const,
-                ["medicalConsent", "I consent to medical treatment in case of emergency."] as const,
-                ["termsAgreement", "I agree to the terms and policies."] as const,
-              ].map(([key, label]) => (
-                <label key={key} className="flex items-start gap-3 rounded-2xl border border-charcoal/10 bg-cream p-4">
-                  <Checkbox
-                    checked={waivers[key]}
-                    onCheckedChange={(v) => setWaivers((w) => ({ ...w, [key]: v === true }))}
-                    aria-label={label}
+              <div className="mt-6">
+                <label className="text-sm text-charcoal">
+                  One-time proration code (optional)
+                  <Input
+                    className="mt-2 bg-cream/50 border-charcoal/10"
+                    value={prorationCode}
+                    onChange={(event) => setProrationCode(event.target.value.toUpperCase())}
+                    placeholder="Only enter a staff-issued code"
                   />
-                  <span className="font-body text-sm text-charcoal">{label}</span>
                 </label>
-              ))}
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div>
-                  <label htmlFor="cart-sig" className="font-body text-sm text-charcoal">
-                    Typed legal signature
-                  </label>
-                  <Input
-                    id="cart-sig"
-                    className="mt-1 bg-white"
-                    value={waivers.signatureText}
-                    onChange={(e) => setWaivers((w) => ({ ...w, signatureText: e.target.value }))}
-                  />
-                </div>
-                <div>
-                  <label htmlFor="cart-signed" className="font-body text-sm text-charcoal">
-                    Date signed
-                  </label>
-                  <Input
-                    id="cart-signed"
-                    type="date"
-                    className="mt-1 bg-white"
-                    value={waivers.signedAt}
-                    onChange={(e) => setWaivers((w) => ({ ...w, signedAt: e.target.value }))}
-                  />
+                <div className="mt-2 text-xs uppercase tracking-[0.16em] text-charcoal/55">
+                  Without a valid staff code, pricing stays at the standard full-term amount.
                 </div>
               </div>
-            </div>
+            </PremiumCard>
 
-            {error ? <p className="text-sm text-red-700">{error}</p> : null}
+            <PremiumCard className="border border-charcoal/10 bg-white p-6">
+              <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-moss mb-3">Waiver and payment consent</div>
+              {waiver ? (
+                <>
+                  <div className="rounded-2xl border border-charcoal/10 bg-cream/40 p-4">
+                    <div className="text-sm font-medium text-charcoal">{waiver.title}</div>
+                    <div className="mt-1 text-xs uppercase tracking-[0.16em] text-charcoal/55">Version {waiver.version_label}</div>
+                    <div
+                      className="prose prose-sm mt-4 max-w-none text-charcoal"
+                      dangerouslySetInnerHTML={{ __html: waiver.body_html }}
+                    />
+                  </div>
 
-            <div className="flex flex-col gap-3 sm:flex-row sm:justify-between">
-              <OutlineButton type="button" className="px-6 py-3 text-[11px] uppercase tracking-[0.18em]" onClick={() => setPhase("review")}>
-                Back
-              </OutlineButton>
-              <ClayButton
-                type="button"
-                disabled={loading}
-                className="px-6 py-3 text-[11px] uppercase tracking-[0.18em]"
-                onClick={() => void submitCheckout()}
-              >
-                {loading ? "Submitting…" : "Submit & pay"}
-              </ClayButton>
-            </div>
-          </PremiumCard>
-        ) : null}
-
-        {phase === "pay" && clientSecret ? (
-          <PremiumCard className="space-y-6 border border-charcoal/10 bg-white p-6">
-            <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-moss">Payment schedule</div>
-            {summary ? (
-              <div className="rounded-2xl border border-moss/25 bg-moss/5 p-4 space-y-3">
-                <div className="font-body text-sm text-charcoal">
-                  <span className="font-semibold">Due today:</span> {money(summary.dueTodayCents)}
-                </div>
-                {summary.dueLaterCents > 0 ? (
-                  <>
-                    <div className="font-body text-sm text-charcoal leading-relaxed">
-                      <span className="font-semibold">Second installment:</span>{" "}
-                      <strong className="text-charcoal">{money(summary.dueLaterCents)}</strong>
-                      {summary.laterPaymentDate ? (
-                        <>
-                          {" "}
-                          on or after{" "}
-                          <strong>
-                            {formatScheduleDate(summary.laterPaymentDate) ?? summary.laterPaymentDate}
-                          </strong>
-                        </>
-                      ) : (
-                        <> (date set by your semester — check your confirmation email)</>
-                      )}
-                      . This amount will be charged <strong>automatically</strong> to the same card you use below — you will
-                      not be asked to check out again for this installment.
-                    </div>
-                    <p className="font-body text-xs text-charcoal/65 leading-relaxed">
-                      Amounts include any promo code you entered.
-                    </p>
-                    <label className="flex items-start gap-3 rounded-xl border border-charcoal/15 bg-white p-3 cursor-pointer">
-                      <Checkbox
-                        checked={installmentScheduleAck}
-                        onCheckedChange={(v) => setInstallmentScheduleAck(v === true)}
-                        aria-label="Authorize second installment charge"
-                      />
-                      <span className="font-body text-sm text-charcoal leading-snug">
-                        I agree that <strong>{money(summary.dueLaterCents)}</strong> will be charged automatically on or
-                        after{" "}
-                        <strong>
-                          {formatScheduleDate(summary.laterPaymentDate) ?? summary.laterPaymentDate ?? "the date above"}
-                        </strong>{" "}
-                        to the same card I use below.
-                      </span>
+                  <div className="mt-5 space-y-4">
+                    <label className="flex items-start gap-3 text-sm text-charcoal">
+                      <Checkbox checked={waivers.liabilityWaiver} onCheckedChange={(checked) => setWaivers((prev) => ({ ...prev, liabilityWaiver: checked === true }))} />
+                      <span>I accept the liability waiver.</span>
                     </label>
-                  </>
-                ) : (
-                  <p className="font-body text-sm text-charcoal/80">You are paying in full today — no second charge.</p>
-                )}
+                    <label className="flex items-start gap-3 text-sm text-charcoal">
+                      <Checkbox checked={waivers.medicalConsent} onCheckedChange={(checked) => setWaivers((prev) => ({ ...prev, medicalConsent: checked === true }))} />
+                      <span>I confirm the emergency-contact information and authorize emergency care if needed.</span>
+                    </label>
+                    <label className="flex items-start gap-3 text-sm text-charcoal">
+                      <Checkbox checked={waivers.termsAgreement} onCheckedChange={(checked) => setWaivers((prev) => ({ ...prev, termsAgreement: checked === true }))} />
+                      <span>I accept the payment and registration policies for this order.</span>
+                    </label>
+                    <label className="flex items-start gap-3 text-sm text-charcoal">
+                      <Checkbox checked={waivers.photoConsent} onCheckedChange={(checked) => setWaivers((prev) => ({ ...prev, photoConsent: checked === true }))} />
+                      <span>I consent to photo usage for community updates.</span>
+                    </label>
+
+                    <label className="text-sm text-charcoal">
+                      Signature
+                      <Input className="mt-2 bg-cream/50 border-charcoal/10" value={waivers.signatureText} onChange={(event) => setWaivers((prev) => ({ ...prev, signatureText: event.target.value }))} />
+                    </label>
+                    <label className="text-sm text-charcoal">
+                      Signed on
+                      <Input className="mt-2 bg-cream/50 border-charcoal/10" type="date" value={waivers.signedAt} onChange={(event) => setWaivers((prev) => ({ ...prev, signedAt: event.target.value }))} />
+                    </label>
+                  </div>
+                </>
+              ) : (
+                <div className="text-sm text-charcoal/70">Loading the active waiver...</div>
+              )}
+
+              {error ? <div className="mt-4 text-sm text-clay">{error}</div> : null}
+
+              <div className="mt-6 flex flex-wrap gap-3">
+                <ClayButton
+                  className="px-6 py-3 text-[11px] uppercase tracking-[0.18em]"
+                  disabled={submitting}
+                  onClick={submitCheckout}
+                >
+                  {submitting ? "Preparing payment..." : "Continue to payment"}
+                </ClayButton>
+                <OutlineButton asChild className="px-6 py-3 text-[11px] uppercase tracking-[0.18em]">
+                  <Link href="/programs/bjj/register">Back to cart builder</Link>
+                </OutlineButton>
               </div>
-            ) : null}
-
-            {summary && summary.dueLaterCents > 0 && !installmentScheduleAck ? (
-              <p className="font-body text-sm text-charcoal/60 text-center py-2">
-                Confirm the installment agreement above to enter your card.
-              </p>
-            ) : null}
-
-            {clientSecret && ((summary?.dueLaterCents ?? 0) <= 0 || installmentScheduleAck) ? (
+            </PremiumCard>
+          </div>
+        ) : clientSecret ? (
+          <div className="grid gap-6 lg:grid-cols-[1fr_0.95fr]">
+            <PremiumCard className="border border-charcoal/10 bg-white p-6">
+              <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-moss mb-3">Payment</div>
               <PaymentProvider clientSecret={clientSecret}>
-                <PaymentForm
-                  returnUrl={returnUrl}
-                  onSuccess={() => navigate(`/registration/success?rid=${firstRegistrationId ?? ""}&order=${enrollmentOrderId ?? ""}`)}
-                />
+                <PaymentForm returnUrl={returnUrl} onSuccess={() => navigate(returnUrl)} />
               </PaymentProvider>
-            ) : null}
-          </PremiumCard>
+            </PremiumCard>
+
+            <PremiumCard className="border border-charcoal/10 bg-white p-6">
+              <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-moss mb-3">Order summary</div>
+              <div className="space-y-3 text-sm text-charcoal/75">
+                <div>Due today: <strong className="text-charcoal">{money(summary?.dueTodayCents ?? 0)}</strong></div>
+                <div>
+                  Later balance: <strong className="text-charcoal">{money(summary?.dueLaterCents ?? 0)}</strong>
+                </div>
+                <div>
+                  Later charge date: <strong className="text-charcoal">{summary?.laterPaymentDate ?? "None"}</strong>
+                </div>
+                {summary && summary.dueLaterCents > 0 ? (
+                  <div className="rounded-2xl border border-clay/15 bg-clay/5 p-4 text-sm text-charcoal/75">
+                    Your card will be saved for the automatic second half on {summary.laterPaymentDate ?? "the scheduled date"}.
+                  </div>
+                ) : null}
+              </div>
+            </PremiumCard>
+          </div>
         ) : null}
       </main>
     </MotionPage>

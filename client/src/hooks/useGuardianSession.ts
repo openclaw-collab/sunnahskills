@@ -6,10 +6,17 @@ export type GuardianSession = {
   accountNumber?: string;
   fullName?: string | null;
   phone?: string | null;
+  emergencyContactName?: string | null;
+  emergencyContactPhone?: string | null;
+  accountRole?: "parent_guardian" | "adult_student" | string | null;
+  accountComplete?: boolean;
+  completedAt?: string | null;
 };
 
 export type SavedStudent = {
   id: number;
+  participant_type: "self" | "child";
+  is_account_holder?: number;
   full_name: string;
   date_of_birth: string | null;
   gender: string | null;

@@ -13,6 +13,7 @@ import { DiscountsManager } from "@/components/admin/DiscountsManager";
 import { PricingManager } from "@/components/admin/PricingManager";
 import { SessionManager } from "@/components/admin/SessionManager";
 import { ContactsTable } from "@/components/admin/ContactsTable";
+import { TrialsManager } from "@/components/admin/TrialsManager";
 import { AdminShell, type AdminPermissionKey, type AdminSection, type AdminUser, hasAdminAccess } from "@/components/admin/AdminShell";
 
 type AdminMeResponse = { ok: true; user: AdminUser } | { ok: false };
@@ -88,6 +89,7 @@ type DashboardResponse = {
 type DashboardTab =
   | "overview"
   | "registrations"
+  | "trials"
   | "payments"
   | "discounts"
   | "pricing"
@@ -105,6 +107,7 @@ type DashboardTabConfig = {
 const DASHBOARD_TABS: DashboardTabConfig[] = [
   { value: "overview", label: "Overview", permission: "dashboard", required: "read" },
   { value: "registrations", label: "Registrations", permission: "registrations", required: "read" },
+  { value: "trials", label: "Trials", permission: "registrations", required: "read" },
   { value: "payments", label: "Payments", permission: "payments", required: "read" },
   { value: "discounts", label: "Discounts", permission: "discounts", required: "read" },
   { value: "pricing", label: "Pricing", permission: "pricing", required: "read" },
@@ -156,6 +159,7 @@ function getTabFromLocation(location: string): DashboardTab {
   const pathTab = pathMatch?.[1];
   if (
     pathTab === "registrations" ||
+    pathTab === "trials" ||
     pathTab === "payments" ||
     pathTab === "discounts" ||
     pathTab === "pricing" ||
@@ -175,6 +179,7 @@ function getTabFromLocation(location: string): DashboardTab {
   const tab = params.get("tab");
   if (
     tab === "registrations" ||
+    tab === "trials" ||
     tab === "payments" ||
     tab === "discounts" ||
     tab === "pricing" ||
@@ -500,6 +505,10 @@ export default function AdminDashboard() {
               setDetailOpen(true);
             }}
           />
+        </TabsContent>
+
+        <TabsContent value="trials">
+          <TrialsManager />
         </TabsContent>
 
         <TabsContent value="payments">

@@ -1,15 +1,41 @@
-import type { RegistrationDraft } from "@/hooks/useRegistration";
+const CART_KEY = "sunnah-family-cart-v2";
 
-const CART_KEY = "sunnah-family-cart-v1";
+export type AccountCartSnapshot = {
+  fullName: string;
+  email: string;
+  phone: string;
+  emergencyContactName: string;
+  emergencyContactPhone: string;
+  accountRole: "parent_guardian" | "adult_student";
+  notes?: string;
+};
+
+export type ParticipantCartSnapshot = {
+  id?: number | null;
+  participantType: "self" | "child";
+  fullName: string;
+  dateOfBirth: string;
+  gender: string;
+  medicalNotes?: string;
+  experienceLevel: string;
+};
 
 export type FamilyCartLine = {
   id: string;
-  student: RegistrationDraft["student"];
-  programDetails: RegistrationDraft["programDetails"];
+  participant: ParticipantCartSnapshot;
+  paymentChoice: "full" | "plan";
+  programDetails: {
+    sessionId: number;
+    priceId: number;
+    programSpecific: {
+      bjjTrack: string;
+      notes?: string;
+    };
+  };
 };
 
 export type FamilyCart = {
-  guardian: RegistrationDraft["guardian"];
+  account: AccountCartSnapshot;
   lines: FamilyCartLine[];
 };
 
@@ -18,7 +44,7 @@ export function loadFamilyCart(): FamilyCart | null {
     const raw = localStorage.getItem(CART_KEY);
     if (!raw) return null;
     const data = JSON.parse(raw) as FamilyCart;
-    if (!data?.guardian || !Array.isArray(data.lines)) return null;
+    if (!data?.account || !Array.isArray(data.lines)) return null;
     return data;
   } catch {
     return null;
@@ -41,14 +67,14 @@ export function clearFamilyCart() {
   }
 }
 
-export function addLineToFamilyCart(guardian: RegistrationDraft["guardian"], line: Omit<FamilyCartLine, "id">) {
+export function addLineToFamilyCart(account: AccountCartSnapshot, line: Omit<FamilyCartLine, "id">) {
   const existing = loadFamilyCart();
-  const id =
-    typeof crypto !== "undefined" && crypto.randomUUID
-      ? crypto.randomUUID()
-      : `line-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+  const id = typeof crypto !== "undefined" && crypto.randomUUID
+    ? crypto.randomUUID()
+    : `line-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+
   const next: FamilyCart = {
-    guardian: existing?.guardian ?? guardian,
+    account,
     lines: [...(existing?.lines ?? []), { ...line, id }],
   };
   saveFamilyCart(next);
@@ -58,7 +84,7 @@ export function addLineToFamilyCart(guardian: RegistrationDraft["guardian"], lin
 export function removeCartLine(lineId: string) {
   const existing = loadFamilyCart();
   if (!existing) return;
-  const lines = existing.lines.filter((l) => l.id !== lineId);
+  const lines = existing.lines.filter((line) => line.id !== lineId);
   if (lines.length === 0) {
     clearFamilyCart();
     return;

@@ -3,7 +3,7 @@
  * Server routes should recompute amounts; this module is for tests and UI previews.
  */
 
-export const KIDS_PER_CLASS_CENTS_DEFAULT = 1250;
+export const KIDS_PER_CLASS_CENTS_DEFAULT = 1200;
 export const SIBLING_DISCOUNT_PERCENT = 10;
 
 export function kidsLineSubtotalCents(perClassCents: number, classesInSemester: number) {

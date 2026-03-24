@@ -40,17 +40,30 @@ export function PricingManager() {
   const [programs, setPrograms] = useState<Program[]>([]);
   const [prices, setPrices] = useState<Price[]>([]);
   const [semesters, setSemesters] = useState<SemesterRow[]>([]);
+  const [prorationCodes, setProrationCodes] = useState<Array<{ id: number; code: string; note: string | null; active: number; redeemed_at: string | null }>>([]);
+  const [prorationNote, setProrationNote] = useState("");
+  const [creatingCode, setCreatingCode] = useState(false);
   const [loading, setLoading] = useState(false);
 
   async function refresh() {
     setLoading(true);
     try {
-      const [pRes, sRes] = await Promise.all([fetch("/api/admin/programs"), fetch("/api/admin/semesters")]);
+      const [pRes, sRes, cRes] = await Promise.all([
+        fetch("/api/admin/programs"),
+        fetch("/api/admin/semesters"),
+        fetch("/api/admin/proration-codes").catch(() => null),
+      ]);
       const json = (await pRes.json().catch(() => null)) as any;
       setPrograms((json?.programs ?? []) as Program[]);
       setPrices((json?.prices ?? []) as Price[]);
       const sjson = (await sRes.json().catch(() => null)) as any;
       setSemesters((sjson?.semesters ?? []) as SemesterRow[]);
+      if (cRes?.ok) {
+        const cjson = (await cRes.json().catch(() => null)) as any;
+        setProrationCodes((cjson?.codes ?? []) as Array<{ id: number; code: string; note: string | null; active: number; redeemed_at: string | null }>);
+      } else {
+        setProrationCodes([]);
+      }
     } finally {
       setLoading(false);
     }
@@ -96,6 +109,65 @@ export function PricingManager() {
           </div>
         </div>
       ) : null}
+
+      <div className="mb-8 rounded-[1.5rem] border border-clay/20 bg-clay/5 p-4">
+        <div className="mb-4 flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-clay">One-time proration codes</div>
+            <div className="mt-1 text-sm text-charcoal/70">
+              Standard registration stays full-term. Generate a one-time code here whenever staff wants checkout to use remaining-class pricing instead.
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <Input
+              value={prorationNote}
+              onChange={(event) => setProrationNote(event.target.value)}
+              placeholder="Optional note"
+              className="w-52 bg-white border-charcoal/10"
+            />
+            <ClayButton
+              className="px-5 py-2.5 text-[11px] uppercase tracking-[0.18em]"
+              disabled={creatingCode}
+              onClick={async () => {
+                setCreatingCode(true);
+                try {
+                  const res = await fetch("/api/admin/proration-codes", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ note: prorationNote.trim() || undefined }),
+                  });
+                  const json = (await res.json().catch(() => null)) as { code?: string } | null;
+                  if (res.ok && json?.code) {
+                    await navigator.clipboard.writeText(json.code).catch(() => {});
+                    setProrationNote("");
+                    await refresh();
+                  }
+                } finally {
+                  setCreatingCode(false);
+                }
+              }}
+            >
+              {creatingCode ? "Generating..." : "Generate + copy code"}
+            </ClayButton>
+          </div>
+        </div>
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          {prorationCodes.slice(0, 9).map((code) => (
+            <div key={code.id} className="rounded-2xl border border-charcoal/10 bg-white p-4">
+              <div className="font-mono-label text-[12px] text-charcoal">{code.code}</div>
+              <div className="mt-2 text-sm text-charcoal/70">{code.note ?? "No note"}</div>
+              <div className="mt-2 text-xs uppercase tracking-[0.16em] text-charcoal/55">
+                {code.redeemed_at ? `Redeemed ${code.redeemed_at}` : code.active ? "Ready to use once" : "Disabled"}
+              </div>
+            </div>
+          ))}
+          {prorationCodes.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-charcoal/15 bg-white p-4 text-sm text-charcoal/60">
+              No proration codes created yet.
+            </div>
+          ) : null}
+        </div>
+      </div>
 
       <div className="space-y-4">
         {programs.map((prog) => {

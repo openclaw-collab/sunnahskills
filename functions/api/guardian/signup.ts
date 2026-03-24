@@ -26,13 +26,11 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
   const body = (await request.json().catch(() => null)) as {
     email?: string;
     fullName?: string;
-    phone?: string;
     next?: string;
   } | null;
 
   const email = body?.email?.trim().toLowerCase();
   const fullName = body?.fullName?.trim() ?? "";
-  const phone = body?.phone?.trim() ?? "";
   if (!email || !email.includes("@")) return json({ error: "Valid email is required." }, { status: 400 });
   if (fullName.length < 2) return json({ error: "Name is required." }, { status: 400 });
 
@@ -51,10 +49,10 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
   }
 
   const ins = await env.DB.prepare(
-    `INSERT INTO guardian_accounts (email, account_number, full_name, phone, created_at)
-     VALUES (?, ?, ?, ?, datetime('now'))`,
+    `INSERT INTO guardian_accounts (email, account_number, full_name, created_at)
+     VALUES (?, ?, ?, datetime('now'))`,
   )
-    .bind(email, accountNumber, fullName, phone || null)
+    .bind(email, accountNumber, fullName)
     .run();
 
   const accountId = ins.meta?.last_row_id;
@@ -78,10 +76,10 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
   await sendMailChannelsEmail(env, {
     to: { email, name: fullName },
     from: { email: fromEmail, name: "Sunnah Skills" },
-    subject: "Confirm your Sunnah Skills account",
-    text: `Welcome! Your account number is ${accountNumber}. Open this link to sign in: ${verifyUrl}`,
-    html: `<p>Welcome!</p><p><strong>Your Sunnah Skills account number:</strong> ${accountNumber}</p><p><a href="${verifyUrl}">Sign in to your account</a></p><p>This link expires in 30 minutes.</p>`,
+    subject: "Your Sunnah Skills account link",
+    text: `Welcome to Sunnah Skills.\n\nYour account number is ${accountNumber}.\n\nOpen this link to sign in: ${verifyUrl}\n\nThis link expires in 30 minutes.`,
+    html: `<p>Welcome to Sunnah Skills.</p><p><strong>Your account number:</strong> ${accountNumber}</p><p><a href="${verifyUrl}">Open your Family &amp; Member Account</a></p><p>This sign-in link expires in 30 minutes.</p>`,
   }).catch(() => {});
 
-  return json({ ok: true, accountNumber, message: "Check your email for a sign-in link." });
+  return json({ ok: true, message: "Check your email for a sign-in link." });
 }

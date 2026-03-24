@@ -22,9 +22,9 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
   const email = body?.email?.trim().toLowerCase();
   if (!email || !email.includes("@")) return json({ error: "Valid email is required." }, { status: 400 });
 
-  const account = await env.DB.prepare(`SELECT id, full_name FROM guardian_accounts WHERE email = ?`)
+  const account = await env.DB.prepare(`SELECT id, full_name, account_number FROM guardian_accounts WHERE email = ?`)
     .bind(email)
-    .first<{ id: number; full_name: string | null }>();
+    .first<{ id: number; full_name: string | null; account_number: string | null }>();
 
   if (!account?.id) {
     return json({ ok: true, message: "If we find an account, we sent a sign-in link." });
@@ -49,8 +49,8 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
     to: { email, name: account.full_name ?? undefined },
     from: { email: fromEmail, name: "Sunnah Skills" },
     subject: "Your Sunnah Skills sign-in link",
-    text: `Open this link to sign in: ${verifyUrl}`,
-    html: `<p><a href="${verifyUrl}">Sign in to Sunnah Skills</a></p><p>This link expires in 30 minutes.</p>`,
+    text: `Your Sunnah Skills account number is ${account.account_number ?? "not available"}.\n\nOpen this link to sign in: ${verifyUrl}\n\nThis link expires in 30 minutes.`,
+    html: `<p><strong>Your account number:</strong> ${account.account_number ?? "not available"}</p><p><a href="${verifyUrl}">Open your Family &amp; Member Account</a></p><p>This link expires in 30 minutes.</p>`,
   }).catch(() => {});
 
   return json({ ok: true, message: "If we find an account, we sent a sign-in link." });

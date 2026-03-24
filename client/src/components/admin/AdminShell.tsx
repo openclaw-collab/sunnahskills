@@ -31,6 +31,7 @@ export type AdminUser = {
 export type AdminSection =
   | "overview"
   | "registrations"
+  | "trials"
   | "payments"
   | "discounts"
   | "pricing"
@@ -65,6 +66,15 @@ const NAV_ITEMS: NavItem[] = [
     label: "Registrations",
     href: "/admin/dashboard/registrations",
     hint: "Families and student records",
+    permission: "registrations",
+    required: "read",
+    icon: <ClipboardList size={15} />,
+  },
+  {
+    id: "trials",
+    label: "Trials",
+    href: "/admin/dashboard/trials",
+    hint: "Free trial bookings and QR verification",
     permission: "registrations",
     required: "read",
     icon: <ClipboardList size={15} />,

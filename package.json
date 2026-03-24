@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build && node scripts/prune-static-assets.mjs",
+    "build:grapplemap-admin-library": "node scripts/build-admin-library.mjs",
     "preview": "vite preview",
     "dev:test": "node scripts/dev-test.mjs",
     "test": "vitest run --config vitest.config.ts",

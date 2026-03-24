@@ -20,6 +20,7 @@ type BuilderLibraryType = "position" | "transition" | "note";
 
 type LibraryItemSummary = {
   id: string;
+  builderKey?: string;
   sourceId: number;
   graphNodeId?: number | null;
   graphTransitionId?: number | null;
@@ -47,6 +48,20 @@ type LibraryItemSummary = {
   toDisplayName?: string;
   fromFamily?: string;
   toFamily?: string;
+  reverse?: boolean;
+};
+
+type GraphLinkStep = {
+  transitionId: number;
+  reverse: boolean;
+};
+
+type GraphLinksResponse = {
+  nodes?: Array<{
+    id: number;
+    incoming: GraphLinkStep[];
+    outgoing: GraphLinkStep[];
+  }>;
 };
 
 type LibraryItemPreview = {
@@ -66,6 +81,7 @@ type SequenceMarker = Marker & {
   family?: string;
   fromDisplayName?: string;
   toDisplayName?: string;
+  reverse?: boolean;
 };
 
 type SavedSequence = {
@@ -129,12 +145,25 @@ function getComposerTitle(item: LibraryItemSummary) {
   return toDisplayText(item.composerTitle || item.routeLabel || item.displayName || item.name);
 }
 
+function getTransitionBuilderKey(item: Pick<LibraryItemSummary, "id" | "reverse" | "builderKey">) {
+  return item.builderKey ?? `${item.id}:${item.reverse ? "reverse" : "forward"}`;
+}
+
+function getLibraryItemKey(item: Pick<LibraryItemSummary, "id" | "libraryType" | "reverse" | "builderKey">) {
+  return item.libraryType === "transition" ? getTransitionBuilderKey(item) : item.id;
+}
+
 function getComposerSubtitle(item: LibraryItemSummary) {
   if (item.composerSubtitle) return toDisplayText(item.composerSubtitle);
   if (item.libraryType === "transition") {
     return `From ${item.fromDisplayName || "unknown start"} to ${item.toDisplayName || "unknown finish"}`;
   }
   return `${item.outgoingCount ?? 0} outgoing routes • ${item.incomingCount ?? 0} incoming routes`;
+}
+
+function getDirectionHint(item: LibraryItemSummary) {
+  if (item.libraryType !== "transition") return null;
+  return item.reverse ? "Reverse route" : "Forward route";
 }
 
 function getMarkerLabel(marker: SequenceMarker) {
@@ -190,13 +219,20 @@ function buildPreviewFromMarkers(
     const asset = previewCache[marker.previewPath];
     if (!asset) continue;
 
+    const assetFrames = marker.reverse ? [...asset.frames].reverse() : asset.frames;
+    const assetMarkers = marker.reverse
+      ? asset.markers.map((assetMarker) => ({
+          ...assetMarker,
+          frame: Math.max(0, asset.frames.length - 1 - assetMarker.frame),
+        }))
+      : asset.markers;
     const startFrame = frames.length;
-    asset.frames.forEach((frame) => frames.push(frame));
-    const markerOffset = asset.markers[0]?.frame ?? 0;
+    assetFrames.forEach((frame) => frames.push(frame));
+    const markerOffset = assetMarkers[0]?.frame ?? 0;
 
     builtMarkers.push({
       ...marker,
-      frame: startFrame + Math.min(markerOffset, Math.max(0, asset.frames.length - 1)),
+      frame: startFrame + Math.min(markerOffset, Math.max(0, assetFrames.length - 1)),
     });
   }
 
@@ -208,6 +244,36 @@ function buildPreviewFromMarkers(
   }
 
   return { frames, markers: builtMarkers };
+}
+
+function applyDirectionalTransition(item: LibraryItemSummary, reverse: boolean) {
+  if (item.libraryType !== "transition") return item;
+  return {
+    ...item,
+    builderKey: `${item.id}:${reverse ? "reverse" : "forward"}`,
+    reverse,
+    fromNodeId: reverse ? item.toNodeId ?? null : item.fromNodeId ?? null,
+    toNodeId: reverse ? item.fromNodeId ?? null : item.toNodeId ?? null,
+    fromDisplayName: reverse ? item.toDisplayName : item.fromDisplayName,
+    toDisplayName: reverse ? item.fromDisplayName : item.toDisplayName,
+    fromFamily: reverse ? item.toFamily : item.fromFamily,
+    toFamily: reverse ? item.fromFamily : item.toFamily,
+    composerSubtitle: reverse
+      ? `Reverse route from ${item.toDisplayName || "unknown start"} to ${item.fromDisplayName || "unknown finish"}`
+      : item.composerSubtitle,
+  } satisfies LibraryItemSummary;
+}
+
+function materializePreviewAsset(preview: LibraryItemPreview, reverse: boolean) {
+  if (!reverse) return preview;
+  return {
+    ...preview,
+    markers: preview.markers.map((marker) => ({
+      ...marker,
+      frame: Math.max(0, preview.frames.length - 1 - marker.frame),
+    })),
+    frames: [...preview.frames].reverse(),
+  } satisfies LibraryItemPreview;
 }
 
 function markerFromPosition(item: LibraryItemSummary, index: number): SequenceMarker {
@@ -228,7 +294,7 @@ function markerFromTransition(item: LibraryItemSummary, index: number): Sequence
     name: item.displayName || item.name,
     frame: index,
     type: "transition",
-    sourceId: item.id,
+    sourceId: getTransitionBuilderKey(item),
     libraryType: "transition",
     previewPath: item.previewPath,
     graphTransitionId: item.graphTransitionId ?? null,
@@ -237,6 +303,7 @@ function markerFromTransition(item: LibraryItemSummary, index: number): Sequence
     fromDisplayName: item.fromDisplayName,
     toDisplayName: item.toDisplayName,
     family: item.toFamily || item.fromFamily,
+    reverse: Boolean(item.reverse),
   };
 }
 
@@ -247,6 +314,7 @@ export default function AdminSequences() {
   const [authLoading, setAuthLoading] = useState(true);
   const [positions, setPositions] = useState<LibraryItemSummary[]>([]);
   const [transitions, setTransitions] = useState<LibraryItemSummary[]>([]);
+  const [graphLinks, setGraphLinks] = useState<Map<number, { incoming: GraphLinkStep[]; outgoing: GraphLinkStep[] }>>(new Map());
   const [sequences, setSequences] = useState<SavedSequence[]>([]);
   const [previewCache, setPreviewCache] = useState<Record<string, LibraryItemPreview>>({});
   const [catalogMode, setCatalogMode] = useState<LibraryMode>("positions");
@@ -270,15 +338,25 @@ export default function AdminSequences() {
   const [loadingPreview, setLoadingPreview] = useState(false);
 
   const fetchCatalog = useCallback(async () => {
-    const [positionsRes, transitionsRes] = await Promise.all([
+    const [positionsRes, transitionsRes, linksRes] = await Promise.all([
       fetch("/data/library/admin/positions.json"),
       fetch("/data/library/admin/transitions.json"),
+      fetch("/data/library/admin/graph-links.json"),
     ]);
 
     const positionsData = (await positionsRes.json().catch(() => null)) as CatalogResponse | null;
     const transitionsData = (await transitionsRes.json().catch(() => null)) as CatalogResponse | null;
+    const linksData = (await linksRes.json().catch(() => null)) as GraphLinksResponse | null;
     setPositions(positionsData?.positions ?? []);
     setTransitions(transitionsData?.transitions ?? []);
+    setGraphLinks(
+      new Map(
+        (linksData?.nodes ?? []).map((node) => [
+          node.id,
+          { incoming: node.incoming ?? [], outgoing: node.outgoing ?? [] },
+        ]),
+      ),
+    );
   }, []);
 
   const fetchSequences = useCallback(async () => {
@@ -335,6 +413,11 @@ export default function AdminSequences() {
     return map;
   }, [transitions]);
 
+  const transitionsByGraphId = useMemo(
+    () => new Map(transitions.filter((item) => item.graphTransitionId != null).map((item) => [item.graphTransitionId as number, item])),
+    [transitions],
+  );
+
   const ensurePreviewAsset = useCallback(
     async (previewPath: string) => {
       if (previewCache[previewPath]) {
@@ -368,7 +451,7 @@ export default function AdminSequences() {
       setLoadingPreview(true);
       try {
         const preview = await ensurePreviewAsset(item.previewPath);
-        setSelectedItemPreview(preview);
+        setSelectedItemPreview(preview ? materializePreviewAsset(preview, Boolean(item.reverse)) : null);
       } finally {
         setLoadingPreview(false);
       }
@@ -423,40 +506,35 @@ export default function AdminSequences() {
     return firstTransition?.fromNodeId ?? null;
   }, [sequenceMarkers]);
 
-  const completeTransitions = useMemo(
-    () => transitions.filter((item) => item.fromNodeId != null && item.toNodeId != null),
-    [transitions],
-  );
-
   const outgoingTransitionsByNode = useMemo(() => {
     const map = new Map<number, LibraryItemSummary[]>();
-    completeTransitions.forEach((item) => {
-      const nodeId = item.fromNodeId as number;
-      const current = map.get(nodeId) ?? [];
-      current.push(item);
-      map.set(nodeId, current);
-    });
-
-    map.forEach((items, nodeId) => {
-      map.set(nodeId, [...items].sort((left, right) => getComposerTitle(left).localeCompare(getComposerTitle(right))));
+    graphLinks.forEach((links, nodeId) => {
+      const items = links.outgoing
+        .map((step) => {
+          const transition = transitionsByGraphId.get(step.transitionId);
+          return transition ? applyDirectionalTransition(transition, step.reverse) : null;
+        })
+        .filter((item): item is LibraryItemSummary => item != null)
+        .sort((left, right) => getComposerTitle(left).localeCompare(getComposerTitle(right)));
+      map.set(nodeId, items);
     });
     return map;
-  }, [completeTransitions]);
+  }, [graphLinks, transitionsByGraphId]);
 
   const incomingTransitionsByNode = useMemo(() => {
     const map = new Map<number, LibraryItemSummary[]>();
-    completeTransitions.forEach((item) => {
-      const nodeId = item.toNodeId as number;
-      const current = map.get(nodeId) ?? [];
-      current.push(item);
-      map.set(nodeId, current);
-    });
-
-    map.forEach((items, nodeId) => {
-      map.set(nodeId, [...items].sort((left, right) => getComposerTitle(left).localeCompare(getComposerTitle(right))));
+    graphLinks.forEach((links, nodeId) => {
+      const items = links.incoming
+        .map((step) => {
+          const transition = transitionsByGraphId.get(step.transitionId);
+          return transition ? applyDirectionalTransition(transition, step.reverse) : null;
+        })
+        .filter((item): item is LibraryItemSummary => item != null)
+        .sort((left, right) => getComposerTitle(left).localeCompare(getComposerTitle(right)));
+      map.set(nodeId, items);
     });
     return map;
-  }, [completeTransitions]);
+  }, [graphLinks, transitionsByGraphId]);
 
   const suggestedNextTransitions = useMemo(() => {
     if (currentPositionNodeId == null) return [];
@@ -696,11 +774,11 @@ export default function AdminSequences() {
     const start = eligibleStarts[Math.floor(Math.random() * eligibleStarts.length)];
     const nextMarkers: SequenceMarker[] = [markerFromPosition(start, 0)];
     let currentNodeId = start.graphNodeId ?? null;
-    let lastTransitionId: string | null = null;
+    let lastTransitionKey: string | null = null;
     let transitionsAdded = 0;
 
     while (currentNodeId != null && transitionsAdded < 6) {
-      const choices = (outgoingTransitionsByNode.get(currentNodeId) ?? []).filter((item) => item.id !== lastTransitionId);
+      const choices = (outgoingTransitionsByNode.get(currentNodeId) ?? []).filter((item) => getTransitionBuilderKey(item) !== lastTransitionKey);
       if (choices.length === 0) break;
 
       const selected = choices[Math.floor(Math.random() * choices.length)];
@@ -714,7 +792,7 @@ export default function AdminSequences() {
       }
 
       currentNodeId = selected.toNodeId ?? null;
-      lastTransitionId = selected.id;
+      lastTransitionKey = getTransitionBuilderKey(selected);
       transitionsAdded += 1;
     }
 
@@ -753,12 +831,16 @@ export default function AdminSequences() {
             return match ? { ...marker, ...markerFromPosition(match, marker.frame) } : marker;
           }
 
-          const match = transitionsByName.get(getMarkerLabel(marker).toLowerCase());
-          return match ? { ...marker, ...markerFromTransition(match, marker.frame) } : marker;
+          const match =
+            (marker.graphTransitionId != null ? transitionsByGraphId.get(marker.graphTransitionId) : null) ??
+            transitionsByName.get(getMarkerLabel(marker).toLowerCase());
+          return match
+            ? { ...marker, ...markerFromTransition(applyDirectionalTransition(match, Boolean(marker.reverse)), marker.frame) }
+            : marker;
         }),
       );
     },
-    [positionsByName, transitionsByName],
+    [positionsByName, transitionsByGraphId, transitionsByName],
   );
 
   const loadSequence = useCallback(
@@ -1004,7 +1086,10 @@ export default function AdminSequences() {
                     </div>
                     <div className="mt-4 max-h-[42rem] space-y-3 overflow-y-auto pr-1">
                       {recommendedStartingPositions.map((item) => (
-                        <div key={item.id} className={`rounded-[1.5rem] border p-4 ${selectedItem?.id === item.id ? "border-moss/25 bg-moss/10" : "border-charcoal/10 bg-cream/35"}`}>
+                        <div
+                          key={getLibraryItemKey(item)}
+                          className={`rounded-[1.5rem] border p-4 ${selectedItem && getLibraryItemKey(selectedItem) === getLibraryItemKey(item) ? "border-moss/25 bg-moss/10" : "border-charcoal/10 bg-cream/35"}`}
+                        >
                           <div className="flex items-start justify-between gap-4">
                             <button type="button" onClick={() => loadLibraryItem(item)} className="min-w-0 flex-1 text-left">
                               <div className="text-sm text-charcoal">{getComposerTitle(item)}</div>
@@ -1031,12 +1116,18 @@ export default function AdminSequences() {
                         </div>
                       ) : (
                         suggestedPreviousTransitions.map((item) => (
-                          <div key={item.id} className={`rounded-[1.5rem] border p-4 ${selectedItem?.id === item.id ? "border-moss/25 bg-moss/10" : "border-charcoal/10 bg-cream/35"}`}>
+                          <div
+                            key={getLibraryItemKey(item)}
+                            className={`rounded-[1.5rem] border p-4 ${selectedItem && getLibraryItemKey(selectedItem) === getLibraryItemKey(item) ? "border-moss/25 bg-moss/10" : "border-charcoal/10 bg-cream/35"}`}
+                          >
                             <div className="flex items-start justify-between gap-4">
                               <button type="button" onClick={() => loadLibraryItem(item)} className="min-w-0 flex-1 text-left">
                                 <div className="text-sm text-charcoal">{getComposerTitle(item)}</div>
                                 <div className="mt-1 text-xs text-charcoal/55">{getComposerSubtitle(item)}</div>
-                                <div className="mt-2 text-[11px] text-charcoal/45">Starts at {item.fromDisplayName || "unknown"} and lands in {item.toDisplayName || "unknown"}.</div>
+                                <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-charcoal/45">
+                                  <span>{getDirectionHint(item)}</span>
+                                  <span>Starts at {item.fromDisplayName || "unknown"} and lands in {item.toDisplayName || "unknown"}.</span>
+                                </div>
                               </button>
                               <ClayButton className="px-3 py-2 text-[11px] uppercase tracking-[0.18em]" onClick={() => prependTransitionToBuilder(item)}>
                                 Add before
@@ -1060,12 +1151,18 @@ export default function AdminSequences() {
                         </div>
                       ) : (
                         suggestedNextTransitions.map((item) => (
-                          <div key={item.id} className={`rounded-[1.5rem] border p-4 ${selectedItem?.id === item.id ? "border-moss/25 bg-moss/10" : "border-charcoal/10 bg-cream/35"}`}>
+                          <div
+                            key={getLibraryItemKey(item)}
+                            className={`rounded-[1.5rem] border p-4 ${selectedItem && getLibraryItemKey(selectedItem) === getLibraryItemKey(item) ? "border-moss/25 bg-moss/10" : "border-charcoal/10 bg-cream/35"}`}
+                          >
                             <div className="flex items-start justify-between gap-4">
                               <button type="button" onClick={() => loadLibraryItem(item)} className="min-w-0 flex-1 text-left">
                                 <div className="text-sm text-charcoal">{getComposerTitle(item)}</div>
                                 <div className="mt-1 text-xs text-charcoal/55">{getComposerSubtitle(item)}</div>
-                                <div className="mt-2 text-[11px] text-charcoal/45">Starts at {item.fromDisplayName || "unknown"} and finishes in {item.toDisplayName || "unknown"}.</div>
+                                <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-charcoal/45">
+                                  <span>{getDirectionHint(item)}</span>
+                                  <span>Starts at {item.fromDisplayName || "unknown"} and finishes in {item.toDisplayName || "unknown"}.</span>
+                                </div>
                               </button>
                               <ClayButton className="px-3 py-2 text-[11px] uppercase tracking-[0.18em]" onClick={() => addTransitionToBuilder(item)}>
                                 Add after
@@ -1130,13 +1227,19 @@ export default function AdminSequences() {
 
                     <div className="mt-4 max-h-[38rem] space-y-3 overflow-y-auto pr-1">
                       {filteredCatalog.slice(0, 120).map((item) => (
-                        <div key={item.id} className={`rounded-[1.5rem] border p-4 ${selectedItem?.id === item.id ? "border-moss/25 bg-moss/10" : "border-charcoal/10 bg-cream/35"}`}>
+                        <div
+                          key={getLibraryItemKey(item)}
+                          className={`rounded-[1.5rem] border p-4 ${selectedItem && getLibraryItemKey(selectedItem) === getLibraryItemKey(item) ? "border-moss/25 bg-moss/10" : "border-charcoal/10 bg-cream/35"}`}
+                        >
                           <div className="flex items-start justify-between gap-4">
                             <button type="button" onClick={() => loadLibraryItem(item)} className="min-w-0 flex-1 text-left">
                               <div className="text-sm text-charcoal">{item.libraryType === "transition" ? getComposerTitle(item) : getItemLabel(item)}</div>
                               <div className="mt-1 text-xs text-charcoal/55">
                                 {item.libraryType === "transition" ? getComposerSubtitle(item) : `${item.outgoingCount ?? 0} outgoing / ${item.incomingCount ?? 0} incoming`}
                               </div>
+                              {item.libraryType === "transition" ? (
+                                <div className="mt-2 text-[11px] text-charcoal/45">{getDirectionHint(item)}</div>
+                              ) : null}
                             </button>
                             <ClayButton
                               className="px-3 py-2 text-[11px] uppercase tracking-[0.18em]"

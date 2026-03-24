@@ -118,19 +118,11 @@ const SEQUENCE_CACHE = new Map<string, SequenceData | null>();
 const SEQUENCE_PENDING = new Map<string, Promise<SequenceData | null>>();
 
 const ROLE_MATCH_JOINTS = [J.Core, J.Neck, J.Head, J.LeftHip, J.RightHip, J.LeftShoulder, J.RightShoulder] as const;
+const POSE_DRAG = 0.2;
+const CAMERA_TARGET_DRAG = 0.2;
 
 function lerp(a: number, b: number, t: number) {
   return a + (b - a) * t;
-}
-
-function smoothenJoint(targetX: number, targetY: number, targetZ: number, lastX: number, lastY: number, lastZ: number) {
-  const lag = Math.min(0.83, 0.6 + targetY);
-  const factor = 1 - lag;
-  return {
-    x: lastX * lag + targetX * factor,
-    y: lastY * lag + targetY * factor,
-    z: lastZ * lag + targetZ * factor,
-  };
 }
 
 function playerMatchCost(left: PlayerFrame, right: PlayerFrame) {
@@ -164,6 +156,29 @@ function normalizeRoleFrames(frames: number[][][][]): number[][][][] {
   }
 
   return normalized;
+}
+
+function interpolatePose(a: PlayerFrame, b: PlayerFrame, t: number) {
+  return a.map((joint, index) => {
+    const nextJoint = b[index];
+    return [
+      lerp(joint[0], nextJoint[0], t),
+      lerp(joint[1], nextJoint[1], t),
+      lerp(joint[2], nextJoint[2], t),
+    ];
+  });
+}
+
+function getPoseCenter(pose: Frame | null) {
+  const coreA = pose?.[0]?.[J.Core];
+  const coreB = pose?.[1]?.[J.Core];
+  if (!coreA || !coreB) return null;
+
+  return new THREE.Vector3(
+    (coreA[0] + coreB[0]) * 0.5,
+    ((coreA[1] + coreB[1]) * 0.5) * 0.7,
+    (coreA[2] + coreB[2]) * 0.5,
+  );
 }
 
 async function loadSequenceData(sequencePath: string, signal?: AbortSignal) {
@@ -243,7 +258,7 @@ function HumanPlayer({
   const jointsRef = useRef<Array<{ solid: THREE.Mesh; glow: THREE.Mesh }>>([]);
   const limbsRef = useRef<Array<{ solid: THREE.Mesh; glow: THREE.Mesh }>>([]);
   const jointMapRef = useRef<Record<number, { solid: THREE.Mesh; glow: THREE.Mesh }>>({});
-  const lastPosRef = useRef<number[][] | null>(null);
+  const displayedPoseRef = useRef<PlayerFrame | null>(null);
 
   useEffect(() => {
     if (!groupRef.current) return;
@@ -254,7 +269,7 @@ function HumanPlayer({
     jointsRef.current = [];
     limbsRef.current = [];
     jointMapRef.current = {};
-    lastPosRef.current = null;
+    displayedPoseRef.current = null;
 
     const solidMat = new THREE.MeshStandardMaterial({
       color,
@@ -347,25 +362,20 @@ function HumanPlayer({
     const pNext = next?.[pIdx];
     if (!pCur || !pNext) return;
 
-    if (!lastPosRef.current) {
-      lastPosRef.current = pCur.map((joint) => [...joint]);
+    const targetPose = interpolatePose(pCur, pNext, t);
+    if (!displayedPoseRef.current) {
+      displayedPoseRef.current = targetPose.map((joint) => [...joint]);
+    } else {
+      displayedPoseRef.current = interpolatePose(displayedPoseRef.current, targetPose, POSE_DRAG);
     }
+    const displayedPose = displayedPoseRef.current;
 
     for (const { solid, glow } of jointsRef.current) {
       const j = (solid.userData as any).jointIndex as number;
-      const c = pCur[j];
-      const n = pNext[j];
-      const x = lerp(c[0], n[0], t);
-      const y = lerp(c[1], n[1], t);
-      const z = lerp(c[2], n[2], t);
-      const last = lastPosRef.current?.[j];
-      if (!last) continue;
-      const smoothed = smoothenJoint(x, y, z, last[0], last[1], last[2]);
-      last[0] = smoothed.x;
-      last[1] = smoothed.y;
-      last[2] = smoothed.z;
-      solid.position.set(smoothed.x, smoothed.y, smoothed.z);
-      glow.position.set(smoothed.x, smoothed.y, smoothed.z);
+      const joint = displayedPose?.[j];
+      if (!joint) continue;
+      solid.position.set(joint[0], joint[1], joint[2]);
+      glow.position.set(joint[0], joint[1], joint[2]);
     }
 
     const { v1, v2, v3, q, up } = POOL;
@@ -482,11 +492,9 @@ function MannequinSceneInner({
       startFrame = Math.floor(total / 2);
     }
     timeRef.current = startFrame;
-    const first = data.frames[0] as Frame | undefined;
-    if (first?.[0]?.[J.Core] && first?.[1]?.[J.Core]) {
-      const coreA = first[0][J.Core];
-      const coreB = first[1][J.Core];
-      const center = new THREE.Vector3((coreA[0] + coreB[0]) * 0.5, ((coreA[1] + coreB[1]) * 0.5) * 0.7, (coreA[2] + coreB[2]) * 0.5);
+    const initialFrame = (data.frames[Math.min(startFrame, data.frames.length - 1)] ?? data.frames[0]) as Frame | undefined;
+    const center = initialFrame ? getPoseCenter(initialFrame) : null;
+    if (center) {
       controlsTargetRef.current.copy(center);
       lastCenterRef.current = center.clone();
     }
@@ -507,35 +515,22 @@ function MannequinSceneInner({
     const t = raw - idx;
     const cur = data.frames[idx] as Frame | undefined;
     const next = data.frames[Math.min(idx + 1, total - 1)] as Frame | undefined;
-    const curA = cur?.[0]?.[J.Core];
-    const curB = cur?.[1]?.[J.Core];
-    const nextA = next?.[0]?.[J.Core];
-    const nextB = next?.[1]?.[J.Core];
-    if (!curA || !curB || !nextA || !nextB) return;
-
-    const targetX = lerp((curA[0] + curB[0]) * 0.5, (nextA[0] + nextB[0]) * 0.5, t);
-    const targetY = lerp((curA[1] + curB[1]) * 0.5, (nextA[1] + nextB[1]) * 0.5, t) * 0.7;
-    const targetZ = lerp((curA[2] + curB[2]) * 0.5, (nextA[2] + nextB[2]) * 0.5, t);
+    if (!cur || !next) return;
+    const targetPose = [
+      interpolatePose(cur[0], next[0], t),
+      interpolatePose(cur[1], next[1], t),
+    ] as Frame;
+    const targetCenter = getPoseCenter(targetPose);
+    if (!targetCenter) return;
 
     if (!lastCenterRef.current) {
-      lastCenterRef.current = new THREE.Vector3(targetX, targetY, targetZ);
-      controlsTargetRef.current.set(targetX, targetY, targetZ);
+      lastCenterRef.current = targetCenter.clone();
+      controlsTargetRef.current.copy(targetCenter);
       return;
     }
 
-    const lastCenter = lastCenterRef.current;
-    const jumpDist = Math.hypot(targetX - lastCenter.x, targetZ - lastCenter.z);
-    const maxJump = 2.0;
-    let clampedX = targetX;
-    let clampedZ = targetZ;
-    if (jumpDist > maxJump) {
-      const scale = maxJump / jumpDist;
-      clampedX = lastCenter.x + (targetX - lastCenter.x) * scale;
-      clampedZ = lastCenter.z + (targetZ - lastCenter.z) * scale;
-    }
-
-    lastCenter.set(clampedX, targetY, clampedZ);
-    controlsTargetRef.current.lerp(lastCenter, 0.2);
+    lastCenterRef.current.lerp(targetCenter, CAMERA_TARGET_DRAG);
+    controlsTargetRef.current.copy(lastCenterRef.current);
   });
 
   return (
@@ -778,6 +773,7 @@ export function MannequinViewer({
       <Canvas
         camera={{ position: [4.35, 3.05, 4.35], fov: 41, near: 0.1, far: 100 }}
         gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
+        dpr={typeof window !== "undefined" ? Math.min(window.devicePixelRatio || 1, 1.5) : 1}
         onCreated={({ gl }) => {
           canvasRef.current = gl.domElement;
         }}

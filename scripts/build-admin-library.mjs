@@ -337,7 +337,26 @@ function main() {
     JSON.stringify({ transitions }, null, 2),
   );
 
-  console.log(`Wrote ${positions.length} positions and ${transitions.length} transitions to admin library.`);
+  const graphLinks = {
+    nodes: graph.nodes.map((node) => ({
+      id: node.id,
+      incoming: (node.incoming ?? []).map((step) => ({
+        transitionId: step.transition,
+        reverse: Boolean(step.reverse),
+      })),
+      outgoing: (node.outgoing ?? []).map((step) => ({
+        transitionId: step.transition,
+        reverse: Boolean(step.reverse),
+      })),
+    })),
+  };
+
+  writeFileSync(
+    join(ADMIN_LIBRARY_DIR, "graph-links.json"),
+    JSON.stringify(graphLinks, null, 2),
+  );
+
+  console.log(`Wrote ${positions.length} positions, ${transitions.length} transitions, and ${graphLinks.nodes.length} graph nodes to admin library.`);
 }
 
 main();

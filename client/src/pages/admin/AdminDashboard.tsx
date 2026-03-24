@@ -14,6 +14,7 @@ import { PricingManager } from "@/components/admin/PricingManager";
 import { SessionManager } from "@/components/admin/SessionManager";
 import { ContactsTable } from "@/components/admin/ContactsTable";
 import { AdminShell, type AdminPermissionKey, type AdminSection, type AdminUser, hasAdminAccess } from "@/components/admin/AdminShell";
+import { adminSequencesEnabled } from "@/lib/featureFlags";
 
 type AdminMeResponse = { ok: true; user: AdminUser } | { ok: false };
 
@@ -307,7 +308,9 @@ export default function AdminDashboard() {
   const techUsers = numberValue(metrics?.users?.tech_users);
   const activeUsers = numberValue(metrics?.users?.active_users);
 
-  const summary = `Live registration, payment, session, and staff data for the academy. Use the tabs below to move between daily operations, then jump straight into sequences or user management from the same rail.`;
+  const summary = adminSequencesEnabled
+    ? `Live registration, payment, session, and staff data for the academy. Use the tabs below to move between daily operations, then jump straight into sequences or user management from the same rail.`
+    : `Live registration, payment, session, and staff data for the academy. Use the tabs below to move between daily operations and user management from the same rail.`;
 
   return (
     <AdminShell
@@ -407,20 +410,22 @@ export default function AdminDashboard() {
                   </OutlineButton>
                 </div>
 
-                <div className="rounded-[1.8rem] border border-charcoal/10 bg-cream/55 p-5">
-                  <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-charcoal/55">
-                    Library Curation
+                {adminSequencesEnabled ? (
+                  <div className="rounded-[1.8rem] border border-charcoal/10 bg-cream/55 p-5">
+                    <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-charcoal/55">
+                      Library Curation
+                    </div>
+                    <div className="mt-3 text-sm leading-relaxed text-charcoal/75">
+                      Manage public technique sequencing, preview transitions, and publish new curation directly to the live techniques library.
+                    </div>
+                    <ClayButton
+                      className="mt-4 px-4 py-2 text-[11px] uppercase tracking-[0.18em]"
+                      onClick={() => setLocation("/admin/sequences")}
+                    >
+                      Open sequence builder
+                    </ClayButton>
                   </div>
-                  <div className="mt-3 text-sm leading-relaxed text-charcoal/75">
-                    Manage public technique sequencing, preview transitions, and publish new curation directly to the live techniques library.
-                  </div>
-                  <ClayButton
-                    className="mt-4 px-4 py-2 text-[11px] uppercase tracking-[0.18em]"
-                    onClick={() => setLocation("/admin/sequences")}
-                  >
-                    Open sequence builder
-                  </ClayButton>
-                </div>
+                ) : null}
 
                 <div className="rounded-[1.8rem] border border-charcoal/10 bg-cream/55 p-5">
                   <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-charcoal/55">

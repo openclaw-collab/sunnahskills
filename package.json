@@ -5,7 +5,7 @@
   "license": "MIT",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "vite build && node scripts/prune-static-assets.mjs",
     "preview": "vite preview",
     "dev:test": "node scripts/dev-test.mjs",
     "test": "vitest run --config vitest.config.ts",
@@ -19,7 +19,7 @@
     "test:e2e:firefox": "playwright test --project=firefox",
     "test:e2e:webkit": "playwright test --project=webkit",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "ci:check": "tsc -p tsconfig.json --noEmit && vitest run --config vitest.config.ts && vite build && wrangler deploy --dry-run --env production",
+    "ci:check": "tsc -p tsconfig.json --noEmit && vitest run --config vitest.config.ts && npm run build && wrangler deploy --dry-run --env production",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build"
   },

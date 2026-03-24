@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { TechniqueViewer } from "@/components/grapplemap/TechniqueViewer";
 import { AdminShell, type AdminUser } from "@/components/admin/AdminShell";
 import { POSITION_CATEGORIES, type Marker, type PositionCategory } from "@/lib/grapplemap-types";
+import { adminSequencesEnabled } from "@/lib/featureFlags";
 
 type AdminMeResponse = { ok: true; user: AdminUser } | { ok: false };
 type LibraryMode = "positions" | "transitions";
@@ -264,6 +265,12 @@ export default function AdminSequences() {
   const [published, setPublished] = useState(false);
   const [customTransition, setCustomTransition] = useState("");
   const [feedback, setFeedback] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!adminSequencesEnabled) {
+      setLocation("/admin/dashboard");
+    }
+  }, [setLocation]);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [loadingPreview, setLoadingPreview] = useState(false);

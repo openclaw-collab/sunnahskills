@@ -5,7 +5,6 @@ import { SectionHeader } from "@/components/brand/SectionHeader";
 import { PremiumCard } from "@/components/brand/PremiumCard";
 import { ClayButton } from "@/components/brand/ClayButton";
 import { cn } from "@/lib/utils";
-import { adminSequencesEnabled } from "@/lib/featureFlags";
 
 export type AdminPermissionLevel = "none" | "read" | "write";
 export type AdminPermissionKey =
@@ -164,10 +163,7 @@ export function hasAdminAccess(
 }
 
 export function getVisibleAdminNav(user: AdminUser | null | undefined) {
-  return NAV_ITEMS.filter((item) => {
-    if (item.id === "sequences" && !adminSequencesEnabled) return false;
-    return hasAdminAccess(user, item.permission, item.required ?? "read");
-  });
+  return NAV_ITEMS.filter((item) => hasAdminAccess(user, item.permission, item.required ?? "read"));
 }
 
 export function AdminShell({
@@ -245,7 +241,7 @@ export function AdminShell({
                 </div>
                 <p className="mt-3 text-sm leading-relaxed text-charcoal/70">
                   {summary ??
-                    "Keep registrations, pricing, sessions, payments, and staff access in one calm operating space."}
+                    "Keep registrations, pricing, sessions, sequences, and staff access in one calm operating space."}
                 </p>
               </div>
               <div className="rounded-[1.5rem] border border-charcoal/10 bg-cream/60 px-4 py-3 text-sm text-charcoal/70">

@@ -63,6 +63,8 @@ export type StudioUploadEntry = {
   slotKey: string;
   url: string;
   filename?: string;
+  storageKey?: string;
+  author?: string;
   createdAt: string;
 };
 

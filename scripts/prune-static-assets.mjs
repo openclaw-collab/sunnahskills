@@ -11,7 +11,6 @@ if (process.env.KEEP_FULL_PUBLIC_BUILD === "1") {
 const pruneTargets = [
   resolve(root, "dist", "AGENTS.md"),
   resolve(root, "dist", "data", "AGENTS.md"),
-  resolve(root, "dist", "data", "library", "admin"),
 ];
 
 for (const target of pruneTargets) {

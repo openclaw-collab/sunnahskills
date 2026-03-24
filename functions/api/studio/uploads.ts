@@ -32,6 +32,11 @@ function genId() {
   return `${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 9)}`;
 }
 
+function sanitizeFilename(filename: string) {
+  const cleaned = filename.trim().replace(/[^a-zA-Z0-9._-]+/g, "-");
+  return cleaned || "upload";
+}
+
 function isAuthed(request: Request, sessionId: string) {
   const cookies = parseCookieHeader(request.headers.get("Cookie") ?? request.headers.get("cookie") ?? "");
   return cookies[`studio_auth_${sessionId}`] === "1";
@@ -73,11 +78,12 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
 
   const id = genId();
   let fileUrl: string;
+  let storageKey: string | undefined;
 
   if (env.STUDIO_UPLOADS) {
     // Store in R2
-    const key = `studio/${sessionId}/${slotKey}/${file.name}`;
-    await env.STUDIO_UPLOADS.put(key, bytes, { httpMetadata: { contentType: file.type } });
+    storageKey = `studio/${sessionId}/${slotKey}/${id}-${sanitizeFilename(file.name)}`;
+    await env.STUDIO_UPLOADS.put(storageKey, bytes, { httpMetadata: { contentType: file.type } });
     const origin = new URL(request.url).origin;
     fileUrl = `${origin}/api/studio/image/${sessionId}/${encodeURIComponent(slotKey)}`;
   } else {
@@ -92,6 +98,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
     slotKey,
     url: fileUrl,
     filename: file.name,
+    storageKey,
     createdAt: new Date().toISOString(),
     author,
   };

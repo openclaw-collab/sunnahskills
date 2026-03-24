@@ -34,7 +34,6 @@ import RegistrationHub from "@/pages/RegistrationHub";
 import CartPage from "@/pages/registration/CartPage";
 import { StudioProvider } from "@/studio/StudioProvider";
 import StudioPanel from "@/studio/StudioPanel";
-import { adminSequencesEnabled } from "@/lib/featureFlags";
 
 function Router() {
   const [location] = useLocation();
@@ -69,7 +68,7 @@ function Router() {
           <Route path="/admin" component={AdminLogin} />
           <Route path="/admin/dashboard/:tab" component={AdminDashboard} />
           <Route path="/admin/dashboard" component={AdminDashboard} />
-          {adminSequencesEnabled ? <Route path="/admin/sequences" component={AdminSequences} /> : null}
+          <Route path="/admin/sequences" component={AdminSequences} />
           <Route path="/admin/users" component={AdminUsers} />
           <Route component={NotFound} />
         </Switch>

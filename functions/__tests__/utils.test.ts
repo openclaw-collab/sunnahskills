@@ -14,6 +14,8 @@ import {
   serializeCookie,
 } from "../_utils/cookies";
 import {
+  guardianSignInLinkEmail,
+  guardianWelcomeEmail,
   registrationConfirmationEmail,
   waitlistConfirmationEmail,
   paymentReceiptEmail,
@@ -58,8 +60,8 @@ describe("Utility Functions", () => {
           expect.stringContaining("INSERT INTO admin_sessions")
         );
         expect(mockDb.bind).toHaveBeenCalledWith(
-          expect.any(String),
           1,
+          expect.any(String),
           expect.any(String)
         );
       });
@@ -135,6 +137,19 @@ describe("Utility Functions", () => {
           email: "admin@example.com",
           name: "Admin User",
           role: "superadmin",
+          status: "active",
+          permissions: {
+            dashboard: "read",
+            registrations: "write",
+            payments: "write",
+            discounts: "write",
+            pricing: "write",
+            sessions: "write",
+            contacts: "read",
+            sequences: "write",
+            exports: "read",
+            users: "none",
+          },
         });
       });
 
@@ -322,6 +337,47 @@ describe("Utility Functions", () => {
 
         expect(result.html).not.toContain("<script>");
         expect(result.html).toContain("&lt;script&gt;");
+      });
+    });
+
+    describe("guardianWelcomeEmail", () => {
+      it("includes account number and CTA", () => {
+        const result = guardianWelcomeEmail({
+          fullName: "John Doe",
+          accountNumber: "2039485721",
+          verifyUrl: "https://example.com/api/guardian/verify?token=abc",
+        });
+
+        expect(result.subject).toBe("Sunnah Skills — Your account link");
+        expect(result.text).toContain("2039485721");
+        expect(result.html).toContain("Open your account");
+        expect(result.html).toContain("2039485721");
+        expect(result.html).toContain("https://example.com/api/guardian/verify?token=abc");
+      });
+    });
+
+    describe("guardianSignInLinkEmail", () => {
+      it("includes account number and sign-in CTA", () => {
+        const result = guardianSignInLinkEmail({
+          fullName: "John Doe",
+          accountNumber: "2039485721",
+          verifyUrl: "https://example.com/api/guardian/verify?token=xyz",
+        });
+
+        expect(result.subject).toBe("Sunnah Skills — Your sign-in link");
+        expect(result.text).toContain("2039485721");
+        expect(result.html).toContain("Sign in");
+        expect(result.html).toContain("2039485721");
+        expect(result.html).toContain("https://example.com/api/guardian/verify?token=xyz");
+      });
+
+      it("handles missing account number gracefully", () => {
+        const result = guardianSignInLinkEmail({
+          verifyUrl: "https://example.com/api/guardian/verify?token=xyz",
+        });
+
+        expect(result.text).toContain("Not available");
+        expect(result.html).toContain("Not available");
       });
     });
 

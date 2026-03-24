@@ -5,6 +5,7 @@ import { freeTrialConfirmationEmail } from "../_utils/emailTemplates";
 interface Env {
   DB: D1Database;
   EMAIL_FROM?: string;
+  EMAIL_TO?: string;
   SITE_URL?: string;
 }
 
@@ -78,18 +79,22 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
     qrVerifyUrl,
   });
 
-  await sendMailChannelsEmail(env, {
+  const sent = await sendMailChannelsEmail(env, {
     to: { email: body.email, name: body.accountHolderName },
     from: { email: env.EMAIL_FROM ?? "noreply@sunnahskills.pages.dev", name: "Sunnah Skills" },
+    replyTo: env.EMAIL_TO ? { email: env.EMAIL_TO, name: "Sunnah Skills" } : undefined,
     subject: email.subject,
     text: email.text,
     html: email.html,
-  }).catch(() => {});
+  }).catch(() => false);
 
   return json({
     ok: true,
     trialBookingId: bookingId,
     qrToken,
-    message: "Free trial booked. Check your email for the confirmation QR code.",
+    emailSent: sent,
+    message: sent
+      ? "Free trial booked. Check your email for the confirmation QR code."
+      : "Free trial booked, but we could not send the confirmation email right now. Please contact us before class so we can confirm your visit.",
   });
 }

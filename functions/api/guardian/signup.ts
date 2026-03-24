@@ -1,4 +1,5 @@
 import { sendMailChannelsEmail } from "../../_utils/email";
+import { guardianWelcomeEmail } from "../../_utils/emailTemplates";
 import {
   createGuardianSession,
   ensureGuardianSchema,
@@ -17,6 +18,10 @@ function json(data: unknown, init?: ResponseInit) {
     ...init,
     headers: { "Content-Type": "application/json", ...(init?.headers ?? {}) },
   });
+}
+
+function isLocalPreviewSite(site: string) {
+  return /localhost|127\.0\.0\.1|\.local(?::\d+)?/i.test(site);
 }
 
 export async function onRequestPost({ request, env }: { request: Request; env: Env }) {
@@ -72,14 +77,38 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
   const next = typeof body?.next === "string" && body.next.startsWith("/") ? body.next : "/register";
   const verifyUrl = `${site.replace(/\/$/, "")}/api/guardian/verify?token=${encodeURIComponent(rawToken)}&next=${encodeURIComponent(next)}`;
   const fromEmail = env.EMAIL_FROM ?? "noreply@sunnahskills.pages.dev";
+  const emailMessage = guardianWelcomeEmail({
+    fullName,
+    accountNumber,
+    verifyUrl,
+  });
 
-  await sendMailChannelsEmail(env, {
+  const sent = await sendMailChannelsEmail(env, {
     to: { email, name: fullName },
     from: { email: fromEmail, name: "Sunnah Skills" },
-    subject: "Your Sunnah Skills account link",
-    text: `Welcome to Sunnah Skills.\n\nYour account number is ${accountNumber}.\n\nOpen this link to sign in: ${verifyUrl}\n\nThis link expires in 30 minutes.`,
-    html: `<p>Welcome to Sunnah Skills.</p><p><strong>Your account number:</strong> ${accountNumber}</p><p><a href="${verifyUrl}">Open your Family &amp; Member Account</a></p><p>This sign-in link expires in 30 minutes.</p>`,
-  }).catch(() => {});
+    replyTo: env.EMAIL_TO ? { email: env.EMAIL_TO, name: "Sunnah Skills" } : undefined,
+    subject: emailMessage.subject,
+    text: emailMessage.text,
+    html: emailMessage.html,
+  }).catch(() => false);
 
-  return json({ ok: true, message: "Check your email for a sign-in link." });
+  if (!sent) {
+    const localPreview = isLocalPreviewSite(site)
+      ? {
+          verifyUrl,
+          accountNumber,
+        }
+      : undefined;
+
+    return json({
+      ok: true,
+      emailSent: false,
+      message: localPreview
+        ? "Your account was created. Email delivery is unavailable in local preview, so use the direct sign-in link below."
+        : "Your account was created, but the sign-in email could not be sent right now. Please try the sign-in form again in a moment.",
+      localPreview,
+    });
+  }
+
+  return json({ ok: true, emailSent: true, message: "Check your email for a sign-in link." });
 }

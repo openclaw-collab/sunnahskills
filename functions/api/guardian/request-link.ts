@@ -1,4 +1,5 @@
 import { sendMailChannelsEmail } from "../../_utils/email";
+import { guardianSignInLinkEmail } from "../../_utils/emailTemplates";
 import { ensureGuardianSchema, hashToken } from "../../_utils/guardianAuth";
 
 interface Env {
@@ -14,6 +15,10 @@ function json(data: unknown, init?: ResponseInit) {
   });
 }
 
+function isLocalPreviewSite(site: string) {
+  return /localhost|127\.0\.0\.1|\.local(?::\d+)?/i.test(site);
+}
+
 export async function onRequestPost({ request, env }: { request: Request; env: Env }) {
   if (!env.DB) return json({ error: "Something went wrong." }, { status: 500 });
   await ensureGuardianSchema(env);
@@ -27,7 +32,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
     .first<{ id: number; full_name: string | null; account_number: string | null }>();
 
   if (!account?.id) {
-    return json({ ok: true, message: "If we find an account, we sent a sign-in link." });
+    return json({ error: "We couldn't find an account with that email yet. Create your account first." }, { status: 404 });
   }
 
   const rawToken = crypto.randomUUID() + crypto.randomUUID().replace(/-/g, "");
@@ -44,14 +49,40 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
   const next = typeof body?.next === "string" && body.next.startsWith("/") ? body.next : "/register";
   const verifyUrl = `${site.replace(/\/$/, "")}/api/guardian/verify?token=${encodeURIComponent(rawToken)}&next=${encodeURIComponent(next)}`;
   const fromEmail = env.EMAIL_FROM ?? "noreply@sunnahskills.pages.dev";
+  const emailMessage = guardianSignInLinkEmail({
+    fullName: account.full_name,
+    accountNumber: account.account_number,
+    verifyUrl,
+  });
 
-  await sendMailChannelsEmail(env, {
+  const sent = await sendMailChannelsEmail(env, {
     to: { email, name: account.full_name ?? undefined },
     from: { email: fromEmail, name: "Sunnah Skills" },
-    subject: "Your Sunnah Skills sign-in link",
-    text: `Your Sunnah Skills account number is ${account.account_number ?? "not available"}.\n\nOpen this link to sign in: ${verifyUrl}\n\nThis link expires in 30 minutes.`,
-    html: `<p><strong>Your account number:</strong> ${account.account_number ?? "not available"}</p><p><a href="${verifyUrl}">Open your Family &amp; Member Account</a></p><p>This link expires in 30 minutes.</p>`,
-  }).catch(() => {});
+    replyTo: env.EMAIL_TO ? { email: env.EMAIL_TO, name: "Sunnah Skills" } : undefined,
+    subject: emailMessage.subject,
+    text: emailMessage.text,
+    html: emailMessage.html,
+  }).catch(() => false);
 
-  return json({ ok: true, message: "If we find an account, we sent a sign-in link." });
+  if (!sent) {
+    const localPreview = isLocalPreviewSite(site)
+      ? {
+          verifyUrl,
+          accountNumber: account.account_number ?? null,
+        }
+      : undefined;
+
+    if (localPreview) {
+      return json({
+        ok: true,
+        emailSent: false,
+        message: "We found your account. Email delivery is unavailable in local preview, so use the direct sign-in link below.",
+        localPreview,
+      });
+    }
+
+    return json({ error: "We found your account, but the sign-in email could not be sent right now. Please try again shortly." }, { status: 502 });
+  }
+
+  return json({ ok: true, message: "We sent your sign-in link to that email address." });
 }

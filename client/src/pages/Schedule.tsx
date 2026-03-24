@@ -31,6 +31,25 @@ const TRACK_FILTERS: { value: ScheduleTrack | "all"; label: string }[] = [
   { value: "men", label: "Men 14+" },
 ];
 
+const TRACK_STYLES: Record<ScheduleTrack, { block: string; chip: string }> = {
+  kids: {
+    block: "border-moss/20 bg-moss/12 text-charcoal hover:bg-moss/18",
+    chip: "bg-moss/10 text-moss border border-moss/20",
+  },
+  women: {
+    block: "border-clay/20 bg-clay/10 text-charcoal hover:bg-clay/16",
+    chip: "bg-clay/10 text-clay border border-clay/20",
+  },
+  men: {
+    block: "border-charcoal/15 bg-charcoal/8 text-charcoal hover:bg-charcoal/12",
+    chip: "bg-charcoal/8 text-charcoal border border-charcoal/12",
+  },
+  other: {
+    block: "border-charcoal/12 bg-charcoal/6 text-charcoal hover:bg-charcoal/10",
+    chip: "bg-charcoal/6 text-charcoal border border-charcoal/10",
+  },
+};
+
 function sessionMatchesFilter(s: NormalizedSession, f: ScheduleTrack | "all") {
   if (f === "all") return true;
   return s.track === f;
@@ -143,23 +162,23 @@ function WeekGrid({
                   return (
                     <Link key={s.id} href={registerHrefForSession(s)}>
                       <a
-                        className="absolute z-[1] overflow-hidden rounded-xl border border-charcoal/15 bg-moss/10 px-2 py-1.5 text-left shadow-sm transition hover:bg-moss/20 hover:shadow-md"
+                        className={`absolute z-[1] overflow-hidden rounded-2xl border px-2.5 py-2 text-left shadow-[0_10px_24px_rgba(26,26,26,0.08)] transition hover:shadow-[0_16px_34px_rgba(26,26,26,0.12)] ${TRACK_STYLES[s.track].block}`}
                         style={{
                           top: `${top}%`,
-                          height: `${Math.max(h, 6)}%`,
-                          minHeight: "44px",
+                          height: `${Math.max(h, 7)}%`,
+                          minHeight: "52px",
                           left: `calc(${(s.lane / s.laneCount) * 100}% + 4px)`,
                           width: `calc(${laneWidth}% - 8px)`,
                         }}
                         title={s.label}
                       >
-                        <div className="font-mono-label text-[8px] uppercase tracking-[0.12em] text-charcoal/50">
+                        <div className="font-mono-label text-[8px] uppercase tracking-[0.12em] text-charcoal/55">
                           {formatTime12(s.startMinutes)} – {formatTime12(s.endMinutes)}
                         </div>
-                        <div className="mt-0.5 line-clamp-2 font-body text-[11px] font-medium leading-snug text-charcoal">
+                        <div className="mt-1 line-clamp-2 font-body text-[11px] font-medium leading-snug text-charcoal">
                           {s.shortLabel}
                         </div>
-                        <div className="mt-0.5 font-mono-label text-[8px] uppercase tracking-[0.1em] text-clay">
+                        <div className="mt-1 font-mono-label text-[8px] uppercase tracking-[0.1em] text-charcoal/60">
                           {s.registerable ? "Register →" : "Details →"}
                         </div>
                       </a>
@@ -206,7 +225,7 @@ function MonthGrid({
   const isThisMonth = today.getFullYear() === y && today.getMonth() === mo;
 
   return (
-    <div className="rounded-3xl border border-charcoal/10 bg-white p-4 md:p-6">
+    <div className="rounded-[2rem] border border-charcoal/10 bg-white p-4 md:p-6 shadow-[0_20px_55px_rgba(26,26,26,0.06)]">
       <div className="mb-3 grid grid-cols-7 gap-1 font-mono-label text-[10px] uppercase tracking-[0.12em] text-charcoal/40">
         {DAY_LABELS.map((d) => (
           <div key={d} className="text-center py-1">
@@ -254,6 +273,43 @@ function MonthGrid({
       <p className="mt-4 font-body text-xs text-charcoal/55">
         Monthly view shows recurring weekly classes. Tuesday women and kids use separate blocks, and the week view now splits overlapping youth sessions into lanes.
       </p>
+    </div>
+  );
+}
+
+function AgendaCards({ sessions }: { sessions: NormalizedSession[] }) {
+  const grouped = DAY_LABELS.map((label, dayIndex) => ({
+    label,
+    sessions: sessions.filter((session) => session.dayIndex === dayIndex),
+  })).filter((group) => group.sessions.length > 0);
+
+  return (
+    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      {grouped.map((group) => (
+        <div key={group.label} className="rounded-[1.8rem] border border-charcoal/10 bg-white p-4 shadow-[0_18px_45px_rgba(26,26,26,0.06)]">
+          <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-charcoal/45">{group.label}</div>
+          <div className="mt-3 space-y-3">
+            {group.sessions.map((session) => (
+              <Link key={session.id} href={registerHrefForSession(session)}>
+                <a className="block rounded-2xl border border-charcoal/8 bg-cream/45 p-3 transition hover:border-charcoal/18 hover:bg-cream/70">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className="font-heading text-base text-charcoal">{session.shortLabel}</div>
+                      <div className="mt-1 text-sm text-charcoal/65">{session.label}</div>
+                    </div>
+                    <div className={`shrink-0 rounded-full px-2.5 py-1 text-[9px] font-mono-label uppercase tracking-[0.16em] ${TRACK_STYLES[session.track].chip}`}>
+                      {session.track}
+                    </div>
+                  </div>
+                  <div className="mt-3 font-mono-label text-[10px] uppercase tracking-[0.16em] text-clay">
+                    {formatTime12(session.startMinutes)} – {formatTime12(session.endMinutes)}
+                  </div>
+                </a>
+              </Link>
+            ))}
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
@@ -388,6 +444,7 @@ const Schedule = () => {
                 </div>
               </div>
               <WeekGrid sessions={filtered} weekAnchor={weekAnchor} />
+              <AgendaCards sessions={filtered} />
             </div>
           ) : (
             <div className="space-y-4">
@@ -420,6 +477,7 @@ const Schedule = () => {
                 </div>
               </div>
               <MonthGrid sessions={filtered} monthAnchor={monthAnchor} />
+              <AgendaCards sessions={filtered} />
             </div>
           )}
 

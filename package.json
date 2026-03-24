@@ -11,6 +11,7 @@
     "preview": "vite preview",
     "dev:test": "node scripts/dev-test.mjs",
     "test": "vitest run --config vitest.config.ts",
+    "test:functions": "vitest run --config vitest.functions.config.ts",
     "test:watch": "vitest --config vitest.config.ts",
     "test:storybook": "vitest run --config vitest.storybook.config.ts",
     "test:e2e": "playwright test",

@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Link } from "wouter";
 import { motion, useReducedMotion } from "framer-motion";
 import { ClayButton } from "@/components/brand/ClayButton";
@@ -93,6 +94,43 @@ const academyStatusRows = [
   { label: "Built for", value: "Families and adult students" },
 ];
 
+const snapshotCards = [
+  { label: "Active Participants", value: "30+", note: "Current BJJ families and adult students training right now." },
+  { label: "Weekly Sessions", value: "8", note: "Live Tuesday, Thursday, Friday, and Saturday blocks." },
+  { label: "Family Accounts", value: "1 Login", note: "One account can manage yourself, children, and registration lines." },
+  { label: "Trial Flow", value: "QR Ready", note: "Every free-trial booking generates a confirmation and scan code." },
+];
+
+const enrollmentCardMeta: Record<
+  (typeof BJJ_MARKETING_GROUPS)[number]["key"],
+  { eyebrow: string; price: string; accent: string; summary: string }
+> = {
+  girls: {
+    eyebrow: "Youth Track",
+    price: "$12 per class",
+    accent: "from-moss/18 via-white to-transparent",
+    summary: "Technique-first training for younger girls with two weekly class opportunities.",
+  },
+  boys: {
+    eyebrow: "Youth Track",
+    price: "$12 per class",
+    accent: "from-clay/16 via-white to-transparent",
+    summary: "A focused boys track with shared training windows and age-appropriate coaching.",
+  },
+  women: {
+    eyebrow: "Women 11+",
+    price: "$80 per month per day",
+    accent: "from-charcoal/10 via-white to-transparent",
+    summary: "Tuesday and Thursday stay as separate enrollments so each training day can stand on its own.",
+  },
+  men: {
+    eyebrow: "Teen & Adult",
+    price: "$14 per class",
+    accent: "from-moss/14 via-white to-transparent",
+    summary: "Friday and Saturday evening training for older teens and men building consistency.",
+  },
+};
+
 const schedulePreviewGroups = [
   {
     day: "Tuesday",
@@ -145,24 +183,114 @@ function StickyCurriculumCard({ item }: { item: (typeof curriculum)[number] }) {
         whileInView={reduceMotion ? undefined : { opacity: 1, y: 0 }}
         viewport={{ once: true, margin: "-5% 0px -5% 0px" }}
         transition={reduceMotion ? undefined : { duration: 0.32, ease: [0.16, 1, 0.3, 1] }}
-        className={`protocol-content w-full max-w-5xl rounded-[3rem] h-[80vh] shadow-2xl p-10 md:p-16 flex flex-col md:flex-row items-center gap-12 overflow-hidden ${item.cardClassName}`}
+        className={`protocol-content w-full max-w-6xl rounded-[3rem] h-[80vh] shadow-2xl overflow-hidden ${item.cardClassName}`}
       >
-        <div className="flex-1 z-10">
-          <span className={`font-mono-label text-xs uppercase tracking-[0.18em] mb-4 block ${item.numberClassName}`}>
-            {item.number}
-          </span>
-          <h3 className={`font-heading text-4xl tracking-tight mb-6 ${item.titleClassName}`}>{item.title}</h3>
-          <p className={`font-body text-sm md:text-base max-w-md leading-relaxed mb-6 ${item.bodyClassName}`}>{item.body}</p>
-          <ul className={`text-xs font-mono-label space-y-2 uppercase tracking-wide ${item.listClassName}`}>
-            {item.bullets.map((bullet) => (
-              <li key={bullet}>+ {bullet}</li>
-            ))}
-          </ul>
-        </div>
-        <div className="flex-1 relative w-full h-full flex items-center justify-center min-h-[300px]">
-          {item.visual}
+        <div className="flex h-full flex-col md:flex-row">
+          <div className="flex flex-1 items-center p-10 md:p-14">
+            <div className="z-10">
+              <span className={`font-mono-label text-xs uppercase tracking-[0.18em] mb-4 block ${item.numberClassName}`}>
+                {item.number}
+              </span>
+              <h3 className={`font-heading text-4xl tracking-tight mb-6 ${item.titleClassName}`}>{item.title}</h3>
+              <p className={`font-body text-sm md:text-base max-w-md leading-relaxed mb-6 ${item.bodyClassName}`}>{item.body}</p>
+              <ul className={`text-xs font-mono-label space-y-2 uppercase tracking-wide ${item.listClassName}`}>
+                {item.bullets.map((bullet) => (
+                  <li key={bullet}>+ {bullet}</li>
+                ))}
+              </ul>
+            </div>
+          </div>
+          <div className="relative md:w-1/2 min-h-[260px] md:min-h-full overflow-hidden border-t border-charcoal/10 md:border-t-0 md:border-l md:border-charcoal/10">
+            <div className="absolute inset-0">{item.visual}</div>
+            <div className="absolute inset-0 bg-gradient-to-l from-transparent via-transparent to-black/10 md:bg-gradient-to-t md:from-black/5 md:to-transparent" />
+          </div>
         </div>
       </motion.div>
+    </div>
+  );
+}
+
+function SnapshotDeck() {
+  const reduceMotion = useReducedMotion();
+  const [activeIndex, setActiveIndex] = useState(0);
+
+  useEffect(() => {
+    if (reduceMotion) return;
+    const timer = window.setInterval(() => {
+      setActiveIndex((current) => (current + 1) % snapshotCards.length);
+    }, 2600);
+    return () => window.clearInterval(timer);
+  }, [reduceMotion]);
+
+  return (
+    <div className="relative mt-6 h-[16.5rem] perspective-[1200px]">
+      {snapshotCards.map((card, index) => {
+        const distance = (index - activeIndex + snapshotCards.length) % snapshotCards.length;
+        const visible = distance < 3;
+        const translateY = distance * 18;
+        const translateX = distance * 8;
+        const scale = 1 - distance * 0.06;
+        const rotate = distance === 0 ? -4 : distance === 1 ? 2 : 5;
+
+        return (
+          <motion.div
+            key={card.label}
+            initial={false}
+            animate={
+              visible
+                ? {
+                    opacity: 1,
+                    y: translateY,
+                    x: translateX,
+                    scale,
+                    rotate,
+                    zIndex: 10 - distance,
+                  }
+                : {
+                    opacity: 0,
+                    y: 54,
+                    x: 20,
+                    scale: 0.86,
+                    rotate: 8,
+                    zIndex: 1,
+                  }
+            }
+            transition={{ duration: reduceMotion ? 0 : 0.65, ease: [0.22, 1, 0.36, 1] }}
+            className="absolute inset-x-0 top-0 rounded-[1.8rem] border border-charcoal/10 bg-white px-5 py-5 shadow-[0_24px_70px_rgba(26,26,26,0.10)]"
+          >
+            <div className="flex items-center justify-between gap-4">
+              <span className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-charcoal/45">{card.label}</span>
+              <span className="font-serif-accent text-4xl italic text-moss">{card.value}</span>
+            </div>
+            <p className="mt-8 max-w-[14rem] text-sm leading-relaxed text-charcoal/68">{card.note}</p>
+          </motion.div>
+        );
+      })}
+    </div>
+  );
+}
+
+function MiniScheduleCalendar() {
+  return (
+    <div className="rounded-[1.8rem] border border-charcoal/10 bg-white p-4 shadow-[0_24px_60px_rgba(26,26,26,0.08)]">
+      <div className="grid grid-cols-4 gap-3">
+        {schedulePreviewGroups.map((group) => (
+          <div key={group.day} className="rounded-[1.35rem] border border-charcoal/8 bg-cream/55 p-3">
+            <div className="font-mono-label text-[9px] uppercase tracking-[0.18em] text-charcoal/40">{group.day}</div>
+            <div className="mt-3 space-y-2">
+              {group.items.map((row) => (
+                <div
+                  key={`${group.day}-${row.track}-${row.time}`}
+                  className="rounded-xl border border-charcoal/6 bg-white px-2.5 py-2 shadow-[0_8px_22px_rgba(26,26,26,0.05)]"
+                >
+                  <div className="font-heading text-[13px] leading-none text-charcoal">{row.track}</div>
+                  <div className="mt-1 font-mono-label text-[8px] uppercase tracking-[0.14em] text-clay">{row.time}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -216,8 +344,8 @@ const Home = () => {
               </motion.p>
               <motion.div {...heroVariant(4, prefersReducedMotion)} className="mt-12 flex flex-col sm:flex-row gap-4">
                 <ClayButton asChild className="px-8 py-3.5 text-[11px] uppercase tracking-[0.18em]">
-                  <Link href="/trial">
-                    <StudioText k="home.hero.ctaPrimary" defaultText="Start Your Free Trial" as="span" className="inline" />
+                  <Link href="/register">
+                    <StudioText k="home.hero.ctaPrimary" defaultText="Register Now" as="span" className="inline" />
                   </Link>
                 </ClayButton>
                 <Link
@@ -242,7 +370,7 @@ const Home = () => {
             transition={prefersReducedMotion ? undefined : { duration: 0.42 }}
             className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6"
           >
-            <InfoCard title="Academy Overview" label="Live now" className="md:order-1">
+            <InfoCard title="Academy Snapshot" label="Snapshot" className="md:order-1 overflow-hidden">
               <div className="space-y-3">
                 {academyStatusRows.map((row) => (
                   <div key={row.label} className="flex items-center justify-between rounded-2xl border border-charcoal/8 bg-cream/40 px-4 py-3">
@@ -250,25 +378,7 @@ const Home = () => {
                     <span className="font-heading text-right text-sm text-charcoal">{row.value}</span>
                   </div>
                 ))}
-                <div className="rounded-2xl border border-moss/15 bg-moss/5 px-4 py-4">
-                  <div className="font-mono-label text-[10px] uppercase tracking-[0.16em] text-moss">
-                    Best first step
-                  </div>
-                  <p className="mt-1 text-sm leading-relaxed text-charcoal/70">
-                    Start with a free trial if you want a calm first visit, or open your Family &amp; Member Account when you&apos;re ready to register.
-                  </p>
-                  <div className="mt-4 flex flex-wrap gap-3">
-                    <ClayButton asChild className="px-5 py-2.5 text-[11px] uppercase tracking-[0.18em]">
-                      <Link href="/trial">Start free trial</Link>
-                    </ClayButton>
-                    <Link
-                      href="/register"
-                      className="inline-flex items-center justify-center rounded-full border border-charcoal/12 px-5 py-2.5 text-[11px] uppercase tracking-[0.18em] text-charcoal transition-colors hover:bg-charcoal/5"
-                    >
-                      Open account
-                    </Link>
-                  </div>
-                </div>
+                <SnapshotDeck />
               </div>
             </InfoCard>
 
@@ -295,23 +405,7 @@ const Home = () => {
 
             <InfoCard title="Weekly Schedule" label="Current sessions" className="md:order-3 order-2">
               <div className="space-y-4">
-                {schedulePreviewGroups.map((group) => (
-                  <div key={group.day} className="rounded-2xl border border-charcoal/8 bg-cream/40 px-4 py-4">
-                    <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-charcoal/45">
-                      {group.day}
-                    </div>
-                    <div className="mt-3 space-y-2">
-                      {group.items.map((row) => (
-                        <div key={`${group.day}-${row.track}-${row.time}`} className="flex items-start justify-between gap-4 border-t border-charcoal/6 pt-2 first:border-t-0 first:pt-0">
-                          <div className="font-heading text-sm text-charcoal">{row.track}</div>
-                          <div className="font-mono-label tabular-nums text-[10px] uppercase tracking-[0.14em] text-charcoal/55">
-                            {row.time}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ))}
+                <MiniScheduleCalendar />
                 <div className="rounded-2xl border border-moss/15 bg-moss/5 px-4 py-3 text-xs leading-relaxed text-charcoal/70">
                   Women Tuesday and Thursday are separate enrollments. Friday youth classes share the same training window but stay in distinct tracks.
                 </div>
@@ -378,30 +472,38 @@ const Home = () => {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-10% 0px" }}
             transition={{ duration: 0.5 }}
-            className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-8 items-start"
+            className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 items-start"
           >
             {BJJ_MARKETING_GROUPS.map((group) => (
-              <PremiumCard key={group.key} className="bg-white border border-charcoal/10 h-full">
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <span className="font-mono-label text-xs text-charcoal/50 uppercase tracking-[0.18em] mb-2 block">
-                      {group.ageLabel}
-                    </span>
-                    <h4 className="font-heading text-2xl text-charcoal mb-2">{group.label}</h4>
-                  </div>
-                  <div className="rounded-full border border-charcoal/10 bg-cream/60 px-3 py-1 text-[10px] font-mono-label uppercase tracking-[0.16em] text-charcoal/55">
-                    {group.sessions.length} session{group.sessions.length === 1 ? "" : "s"}
-                  </div>
-                </div>
-                <div className="mt-4 space-y-3">
-                  {group.sessions.map((session) => (
-                    <div key={session.trackKey} className="rounded-2xl border border-charcoal/8 bg-cream/40 px-4 py-3">
-                      <div className="font-body text-sm text-charcoal">{session.label}</div>
-                      <div className="mt-1 text-[10px] uppercase tracking-[0.14em] text-charcoal/50">
-                        {session.scheduleLabel}
-                      </div>
+              <PremiumCard key={group.key} className="relative h-full overflow-hidden border border-charcoal/10 bg-white p-0">
+                <div className={`absolute inset-x-0 top-0 h-28 bg-gradient-to-br ${enrollmentCardMeta[group.key].accent}`} />
+                <div className="relative flex h-full flex-col p-6">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <span className="font-mono-label text-[10px] text-charcoal/48 uppercase tracking-[0.18em] mb-2 block">
+                        {enrollmentCardMeta[group.key].eyebrow}
+                      </span>
+                      <h4 className="font-heading text-2xl text-charcoal">{group.label}</h4>
+                      <p className="mt-2 text-sm leading-relaxed text-charcoal/62">{enrollmentCardMeta[group.key].summary}</p>
                     </div>
-                  ))}
+                    <div className="rounded-full border border-charcoal/10 bg-white/85 px-3 py-1 text-[10px] font-mono-label uppercase tracking-[0.16em] text-charcoal/55 backdrop-blur">
+                      {group.sessions.length} session{group.sessions.length === 1 ? "" : "s"}
+                    </div>
+                  </div>
+                  <div className="mt-5 rounded-2xl border border-charcoal/8 bg-cream/45 px-4 py-3">
+                    <div className="font-mono-label text-[9px] uppercase tracking-[0.18em] text-charcoal/45">{group.ageLabel}</div>
+                    <div className="mt-2 font-heading text-lg text-clay">{enrollmentCardMeta[group.key].price}</div>
+                  </div>
+                  <div className="mt-4 flex-1 space-y-3">
+                    {group.sessions.map((session) => (
+                      <div key={session.trackKey} className="rounded-2xl border border-charcoal/8 bg-white px-4 py-3 shadow-[0_10px_30px_rgba(26,26,26,0.05)]">
+                        <div className="font-body text-sm text-charcoal">{session.label}</div>
+                        <div className="mt-1 text-[10px] uppercase tracking-[0.14em] text-charcoal/50">
+                          {session.scheduleLabel}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </PremiumCard>
             ))}

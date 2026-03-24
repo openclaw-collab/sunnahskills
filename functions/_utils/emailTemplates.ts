@@ -3,6 +3,8 @@ const BRAND = {
   charcoal: "#1A1A1A",
   moss: "#2E4036",
   clay: "#CC5833",
+  stone: "#6D675F",
+  line: "rgba(26,26,26,0.1)",
 };
 
 function wrapHtml(title: string, body: string) {
@@ -15,12 +17,13 @@ function wrapHtml(title: string, body: string) {
   </head>
   <body style="margin:0;background:${BRAND.cream};color:${BRAND.charcoal};font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;">
     <div style="max-width:680px;margin:0 auto;padding:28px 18px;">
-      <div style="border:1px solid rgba(46,64,54,0.15);border-radius:28px;overflow:hidden;background:#ffffff;">
-        <div style="padding:22px 22px 14px 22px;background:${BRAND.charcoal};color:${BRAND.cream};">
+      <div style="border:1px solid rgba(46,64,54,0.15);border-radius:28px;overflow:hidden;background:#ffffff;box-shadow:0 24px 80px rgba(26,26,26,0.08);">
+        <div style="padding:24px 22px 18px 22px;background:linear-gradient(160deg, ${BRAND.charcoal} 0%, #26231f 100%);color:${BRAND.cream};">
           <div style="font-size:11px;letter-spacing:0.18em;text-transform:uppercase;color:rgba(242,240,233,0.75);">
             Sunnah Skills
           </div>
           <div style="font-size:22px;font-weight:700;margin-top:8px;">${escapeHtml(title)}</div>
+          <div style="margin-top:10px;width:72px;height:3px;border-radius:999px;background:${BRAND.clay};"></div>
         </div>
         <div style="padding:22px;">
           ${body}
@@ -54,6 +57,108 @@ function escapeHtml(s: string) {
         return c;
     }
   });
+}
+
+function cardBlock(label: string, rows: Array<{ label: string; value: string }>) {
+  return `
+    <div style="border:1px solid ${BRAND.line};border-radius:18px;background:${BRAND.cream};padding:14px 16px;margin:14px 0;">
+      <div style="font-size:11px;letter-spacing:0.18em;text-transform:uppercase;color:${BRAND.moss};">${escapeHtml(label)}</div>
+      <div style="margin-top:8px;line-height:1.75;">
+        ${rows.map((row) => `<div><strong>${escapeHtml(row.label)}:</strong> ${escapeHtml(row.value)}</div>`).join("")}
+      </div>
+    </div>
+  `;
+}
+
+function pillButton(href: string, label: string, filled = true) {
+  const styles = filled
+    ? `background:${BRAND.clay};color:${BRAND.cream};border:1px solid ${BRAND.clay};`
+    : `background:#fff;color:${BRAND.moss};border:1px solid rgba(46,64,54,0.25);`;
+
+  return `<a href="${href}" style="display:inline-block;${styles}text-decoration:none;padding:12px 16px;border-radius:999px;font-size:12px;font-weight:600;letter-spacing:0.16em;text-transform:uppercase;">${escapeHtml(label)}</a>`;
+}
+
+export function guardianWelcomeEmail(params: {
+  fullName: string;
+  accountNumber: string;
+  verifyUrl: string;
+}) {
+  const title = "Your Family & Member Account is ready";
+  const text = `Sunnah Skills — Family & Member Account
+
+${params.fullName}, your account is ready.
+Account number: ${params.accountNumber}
+Sign in link: ${params.verifyUrl}
+
+This sign-in link expires in 30 minutes.`;
+
+  const html = wrapHtml(
+    title,
+    `
+      <p style="margin:0 0 12px 0;line-height:1.7;">
+        Assalamu alaykum ${escapeHtml(params.fullName)}. Your Sunnah Skills Family &amp; Member Account is ready.
+      </p>
+      <p style="margin:0 0 16px 0;line-height:1.7;color:${BRAND.stone};">
+        Open the secure link below to finish your profile, add participants, and continue into registration when you&apos;re ready.
+      </p>
+      ${cardBlock("Account details", [
+        { label: "Account number", value: params.accountNumber },
+        { label: "Link expiry", value: "30 minutes" },
+      ])}
+      <div style="margin:18px 0 14px 0;">
+        ${pillButton(params.verifyUrl, "Open your account")}
+      </div>
+      <p style="margin:0;line-height:1.6;color:${BRAND.stone};font-size:13px;">
+        Keep your account number handy for future sign-ins. If the button above doesn&apos;t open, copy and paste this link into your browser:
+      </p>
+      <p style="margin:10px 0 0 0;line-height:1.6;word-break:break-word;font-size:13px;">
+        <a href="${params.verifyUrl}" style="color:${BRAND.moss};">${params.verifyUrl}</a>
+      </p>
+    `,
+  );
+
+  return { subject: "Sunnah Skills — Your account link", text, html };
+}
+
+export function guardianSignInLinkEmail(params: {
+  fullName?: string | null;
+  accountNumber?: string | null;
+  verifyUrl: string;
+}) {
+  const greeting = params.fullName?.trim() ? `Assalamu alaykum ${params.fullName}` : "Assalamu alaykum";
+  const accountNumber = params.accountNumber?.trim() || "Not available";
+  const title = "Your sign-in link";
+  const text = `Sunnah Skills — Sign-in link
+
+${greeting}
+Account number: ${accountNumber}
+Sign in link: ${params.verifyUrl}
+
+This sign-in link expires in 30 minutes.`;
+
+  const html = wrapHtml(
+    title,
+    `
+      <p style="margin:0 0 12px 0;line-height:1.7;">
+        ${escapeHtml(greeting)}. Here is your secure link to open your Sunnah Skills account.
+      </p>
+      ${cardBlock("Sign-in details", [
+        { label: "Account number", value: accountNumber },
+        { label: "Link expiry", value: "30 minutes" },
+      ])}
+      <div style="margin:18px 0 14px 0;">
+        ${pillButton(params.verifyUrl, "Sign in")}
+      </div>
+      <p style="margin:0;line-height:1.6;color:${BRAND.stone};font-size:13px;">
+        If the button above doesn&apos;t open, copy and paste this link into your browser:
+      </p>
+      <p style="margin:10px 0 0 0;line-height:1.6;word-break:break-word;font-size:13px;">
+        <a href="${params.verifyUrl}" style="color:${BRAND.moss};">${params.verifyUrl}</a>
+      </p>
+    `,
+  );
+
+  return { subject: "Sunnah Skills — Your sign-in link", text, html };
 }
 
 export function registrationConfirmationEmail(params: {

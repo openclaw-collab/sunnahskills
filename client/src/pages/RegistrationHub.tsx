@@ -11,6 +11,23 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { queryClient } from "@/lib/queryClient";
 import { useGuardianSession, useGuardianStudents, type SavedStudent } from "@/hooks/useGuardianSession";
 
+type SignupErrors = Partial<Record<"signupFullName" | "signupEmail", string>>;
+type LoginErrors = Partial<Record<"loginEmail", string>>;
+type CompletionErrors = Partial<Record<"fullName" | "phone" | "emergencyContactName" | "emergencyContactPhone" | "accountRole", string>>;
+type ParticipantErrors = Partial<Record<"participantType" | "fullName" | "dateOfBirth" | "gender", string>>;
+type LocalPreview = {
+  verifyUrl: string;
+  accountNumber?: string | null;
+};
+
+function isValidEmail(value: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+}
+
+function fieldClass(error?: string) {
+  return error ? "border-clay/70 bg-clay/5 focus-visible:ring-clay/35" : "bg-cream/50 border-charcoal/10";
+}
+
 function nextPath() {
   if (typeof window === "undefined") return "/programs/bjj/register";
   const raw = new URLSearchParams(window.location.search).get("next") ?? "/programs/bjj/register";
@@ -44,6 +61,10 @@ export default function RegistrationHub() {
   const [loginEmail, setLoginEmail] = React.useState("");
   const [busy, setBusy] = React.useState<string | null>(null);
   const [message, setMessage] = React.useState(errorMessage());
+  const [messageTone, setMessageTone] = React.useState<"success" | "warning" | "error">(errorMessage() ? "error" : "success");
+  const [localPreview, setLocalPreview] = React.useState<LocalPreview | null>(null);
+  const [signupErrors, setSignupErrors] = React.useState<SignupErrors>({});
+  const [loginErrors, setLoginErrors] = React.useState<LoginErrors>({});
 
   const [completionForm, setCompletionForm] = React.useState({
     fullName: "",
@@ -52,6 +73,7 @@ export default function RegistrationHub() {
     emergencyContactPhone: "",
     accountRole: "parent_guardian" as "parent_guardian" | "adult_student",
   });
+  const [completionErrors, setCompletionErrors] = React.useState<CompletionErrors>({});
 
   const [participantForm, setParticipantForm] = React.useState({
     participantType: "child" as "self" | "child",
@@ -60,6 +82,7 @@ export default function RegistrationHub() {
     gender: "",
     medicalNotes: "",
   });
+  const [participantErrors, setParticipantErrors] = React.useState<ParticipantErrors>({});
 
   async function refresh() {
     await queryClient.invalidateQueries({ queryKey: ["/api/guardian/me"] });
@@ -119,6 +142,42 @@ export default function RegistrationHub() {
     session?.accountRole,
   ]);
 
+  function validateSignup() {
+    const nextErrors: SignupErrors = {};
+    if (signupFullName.trim().length < 2) nextErrors.signupFullName = "Full name is required.";
+    if (!isValidEmail(signupEmail.trim())) nextErrors.signupEmail = "Enter a valid email address.";
+    setSignupErrors(nextErrors);
+    return Object.keys(nextErrors).length === 0;
+  }
+
+  function validateLogin() {
+    const nextErrors: LoginErrors = {};
+    if (!isValidEmail(loginEmail.trim())) nextErrors.loginEmail = "Enter a valid email address.";
+    setLoginErrors(nextErrors);
+    return Object.keys(nextErrors).length === 0;
+  }
+
+  function validateCompletion() {
+    const nextErrors: CompletionErrors = {};
+    if (completionForm.fullName.trim().length < 2) nextErrors.fullName = "Full name is required.";
+    if (completionForm.phone.trim().length < 7) nextErrors.phone = "Phone number is required.";
+    if (completionForm.emergencyContactName.trim().length < 2) nextErrors.emergencyContactName = "Emergency contact name is required.";
+    if (completionForm.emergencyContactPhone.trim().length < 7) nextErrors.emergencyContactPhone = "Emergency contact phone is required.";
+    if (!completionForm.accountRole) nextErrors.accountRole = "Choose who this account is for.";
+    setCompletionErrors(nextErrors);
+    return Object.keys(nextErrors).length === 0;
+  }
+
+  function validateParticipant() {
+    const nextErrors: ParticipantErrors = {};
+    if (!participantForm.participantType) nextErrors.participantType = "Choose whether this profile is for yourself or a child.";
+    if (participantForm.fullName.trim().length < 2) nextErrors.fullName = "Participant name is required.";
+    if (!participantForm.dateOfBirth.trim()) nextErrors.dateOfBirth = "Date of birth is required.";
+    if (!participantForm.gender.trim()) nextErrors.gender = "Gender is required.";
+    setParticipantErrors(nextErrors);
+    return Object.keys(nextErrors).length === 0;
+  }
+
   return (
     <MotionPage className="min-h-screen bg-cream pb-24">
       <div className="noise-overlay" />
@@ -134,9 +193,39 @@ export default function RegistrationHub() {
         </p>
 
         {message ? (
-          <div className="mb-8 rounded-2xl border border-clay/20 bg-clay/5 px-4 py-3 text-sm text-clay">
+          <div
+            className={`mb-8 rounded-2xl px-4 py-3 text-sm ${
+              messageTone === "error"
+                ? "border border-clay/20 bg-clay/5 text-clay"
+                : messageTone === "warning"
+                  ? "border border-yellow-700/15 bg-yellow-50 text-yellow-800"
+                  : "border border-moss/20 bg-moss/5 text-moss"
+            }`}
+          >
             {message}
           </div>
+        ) : null}
+
+        {localPreview ? (
+          <PremiumCard className="mb-8 border border-yellow-700/15 bg-yellow-50 p-5">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+              <div>
+                <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-yellow-800/80 mb-2">Local preview link</div>
+                <p className="text-sm leading-relaxed text-yellow-900">
+                  Email delivery is unavailable in local preview. Use this secure sign-in link directly while testing the flow.
+                </p>
+                {localPreview.accountNumber ? (
+                  <p className="mt-2 text-sm text-yellow-900/80">Account #{localPreview.accountNumber}</p>
+                ) : null}
+              </div>
+              <a
+                href={localPreview.verifyUrl}
+                className="inline-flex items-center justify-center rounded-full bg-clay px-5 py-2.5 text-[11px] uppercase tracking-[0.18em] text-cream transition hover:brightness-95"
+              >
+                Open local sign-in link
+              </a>
+            </div>
+          </PremiumCard>
         ) : null}
 
         {!authenticated ? (
@@ -148,30 +237,51 @@ export default function RegistrationHub() {
               </div>
               <Input
                 value={signupFullName}
-                onChange={(event) => setSignupFullName(event.target.value)}
+                onChange={(event) => {
+                  setSignupFullName(event.target.value);
+                  setSignupErrors((prev) => ({ ...prev, signupFullName: undefined }));
+                }}
                 placeholder="Full name"
+                className={fieldClass(signupErrors.signupFullName)}
               />
+              {signupErrors.signupFullName ? <div className="text-xs text-clay">{signupErrors.signupFullName}</div> : null}
               <Input
                 value={signupEmail}
-                onChange={(event) => setSignupEmail(event.target.value)}
+                onChange={(event) => {
+                  setSignupEmail(event.target.value);
+                  setSignupErrors((prev) => ({ ...prev, signupEmail: undefined }));
+                }}
                 placeholder="Email"
                 type="email"
+                className={fieldClass(signupErrors.signupEmail)}
               />
+              {signupErrors.signupEmail ? <div className="text-xs text-clay">{signupErrors.signupEmail}</div> : null}
               <ClayButton
                 className="w-full px-5 py-2.5 text-[11px] uppercase tracking-[0.18em]"
                 disabled={busy === "signup"}
                 onClick={async () => {
+                  if (!validateSignup()) {
+                    setMessageTone("error");
+                    setMessage("Please fill the required account fields before continuing.");
+                    return;
+                  }
                   setBusy("signup");
                   setMessage("");
+                  setLocalPreview(null);
                   try {
                     const json = await post("/api/guardian/signup", {
                       fullName: signupFullName,
                       email: signupEmail,
                       next: targetPath,
                     });
-                    setMessage(json?.message ?? "Check your email for the sign-in link.");
+                    const response = json as { message?: string; emailSent?: boolean; localPreview?: LocalPreview } | null;
+                    setMessageTone(response?.emailSent === false ? "warning" : "success");
+                    setMessage(response?.message ?? "Check your email for the sign-in link.");
+                    setLocalPreview(response?.localPreview ?? null);
                   } catch (caught) {
+                    setMessageTone("error");
                     setMessage(caught instanceof Error ? caught.message : "Could not create the account.");
+                    setLocalPreview(null);
                   } finally {
                     setBusy(null);
                   }
@@ -188,21 +298,37 @@ export default function RegistrationHub() {
               </div>
               <Input
                 value={loginEmail}
-                onChange={(event) => setLoginEmail(event.target.value)}
+                onChange={(event) => {
+                  setLoginEmail(event.target.value);
+                  setLoginErrors((prev) => ({ ...prev, loginEmail: undefined }));
+                }}
                 placeholder="Email"
                 type="email"
+                className={fieldClass(loginErrors.loginEmail)}
               />
+              {loginErrors.loginEmail ? <div className="text-xs text-clay">{loginErrors.loginEmail}</div> : null}
               <OutlineButton
                 className="w-full px-5 py-2.5 text-[11px] uppercase tracking-[0.18em]"
                 disabled={busy === "magic-link"}
                 onClick={async () => {
+                  if (!validateLogin()) {
+                    setMessageTone("error");
+                    setMessage("Enter the email for the account you want to open.");
+                    return;
+                  }
                   setBusy("magic-link");
                   setMessage("");
+                  setLocalPreview(null);
                   try {
-                    await post("/api/guardian/request-link", { email: loginEmail, next: targetPath });
-                    setMessage("If we found your account, we sent a sign-in link.");
+                    const json = await post("/api/guardian/request-link", { email: loginEmail, next: targetPath });
+                    const response = json as { message?: string; emailSent?: boolean; localPreview?: LocalPreview } | null;
+                    setMessageTone(response?.emailSent === false ? "warning" : "success");
+                    setMessage(response?.message ?? "We sent your sign-in link.");
+                    setLocalPreview(response?.localPreview ?? null);
                   } catch (caught) {
+                    setMessageTone("error");
                     setMessage(caught instanceof Error ? caught.message : "Could not send a sign-in link.");
+                    setLocalPreview(null);
                   } finally {
                     setBusy(null);
                   }
@@ -251,25 +377,63 @@ export default function RegistrationHub() {
                 </div>
                 <div className="grid gap-4 md:grid-cols-2">
                   <label className="text-sm text-charcoal">
-                    Full name
-                    <Input className="mt-2 bg-cream/50 border-charcoal/10" value={completionForm.fullName} onChange={(event) => setCompletionForm((prev) => ({ ...prev, fullName: event.target.value }))} />
+                    Full name <span className="text-clay">*</span>
+                    <Input
+                      className={`mt-2 ${fieldClass(completionErrors.fullName)}`}
+                      value={completionForm.fullName}
+                      onChange={(event) => {
+                        setCompletionForm((prev) => ({ ...prev, fullName: event.target.value }));
+                        setCompletionErrors((prev) => ({ ...prev, fullName: undefined }));
+                      }}
+                    />
+                    {completionErrors.fullName ? <div className="mt-1 text-xs text-clay">{completionErrors.fullName}</div> : null}
                   </label>
                   <label className="text-sm text-charcoal">
-                    Phone number
-                    <Input className="mt-2 bg-cream/50 border-charcoal/10" value={completionForm.phone} onChange={(event) => setCompletionForm((prev) => ({ ...prev, phone: event.target.value }))} />
+                    Phone number <span className="text-clay">*</span>
+                    <Input
+                      className={`mt-2 ${fieldClass(completionErrors.phone)}`}
+                      value={completionForm.phone}
+                      onChange={(event) => {
+                        setCompletionForm((prev) => ({ ...prev, phone: event.target.value }));
+                        setCompletionErrors((prev) => ({ ...prev, phone: undefined }));
+                      }}
+                    />
+                    {completionErrors.phone ? <div className="mt-1 text-xs text-clay">{completionErrors.phone}</div> : null}
                   </label>
                   <label className="text-sm text-charcoal">
-                    Emergency contact name
-                    <Input className="mt-2 bg-cream/50 border-charcoal/10" value={completionForm.emergencyContactName} onChange={(event) => setCompletionForm((prev) => ({ ...prev, emergencyContactName: event.target.value }))} />
+                    Emergency contact name <span className="text-clay">*</span>
+                    <Input
+                      className={`mt-2 ${fieldClass(completionErrors.emergencyContactName)}`}
+                      value={completionForm.emergencyContactName}
+                      onChange={(event) => {
+                        setCompletionForm((prev) => ({ ...prev, emergencyContactName: event.target.value }));
+                        setCompletionErrors((prev) => ({ ...prev, emergencyContactName: undefined }));
+                      }}
+                    />
+                    {completionErrors.emergencyContactName ? <div className="mt-1 text-xs text-clay">{completionErrors.emergencyContactName}</div> : null}
                   </label>
                   <label className="text-sm text-charcoal">
-                    Emergency contact phone
-                    <Input className="mt-2 bg-cream/50 border-charcoal/10" value={completionForm.emergencyContactPhone} onChange={(event) => setCompletionForm((prev) => ({ ...prev, emergencyContactPhone: event.target.value }))} />
+                    Emergency contact phone <span className="text-clay">*</span>
+                    <Input
+                      className={`mt-2 ${fieldClass(completionErrors.emergencyContactPhone)}`}
+                      value={completionForm.emergencyContactPhone}
+                      onChange={(event) => {
+                        setCompletionForm((prev) => ({ ...prev, emergencyContactPhone: event.target.value }));
+                        setCompletionErrors((prev) => ({ ...prev, emergencyContactPhone: undefined }));
+                      }}
+                    />
+                    {completionErrors.emergencyContactPhone ? <div className="mt-1 text-xs text-clay">{completionErrors.emergencyContactPhone}</div> : null}
                   </label>
                   <label className="text-sm text-charcoal md:col-span-2">
-                    This account is for
-                    <Select value={completionForm.accountRole} onValueChange={(value) => setCompletionForm((prev) => ({ ...prev, accountRole: value as "parent_guardian" | "adult_student" }))}>
-                      <SelectTrigger className="mt-2 bg-cream/50 border-charcoal/10">
+                    This account is for <span className="text-clay">*</span>
+                    <Select
+                      value={completionForm.accountRole}
+                      onValueChange={(value) => {
+                        setCompletionForm((prev) => ({ ...prev, accountRole: value as "parent_guardian" | "adult_student" }));
+                        setCompletionErrors((prev) => ({ ...prev, accountRole: undefined }));
+                      }}
+                    >
+                      <SelectTrigger className={`mt-2 ${fieldClass(completionErrors.accountRole)}`}>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -277,6 +441,7 @@ export default function RegistrationHub() {
                         <SelectItem value="adult_student">Adult student</SelectItem>
                       </SelectContent>
                     </Select>
+                    {completionErrors.accountRole ? <div className="mt-1 text-xs text-clay">{completionErrors.accountRole}</div> : null}
                   </label>
                 </div>
                 <div className="mt-6">
@@ -284,12 +449,20 @@ export default function RegistrationHub() {
                     className="px-6 py-3 text-[11px] uppercase tracking-[0.18em]"
                     disabled={busy === "complete-account"}
                     onClick={async () => {
+                      if (!validateCompletion()) {
+                        setMessageTone("error");
+                        setMessage("Please finish every required account field before continuing.");
+                        return;
+                      }
                       setBusy("complete-account");
                       setMessage("");
                       try {
                         await patch("/api/guardian/me", completionForm);
+                        setMessageTone("success");
+                        setMessage("Account details saved.");
                         await refresh();
                       } catch (caught) {
+                        setMessageTone("error");
                         setMessage(caught instanceof Error ? caught.message : "Could not save the account.");
                       } finally {
                         setBusy(null);
@@ -314,9 +487,15 @@ export default function RegistrationHub() {
                 </div>
                   <div className="grid gap-4 md:grid-cols-2">
                     <label className="text-sm text-charcoal">
-                      Profile type
-                      <Select value={participantForm.participantType} onValueChange={(value) => setParticipantForm((prev) => ({ ...prev, participantType: value as "self" | "child" }))}>
-                        <SelectTrigger className="mt-2 bg-cream/50 border-charcoal/10">
+                      Profile type <span className="text-clay">*</span>
+                      <Select
+                        value={participantForm.participantType}
+                        onValueChange={(value) => {
+                          setParticipantForm((prev) => ({ ...prev, participantType: value as "self" | "child" }));
+                          setParticipantErrors((prev) => ({ ...prev, participantType: undefined }));
+                        }}
+                      >
+                        <SelectTrigger className={`mt-2 ${fieldClass(participantErrors.participantType)}`}>
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -324,19 +503,43 @@ export default function RegistrationHub() {
                           <SelectItem value="child">Add child</SelectItem>
                         </SelectContent>
                       </Select>
+                      {participantErrors.participantType ? <div className="mt-1 text-xs text-clay">{participantErrors.participantType}</div> : null}
                     </label>
                     <label className="text-sm text-charcoal">
-                      Full name
-                      <Input className="mt-2 bg-cream/50 border-charcoal/10" value={participantForm.fullName} onChange={(event) => setParticipantForm((prev) => ({ ...prev, fullName: event.target.value }))} />
+                      Full name <span className="text-clay">*</span>
+                      <Input
+                        className={`mt-2 ${fieldClass(participantErrors.fullName)}`}
+                        value={participantForm.fullName}
+                        onChange={(event) => {
+                          setParticipantForm((prev) => ({ ...prev, fullName: event.target.value }));
+                          setParticipantErrors((prev) => ({ ...prev, fullName: undefined }));
+                        }}
+                      />
+                      {participantErrors.fullName ? <div className="mt-1 text-xs text-clay">{participantErrors.fullName}</div> : null}
                     </label>
                     <label className="text-sm text-charcoal">
-                      Date of birth
-                      <Input className="mt-2 bg-cream/50 border-charcoal/10" type="date" value={participantForm.dateOfBirth} onChange={(event) => setParticipantForm((prev) => ({ ...prev, dateOfBirth: event.target.value }))} />
+                      Date of birth <span className="text-clay">*</span>
+                      <Input
+                        className={`mt-2 ${fieldClass(participantErrors.dateOfBirth)}`}
+                        type="date"
+                        value={participantForm.dateOfBirth}
+                        onChange={(event) => {
+                          setParticipantForm((prev) => ({ ...prev, dateOfBirth: event.target.value }));
+                          setParticipantErrors((prev) => ({ ...prev, dateOfBirth: undefined }));
+                        }}
+                      />
+                      {participantErrors.dateOfBirth ? <div className="mt-1 text-xs text-clay">{participantErrors.dateOfBirth}</div> : null}
                     </label>
                     <label className="text-sm text-charcoal">
-                      Gender
-                      <Select value={participantForm.gender} onValueChange={(value) => setParticipantForm((prev) => ({ ...prev, gender: value }))}>
-                        <SelectTrigger className="mt-2 bg-cream/50 border-charcoal/10">
+                      Gender <span className="text-clay">*</span>
+                      <Select
+                        value={participantForm.gender}
+                        onValueChange={(value) => {
+                          setParticipantForm((prev) => ({ ...prev, gender: value }));
+                          setParticipantErrors((prev) => ({ ...prev, gender: undefined }));
+                        }}
+                      >
+                        <SelectTrigger className={`mt-2 ${fieldClass(participantErrors.gender)}`}>
                           <SelectValue placeholder="Select gender" />
                         </SelectTrigger>
                         <SelectContent>
@@ -344,6 +547,7 @@ export default function RegistrationHub() {
                           <SelectItem value="male">Male</SelectItem>
                         </SelectContent>
                       </Select>
+                      {participantErrors.gender ? <div className="mt-1 text-xs text-clay">{participantErrors.gender}</div> : null}
                     </label>
                     <label className="text-sm text-charcoal md:col-span-2">
                       Medical notes (optional)
@@ -355,10 +559,17 @@ export default function RegistrationHub() {
                       className="px-6 py-3 text-[11px] uppercase tracking-[0.18em]"
                       disabled={busy === "add-participant"}
                       onClick={async () => {
+                        if (!validateParticipant()) {
+                          setMessageTone("error");
+                          setMessage("Please complete every required participant field before saving.");
+                          return;
+                        }
                         setBusy("add-participant");
                         setMessage("");
                         try {
                           await post("/api/guardian/students", participantForm);
+                          setMessageTone("success");
+                          setMessage("Participant profile saved.");
                           setParticipantForm({
                             participantType: session?.accountRole === "adult_student" ? "self" : "child",
                             fullName: "",
@@ -366,8 +577,10 @@ export default function RegistrationHub() {
                             gender: "",
                             medicalNotes: "",
                           });
+                          setParticipantErrors({});
                           await refresh();
                         } catch (caught) {
+                          setMessageTone("error");
                           setMessage(caught instanceof Error ? caught.message : "Could not save the participant.");
                         } finally {
                           setBusy(null);

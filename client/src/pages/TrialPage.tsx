@@ -9,6 +9,25 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
+type TrialFieldErrors = Partial<Record<
+  | "accountHolderName"
+  | "email"
+  | "phone"
+  | "participantName"
+  | "participantAge"
+  | "participantGender"
+  | "desiredDate",
+  string
+>>;
+
+function isValidEmail(value: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+}
+
+function fieldClass(error?: string) {
+  return error ? "border-clay/70 bg-clay/5 focus-visible:ring-clay/35" : "bg-cream/50 border-charcoal/10";
+}
+
 export default function TrialPage() {
   const [form, setForm] = React.useState({
     accountHolderName: "",
@@ -23,9 +42,30 @@ export default function TrialPage() {
   });
   const [submitting, setSubmitting] = React.useState(false);
   const [message, setMessage] = React.useState<string | null>(null);
+  const [messageTone, setMessageTone] = React.useState<"success" | "warning">("success");
   const [error, setError] = React.useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = React.useState<TrialFieldErrors>({});
+
+  function validate() {
+    const nextErrors: TrialFieldErrors = {};
+    if (form.accountHolderName.trim().length < 2) nextErrors.accountHolderName = "Full name is required.";
+    if (!isValidEmail(form.email.trim())) nextErrors.email = "Enter a valid email address.";
+    if (form.phone.trim().length < 7) nextErrors.phone = "Phone number is required.";
+    if (form.participantName.trim().length < 2) nextErrors.participantName = "Participant name is required.";
+    const participantAge = Number(form.participantAge);
+    if (!Number.isFinite(participantAge) || participantAge < 5) nextErrors.participantAge = "Enter a valid age.";
+    if (!form.participantGender.trim()) nextErrors.participantGender = "Gender is required.";
+    if (!form.desiredDate.trim()) nextErrors.desiredDate = "Choose a trial date.";
+    setFieldErrors(nextErrors);
+    return Object.keys(nextErrors).length === 0;
+  }
 
   async function submit() {
+    if (!validate()) {
+      setError("Please fill every required field before reserving the trial.");
+      setMessage(null);
+      return;
+    }
     setSubmitting(true);
     setError(null);
     setMessage(null);
@@ -39,9 +79,11 @@ export default function TrialPage() {
           programId: "bjj",
         }),
       });
-      const json = (await res.json().catch(() => null)) as { error?: string; message?: string } | null;
+      const json = (await res.json().catch(() => null)) as { error?: string; message?: string; emailSent?: boolean } | null;
       if (!res.ok) throw new Error(json?.error ?? "Could not book the free trial.");
+      setMessageTone(json?.emailSent === false ? "warning" : "success");
       setMessage(json?.message ?? "Free trial booked. Check your email for the QR code.");
+      setFieldErrors({});
       setForm({
         accountHolderName: "",
         email: "",
@@ -78,33 +120,45 @@ export default function TrialPage() {
           <PremiumCard className="border border-charcoal/10 bg-white p-6">
             <div className="grid gap-4 md:grid-cols-2">
               <label className="text-sm text-charcoal">
-                Account holder full name
+                Account holder full name <span className="text-clay">*</span>
                 <Input
-                  className="mt-2 bg-cream/50 border-charcoal/10"
+                  className={`mt-2 ${fieldClass(fieldErrors.accountHolderName)}`}
                   value={form.accountHolderName}
-                  onChange={(event) => setForm((prev) => ({ ...prev, accountHolderName: event.target.value }))}
+                  onChange={(event) => {
+                    setForm((prev) => ({ ...prev, accountHolderName: event.target.value }));
+                    setFieldErrors((prev) => ({ ...prev, accountHolderName: undefined }));
+                  }}
                 />
+                {fieldErrors.accountHolderName ? <div className="mt-1 text-xs text-clay">{fieldErrors.accountHolderName}</div> : null}
               </label>
               <label className="text-sm text-charcoal">
-                Email
+                Email <span className="text-clay">*</span>
                 <Input
-                  className="mt-2 bg-cream/50 border-charcoal/10"
+                  className={`mt-2 ${fieldClass(fieldErrors.email)}`}
                   type="email"
                   value={form.email}
-                  onChange={(event) => setForm((prev) => ({ ...prev, email: event.target.value }))}
+                  onChange={(event) => {
+                    setForm((prev) => ({ ...prev, email: event.target.value }));
+                    setFieldErrors((prev) => ({ ...prev, email: undefined }));
+                  }}
                 />
+                {fieldErrors.email ? <div className="mt-1 text-xs text-clay">{fieldErrors.email}</div> : null}
               </label>
               <label className="text-sm text-charcoal">
-                Phone
+                Phone <span className="text-clay">*</span>
                 <Input
-                  className="mt-2 bg-cream/50 border-charcoal/10"
+                  className={`mt-2 ${fieldClass(fieldErrors.phone)}`}
                   type="tel"
                   value={form.phone}
-                  onChange={(event) => setForm((prev) => ({ ...prev, phone: event.target.value }))}
+                  onChange={(event) => {
+                    setForm((prev) => ({ ...prev, phone: event.target.value }));
+                    setFieldErrors((prev) => ({ ...prev, phone: undefined }));
+                  }}
                 />
+                {fieldErrors.phone ? <div className="mt-1 text-xs text-clay">{fieldErrors.phone}</div> : null}
               </label>
               <label className="text-sm text-charcoal">
-                Participant type
+                Participant type <span className="text-clay">*</span>
                 <Select
                   value={form.participantType}
                   onValueChange={(value) => setForm((prev) => ({ ...prev, participantType: value as "self" | "child" }))}
@@ -119,29 +173,40 @@ export default function TrialPage() {
                 </Select>
               </label>
               <label className="text-sm text-charcoal">
-                Participant full name
+                Participant full name <span className="text-clay">*</span>
                 <Input
-                  className="mt-2 bg-cream/50 border-charcoal/10"
+                  className={`mt-2 ${fieldClass(fieldErrors.participantName)}`}
                   value={form.participantName}
-                  onChange={(event) => setForm((prev) => ({ ...prev, participantName: event.target.value }))}
+                  onChange={(event) => {
+                    setForm((prev) => ({ ...prev, participantName: event.target.value }));
+                    setFieldErrors((prev) => ({ ...prev, participantName: undefined }));
+                  }}
                 />
+                {fieldErrors.participantName ? <div className="mt-1 text-xs text-clay">{fieldErrors.participantName}</div> : null}
               </label>
               <label className="text-sm text-charcoal">
-                Participant age
+                Participant age <span className="text-clay">*</span>
                 <Input
-                  className="mt-2 bg-cream/50 border-charcoal/10"
+                  className={`mt-2 ${fieldClass(fieldErrors.participantAge)}`}
                   type="number"
                   value={form.participantAge}
-                  onChange={(event) => setForm((prev) => ({ ...prev, participantAge: event.target.value }))}
+                  onChange={(event) => {
+                    setForm((prev) => ({ ...prev, participantAge: event.target.value }));
+                    setFieldErrors((prev) => ({ ...prev, participantAge: undefined }));
+                  }}
                 />
+                {fieldErrors.participantAge ? <div className="mt-1 text-xs text-clay">{fieldErrors.participantAge}</div> : null}
               </label>
               <label className="text-sm text-charcoal">
-                Participant gender
+                Participant gender <span className="text-clay">*</span>
                 <Select
                   value={form.participantGender}
-                  onValueChange={(value) => setForm((prev) => ({ ...prev, participantGender: value }))}
+                  onValueChange={(value) => {
+                    setForm((prev) => ({ ...prev, participantGender: value }));
+                    setFieldErrors((prev) => ({ ...prev, participantGender: undefined }));
+                  }}
                 >
-                  <SelectTrigger className="mt-2 bg-cream/50 border-charcoal/10">
+                  <SelectTrigger className={`mt-2 ${fieldClass(fieldErrors.participantGender)}`}>
                     <SelectValue placeholder="Select gender" />
                   </SelectTrigger>
                   <SelectContent>
@@ -149,15 +214,20 @@ export default function TrialPage() {
                     <SelectItem value="male">Male</SelectItem>
                   </SelectContent>
                 </Select>
+                {fieldErrors.participantGender ? <div className="mt-1 text-xs text-clay">{fieldErrors.participantGender}</div> : null}
               </label>
               <label className="text-sm text-charcoal">
-                Trial date
+                Trial date <span className="text-clay">*</span>
                 <Input
-                  className="mt-2 bg-cream/50 border-charcoal/10"
+                  className={`mt-2 ${fieldClass(fieldErrors.desiredDate)}`}
                   type="date"
                   value={form.desiredDate}
-                  onChange={(event) => setForm((prev) => ({ ...prev, desiredDate: event.target.value }))}
+                  onChange={(event) => {
+                    setForm((prev) => ({ ...prev, desiredDate: event.target.value }));
+                    setFieldErrors((prev) => ({ ...prev, desiredDate: undefined }));
+                  }}
                 />
+                {fieldErrors.desiredDate ? <div className="mt-1 text-xs text-clay">{fieldErrors.desiredDate}</div> : null}
               </label>
               <label className="text-sm text-charcoal md:col-span-2">
                 Notes (optional)
@@ -170,7 +240,9 @@ export default function TrialPage() {
             </div>
 
             {error ? <div className="mt-4 text-sm text-clay">{error}</div> : null}
-            {message ? <div className="mt-4 text-sm text-moss">{message}</div> : null}
+            {message ? (
+              <div className={`mt-4 text-sm ${messageTone === "warning" ? "text-yellow-800" : "text-moss"}`}>{message}</div>
+            ) : null}
 
             <div className="mt-6 flex flex-wrap gap-3">
               <ClayButton

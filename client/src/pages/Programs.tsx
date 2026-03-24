@@ -28,13 +28,13 @@ const Programs = () => {
           <StudioBlock id="programs.header" label="Header + intro" page="Programs">
             <SectionHeader
               eyebrow={<StudioText k="programs.eyebrow" defaultText="Programs" as="span" className="inline" />}
-              title={<StudioText k="programs.title" defaultText="Choose a Track" as="span" className="inline" />}
+              title={<StudioText k="programs.title" defaultText="Choose the Right Fit" as="span" className="inline" />}
               className="mb-10"
             />
             <p className="font-body text-pretty text-sm text-charcoal/70 max-w-2xl mb-12">
               <StudioText
                 k="programs.intro"
-                defaultText="Brazilian Jiu-Jitsu is the only live enrollment flow right now. The overview below keeps the public tracks, timing, and coming-soon status aligned before a family starts registration."
+                defaultText="Brazilian Jiu-Jitsu is the only live enrollment track right now. Start with a free trial if you want to explore first, then open your Family & Member Account when you're ready to register."
                 as="span"
                 className="inline"
                 multiline
@@ -81,7 +81,9 @@ const Programs = () => {
                       <div className="flex flex-wrap gap-3">
                         {program.enrollmentStatus === "open" ? (
                           <ClayButton asChild className="px-5 py-2.5 text-[11px] uppercase tracking-[0.18em]">
-                            <Link href={program.registerPath}>{program.slug === "bjj" ? "Sign in to register" : "Register now"}</Link>
+                            <Link href={program.slug === "bjj" ? "/trial" : program.registerPath}>
+                              {program.slug === "bjj" ? "Start free trial" : "Register now"}
+                            </Link>
                           </ClayButton>
                         ) : (
                           <OutlineButton
@@ -120,7 +122,7 @@ const Programs = () => {
 
           <div className="mt-14 flex justify-center">
             <ClayButton asChild className="px-8 py-3.5 text-[11px] uppercase tracking-[0.18em]">
-              <Link href="/register">Start Registration</Link>
+              <Link href="/register">Open Your Family &amp; Member Account</Link>
             </ClayButton>
           </div>
         </main>

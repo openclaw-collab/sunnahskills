@@ -71,7 +71,7 @@ export default function TrialPage() {
         />
         <p className="mb-8 max-w-2xl text-sm leading-relaxed text-charcoal/70">
           Book a no-pressure Brazilian Jiu-Jitsu trial first. We&apos;ll send a confirmation email with a QR code for check-in,
-          and if you enroll after a verified trial, we&apos;ll credit one class automatically.
+          and if you enroll after a verified visit, we&apos;ll credit one class automatically.
         </p>
 
         <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
@@ -178,10 +178,10 @@ export default function TrialPage() {
                 disabled={submitting}
                 onClick={submit}
               >
-                {submitting ? "Booking..." : "Book free trial"}
+                {submitting ? "Booking..." : "Reserve free trial"}
               </ClayButton>
               <OutlineButton asChild className="px-6 py-3 text-[11px] uppercase tracking-[0.18em]">
-                <Link href="/register">Go to registration</Link>
+                <Link href="/register">Open account instead</Link>
               </OutlineButton>
             </div>
           </PremiumCard>
@@ -189,10 +189,10 @@ export default function TrialPage() {
           <PremiumCard className="border border-charcoal/10 bg-white p-6">
             <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-moss mb-3">What happens next</div>
             <div className="space-y-4 text-sm leading-relaxed text-charcoal/75">
-              <p>1. We confirm your BJJ trial date and email your QR code.</p>
+              <p>1. We confirm the trial date and email your QR code.</p>
               <p>2. Staff scan the QR code at the studio to verify the class was used.</p>
-              <p>3. If you decide to continue, you can create a Family &amp; Member Account and register with less friction.</p>
-              <p>4. Verified trials automatically count as one class credit when the same participant enrolls.</p>
+              <p>3. If you decide to continue, open a Family &amp; Member Account and add the same participant profile.</p>
+              <p>4. Verified trials automatically count as one class credit when that participant enrolls.</p>
             </div>
           </PremiumCard>
         </div>

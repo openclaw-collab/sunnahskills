@@ -1,7 +1,7 @@
 import React from "react";
 import { cn } from "@/lib/utils";
 
-type TelemetryCardProps = {
+export type InfoCardProps = {
   title: string;
   label: string;
   icon?: React.ReactNode;
@@ -9,13 +9,13 @@ type TelemetryCardProps = {
   children?: React.ReactNode;
 };
 
-export function TelemetryCard({
+export function InfoCard({
   title,
   label,
   icon,
   className,
   children,
-}: TelemetryCardProps) {
+}: InfoCardProps) {
   return (
     <div
       data-testid="telemetry-card-root"
@@ -47,3 +47,4 @@ export function TelemetryCard({
   );
 }
 
+export const TelemetryCard = InfoCard;

@@ -6,7 +6,7 @@
 -- Local admin users (password: testpassword123)
 INSERT OR REPLACE INTO admin_users (id, email, password_hash, name, role, status, permissions_json)
 VALUES
-  (1, 'admin@sunnahskills.com', '$2b$10$0tGYu3yQyzzeTAK98nJW3.wMm2fpFJZbRgrDrdQy1DQ2bT5rSuIHu', 'Muadh', 'tech', 'active', '{}'),
+  (1, 'muadh@sunnahskills.com', '$2b$10$0tGYu3yQyzzeTAK98nJW3.wMm2fpFJZbRgrDrdQy1DQ2bT5rSuIHu', 'Muadh', 'tech', 'active', '{}'),
   (2, 'laila@sunnahskills.com', '$2b$10$0tGYu3yQyzzeTAK98nJW3.wMm2fpFJZbRgrDrdQy1DQ2bT5rSuIHu', 'Laila', 'admin', 'active', '{}'),
   (3, 'mustafaa@sunnahskills.com', '$2b$10$0tGYu3yQyzzeTAK98nJW3.wMm2fpFJZbRgrDrdQy1DQ2bT5rSuIHu', 'Mustafaa', 'admin', 'active', '{}'),
   (4, 'ardo@sunnahskills.com', '$2b$10$0tGYu3yQyzzeTAK98nJW3.wMm2fpFJZbRgrDrdQy1DQ2bT5rSuIHu', 'Ardo', 'admin', 'active', '{}');

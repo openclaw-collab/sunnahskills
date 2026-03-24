@@ -15,18 +15,15 @@ export const pageVariants = {
   initial: {
     opacity: 0,
     y: 14,
-    filter: "blur(6px)",
   },
   animate: {
     opacity: 1,
     y: 0,
-    filter: "blur(0px)",
     transition: pageTransition,
   },
   exit: {
     opacity: 0,
     y: -10,
-    filter: "blur(4px)",
     transition: { duration: 0.18, ease: [0.55, 0, 1, 0.45] as const },
   },
 };

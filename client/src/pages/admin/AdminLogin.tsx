@@ -69,7 +69,7 @@ export default function AdminLogin() {
                 id="admin-email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="admin@sunnahskills.com"
+                placeholder="muadh@sunnahskills.com"
                 type="email"
                 autoComplete="email"
               />

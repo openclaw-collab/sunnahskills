@@ -3,6 +3,7 @@ import { Link } from "wouter";
 import { AlertCircle, ChevronLeft, ChevronRight } from "lucide-react";
 import { ClayButton } from "@/components/brand/ClayButton";
 import { DarkCard } from "@/components/brand/DarkCard";
+import { OutlineButton } from "@/components/brand/OutlineButton";
 import { PremiumCard } from "@/components/brand/PremiumCard";
 import { SectionHeader } from "@/components/brand/SectionHeader";
 import { StudioBlock } from "@/studio/StudioBlock";
@@ -288,11 +289,11 @@ const Schedule = () => {
 
       <StudioBlock id="schedule.header" label="Header" page="Schedule">
         <header className="mx-auto max-w-6xl px-6 pt-28 pb-10">
-          <SectionHeader eyebrow="Class Schedule" title="Academy calendar" className="mb-6" />
+          <SectionHeader eyebrow="Class Schedule" title="Weekly class schedule" className="mb-6" />
           <p className="max-w-2xl font-body text-sm leading-relaxed text-charcoal/70">
             <StudioText
               k="schedule.header.description"
-              defaultText="Weekly grid with real start and end times, plus a month overview for recurring classes. Brazilian Jiu-Jitsu enrollments are open, and the other programs are coming soon. Use the program pages to join the waitlist or contact us."
+              defaultText="See the live weekly class times, then decide whether you want to start with a free trial or open your Family & Member Account for BJJ registration. The other programs are still in coming-soon mode."
               as="span"
               className="inline"
               multiline
@@ -312,8 +313,8 @@ const Schedule = () => {
                     Tuesday youth blocks
                   </div>
                   <p className="mt-1 font-body text-sm text-charcoal/75">
-                    Women 11+ train <strong>12:30 to 2:00 PM</strong>. Kids, girls and boys, train <strong>2:30 to 3:30 PM</strong>.
-                    The week grid now separates overlapping youth sessions into lanes so the schedule stays easy to scan. Women
+                    Women 11+ train <strong>12:30 to 2:00 PM</strong>. Girls 5–10 and boys 7–13 train <strong>2:30 to 3:30 PM</strong>.
+                    The weekly view separates overlapping youth sessions into lanes so the schedule stays easy to scan. Women
                     Tuesday and Thursday are separate enrollments, so tuition stays tied to the exact day you choose.
                   </p>
                 </div>
@@ -453,20 +454,25 @@ const Schedule = () => {
                 <StudioText k="schedule.cta.eyebrow" defaultText="Questions" as="span" className="inline" />
               </div>
               <h2 className="mb-3 font-heading text-2xl text-cream">
-                <StudioText k="schedule.cta.title" defaultText="Have Questions About Our Schedule?" as="span" className="inline" />
+                <StudioText k="schedule.cta.title" defaultText="Ready to choose a first class?" as="span" className="inline" />
               </h2>
               <p className="mx-auto mb-8 max-w-md font-body text-sm text-cream/60">
                 <StudioText
                   k="schedule.cta.description"
-                  defaultText="Contact us for class times, registration, or to schedule a trial session."
+                  defaultText="Start with a free trial if you want to visit first, or open your account now and go straight into registration."
                   as="span"
                   className="inline"
                   multiline
                 />
               </p>
-              <ClayButton asChild className="px-8 py-3.5 text-[11px] uppercase tracking-[0.18em]">
-                <Link href="/contact">Contact Us</Link>
-              </ClayButton>
+              <div className="flex flex-col items-center justify-center gap-3 sm:flex-row">
+                <ClayButton asChild className="px-8 py-3.5 text-[11px] uppercase tracking-[0.18em]">
+                  <Link href="/trial">Start free trial</Link>
+                </ClayButton>
+                <OutlineButton asChild className="px-8 py-3.5 text-[11px] uppercase tracking-[0.18em] border-cream/20 text-cream hover:bg-cream/10">
+                  <Link href="/register">Open account</Link>
+                </OutlineButton>
+              </div>
             </DarkCard>
           </MotionDiv>
         </div>

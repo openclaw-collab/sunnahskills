@@ -125,13 +125,12 @@ export default function RegistrationHub() {
       <main className="mx-auto max-w-6xl px-6 pt-28">
         <SectionHeader
           eyebrow="Family & Member Account"
-          title={authenticated ? "Account & participant profiles" : "Create your account before you register"}
+          title={authenticated ? "Account & participant profiles" : "Open your account before you register"}
           className="mb-8"
         />
         <p className="mb-6 max-w-3xl text-sm leading-relaxed text-charcoal/70">
-          Adults and families use the same account system here. First we create the account, then we complete the
-          required contact details, then we add one or more participant profiles, and only after that do we unlock live
-          BJJ registration.
+          Adults and families use the same account system here. We start with a secure sign-in link, complete the
+          required contact details, add one or more participant profiles, and only then open live BJJ registration.
         </p>
 
         {message ? (
@@ -221,7 +220,7 @@ export default function RegistrationHub() {
                   <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-moss mb-2">Account holder</div>
                   <h2 className="font-heading text-2xl text-charcoal">{session?.fullName || session?.email}</h2>
                   <p className="mt-2 text-sm text-charcoal/65">
-                    Account #{session?.accountNumber} · {session?.email}
+                    Account #{session?.accountNumber}
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-3">
@@ -248,7 +247,7 @@ export default function RegistrationHub() {
               <PremiumCard className="border border-charcoal/10 bg-white p-6">
                 <div className="mb-4">
                   <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-moss mb-2">Required step</div>
-                  <h3 className="font-heading text-xl text-charcoal">Complete the account before registration opens</h3>
+                  <h3 className="font-heading text-xl text-charcoal">Complete the account before program selection opens</h3>
                 </div>
                 <div className="grid gap-4 md:grid-cols-2">
                   <label className="text-sm text-charcoal">
@@ -306,10 +305,13 @@ export default function RegistrationHub() {
             {accountComplete ? (
               <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
                 <PremiumCard className="border border-charcoal/10 bg-white p-6">
-                  <div className="mb-4">
-                    <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-moss mb-2">Participant profiles</div>
-                    <h3 className="font-heading text-xl text-charcoal">Add myself or add a child</h3>
-                  </div>
+                <div className="mb-4">
+                  <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-moss mb-2">Participant profiles</div>
+                  <h3 className="font-heading text-xl text-charcoal">Add myself or add a child</h3>
+                  <p className="mt-2 text-sm leading-relaxed text-charcoal/65">
+                    Add every person who might register through this account. Adults do not need to add a child to continue.
+                  </p>
+                </div>
                   <div className="grid gap-4 md:grid-cols-2">
                     <label className="text-sm text-charcoal">
                       Profile type
@@ -381,6 +383,9 @@ export default function RegistrationHub() {
                   <div className="mb-4">
                     <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-moss mb-2">Ready for registration</div>
                     <h3 className="font-heading text-xl text-charcoal">Profiles on this account</h3>
+                    <p className="mt-2 text-sm leading-relaxed text-charcoal/65">
+                      Once each profile is saved, BJJ registration will only show the tracks that fit that participant&apos;s age and gender.
+                    </p>
                   </div>
                   <div className="space-y-3">
                     {participants.map((participant) => (

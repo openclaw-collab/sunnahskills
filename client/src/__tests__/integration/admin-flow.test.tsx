@@ -68,7 +68,7 @@ describe("Admin Flow Integration", () => {
       const user = userEvent.setup();
       renderWithLoginRouter(<AdminLogin />);
 
-      await user.type(screen.getByLabelText(/email/i), "admin@sunnahskills.com");
+      await user.type(screen.getByLabelText(/email/i), "muadh@sunnahskills.com");
       await user.type(screen.getByLabelText(/password/i), "admin123");
       await user.click(screen.getByRole("button", { name: /sign in/i }));
 
@@ -77,7 +77,7 @@ describe("Admin Flow Integration", () => {
       });
 
       expect(mockStore.currentUser).toEqual({
-        email: "admin@sunnahskills.com",
+        email: "muadh@sunnahskills.com",
         name: "Admin User",
         role: "admin",
       });
@@ -102,7 +102,7 @@ describe("Admin Flow Integration", () => {
       const user = userEvent.setup();
       renderWithLoginRouter(<AdminLogin />);
 
-      await user.type(screen.getByLabelText(/email/i), "admin@sunnahskills.com");
+      await user.type(screen.getByLabelText(/email/i), "muadh@sunnahskills.com");
       await user.type(screen.getByLabelText(/password/i), "admin123");
 
       const submitButton = screen.getByRole("button", { name: /sign in/i });
@@ -143,7 +143,7 @@ describe("Admin Flow Integration", () => {
     it("loads dashboard data after authentication", async () => {
       // Pre-populate mock data
       mockStore.currentUser = {
-        email: "admin@sunnahskills.com",
+        email: "muadh@sunnahskills.com",
         name: "Admin User",
         role: "admin",
       };
@@ -191,7 +191,7 @@ describe("Admin Flow Integration", () => {
       const user = userEvent.setup();
 
       mockStore.currentUser = {
-        email: "admin@sunnahskills.com",
+        email: "muadh@sunnahskills.com",
         name: "Admin User",
         role: "admin",
       };
@@ -215,7 +215,7 @@ describe("Admin Flow Integration", () => {
   describe("Registration Management", () => {
     beforeEach(() => {
       mockStore.currentUser = {
-        email: "admin@sunnahskills.com",
+        email: "muadh@sunnahskills.com",
         name: "Admin User",
         role: "admin",
       };
@@ -303,7 +303,7 @@ describe("Admin Flow Integration", () => {
   describe("Payments Overview", () => {
     beforeEach(() => {
       mockStore.currentUser = {
-        email: "admin@sunnahskills.com",
+        email: "muadh@sunnahskills.com",
         name: "Admin User",
         role: "admin",
       };
@@ -349,7 +349,7 @@ describe("Admin Flow Integration", () => {
   describe("Tab Navigation", () => {
     beforeEach(() => {
       mockStore.currentUser = {
-        email: "admin@sunnahskills.com",
+        email: "muadh@sunnahskills.com",
         name: "Admin User",
         role: "admin",
       };

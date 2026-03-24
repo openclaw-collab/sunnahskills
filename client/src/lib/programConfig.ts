@@ -54,7 +54,7 @@ export const PROGRAMS: Record<ProgramSlug, ProgramConfig> = {
     pricingBlurb: "Kids tuition follows semester math from admin pricing; women and men tracks use admin-set live rates.",
     scheduleBlurb: "Tuesday / Friday youth, Tuesday / Thursday women, Friday / Saturday men.",
     nextSteps: [
-      "Sign in with your guardian account before registration.",
+      "Open your Family & Member Account before registration.",
       "Choose the exact BJJ track and session that matches the student.",
       "Complete waivers and payment in the same authenticated flow.",
     ],

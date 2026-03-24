@@ -4,7 +4,7 @@ import { OutlineButton } from "@/components/brand/OutlineButton";
 import { DarkCard } from "@/components/brand/DarkCard";
 import { PremiumCard } from "@/components/brand/PremiumCard";
 import { SectionHeader } from "@/components/brand/SectionHeader";
-import { TelemetryCard } from "@/components/brand/TelemetryCard";
+import { InfoCard } from "@/components/brand/TelemetryCard";
 import { StatusDot } from "@/components/brand/StatusDot";
 import { ProgramPageHeroMedia } from "@/components/programs/ProgramPageHeroMedia";
 import { MotionDiv, MotionPage, MotionSection } from "@/components/motion/PageMotion";
@@ -52,14 +52,14 @@ const BJJProgram = () => {
               </div>
 
               <div className="mt-12 flex flex-col sm:flex-row gap-4">
-                <Link href="/programs/bjj/register">
+                <Link href="/trial">
                   <ClayButton className="px-8 py-3.5 text-[11px] uppercase tracking-[0.18em]">
-                    Register Now
+                    Start free trial
                   </ClayButton>
                 </Link>
-                <Link href="/trial">
+                <Link href="/programs/bjj/register">
                   <OutlineButton className="px-8 py-3.5 text-[11px] uppercase tracking-[0.18em] border-cream/20 text-cream hover:bg-cream/10">
-                    Start free trial
+                    Open account &amp; register
                   </OutlineButton>
                 </Link>
                 <Link href="/schedule">
@@ -89,14 +89,14 @@ const BJJProgram = () => {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
                 <MotionDiv delay={0.04}>
-                  <TelemetryCard title="Leverage First" label="principle">
+                  <InfoCard title="Leverage First" label="Principle">
                     Control positions without relying on size or force.
-                  </TelemetryCard>
+                  </InfoCard>
                 </MotionDiv>
                 <MotionDiv delay={0.08}>
-                  <TelemetryCard title="Character Built In" label="ethos">
+                  <InfoCard title="Character Built In" label="Ethos">
                     Composure, discipline, and accountability on the mat.
-                  </TelemetryCard>
+                  </InfoCard>
                 </MotionDiv>
               </div>
             </MotionDiv>
@@ -115,15 +115,15 @@ const BJJProgram = () => {
                   <div className="grid grid-cols-2 gap-4 text-xs">
                     <div>
                       <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-cream/50">
-                        Focus
+                        What families can expect
                       </div>
-                      <div className="mt-1">Household-ready enrollment • Technique • Discipline</div>
+                      <div className="mt-1">Calm instruction, clear structure, and technique-led training.</div>
                     </div>
                     <div>
                       <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-cream/50">
-                        Model
+                        Enrollment
                       </div>
-                      <div className="mt-1">{getProgramTypeLabel(program.type)}</div>
+                      <div className="mt-1">Free trial first, then account-based registration.</div>
                     </div>
                   </div>
                 </div>
@@ -183,21 +183,21 @@ const BJJProgram = () => {
                     Next step
                   </div>
                   <h2 className="mt-2 font-heading text-3xl md:text-4xl tracking-tight text-charcoal">
-                    Begin with your guardian account, or start with a free trial first.
+                    Start with a free trial, then open your Family &amp; Member Account when you&apos;re ready.
                   </h2>
                   <p className="mt-4 font-body text-charcoal/70 max-w-2xl text-pretty">
-                    The live flow is auth-first, so families can sign in, choose the right BJJ track, or book a trial before they complete registration and payment.
+                    The live BJJ flow keeps things simple: explore the schedule, take a first class, then sign in, choose the right track, and finish registration in one account.
                   </p>
                 </div>
                 <div className="flex w-full flex-col gap-3 md:w-auto sm:flex-row">
-                  <Link href="/programs/bjj/register">
+                  <Link href="/trial">
                     <ClayButton className="w-full md:w-auto px-7 py-3.5 text-[11px] uppercase tracking-[0.18em]">
-                      Register Now
+                      Start free trial
                     </ClayButton>
                   </Link>
-                  <Link href="/trial">
+                  <Link href="/programs/bjj/register">
                     <OutlineButton className="w-full md:w-auto px-7 py-3.5 text-[11px] uppercase tracking-[0.18em] border-charcoal/15 text-charcoal hover:bg-charcoal/5">
-                      Free trial
+                      Open account
                     </OutlineButton>
                   </Link>
                   <Link href="/contact">

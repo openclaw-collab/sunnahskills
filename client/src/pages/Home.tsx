@@ -1,7 +1,7 @@
 import { Link } from "wouter";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { ClayButton } from "@/components/brand/ClayButton";
-import { TelemetryCard } from "@/components/brand/TelemetryCard";
+import { InfoCard } from "@/components/brand/TelemetryCard";
 import { DarkCard } from "@/components/brand/DarkCard";
 import { TechniqueViewer } from "@/components/grapplemap/TechniqueViewer";
 import { PremiumCard } from "@/components/brand/PremiumCard";
@@ -87,27 +87,48 @@ const testimonials = [
   },
 ];
 
-const academySnapshotRows = [
-  { label: "Live program", value: "BJJ" },
-  { label: "Current tracks", value: "Girls, Boys, Women, Men" },
-  { label: "Best next step", value: "Free trial or sign in" },
+const academyStatusRows = [
+  { label: "Live now", value: "Brazilian Jiu-Jitsu" },
+  { label: "Active tracks", value: "Girls, Boys, Women, Men" },
+  { label: "Built for", value: "Families and adult students" },
 ];
 
-const schedulePreviewRows = [
-  { day: "Tue", track: "Women 11+", time: "12:30 to 2:00 PM", note: "Separate women-only block" },
-  { day: "Tue", track: "Girls 5 to 10", time: "2:30 to 3:30 PM", note: "Youth room" },
-  { day: "Fri", track: "Girls 5 to 10", time: "10:00 to 11:00 AM", note: "Youth room" },
-  { day: "Fri", track: "Men 14+", time: "8:00 to 9:00 PM", note: "Evening class" },
+const schedulePreviewGroups = [
+  {
+    day: "Tuesday",
+    items: [
+      { track: "Women 11+", time: "12:30–2:00 PM" },
+      { track: "Girls 5–10", time: "2:30–3:30 PM" },
+      { track: "Boys 7–13", time: "2:30–3:30 PM" },
+    ],
+  },
+  {
+    day: "Thursday",
+    items: [{ track: "Women 11+", time: "8:00–9:30 PM" }],
+  },
+  {
+    day: "Friday",
+    items: [
+      { track: "Girls 5–10", time: "10:00–11:00 AM" },
+      { track: "Boys 7–13", time: "10:00–11:00 AM" },
+      { track: "Men 14+", time: "8:00–9:00 PM" },
+    ],
+  },
+  {
+    day: "Saturday",
+    items: [{ track: "Men 14+", time: "8:00–9:00 PM" }],
+  },
 ];
 
-function heroVariant(index: number) {
+function heroVariant(index: number, reduceMotion: boolean) {
+  if (reduceMotion) return {};
   return {
     initial: { opacity: 0, y: 40 },
     animate: {
       opacity: 1,
       y: 0,
       transition: {
-        duration: 0.56,
+        duration: 0.48,
         delay: 0.04 + index * 0.04,
         ease: [0.16, 1, 0.3, 1] as const,
       },
@@ -116,13 +137,14 @@ function heroVariant(index: number) {
 }
 
 function StickyCurriculumCard({ item }: { item: (typeof curriculum)[number] }) {
+  const reduceMotion = useReducedMotion();
   return (
     <div className="protocol-card relative sticky top-0 h-screen flex items-center justify-center p-6 pt-24">
       <motion.div
-        initial={{ opacity: 0.94 }}
-        whileInView={{ opacity: 1 }}
-        viewport={{ once: true, margin: "-12% 0px -12% 0px" }}
-        transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+        initial={reduceMotion ? false : { opacity: 0.94, y: 12 }}
+        whileInView={reduceMotion ? undefined : { opacity: 1, y: 0 }}
+        viewport={{ once: true, margin: "-5% 0px -5% 0px" }}
+        transition={reduceMotion ? undefined : { duration: 0.32, ease: [0.16, 1, 0.3, 1] }}
         className={`protocol-content w-full max-w-5xl rounded-[3rem] h-[80vh] shadow-2xl p-10 md:p-16 flex flex-col md:flex-row items-center gap-12 overflow-hidden ${item.cardClassName}`}
       >
         <div className="flex-1 z-10">
@@ -146,15 +168,17 @@ function StickyCurriculumCard({ item }: { item: (typeof curriculum)[number] }) {
 }
 
 const Home = () => {
+  const reduceMotion = useReducedMotion();
+  const prefersReducedMotion = Boolean(reduceMotion);
   return (
     <MotionPage className="bg-cream text-charcoal">
       <div className="noise-overlay" />
 
       <header className="relative h-[100dvh] w-full overflow-hidden flex items-end">
         <motion.div
-          initial={{ scale: 1.06, opacity: 0.72 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ duration: 1.4, ease: [0.16, 1, 0.3, 1] }}
+          initial={prefersReducedMotion ? false : { scale: 1.04, opacity: 0.78 }}
+          animate={prefersReducedMotion ? undefined : { scale: 1, opacity: 1 }}
+          transition={prefersReducedMotion ? undefined : { duration: 1.05, ease: [0.16, 1, 0.3, 1] }}
           className="absolute inset-0 w-full h-full"
         >
           <img
@@ -169,19 +193,19 @@ const Home = () => {
         <div className="relative z-10 w-full max-w-7xl mx-auto px-6 pb-24 md:pb-32">
           <StudioBlock id="home.hero" label="Hero" page="Home">
             <div className="max-w-4xl hero-content">
-              <motion.p {...heroVariant(0)} className="text-clay font-mono-label text-xs uppercase tracking-[0.18em] mb-6 flex items-center gap-2">
-                <StatusDot ariaLabel="System Initialized" />
-                <StudioText k="home.hero.eyebrow" defaultText="System Initialized" as="span" className="inline" />
+              <motion.p {...heroVariant(0, prefersReducedMotion)} className="text-clay font-mono-label text-xs uppercase tracking-[0.18em] mb-6 flex items-center gap-2">
+                <StatusDot ariaLabel="Training in progress" />
+                <StudioText k="home.hero.eyebrow" defaultText="Training in Progress" as="span" className="inline" />
               </motion.p>
               <h1 className="flex flex-col gap-2">
-                <motion.span {...heroVariant(1)} className="font-heading text-5xl md:text-7xl lg:text-[6rem] tracking-tight text-cream leading-none">
+                <motion.span {...heroVariant(1, prefersReducedMotion)} className="font-heading text-5xl md:text-7xl lg:text-[6rem] tracking-tight text-cream leading-none text-balance">
                   <StudioText k="home.hero.titleA" defaultText="Built Through" as="span" className="inline" />
                 </motion.span>
-                <motion.span {...heroVariant(2)} className="font-serif-accent italic text-6xl md:text-8xl lg:text-[8rem] tracking-tight text-cream leading-none mt-2 pr-4">
+                <motion.span {...heroVariant(2, prefersReducedMotion)} className="font-serif-accent italic text-6xl md:text-8xl lg:text-[8rem] tracking-tight text-cream leading-none mt-2 pr-4 text-balance">
                   <StudioText k="home.hero.titleB" defaultText="Discipline." as="span" className="inline" />
                 </motion.span>
               </h1>
-              <motion.p {...heroVariant(3)} className="mt-10 text-cream/70 font-body text-sm md:text-base max-w-lg leading-relaxed">
+              <motion.p {...heroVariant(3, prefersReducedMotion)} className="mt-10 text-cream/70 font-body text-sm md:text-base max-w-lg leading-relaxed text-pretty">
                 <StudioText
                   k="home.hero.subcopy"
                   defaultText="Train the body. Shape the character. Brazilian Jiu-Jitsu, archery, outdoor skills, and bullyproofing taught through a structured youth development system."
@@ -190,17 +214,17 @@ const Home = () => {
                   multiline
                 />
               </motion.p>
-              <motion.div {...heroVariant(4)} className="mt-12 flex flex-col sm:flex-row gap-4">
+              <motion.div {...heroVariant(4, prefersReducedMotion)} className="mt-12 flex flex-col sm:flex-row gap-4">
                 <ClayButton asChild className="px-8 py-3.5 text-[11px] uppercase tracking-[0.18em]">
-                  <Link href="/register">
-                    <StudioText k="home.hero.ctaPrimary" defaultText="Register Now" as="span" className="inline" />
+                  <Link href="/trial">
+                    <StudioText k="home.hero.ctaPrimary" defaultText="Start Your Free Trial" as="span" className="inline" />
                   </Link>
                 </ClayButton>
                 <Link
-                  href="/schedule"
+                  href="/register"
                   className="inline-flex items-center justify-center px-8 py-3.5 rounded-full border border-cream/20 text-cream text-[11px] font-normal uppercase tracking-[0.18em] hover:bg-cream/10 transition-colors"
                 >
-                  <StudioText k="home.hero.ctaSecondary" defaultText="View Schedule" as="span" className="inline" />
+                  <StudioText k="home.hero.ctaSecondary" defaultText="Open Your Account" as="span" className="inline" />
                 </Link>
               </motion.div>
             </div>
@@ -208,64 +232,91 @@ const Home = () => {
         </div>
       </header>
 
-      <section id="features" className="py-32 bg-cream relative z-20 overflow-hidden">
+      <section id="overview" className="py-32 bg-cream relative z-20 overflow-hidden">
         <div className="max-w-7xl mx-auto px-6">
-          <SectionHeader title="Academy Telemetry" />
-          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: "-10% 0px" }} transition={{ duration: 0.5 }} className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6">
-            <TelemetryCard title="Academy Snapshot" label="Snapshot">
+          <SectionHeader eyebrow="Current Sessions" title="This Week at Sunnah Skills" />
+          <motion.div
+            initial={prefersReducedMotion ? false : { opacity: 0, y: 20 }}
+            whileInView={prefersReducedMotion ? undefined : { opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-10% 0px" }}
+            transition={prefersReducedMotion ? undefined : { duration: 0.42 }}
+            className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6"
+          >
+            <InfoCard title="Academy Overview" label="Live now" className="md:order-1">
               <div className="space-y-3">
-                {academySnapshotRows.map((row) => (
+                {academyStatusRows.map((row) => (
                   <div key={row.label} className="flex items-center justify-between rounded-2xl border border-charcoal/8 bg-cream/40 px-4 py-3">
                     <span className="text-[10px] uppercase tracking-[0.16em] text-charcoal/50">{row.label}</span>
-                    <span className="font-heading text-sm text-charcoal">{row.value}</span>
+                    <span className="font-heading text-right text-sm text-charcoal">{row.value}</span>
                   </div>
                 ))}
-                <div className="rounded-2xl border border-moss/15 bg-moss/5 px-4 py-3">
+                <div className="rounded-2xl border border-moss/15 bg-moss/5 px-4 py-4">
                   <div className="font-mono-label text-[10px] uppercase tracking-[0.16em] text-moss">
-                    Ready to start
+                    Best first step
                   </div>
-                  <p className="mt-1 text-sm text-charcoal/70">
-                    Book a free trial or sign in for the live BJJ flow.
+                  <p className="mt-1 text-sm leading-relaxed text-charcoal/70">
+                    Start with a free trial if you want a calm first visit, or open your Family &amp; Member Account when you&apos;re ready to register.
                   </p>
+                  <div className="mt-4 flex flex-wrap gap-3">
+                    <ClayButton asChild className="px-5 py-2.5 text-[11px] uppercase tracking-[0.18em]">
+                      <Link href="/trial">Start free trial</Link>
+                    </ClayButton>
+                    <Link
+                      href="/register"
+                      className="inline-flex items-center justify-center rounded-full border border-charcoal/12 px-5 py-2.5 text-[11px] uppercase tracking-[0.18em] text-charcoal transition-colors hover:bg-charcoal/5"
+                    >
+                      Open account
+                    </Link>
+                  </div>
                 </div>
               </div>
-            </TelemetryCard>
+            </InfoCard>
 
-            <DarkCard>
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-3">
-                  <StatusDot ariaLabel="Technique Viewer" />
-                  <span className="font-mono-label text-[11px] text-cream/70 uppercase tracking-[0.2em]">
-                    Technique Viewer
-                  </span>
-                </div>
+            <DarkCard className="md:order-2 order-3">
+              <div className="mb-5 flex items-center gap-3">
+                <StatusDot ariaLabel="Technique preview" />
+                <span className="font-mono-label text-[11px] text-cream/70 uppercase tracking-[0.2em]">
+                  Inside Training
+                </span>
               </div>
-              <div className="relative w-full h-64 bg-charcoal rounded-2xl overflow-hidden border border-moss/20">
+              <div className="relative w-full h-72 bg-charcoal rounded-2xl overflow-hidden border border-moss/20">
                 <TechniqueViewer className="w-full h-full" controlsMode="none" autoplay />
                 <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-charcoal via-charcoal/18 to-transparent" />
               </div>
+              <p className="mt-5 text-sm leading-relaxed text-cream/68">
+                A quiet look at how technique is taught at Sunnah Skills. The full interactive library lives on the techniques page.
+              </p>
+              <div className="mt-4">
+                <Link href="/techniques" className="font-mono-label text-[11px] uppercase tracking-[0.18em] text-moss hover:text-cream">
+                  View technique library
+                </Link>
+              </div>
             </DarkCard>
 
-            <TelemetryCard title="Schedule Preview" label="Schedule">
-              <div className="space-y-3">
-                {schedulePreviewRows.map((row) => (
-                  <div key={`${row.day}-${row.track}`} className="grid grid-cols-[44px_1fr] gap-3 rounded-2xl border border-charcoal/8 bg-cream/40 px-3 py-3">
-                    <div className="rounded-xl bg-charcoal text-cream text-center">
-                      <div className="pt-1 text-[10px] uppercase tracking-[0.18em] text-cream/65">{row.day}</div>
-                      <div className="pb-1 font-heading text-lg leading-none">{row.day}</div>
+            <InfoCard title="Weekly Schedule" label="Current sessions" className="md:order-3 order-2">
+              <div className="space-y-4">
+                {schedulePreviewGroups.map((group) => (
+                  <div key={group.day} className="rounded-2xl border border-charcoal/8 bg-cream/40 px-4 py-4">
+                    <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-charcoal/45">
+                      {group.day}
                     </div>
-                    <div className="min-w-0">
-                      <div className="font-heading text-sm text-charcoal">{row.track}</div>
-                      <div className="mt-1 text-[10px] uppercase tracking-[0.14em] text-charcoal/50">{row.time}</div>
-                      <div className="mt-1 text-xs text-charcoal/65">{row.note}</div>
+                    <div className="mt-3 space-y-2">
+                      {group.items.map((row) => (
+                        <div key={`${group.day}-${row.track}-${row.time}`} className="flex items-start justify-between gap-4 border-t border-charcoal/6 pt-2 first:border-t-0 first:pt-0">
+                          <div className="font-heading text-sm text-charcoal">{row.track}</div>
+                          <div className="font-mono-label tabular-nums text-[10px] uppercase tracking-[0.14em] text-charcoal/55">
+                            {row.time}
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 ))}
-                <div className="rounded-2xl border border-moss/15 bg-moss/5 px-4 py-3 text-xs text-charcoal/70">
-                  Friday youth blocks stay in separate lanes so the class list remains easy to scan.
+                <div className="rounded-2xl border border-moss/15 bg-moss/5 px-4 py-3 text-xs leading-relaxed text-charcoal/70">
+                  Women Tuesday and Thursday are separate enrollments. Friday youth classes share the same training window but stay in distinct tracks.
                 </div>
               </div>
-            </TelemetryCard>
+            </InfoCard>
           </motion.div>
         </div>
       </section>

@@ -118,7 +118,7 @@ export const handlers = [
 
     const body = (await request.json()) as { email: string; password: string };
 
-    if (body.email === "admin@sunnahskills.com" && body.password === "admin123") {
+    if (body.email === "muadh@sunnahskills.com" && body.password === "admin123") {
       mockStore.currentUser = {
         email: body.email,
         name: "Admin User",

@@ -36,7 +36,7 @@ describe("Error Scenarios Integration", () => {
 
       render(<AdminLogin />);
 
-      await user.type(screen.getByLabelText(/email/i), "admin@sunnahskills.com");
+      await user.type(screen.getByLabelText(/email/i), "muadh@sunnahskills.com");
       await user.type(screen.getByLabelText(/password/i), "admin123");
       await user.click(screen.getByRole("button", { name: /sign in/i }));
 
@@ -64,7 +64,7 @@ describe("Error Scenarios Integration", () => {
 
       render(<AdminLogin />);
 
-      await user.type(screen.getByLabelText(/email/i), "admin@sunnahskills.com");
+      await user.type(screen.getByLabelText(/email/i), "muadh@sunnahskills.com");
       await user.type(screen.getByLabelText(/password/i), "admin123");
 
       const submitButton = screen.getByRole("button", { name: /sign in/i });
@@ -85,7 +85,7 @@ describe("Error Scenarios Integration", () => {
 
       render(<AdminLogin />);
 
-      await user.type(screen.getByLabelText(/email/i), "admin@sunnahskills.com");
+      await user.type(screen.getByLabelText(/email/i), "muadh@sunnahskills.com");
       await user.type(screen.getByLabelText(/password/i), "admin123");
       await user.click(screen.getByRole("button", { name: /sign in/i }));
 
@@ -97,7 +97,7 @@ describe("Error Scenarios Integration", () => {
       mockStore.networkError = false;
 
       await user.clear(screen.getByLabelText(/email/i));
-      await user.type(screen.getByLabelText(/email/i), "admin@sunnahskills.com");
+      await user.type(screen.getByLabelText(/email/i), "muadh@sunnahskills.com");
       await user.click(screen.getByRole("button", { name: /sign in/i }));
 
       await waitFor(() => {
@@ -157,7 +157,7 @@ describe("Error Scenarios Integration", () => {
       render(<AdminLogin />);
 
       // Fill form
-      await user.type(screen.getByLabelText(/email/i), "admin@sunnahskills.com");
+      await user.type(screen.getByLabelText(/email/i), "muadh@sunnahskills.com");
       await user.type(screen.getByLabelText(/password/i), "admin123");
 
       // Click multiple times rapidly
@@ -307,10 +307,10 @@ describe("Error Scenarios Integration", () => {
       await user.clear(screen.getByLabelText(/email/i));
       await user.type(screen.getByLabelText(/email/i), "b");
       await user.clear(screen.getByLabelText(/email/i));
-      await user.type(screen.getByLabelText(/email/i), "admin@sunnahskills.com");
+      await user.type(screen.getByLabelText(/email/i), "muadh@sunnahskills.com");
 
       const input = screen.getByLabelText(/email/i) as HTMLInputElement;
-      expect(input.value).toBe("admin@sunnahskills.com");
+      expect(input.value).toBe("muadh@sunnahskills.com");
     });
 
     it("handles browser back button during submission", async () => {
@@ -318,7 +318,7 @@ describe("Error Scenarios Integration", () => {
 
       render(<AdminLogin />);
 
-      await user.type(screen.getByLabelText(/email/i), "admin@sunnahskills.com");
+      await user.type(screen.getByLabelText(/email/i), "muadh@sunnahskills.com");
       await user.type(screen.getByLabelText(/password/i), "admin123");
 
       // Start submission

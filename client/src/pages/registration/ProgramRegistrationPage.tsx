@@ -16,6 +16,7 @@ import { StepWaivers } from "@/components/registration/StepWaivers";
 import { StepPayment } from "@/components/registration/StepPayment";
 import { ResumeBanner } from "@/components/registration/ResumeBanner";
 import { OrderSummaryCard } from "@/components/registration/OrderSummaryCard";
+import { WaitlistDialog } from "@/components/programs/WaitlistDialog";
 import { blockingMessageThroughDetails } from "@/hooks/useStepValidation";
 import { addLineToFamilyCart, loadFamilyCart } from "@/lib/familyCart";
 import { queryClient } from "@/lib/queryClient";
@@ -31,6 +32,7 @@ export function ProgramRegistrationPage({ slug }: { slug: ProgramSlug }) {
   const [clientSecret, setClientSecret] = React.useState<string | null>(null);
   const [loadingPayment, setLoadingPayment] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const [waitlistOpen, setWaitlistOpen] = React.useState(false);
   const guardianSession = useGuardianSession();
   const guardianStudents = useGuardianStudents(Boolean(guardianSession.data?.authenticated));
 
@@ -59,26 +61,38 @@ export function ProgramRegistrationPage({ slug }: { slug: ProgramSlug }) {
 
   if (program.enrollmentStatus !== "open") {
     return (
-      <div className="bg-cream min-h-screen pb-24">
-        <div className="noise-overlay" />
-        <main className="mx-auto max-w-2xl px-6 pt-28">
-          <SectionHeader eyebrow="Registration" title={`${program.name}`} className="mb-8" />
-          <PremiumCard className="space-y-6 border border-charcoal/10 bg-white p-8">
-            <p className="font-body text-sm leading-relaxed text-charcoal/75">
-              Online registration for this program isn&apos;t open yet. Join the waitlist and we&apos;ll reach out when a cohort
-              is scheduled.
-            </p>
-            <div className="flex flex-col gap-3 sm:flex-row">
-              <ClayButton asChild className="px-6 py-3 text-[11px] uppercase tracking-[0.18em]">
-                <Link href={`/contact?interest=${program.slug}`}>Join waitlist</Link>
-              </ClayButton>
-              <OutlineButton asChild className="px-6 py-3 text-[11px] uppercase tracking-[0.18em]">
-                <Link href={program.detailPath}>Back to program</Link>
-              </OutlineButton>
-            </div>
-          </PremiumCard>
-        </main>
-      </div>
+      <>
+        <div className="bg-cream min-h-screen pb-24">
+          <div className="noise-overlay" />
+          <main className="mx-auto max-w-2xl px-6 pt-28">
+            <SectionHeader eyebrow="Registration" title={`${program.name}`} className="mb-8" />
+            <PremiumCard className="space-y-6 border border-charcoal/10 bg-white p-8">
+              <p className="font-body text-sm leading-relaxed text-charcoal/75">
+                Online registration for this program isn&apos;t open yet. Join the waitlist and we&apos;ll reach out when a cohort is scheduled.
+              </p>
+              <div className="flex flex-col gap-3 sm:flex-row">
+                <OutlineButton
+                  type="button"
+                  className="px-6 py-3 text-[11px] uppercase tracking-[0.18em]"
+                  onClick={() => setWaitlistOpen(true)}
+                >
+                  Join waitlist
+                </OutlineButton>
+                <OutlineButton asChild className="px-6 py-3 text-[11px] uppercase tracking-[0.18em]">
+                  <Link href={program.detailPath}>Back to program</Link>
+                </OutlineButton>
+              </div>
+            </PremiumCard>
+          </main>
+        </div>
+
+        <WaitlistDialog
+          open={waitlistOpen}
+          onOpenChange={setWaitlistOpen}
+          programId={program.slug}
+          programName={program.name}
+        />
+      </>
     );
   }
 
@@ -235,7 +249,7 @@ export function ProgramRegistrationPage({ slug }: { slug: ProgramSlug }) {
                   }
                   const existing = loadFamilyCart();
                   const email = draft.guardian.email.trim().toLowerCase();
-                  if (existing && existing.guardian.email.trim().toLowerCase() !== email) {
+                  if (existing && existing.account.email.trim().toLowerCase() !== email) {
                     window.alert(
                       "Your cart was started with a different guardian email. Clear the cart from the cart page or use the same email.",
                     );
@@ -243,12 +257,32 @@ export function ProgramRegistrationPage({ slug }: { slug: ProgramSlug }) {
                   }
                   addLineToFamilyCart(
                     {
-                      ...draft.guardian,
+                      fullName: draft.guardian.fullName,
                       email: guardianSession.data?.email || draft.guardian.email,
+                      phone: draft.guardian.phone,
+                      emergencyContactName: draft.guardian.emergencyContactName,
+                      emergencyContactPhone: draft.guardian.emergencyContactPhone,
+                      accountRole: draft.guardian.relationship === "self" ? "adult_student" : "parent_guardian",
+                      notes: draft.guardian.notes,
                     },
                     {
-                    student: draft.student,
-                    programDetails: draft.programDetails,
+                      participant: {
+                        participantType: "child",
+                        fullName: draft.student.fullName,
+                        dateOfBirth: draft.student.dateOfBirth,
+                        gender: draft.student.gender,
+                        medicalNotes: draft.student.medicalNotes,
+                        experienceLevel: draft.student.skillLevel || "beginner",
+                      },
+                      paymentChoice: draft.programDetails.paymentChoice === "plan" ? "plan" : "full",
+                      programDetails: {
+                        sessionId: draft.programDetails.sessionId ?? 0,
+                        priceId: draft.programDetails.priceId ?? 0,
+                        programSpecific: {
+                          bjjTrack: (draft.programDetails.programSpecific as BjjSpecific).bjjTrack,
+                          notes: (draft.programDetails.programSpecific as BjjSpecific).notes,
+                        },
+                      },
                     },
                   );
                   navigate("/registration/cart");

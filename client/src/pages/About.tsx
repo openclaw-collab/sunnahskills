@@ -14,7 +14,7 @@ const milestones = [
     key: "founding",
     label: "01 · Founding",
     title: "The Founding Vision",
-    body: "Muadh and Mustafa came together with a shared vision: to create a martial arts school that would do more than teach self-defense. They wanted to build a place where young Muslims could develop character, confidence, and community — rooted in the Sunnah.",
+    body: "Muadh and Mustafaa came together with a shared vision: to create a martial arts school that would do more than teach self-defense. They wanted to build a place where young Muslims could develop character, confidence, and community, rooted in the Sunnah.",
   },
   {
     key: "bjj",
@@ -29,16 +29,22 @@ const milestones = [
     body: "Following the Sunnah of Prophet Muhammad ﷺ, we introduced traditional archery instruction. Students learn proper form, safety protocols, and mental focus while connecting with this ancient skill.",
   },
   {
-    key: "outdoor",
-    label: "04 · Fall 2024",
-    title: "Outdoor Education Program",
-    body: "Our comprehensive outdoor workshops began, teaching practical wilderness skills while fostering a deep connection with Allah's creation. Students gain confidence and environmental awareness.",
+    key: "women",
+    label: "04 · Feb 2025",
+    title: "First women's classes started",
+    body: "Our first women's classes started in February 2025. The program was built to be the first hijabi-friendly BJJ program in the west end, with a calm space for women to train and grow.",
+  },
+  {
+    key: "girls",
+    label: "05 · Oct 2025",
+    title: "Girls classes began offering structured training",
+    body: "By October 2025, our girls classes began offering structured training to young girls, with clear instruction, steady progress, and age-appropriate coaching.",
   },
   {
     key: "community",
-    label: "05 · Today",
+    label: "06 · Today",
     title: "Thriving Community",
-    body: "Our success isn't measured in trophies or belts — it's measured in the confident smiles of our students, the grateful feedback from parents, and the strong community we've built together.",
+    body: "Our success isn't measured in trophies or belts. It is measured in the confident smiles of our students, the grateful feedback from parents, and the strong community we've built together.",
   },
 ];
 
@@ -71,41 +77,41 @@ const values = [
 
 const coaches = [
   {
-    key: "ahmed",
-    name: "Coach Ahmed",
-    role: "BJJ Coach",
-    bio: "Grew up training BJJ, passionate about youth mentorship.",
-    achievements: "BJJ Brown Belt · Youth Instructor Certification",
-    specialties: ["Grappling", "Self-Defence", "Confidence Building"],
-    funFact: "Loves hiking and Turkish coffee.",
+    key: "mustafaa",
+    name: "Mustafaa",
+    role: "BJJ Coach for Men and Boys",
+    bio: "Coaches the men's and boys' BJJ groups with a patient, practical style.",
+    achievements: "Purple belt, 5+ years training, competitor, first aid certified",
+    specialties: ["Men's BJJ", "Boys BJJ", "Competition Prep"],
+    funFact: "Enjoys biking and snowboarding.",
   },
   {
-    key: "bilal",
-    name: "Coach Bilal",
-    role: "BJJ Coach",
-    bio: "Started martial arts at 12, now helps teens build discipline.",
-    achievements: "BJJ Purple Belt · First Aid Certified",
-    specialties: ["Teen Development", "Competition Prep"],
-    funFact: "Enjoys calligraphy and chess.",
+    key: "muadh",
+    name: "Muadh",
+    role: "BJJ Coach for Men and Boys",
+    bio: "Coaches the men's and boys' BJJ groups with a calm, detail-focused approach.",
+    achievements: "Blue belt, 5+ years training, competitor, first aid certified",
+    specialties: ["Men's BJJ", "Boys BJJ", "Fundamentals"],
+    funFact: "Enjoys hiking and coding.",
   },
-  {
-    key: "fatima",
-    name: "Coach Fatima",
-    role: "BJJ Coach — Women & Girls",
-    bio: "Focused on empowering girls and women through martial arts.",
-    achievements: "BJJ Blue Belt · Women's Self-Defence Certified",
-    specialties: ["Women's BJJ", "Confidence", "Community Building"],
-    funFact: "Loves baking and archery.",
-  },
-  {
-    key: "yusuf",
-    name: "Coach Yusuf",
-    role: "Archery Coach",
-    bio: "Lifelong archer, passionate about teaching Sunnah archery.",
-    achievements: "NASP Certified · 10+ years coaching youth",
-    specialties: ["Traditional Archery", "Focus Training"],
-    funFact: "Enjoys camping and poetry.",
-  },
+  // {
+  //   key: "fatima",
+  //   name: "Coach Fatima",
+  //   role: "BJJ Coach for Women & Girls",
+  //   bio: "Focused on empowering girls and women through martial arts.",
+  //   achievements: "BJJ Blue Belt, women's self-defense certified",
+  //   specialties: ["Women's BJJ", "Confidence", "Community Building"],
+  //   funFact: "Loves baking and archery.",
+  // },
+  // {
+  //   key: "yusuf",
+  //   name: "Coach Yusuf",
+  //   role: "Archery Coach",
+  //   bio: "Lifelong archer, passionate about teaching Sunnah archery.",
+  //   achievements: "NASP certified, 10+ years coaching youth",
+  //   specialties: ["Traditional Archery", "Focus Training"],
+  //   funFact: "Enjoys camping and poetry.",
+  // },
 ];
 
 const reasons = [
@@ -349,7 +355,7 @@ export default function About() {
           <p className="font-body text-sm text-charcoal/70 max-w-2xl leading-relaxed">
             <StudioText
               k="about.header.intro"
-              defaultText="We're not just teaching martial arts — we're building character, confidence, and community. Since May 2024, Sunnah Skills has been helping young Muslims develop the physical skills, mental discipline, and spiritual grounding they need to thrive."
+              defaultText="We're not just teaching martial arts. We're building character, confidence, and community. Since May 2024, Sunnah Skills has been helping young Muslims develop the physical skills, mental discipline, and spiritual grounding they need to thrive."
               as="span"
               className="inline"
               multiline
@@ -394,7 +400,7 @@ export default function About() {
             <blockquote className="font-serif-accent italic text-3xl md:text-5xl text-cream leading-tight max-w-3xl mx-auto">
               <StudioText
                 k="about.promise.quote"
-                defaultText="We don't just teach martial arts — we build character, confidence, and community."
+                defaultText="We don't just teach martial arts. We build character, confidence, and community."
                 as="span"
                 className="inline"
                 multiline
@@ -536,7 +542,7 @@ export default function About() {
             <p className="mt-4 font-mono-label text-[10px] uppercase tracking-[0.18em] text-cream/50">
               <StudioText
                 k="about.why.testimonial.byline"
-                defaultText="— Parent of 3 students"
+                defaultText="Parent of 3 students"
                 as="span"
                 className="inline"
               />
@@ -555,7 +561,7 @@ export default function About() {
             <span>
               <StudioText
                 k="about.cta.location.bjj"
-                defaultText="BJJ & Most Programs — 918 Dundas St E"
+                defaultText="BJJ and most programs, 918 Dundas St E"
                 as="span"
                 className="inline"
               />
@@ -563,7 +569,7 @@ export default function About() {
             <span>
               <StudioText
                 k="about.cta.location.archery"
-                defaultText="Archery — E.T. Seaton Range"
+                defaultText="Archery, E.T. Seaton Range"
                 as="span"
                 className="inline"
               />
@@ -571,7 +577,7 @@ export default function About() {
             <span>
               <StudioText
                 k="about.cta.location.outdoor"
-                defaultText="Outdoor — Coming Soon"
+                defaultText="Outdoor, coming soon"
                 as="span"
                 className="inline"
               />

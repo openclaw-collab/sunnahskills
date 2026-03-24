@@ -1,6 +1,5 @@
-import { useRef } from "react";
 import { Link } from "wouter";
-import { motion, useReducedMotion, useScroll, useTransform } from "framer-motion";
+import { motion } from "framer-motion";
 import { ClayButton } from "@/components/brand/ClayButton";
 import { TelemetryCard } from "@/components/brand/TelemetryCard";
 import { DarkCard } from "@/components/brand/DarkCard";
@@ -88,6 +87,19 @@ const testimonials = [
   },
 ];
 
+const academySnapshotRows = [
+  { label: "Live program", value: "BJJ" },
+  { label: "Current tracks", value: "Girls, Boys, Women, Men" },
+  { label: "Best next step", value: "Free trial or sign in" },
+];
+
+const schedulePreviewRows = [
+  { day: "Tue", track: "Women 11+", time: "12:30 to 2:00 PM", note: "Separate women-only block" },
+  { day: "Tue", track: "Girls 5 to 10", time: "2:30 to 3:30 PM", note: "Youth room" },
+  { day: "Fri", track: "Girls 5 to 10", time: "10:00 to 11:00 AM", note: "Youth room" },
+  { day: "Fri", track: "Men 14+", time: "8:00 to 9:00 PM", note: "Evening class" },
+];
+
 function heroVariant(index: number) {
   return {
     initial: { opacity: 0, y: 40 },
@@ -104,22 +116,13 @@ function heroVariant(index: number) {
 }
 
 function StickyCurriculumCard({ item }: { item: (typeof curriculum)[number] }) {
-  const reduceMotion = useReducedMotion();
-  const ref = useRef<HTMLDivElement | null>(null);
-  const { scrollYProgress } = useScroll({
-    target: ref,
-    offset: ["start center", "end start"],
-  });
-
-  const scale = useTransform(scrollYProgress, [0, 0.6, 1], reduceMotion ? [1, 1, 1] : [1, 0.975, 0.93]);
-  const opacity = useTransform(scrollYProgress, [0, 0.6, 1], reduceMotion ? [1, 1, 1] : [1, 0.97, 0.62]);
-  const blur = useTransform(scrollYProgress, [0, 0.65, 1], reduceMotion ? [0, 0, 0] : [0, 1, 7]);
-  const y = useTransform(scrollYProgress, [0, 1], reduceMotion ? [0, 0] : [0, -18]);
-
   return (
-    <div ref={ref} className="protocol-card relative sticky top-0 h-screen flex items-center justify-center p-6 pt-24">
+    <div className="protocol-card relative sticky top-0 h-screen flex items-center justify-center p-6 pt-24">
       <motion.div
-        style={{ scale, opacity, y, filter: useTransform(blur, (value) => `blur(${value}px)`) }}
+        initial={{ opacity: 0.94 }}
+        whileInView={{ opacity: 1 }}
+        viewport={{ once: true, margin: "-12% 0px -12% 0px" }}
+        transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
         className={`protocol-content w-full max-w-5xl rounded-[3rem] h-[80vh] shadow-2xl p-10 md:p-16 flex flex-col md:flex-row items-center gap-12 overflow-hidden ${item.cardClassName}`}
       >
         <div className="flex-1 z-10">
@@ -210,18 +213,20 @@ const Home = () => {
           <SectionHeader title="Academy Telemetry" />
           <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: "-10% 0px" }} transition={{ duration: 0.5 }} className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6">
             <TelemetryCard title="Academy Snapshot" label="Snapshot">
-              <div className="flex flex-col gap-3 text-xs">
-                <div className="flex items-center justify-between">
-                  <span className="text-charcoal/60 uppercase tracking-wide">Active Participants</span>
-                  <span className="font-serif-accent text-2xl text-moss">30+</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-charcoal/60 uppercase tracking-wide">Age Range</span>
-                  <span className="font-serif-accent text-2xl text-moss">5+</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-charcoal/60 uppercase tracking-wide">Parent Rating</span>
-                  <span className="font-serif-accent text-2xl text-moss">4.9/5</span>
+              <div className="space-y-3">
+                {academySnapshotRows.map((row) => (
+                  <div key={row.label} className="flex items-center justify-between rounded-2xl border border-charcoal/8 bg-cream/40 px-4 py-3">
+                    <span className="text-[10px] uppercase tracking-[0.16em] text-charcoal/50">{row.label}</span>
+                    <span className="font-heading text-sm text-charcoal">{row.value}</span>
+                  </div>
+                ))}
+                <div className="rounded-2xl border border-moss/15 bg-moss/5 px-4 py-3">
+                  <div className="font-mono-label text-[10px] uppercase tracking-[0.16em] text-moss">
+                    Ready to start
+                  </div>
+                  <p className="mt-1 text-sm text-charcoal/70">
+                    Book a free trial or sign in for the live BJJ flow.
+                  </p>
                 </div>
               </div>
             </TelemetryCard>
@@ -245,29 +250,22 @@ const Home = () => {
             </DarkCard>
 
             <TelemetryCard title="Schedule Preview" label="Schedule">
-              <div className="grid grid-cols-7 gap-1.5 mt-2 text-[10px]">
-                {["S", "M", "T", "W", "T", "F", "S"].map((d, index) => (
-                  <div key={`${d}-${index}`} className="text-center text-charcoal/40 font-heading">
-                    {d}
+              <div className="space-y-3">
+                {schedulePreviewRows.map((row) => (
+                  <div key={`${row.day}-${row.track}`} className="grid grid-cols-[44px_1fr] gap-3 rounded-2xl border border-charcoal/8 bg-cream/40 px-3 py-3">
+                    <div className="rounded-xl bg-charcoal text-cream text-center">
+                      <div className="pt-1 text-[10px] uppercase tracking-[0.18em] text-cream/65">{row.day}</div>
+                      <div className="pb-1 font-heading text-lg leading-none">{row.day}</div>
+                    </div>
+                    <div className="min-w-0">
+                      <div className="font-heading text-sm text-charcoal">{row.track}</div>
+                      <div className="mt-1 text-[10px] uppercase tracking-[0.14em] text-charcoal/50">{row.time}</div>
+                      <div className="mt-1 text-xs text-charcoal/65">{row.note}</div>
+                    </div>
                   </div>
                 ))}
-                <div className="aspect-square rounded-md bg-cream border border-moss/5" />
-                <div className="aspect-square rounded-md bg-moss/5 border border-moss/10 relative">
-                  <StatusDot className="absolute bottom-1 left-1" ariaLabel="BJJ Fundamentals" />
-                </div>
-                <div className="aspect-square rounded-md bg-cream border border-moss/5" />
-                <div className="aspect-square rounded-md bg-moss/5 border border-moss/10 relative">
-                  <StatusDot className="absolute bottom-1 left-1" ariaLabel="Women 11+ Tuesday" />
-                </div>
-              </div>
-              <div className="mt-4 text-[10px] font-body text-charcoal/60 flex flex-col gap-1.5">
-                <div className="flex items-center gap-2">
-                  <StatusDot ariaLabel="BJJ Fundamentals" />
-                  Youth BJJ · Tue/Fri
-                </div>
-                <div className="flex items-center gap-2">
-                  <StatusDot className="bg-moss" ariaLabel="Archery Skills" />
-                  Women 11+ · Tue/Thu
+                <div className="rounded-2xl border border-moss/15 bg-moss/5 px-4 py-3 text-xs text-charcoal/70">
+                  Friday youth blocks stay in separate lanes so the class list remains easy to scan.
                 </div>
               </div>
             </TelemetryCard>
@@ -332,20 +330,29 @@ const Home = () => {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-10% 0px" }}
             transition={{ duration: 0.5 }}
-            className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-8 items-center"
+            className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-8 items-start"
           >
             {BJJ_MARKETING_GROUPS.map((group) => (
-              <PremiumCard key={group.key}>
-                <span className="font-mono-label text-xs text-charcoal/50 uppercase tracking-[0.18em] mb-2 block">
-                  {group.ageLabel}
-                </span>
-                <h4 className="font-heading text-2xl text-charcoal mb-2">{group.label}</h4>
-                <p className="text-xs font-body text-charcoal/60 mb-4 border-b border-charcoal/10 pb-4 w-full">
-                  {group.sessions.map((session) => session.scheduleLabel).join(" · ")}
-                </p>
-                <div className="space-y-2 text-xs text-charcoal/65">
+              <PremiumCard key={group.key} className="bg-white border border-charcoal/10 h-full">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <span className="font-mono-label text-xs text-charcoal/50 uppercase tracking-[0.18em] mb-2 block">
+                      {group.ageLabel}
+                    </span>
+                    <h4 className="font-heading text-2xl text-charcoal mb-2">{group.label}</h4>
+                  </div>
+                  <div className="rounded-full border border-charcoal/10 bg-cream/60 px-3 py-1 text-[10px] font-mono-label uppercase tracking-[0.16em] text-charcoal/55">
+                    {group.sessions.length} session{group.sessions.length === 1 ? "" : "s"}
+                  </div>
+                </div>
+                <div className="mt-4 space-y-3">
                   {group.sessions.map((session) => (
-                    <div key={session.trackKey}>{session.label}</div>
+                    <div key={session.trackKey} className="rounded-2xl border border-charcoal/8 bg-cream/40 px-4 py-3">
+                      <div className="font-body text-sm text-charcoal">{session.label}</div>
+                      <div className="mt-1 text-[10px] uppercase tracking-[0.14em] text-charcoal/50">
+                        {session.scheduleLabel}
+                      </div>
+                    </div>
                   ))}
                 </div>
               </PremiumCard>

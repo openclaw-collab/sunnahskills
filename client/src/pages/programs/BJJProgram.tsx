@@ -57,6 +57,11 @@ const BJJProgram = () => {
                     Register Now
                   </ClayButton>
                 </Link>
+                <Link href="/trial">
+                  <OutlineButton className="px-8 py-3.5 text-[11px] uppercase tracking-[0.18em] border-cream/20 text-cream hover:bg-cream/10">
+                    Start free trial
+                  </OutlineButton>
+                </Link>
                 <Link href="/schedule">
                   <OutlineButton className="px-8 py-3.5 text-[11px] uppercase tracking-[0.18em] border-cream/20 text-cream hover:bg-cream/10">
                     View Schedule
@@ -178,10 +183,10 @@ const BJJProgram = () => {
                     Next step
                   </div>
                   <h2 className="mt-2 font-heading text-3xl md:text-4xl tracking-tight text-charcoal">
-                    Begin with your guardian account, then place the right track in your cart.
+                    Begin with your guardian account, or start with a free trial first.
                   </h2>
                   <p className="mt-4 font-body text-charcoal/70 max-w-2xl text-pretty">
-                    The live flow is now auth-first: sign in, choose the exact BJJ track, confirm waivers, and complete payment in one household-aware checkout.
+                    The live flow is auth-first, so families can sign in, choose the right BJJ track, or book a trial before they complete registration and payment.
                   </p>
                 </div>
                 <div className="flex w-full flex-col gap-3 md:w-auto sm:flex-row">
@@ -189,6 +194,11 @@ const BJJProgram = () => {
                     <ClayButton className="w-full md:w-auto px-7 py-3.5 text-[11px] uppercase tracking-[0.18em]">
                       Register Now
                     </ClayButton>
+                  </Link>
+                  <Link href="/trial">
+                    <OutlineButton className="w-full md:w-auto px-7 py-3.5 text-[11px] uppercase tracking-[0.18em] border-charcoal/15 text-charcoal hover:bg-charcoal/5">
+                      Free trial
+                    </OutlineButton>
                   </Link>
                   <Link href="/contact">
                     <OutlineButton className="w-full md:w-auto px-7 py-3.5 text-[11px] uppercase tracking-[0.18em]">

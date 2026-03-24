@@ -35,6 +35,31 @@ function sessionMatchesFilter(s: NormalizedSession, f: ScheduleTrack | "all") {
   return s.track === f;
 }
 
+function layoutSessions(sessions: NormalizedSession[]) {
+  const sorted = [...sessions].sort(
+    (a, b) =>
+      a.startMinutes - b.startMinutes ||
+      a.endMinutes - b.endMinutes ||
+      a.shortLabel.localeCompare(b.shortLabel),
+  );
+  const laneEndTimes: number[] = [];
+  const positioned: Array<NormalizedSession & { lane: number }> = [];
+
+  for (const session of sorted) {
+    let lane = laneEndTimes.findIndex((end) => end <= session.startMinutes);
+    if (lane === -1) {
+      lane = laneEndTimes.length;
+      laneEndTimes.push(session.endMinutes);
+    } else {
+      laneEndTimes[lane] = session.endMinutes;
+    }
+    positioned.push({ ...session, lane });
+  }
+
+  const laneCount = Math.max(1, laneEndTimes.length);
+  return positioned.map((session) => ({ ...session, laneCount }));
+}
+
 function WeekGrid({
   sessions,
   weekAnchor,
@@ -100,7 +125,7 @@ function WeekGrid({
 
           {dayDates.map((d, col) => {
             const dayIndex = d.getDay();
-            const daySessions = sessions.filter((s) => s.dayIndex === dayIndex);
+            const daySessions = layoutSessions(sessions.filter((s) => s.dayIndex === dayIndex));
             return (
               <div key={col} className="relative border-l border-charcoal/10">
                 {timeTicks.map((m) => (
@@ -113,11 +138,18 @@ function WeekGrid({
                 {daySessions.map((s) => {
                   const top = minutesToTopPct(s.startMinutes);
                   const h = minutesToHeightPct(s.startMinutes, s.endMinutes);
+                  const laneWidth = 100 / s.laneCount;
                   return (
                     <Link key={s.id} href={registerHrefForSession(s)}>
                       <a
-                        className="absolute left-1 right-1 z-[1] overflow-hidden rounded-xl border border-charcoal/15 bg-moss/10 px-2 py-1.5 text-left shadow-sm transition hover:bg-moss/20 hover:shadow-md"
-                        style={{ top: `${top}%`, height: `${Math.max(h, 6)}%`, minHeight: "44px" }}
+                        className="absolute z-[1] overflow-hidden rounded-xl border border-charcoal/15 bg-moss/10 px-2 py-1.5 text-left shadow-sm transition hover:bg-moss/20 hover:shadow-md"
+                        style={{
+                          top: `${top}%`,
+                          height: `${Math.max(h, 6)}%`,
+                          minHeight: "44px",
+                          left: `calc(${(s.lane / s.laneCount) * 100}% + 4px)`,
+                          width: `calc(${laneWidth}% - 8px)`,
+                        }}
                         title={s.label}
                       >
                         <div className="font-mono-label text-[8px] uppercase tracking-[0.12em] text-charcoal/50">
@@ -219,7 +251,7 @@ function MonthGrid({
         })}
       </div>
       <p className="mt-4 font-body text-xs text-charcoal/55">
-        Monthly view shows recurring weekly classes. Tuesday: women’s block ends before kids’ class — different rooms/tracks.
+        Monthly view shows recurring weekly classes. Tuesday women and kids use separate blocks, and the week view now splits overlapping youth sessions into lanes.
       </p>
     </div>
   );
@@ -260,7 +292,7 @@ const Schedule = () => {
           <p className="max-w-2xl font-body text-sm leading-relaxed text-charcoal/70">
             <StudioText
               k="schedule.header.description"
-              defaultText="Weekly grid with real start/end times, plus a month overview for recurring classes. Brazilian Jiu-Jitsu enrollments are open; other programs are coming soon — use the link to join a waitlist or contact us."
+              defaultText="Weekly grid with real start and end times, plus a month overview for recurring classes. Brazilian Jiu-Jitsu enrollments are open, and the other programs are coming soon. Use the program pages to join the waitlist or contact us."
               as="span"
               className="inline"
               multiline
@@ -277,12 +309,12 @@ const Schedule = () => {
                 <AlertCircle className="mt-0.5 flex-none text-clay" size={16} />
                 <div>
                   <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-clay">
-                    Tuesday overlap
+                    Tuesday youth blocks
                   </div>
                   <p className="mt-1 font-body text-sm text-charcoal/75">
-                    Women 11+ train <strong>12:30–2:00 PM</strong>; kids (girls/boys) train <strong>2:30–3:30 PM</strong> — same
-                    day, different blocks, rooms, and tracks. Women Tuesday and Thursday are separate enrollments (double tuition
-                    if you choose both).
+                    Women 11+ train <strong>12:30 to 2:00 PM</strong>. Kids, girls and boys, train <strong>2:30 to 3:30 PM</strong>.
+                    The week grid now separates overlapping youth sessions into lanes so the schedule stays easy to scan. Women
+                    Tuesday and Thursday are separate enrollments, so tuition stays tied to the exact day you choose.
                   </p>
                 </div>
               </div>

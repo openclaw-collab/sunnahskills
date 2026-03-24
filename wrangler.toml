@@ -24,7 +24,7 @@ database_id = "69bf03d8-908e-410b-b3cf-5dfb13676679"
 
 [env.production.vars]
 SITE_URL = "https://sunnahskills.com"
-EMAIL_FROM = "noreply@sunnahskills.com"
+EMAIL_FROM = "admin@sunnahskills.com"
 EMAIL_TO = "mysunnahskill@gmail.com"
 
 # ─── Preview environment (prototype branch → sunnahskills-admin-v2) ───────────

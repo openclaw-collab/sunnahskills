@@ -113,6 +113,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
     headers: {
       Authorization: `Bearer ${env.STRIPE_SECRET_KEY}`,
       "Content-Type": "application/x-www-form-urlencoded",
+      "Idempotency-Key": `order-${orderId}-first-${dueToday}`,
     },
     body: intentParams,
   });
@@ -136,7 +137,14 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
     `INSERT INTO payments (
       registration_id, enrollment_order_id, stripe_payment_intent_id, amount, subtotal,
       discount_amount, currency, status, payment_type, metadata, created_at, updated_at
-    ) VALUES (?, ?, ?, ?, ?, 0, 'usd', 'pending', 'order_deposit', ?, datetime('now'), datetime('now'))`,
+    )
+    SELECT ?, ?, ?, ?, ?, 0, 'usd', 'pending', 'order_deposit', ?, datetime('now'), datetime('now')
+    WHERE NOT EXISTS (
+      SELECT 1
+      FROM payments
+      WHERE enrollment_order_id = ?
+        AND stripe_payment_intent_id = ?
+    )`,
   )
     .bind(
       registrationIds[0],
@@ -150,6 +158,8 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
         dueLaterCents: dueLater,
         payPhase: "first",
       }),
+      orderId,
+      intentJson.id,
     )
     .run();
 

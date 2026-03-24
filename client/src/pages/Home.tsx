@@ -208,7 +208,7 @@ const Home = () => {
         </div>
       </header>
 
-      <section id="features" className="py-32 bg-cream relative z-20 rounded-t-[3rem] -mt-10 overflow-hidden">
+      <section id="features" className="py-32 bg-cream relative z-20 overflow-hidden">
         <div className="max-w-7xl mx-auto px-6">
           <SectionHeader title="Academy Telemetry" />
           <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: "-10% 0px" }} transition={{ duration: 0.5 }} className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -241,11 +241,8 @@ const Home = () => {
                 </div>
               </div>
               <div className="relative w-full h-64 bg-charcoal rounded-2xl overflow-hidden border border-moss/20">
-                <TechniqueViewer className="w-full h-full" />
-                <div className="absolute bottom-4 left-0 right-0 flex justify-between px-4 font-mono-label text-[9px] text-cream/80 uppercase backdrop-blur-sm bg-charcoal/70 py-1">
-                  <span>Base: Locked</span>
-                  <span className="text-clay">Posture: 98%</span>
-                </div>
+                <TechniqueViewer className="w-full h-full" controlsMode="none" autoplay />
+                <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-charcoal via-charcoal/18 to-transparent" />
               </div>
             </DarkCard>
 

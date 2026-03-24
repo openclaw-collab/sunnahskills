@@ -5,6 +5,8 @@ import { OrbitControls as ThreeOrbitControls } from "three/examples/jsm/controls
 
 type Marker = { name: string; frame: number; type: string };
 type SequenceData = { frames: number[][][][]; markers?: Marker[]; posterFrame?: number };
+type PlayerFrame = number[][];
+type Frame = [PlayerFrame, PlayerFrame];
 
 type PlaybackState = {
   paused: boolean;
@@ -112,26 +114,116 @@ const POOL = {
   up: new THREE.Vector3(0, 1, 0),
 };
 
+const SEQUENCE_CACHE = new Map<string, SequenceData | null>();
+const SEQUENCE_PENDING = new Map<string, Promise<SequenceData | null>>();
+
+const ROLE_MATCH_JOINTS = [J.Core, J.Neck, J.Head, J.LeftHip, J.RightHip, J.LeftShoulder, J.RightShoulder] as const;
+
 function lerp(a: number, b: number, t: number) {
   return a + (b - a) * t;
 }
 
-function OrbitControls() {
+function smoothenJoint(targetX: number, targetY: number, targetZ: number, lastX: number, lastY: number, lastZ: number) {
+  const lag = Math.min(0.83, 0.6 + targetY);
+  const factor = 1 - lag;
+  return {
+    x: lastX * lag + targetX * factor,
+    y: lastY * lag + targetY * factor,
+    z: lastZ * lag + targetZ * factor,
+  };
+}
+
+function playerMatchCost(left: PlayerFrame, right: PlayerFrame) {
+  return ROLE_MATCH_JOINTS.reduce((sum, joint) => {
+    const a = left[joint];
+    const b = right[joint];
+    if (!a || !b) return sum;
+    return sum + Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
+  }, 0);
+}
+
+function normalizeRoleFrames(frames: number[][][][]): number[][][][] {
+  if (!Array.isArray(frames) || frames.length === 0) return [];
+
+  const normalized: Frame[] = [];
+  const first = frames[0] as Frame | undefined;
+  if (!first?.[0] || !first?.[1]) return frames;
+
+  normalized.push([first[0], first[1]]);
+  let previous: Frame = normalized[0];
+
+  for (let index = 1; index < frames.length; index += 1) {
+    const frame = frames[index] as Frame | undefined;
+    if (!frame?.[0] || !frame?.[1]) continue;
+
+    const directCost = playerMatchCost(previous[0], frame[0]) + playerMatchCost(previous[1], frame[1]);
+    const swappedCost = playerMatchCost(previous[0], frame[1]) + playerMatchCost(previous[1], frame[0]);
+    const next: Frame = swappedCost + 0.001 < directCost ? [frame[1], frame[0]] : [frame[0], frame[1]];
+    normalized.push(next);
+    previous = next;
+  }
+
+  return normalized;
+}
+
+async function loadSequenceData(sequencePath: string, signal?: AbortSignal) {
+  const cached = SEQUENCE_CACHE.get(sequencePath);
+  if (cached !== undefined) {
+    return cached;
+  }
+
+  let pending = SEQUENCE_PENDING.get(sequencePath);
+  if (!pending) {
+    pending = fetch(sequencePath, { signal })
+      .then(async (res) => {
+        const json = (await res.json()) as SequenceData;
+        return {
+          ...json,
+          frames: normalizeRoleFrames(json.frames),
+        } satisfies SequenceData;
+      })
+      .catch(() => null)
+      .finally(() => {
+        SEQUENCE_PENDING.delete(sequencePath);
+      });
+    SEQUENCE_PENDING.set(sequencePath, pending);
+  }
+
+  const json = await pending;
+  SEQUENCE_CACHE.set(sequencePath, json);
+  return json;
+}
+
+function OrbitControls({ targetRef }: { targetRef: React.MutableRefObject<THREE.Vector3> }) {
   const { camera, gl } = useThree();
   const controls = useMemo(() => {
     const c = new ThreeOrbitControls(camera, gl.domElement);
-    c.enablePan = false;
+    c.enablePan = true;
     c.enableZoom = true;
     c.enableRotate = true;
-    c.autoRotate = true;
-    c.autoRotateSpeed = 0.5;
+    c.autoRotate = false;
     c.target.set(0, 1, 0);
     return c;
   }, [camera, gl.domElement]);
 
-  useFrame(() => controls.update());
+  useFrame(() => {
+    controls.target.lerp(targetRef.current, 0.2);
+    controls.update();
+  });
   useEffect(() => () => controls.dispose(), [controls]);
   return <primitive object={controls} />;
+}
+
+function Grid({ targetRef }: { targetRef: React.MutableRefObject<THREE.Vector3> }) {
+  const gridRef = useRef<THREE.GridHelper | null>(null);
+
+  useFrame(() => {
+    if (!gridRef.current) return;
+    gridRef.current.position.x = targetRef.current.x;
+    gridRef.current.position.z = targetRef.current.z;
+  });
+
+  return <gridHelper ref={gridRef} args={[12, 24, "#2E4036", "#2E4036"]} position={[0, 0, 0]} />;
 }
 
 function HumanPlayer({
@@ -151,6 +243,7 @@ function HumanPlayer({
   const jointsRef = useRef<Array<{ solid: THREE.Mesh; glow: THREE.Mesh }>>([]);
   const limbsRef = useRef<Array<{ solid: THREE.Mesh; glow: THREE.Mesh }>>([]);
   const jointMapRef = useRef<Record<number, { solid: THREE.Mesh; glow: THREE.Mesh }>>({});
+  const lastPosRef = useRef<number[][] | null>(null);
 
   useEffect(() => {
     if (!groupRef.current) return;
@@ -161,6 +254,7 @@ function HumanPlayer({
     jointsRef.current = [];
     limbsRef.current = [];
     jointMapRef.current = {};
+    lastPosRef.current = null;
 
     const solidMat = new THREE.MeshStandardMaterial({
       color,
@@ -241,6 +335,7 @@ function HumanPlayer({
     if (!frames?.length) return;
 
     const total = frames.length;
+    if (total === 1) return;
     const raw = timeRef.current % Math.max(1, total - 1);
     const idx = Math.floor(raw);
     const t = raw - idx;
@@ -252,6 +347,10 @@ function HumanPlayer({
     const pNext = next?.[pIdx];
     if (!pCur || !pNext) return;
 
+    if (!lastPosRef.current) {
+      lastPosRef.current = pCur.map((joint) => [...joint]);
+    }
+
     for (const { solid, glow } of jointsRef.current) {
       const j = (solid.userData as any).jointIndex as number;
       const c = pCur[j];
@@ -259,8 +358,14 @@ function HumanPlayer({
       const x = lerp(c[0], n[0], t);
       const y = lerp(c[1], n[1], t);
       const z = lerp(c[2], n[2], t);
-      solid.position.set(x, y, z);
-      glow.position.set(x, y, z);
+      const last = lastPosRef.current?.[j];
+      if (!last) continue;
+      const smoothed = smoothenJoint(x, y, z, last[0], last[1], last[2]);
+      last[0] = smoothed.x;
+      last[1] = smoothed.y;
+      last[2] = smoothed.z;
+      solid.position.set(smoothed.x, smoothed.y, smoothed.z);
+      glow.position.set(smoothed.x, smoothed.y, smoothed.z);
     }
 
     const { v1, v2, v3, q, up } = POOL;
@@ -294,13 +399,18 @@ function MannequinSceneInner({
   sequencePath = "/data/sequence.json",
   sequenceData,
   playbackRef,
+  onLoaded,
 }: {
   sequencePath?: string;
   sequenceData?: SequenceData;
   playbackRef: React.MutableRefObject<PlaybackState>;
+  onLoaded?: (loaded: boolean) => void;
 }) {
   const [data, setData] = useState<SequenceData | null>(null);
+  const [loading, setLoading] = useState(true);
   const timeRef = useRef(0);
+  const controlsTargetRef = useRef(new THREE.Vector3(0, 1, 0));
+  const lastCenterRef = useRef<THREE.Vector3 | null>(null);
 
   // Expose timeRef so the overlay can read/seek it
   useEffect(() => {
@@ -312,19 +422,44 @@ function MannequinSceneInner({
 
   useEffect(() => {
     if (sequenceData) {
-      setData(sequenceData);
+      setData({
+        ...sequenceData,
+        frames: normalizeRoleFrames(sequenceData.frames),
+      });
+      setLoading(false);
+      onLoaded?.(true);
       return;
     }
 
     let cancelled = false;
     const controller = new AbortController();
+    setLoading(true);
+
+    const cached = SEQUENCE_CACHE.get(sequencePath);
+    if (cached !== undefined) {
+      setData(cached);
+      setLoading(false);
+      onLoaded?.(Boolean(cached));
+      return () => {
+        cancelled = true;
+        controller.abort();
+      };
+    }
+
     (async () => {
       try {
-        const res = await fetch(sequencePath, { signal: controller.signal });
-        const json = (await res.json()) as SequenceData;
-        if (!cancelled) setData(json);
+        const json = await loadSequenceData(sequencePath, controller.signal);
+        if (!cancelled) {
+          setData(json);
+          setLoading(false);
+          onLoaded?.(Boolean(json));
+        }
       } catch {
-        if (!cancelled) setData(null);
+        if (!cancelled) {
+          setData(null);
+          setLoading(false);
+          onLoaded?.(false);
+        }
       }
     })();
     return () => {
@@ -347,11 +482,60 @@ function MannequinSceneInner({
       startFrame = Math.floor(total / 2);
     }
     timeRef.current = startFrame;
+    const first = data.frames[0] as Frame | undefined;
+    if (first?.[0]?.[J.Core] && first?.[1]?.[J.Core]) {
+      const coreA = first[0][J.Core];
+      const coreB = first[1][J.Core];
+      const center = new THREE.Vector3((coreA[0] + coreB[0]) * 0.5, ((coreA[1] + coreB[1]) * 0.5) * 0.7, (coreA[2] + coreB[2]) * 0.5);
+      controlsTargetRef.current.copy(center);
+      lastCenterRef.current = center.clone();
+    }
   }, [data]);
 
   useFrame((_state, delta) => {
     if (playbackRef.current.paused) return;
     timeRef.current += Math.min(delta, 0.05) * 8.0 * playbackRef.current.speed;
+  });
+
+  useFrame(() => {
+    if (!data?.frames?.length) return;
+    const total = data.frames.length;
+    if (total < 2) return;
+
+    const raw = timeRef.current % Math.max(1, total - 1);
+    const idx = Math.floor(raw);
+    const t = raw - idx;
+    const cur = data.frames[idx] as Frame | undefined;
+    const next = data.frames[Math.min(idx + 1, total - 1)] as Frame | undefined;
+    const curA = cur?.[0]?.[J.Core];
+    const curB = cur?.[1]?.[J.Core];
+    const nextA = next?.[0]?.[J.Core];
+    const nextB = next?.[1]?.[J.Core];
+    if (!curA || !curB || !nextA || !nextB) return;
+
+    const targetX = lerp((curA[0] + curB[0]) * 0.5, (nextA[0] + nextB[0]) * 0.5, t);
+    const targetY = lerp((curA[1] + curB[1]) * 0.5, (nextA[1] + nextB[1]) * 0.5, t) * 0.7;
+    const targetZ = lerp((curA[2] + curB[2]) * 0.5, (nextA[2] + nextB[2]) * 0.5, t);
+
+    if (!lastCenterRef.current) {
+      lastCenterRef.current = new THREE.Vector3(targetX, targetY, targetZ);
+      controlsTargetRef.current.set(targetX, targetY, targetZ);
+      return;
+    }
+
+    const lastCenter = lastCenterRef.current;
+    const jumpDist = Math.hypot(targetX - lastCenter.x, targetZ - lastCenter.z);
+    const maxJump = 2.0;
+    let clampedX = targetX;
+    let clampedZ = targetZ;
+    if (jumpDist > maxJump) {
+      const scale = maxJump / jumpDist;
+      clampedX = lastCenter.x + (targetX - lastCenter.x) * scale;
+      clampedZ = lastCenter.z + (targetZ - lastCenter.z) * scale;
+    }
+
+    lastCenter.set(clampedX, targetY, clampedZ);
+    controlsTargetRef.current.lerp(lastCenter, 0.2);
   });
 
   return (
@@ -360,7 +544,7 @@ function MannequinSceneInner({
       <directionalLight position={[5, 10, 5]} intensity={1.0} />
       <directionalLight position={[-5, 5, -5]} intensity={0.35} />
       <hemisphereLight args={["#ffffff", "#999999", 0.25]} />
-      <gridHelper args={[12, 24, "#2E4036", "#2E4036"]} position={[0, 0, 0]} />
+      <Grid targetRef={controlsTargetRef} />
 
       {data?.frames?.length ? (
         <>
@@ -381,7 +565,7 @@ function MannequinSceneInner({
         </>
       ) : null}
 
-      <OrbitControls />
+      <OrbitControls targetRef={controlsTargetRef} />
     </>
   );
 }
@@ -392,13 +576,16 @@ function PlaybackOverlay({
   sequencePath,
   sequenceData,
   playbackRef,
+  controlsMode,
 }: {
   sequencePath: string;
   sequenceData?: SequenceData;
   playbackRef: React.MutableRefObject<PlaybackState>;
+  controlsMode: "none" | "ridges";
 }) {
+  if (controlsMode === "none") return null;
+
   const [paused, setPaused] = useState(true);
-  const [speed, setSpeed] = useState(1);
   const [frame, setFrame] = useState(0);
   const [totalFrames, setTotalFrames] = useState(36);
   const [markers, setMarkers] = useState<Marker[]>([]);
@@ -413,8 +600,8 @@ function PlaybackOverlay({
 
     (async () => {
       try {
-        const res = await fetch(sequencePath);
-        const json = (await res.json()) as SequenceData;
+        const json = await loadSequenceData(sequencePath);
+        if (!json) return;
         setTotalFrames(Math.max(1, json.frames.length - 1));
         setMarkers(json.markers ?? []);
       } catch {
@@ -440,33 +627,6 @@ function PlaybackOverlay({
     playbackRef.current.paused = paused;
   }, [paused, playbackRef]);
 
-  const togglePause = useCallback(() => {
-    setPaused((p) => {
-      const next = !p;
-      playbackRef.current.paused = next;
-      return next;
-    });
-  }, [playbackRef]);
-
-  const onSpeedChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const v = parseFloat(e.target.value);
-      setSpeed(v);
-      playbackRef.current.speed = v;
-    },
-    [playbackRef]
-  );
-
-  const onScrub = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const v = parseFloat(e.target.value);
-      const tr = playbackRef.current.timeRef;
-      if (tr) tr.current = v;
-      setFrame(Math.floor(v));
-    },
-    [playbackRef]
-  );
-
   const jumpToMarker = useCallback(
     (markerFrame: number) => {
       const tr = playbackRef.current.timeRef;
@@ -480,70 +640,57 @@ function PlaybackOverlay({
     <div
       style={{
         position: "absolute",
-        bottom: 0,
-        left: 0,
-        right: 0,
-        padding: "6px 10px",
-        background: "rgba(18,22,18,0.82)",
-        backdropFilter: "blur(6px)",
+        bottom: 14,
+        left: 14,
+        right: 14,
         display: "flex",
-        flexDirection: "row",
-        alignItems: "center",
-        gap: "8px",
-        pointerEvents: "all",
-        userSelect: "none",
+        justifyContent: "center",
+        pointerEvents: "none",
         zIndex: 10,
-        maxHeight: "52px",
       }}
     >
-      <button
-        onClick={togglePause}
-        title={paused ? "Play" : "Pause"}
-        style={{
-          background: "rgba(46,64,54,0.9)",
-          border: "1px solid #4a7c59",
-          borderRadius: "4px",
-          color: "#d4c9a8",
-          cursor: "pointer",
-          fontSize: "10px",
-          padding: "2px 8px",
-          flexShrink: 0,
-        }}
-      >
-        {paused ? "▶" : "⏸"}
-      </button>
-      <input
-        type="range"
-        min={0}
-        max={totalFrames}
-        step={0.1}
-        value={frame}
-        onChange={onScrub}
-        style={{ accentColor: "#8aab7a", flex: 1, cursor: "pointer", height: "4px" }}
-      />
-      <span style={{ color: "#8aab7a", fontSize: "10px", minWidth: "44px", textAlign: "right", flexShrink: 0 }}>
-        {frame}/{totalFrames}
-      </span>
-      <select
-        value={speed}
-        onChange={(e) => onSpeedChange(e as unknown as React.ChangeEvent<HTMLInputElement>)}
-        style={{
-          background: "rgba(46,64,54,0.9)",
-          border: "1px solid #4a7c59",
-          borderRadius: "4px",
-          color: "#d4c9a8",
-          fontSize: "10px",
-          padding: "2px 4px",
-          cursor: "pointer",
-          width: "52px",
-          flexShrink: 0,
-        }}
-      >
-        <option value={0.5}>0.5x</option>
-        <option value={1}>1x</option>
-        <option value={1.5}>1.5x</option>
-        <option value={2}>2x</option>
-      </select>
+      {markers.length > 0 ? (
+        <div
+          style={{
+            display: "flex",
+            gap: "8px",
+            maxWidth: "min(92%, 540px)",
+            width: "fit-content",
+            padding: "8px 12px",
+            background: "rgba(18,22,18,0.52)",
+            backdropFilter: "blur(8px)",
+            border: "1px solid rgba(138,171,122,0.18)",
+            borderRadius: "999px",
+            overflowX: "auto",
+            pointerEvents: "all",
+            scrollbarWidth: "none",
+          }}
+        >
+          {markers.map((marker) => {
+            const active = Math.abs(frame - marker.frame) <= 1;
+            return (
+              <button
+                key={`${marker.type}-${marker.name}-${marker.frame}`}
+                type="button"
+                aria-label={`Jump to ${marker.name}`}
+                title={marker.name}
+                onClick={() => jumpToMarker(marker.frame)}
+                style={{
+                  width: marker.type === "position" ? "28px" : "18px",
+                  minWidth: marker.type === "position" ? "28px" : "18px",
+                  height: active ? "10px" : "8px",
+                  borderRadius: "999px",
+                  border: active ? "1px solid rgba(242,240,233,0.55)" : "1px solid rgba(138,171,122,0.24)",
+                  background: active ? "rgba(204,88,51,0.92)" : "rgba(138,171,122,0.34)",
+                  cursor: "pointer",
+                  flexShrink: 0,
+                  transition: "all 140ms ease",
+                }}
+              />
+            );
+          })}
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -553,11 +700,15 @@ export function MannequinViewer({
   sequencePath = "/data/sequence.json",
   sequenceData,
   onThumbnailReady,
+  controlsMode = "ridges",
+  autoplay = true,
 }: {
   className?: string;
   sequencePath?: string;
   sequenceData?: SequenceData;
   onThumbnailReady?: (dataUrl: string) => void;
+  controlsMode?: "none" | "ridges";
+  autoplay?: boolean;
 }) {
   const supportsWebGL = useState(() => {
     if (typeof document === "undefined") return false;
@@ -568,9 +719,14 @@ export function MannequinViewer({
       return false;
     }
   })[0];
-  const playbackRef = useRef<PlaybackState>({ paused: true, speed: 1, timeRef: null });
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const playbackRef = useRef<PlaybackState>({ paused: !autoplay, speed: 1, timeRef: null });
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const thumbnailCaptured = useRef(false);
+  const [ready, setReady] = useState(Boolean(sequenceData?.frames?.length || (sequencePath && SEQUENCE_CACHE.get(sequencePath))));
+
+  useEffect(() => {
+    playbackRef.current.paused = !autoplay;
+  }, [autoplay]);
 
   // Capture thumbnail after first render
   useEffect(() => {
@@ -595,6 +751,10 @@ export function MannequinViewer({
     return () => clearTimeout(timer);
   }, [onThumbnailReady]);
 
+  useEffect(() => {
+    setReady(Boolean(sequenceData?.frames?.length || (sequencePath && SEQUENCE_CACHE.get(sequencePath))));
+  }, [sequenceData, sequencePath]);
+
   if (!supportsWebGL) {
     return (
       <div className={className} style={{ position: "relative", width: "100%", height: "100%" }}>
@@ -615,11 +775,46 @@ export function MannequinViewer({
 
   return (
     <div className={className} style={{ position: "relative", width: "100%", height: "100%" }}>
-      <Canvas ref={canvasRef} camera={{ position: [5, 3.5, 5], fov: 45, near: 0.1, far: 100 }}>
+      <Canvas
+        camera={{ position: [4.35, 3.05, 4.35], fov: 41, near: 0.1, far: 100 }}
+        gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
+        onCreated={({ gl }) => {
+          canvasRef.current = gl.domElement;
+        }}
+      >
         <color attach="background" args={["#1A1A1A"]} />
-        <MannequinSceneInner sequencePath={sequencePath} sequenceData={sequenceData} playbackRef={playbackRef} />
+        <MannequinSceneInner
+          sequencePath={sequencePath}
+          sequenceData={sequenceData}
+          playbackRef={playbackRef}
+          onLoaded={setReady}
+        />
       </Canvas>
-      <PlaybackOverlay sequencePath={sequencePath} sequenceData={sequenceData} playbackRef={playbackRef} />
+      {!ready ? (
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            background: "rgba(26,26,26,0.72)",
+            color: "#F2F0E9",
+            fontSize: "12px",
+            letterSpacing: "0.18em",
+            textTransform: "uppercase",
+            zIndex: 5,
+          }}
+        >
+          Loading technique...
+        </div>
+      ) : null}
+      <PlaybackOverlay
+        sequencePath={sequencePath}
+        sequenceData={sequenceData}
+        playbackRef={playbackRef}
+        controlsMode={controlsMode}
+      />
     </div>
   );
 }

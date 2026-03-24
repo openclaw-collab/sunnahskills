@@ -7,9 +7,18 @@ type TechniqueViewerProps = {
   sequencePath?: string;
   sequenceData?: { frames: number[][][][]; markers?: Marker[] };
   onThumbnailReady?: (dataUrl: string) => void;
+  controlsMode?: "none" | "ridges";
+  autoplay?: boolean;
 };
 
-export function TechniqueViewer({ className, sequencePath, sequenceData, onThumbnailReady }: TechniqueViewerProps) {
+export function TechniqueViewer({
+  className,
+  sequencePath,
+  sequenceData,
+  onThumbnailReady,
+  controlsMode = "ridges",
+  autoplay = true,
+}: TechniqueViewerProps) {
   return (
     <Suspense fallback={null}>
       <MannequinViewer
@@ -17,6 +26,8 @@ export function TechniqueViewer({ className, sequencePath, sequenceData, onThumb
         sequencePath={sequencePath}
         sequenceData={sequenceData}
         onThumbnailReady={onThumbnailReady}
+        controlsMode={controlsMode}
+        autoplay={autoplay}
       />
     </Suspense>
   );

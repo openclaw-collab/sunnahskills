@@ -18,6 +18,36 @@ type ComposerTab = "start" | "before" | "after" | "search" | "review";
 type SequenceDifficulty = "beginner" | "intermediate" | "advanced";
 type BuilderLibraryType = "position" | "transition" | "note";
 
+type GraphConnection = { transition: number; reverse: boolean };
+type GraphNode = {
+  id: number;
+  name: string;
+  desc_lines: string[];
+  tags: string[];
+  properties: string[];
+  line: number | null;
+  incoming: GraphConnection[];
+  outgoing: GraphConnection[];
+};
+type GraphEdge = {
+  id: number;
+  name: string;
+  desc_lines: string[];
+  tags: string[];
+  properties: string[];
+  line: number;
+  frameCount: number;
+  from: { node: number; reo: object };
+  to: { node: number; reo: object };
+  bidirectional: boolean;
+  detailed: boolean;
+};
+type GraphData = {
+  meta: { exportedAt: string; source: string; nodeCount: number; edgeCount: number };
+  nodes: GraphNode[];
+  edges: GraphEdge[];
+};
+
 type LibraryItemSummary = {
   id: string;
   sourceId: number;
@@ -268,6 +298,8 @@ export default function AdminSequences() {
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [loadingPreview, setLoadingPreview] = useState(false);
+  const [graphData, setGraphData] = useState<GraphData | null>(null);
+  const [loadingGraph, setLoadingGraph] = useState(false);
 
   const fetchCatalog = useCallback(async () => {
     const [positionsRes, transitionsRes] = await Promise.all([
@@ -286,6 +318,24 @@ export default function AdminSequences() {
     const data = (await response.json().catch(() => null)) as { sequences?: SavedSequence[] } | null;
     setSequences(data?.sequences ?? []);
   }, []);
+
+  const loadGraphData = useCallback(async () => {
+    if (graphData) return graphData;
+    if (loadingGraph) return null;
+    setLoadingGraph(true);
+    try {
+      const response = await fetch("/data/library/admin/graph.json");
+      if (!response.ok) throw new Error("Failed to load graph data");
+      const data = (await response.json()) as GraphData;
+      setGraphData(data);
+      return data;
+    } catch (error) {
+      console.error("Failed to load graph data:", error);
+      return null;
+    } finally {
+      setLoadingGraph(false);
+    }
+  }, [graphData, loadingGraph]);
 
   useEffect(() => {
     let cancelled = false;
@@ -458,15 +508,51 @@ export default function AdminSequences() {
     return map;
   }, [completeTransitions]);
 
+  const transitionsByGraphId = useMemo(() => {
+    const map = new Map<number, LibraryItemSummary>();
+    transitions.forEach((item) => {
+      if (item.graphTransitionId != null) {
+        map.set(item.graphTransitionId, item);
+      }
+    });
+    return map;
+  }, [transitions]);
+
   const suggestedNextTransitions = useMemo(() => {
     if (currentPositionNodeId == null) return [];
+    // Use graph data if available, otherwise fall back to transitions.json data
+    if (graphData) {
+      const node = graphData.nodes.find((n) => n.id === currentPositionNodeId);
+      if (!node) return [];
+      const results: Array<LibraryItemSummary & { _reverse?: boolean }> = [];
+      for (const conn of node.outgoing) {
+        const transition = transitionsByGraphId.get(conn.transition);
+        if (transition) {
+          results.push({ ...transition, _reverse: conn.reverse });
+        }
+      }
+      return results.sort((left, right) => getComposerTitle(left).localeCompare(getComposerTitle(right)));
+    }
     return outgoingTransitionsByNode.get(currentPositionNodeId) ?? [];
-  }, [currentPositionNodeId, outgoingTransitionsByNode]);
+  }, [currentPositionNodeId, graphData, transitionsByGraphId, outgoingTransitionsByNode]);
 
   const suggestedPreviousTransitions = useMemo(() => {
     if (firstPositionNodeId == null) return [];
+    // Use graph data if available, otherwise fall back to transitions.json data
+    if (graphData) {
+      const node = graphData.nodes.find((n) => n.id === firstPositionNodeId);
+      if (!node) return [];
+      const results: Array<LibraryItemSummary & { _reverse?: boolean }> = [];
+      for (const conn of node.incoming) {
+        const transition = transitionsByGraphId.get(conn.transition);
+        if (transition) {
+          results.push({ ...transition, _reverse: conn.reverse });
+        }
+      }
+      return results.sort((left, right) => getComposerTitle(left).localeCompare(getComposerTitle(right)));
+    }
     return incomingTransitionsByNode.get(firstPositionNodeId) ?? [];
-  }, [firstPositionNodeId, incomingTransitionsByNode]);
+  }, [firstPositionNodeId, graphData, transitionsByGraphId, incomingTransitionsByNode]);
 
   const recommendedStartingPositions = useMemo(() => {
     return [...positions]
@@ -975,7 +1061,13 @@ export default function AdminSequences() {
                   key={tab.id}
                   type="button"
                   disabled={disabled}
-                  onClick={() => setWorkflowTab(tab.id as ComposerTab)}
+                  onClick={() => {
+                    setWorkflowTab(tab.id as ComposerTab);
+                    // Load graph data when opening before/after tabs for better suggestions
+                    if ((tab.id === "before" || tab.id === "after") && !graphData && !loadingGraph) {
+                      loadGraphData();
+                    }
+                  }}
                   className={`rounded-full border px-4 py-2 text-[11px] uppercase tracking-[0.18em] transition-colors ${
                     workflowTab === tab.id
                       ? "border-moss/25 bg-moss/10 text-charcoal"
@@ -1025,7 +1117,11 @@ export default function AdminSequences() {
                     <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-moss">Pre choices</div>
                     <h3 className="mt-2 font-heading text-xl text-charcoal">Add a route before the current start</h3>
                     <div className="mt-4 max-h-[42rem] space-y-3 overflow-y-auto pr-1">
-                      {suggestedPreviousTransitions.length === 0 ? (
+                      {loadingGraph ? (
+                        <div className="rounded-[1.5rem] border border-dashed border-charcoal/15 bg-cream/35 p-5 text-sm text-charcoal/55">
+                          Loading graph data…
+                        </div>
+                      ) : suggestedPreviousTransitions.length === 0 ? (
                         <div className="rounded-[1.5rem] border border-dashed border-charcoal/15 bg-cream/35 p-5 text-sm text-charcoal/55">
                           No incoming graph routes were found for the current starting position.
                         </div>
@@ -1034,9 +1130,16 @@ export default function AdminSequences() {
                           <div key={item.id} className={`rounded-[1.5rem] border p-4 ${selectedItem?.id === item.id ? "border-moss/25 bg-moss/10" : "border-charcoal/10 bg-cream/35"}`}>
                             <div className="flex items-start justify-between gap-4">
                               <button type="button" onClick={() => loadLibraryItem(item)} className="min-w-0 flex-1 text-left">
-                                <div className="text-sm text-charcoal">{getComposerTitle(item)}</div>
+                                <div className="text-sm text-charcoal">
+                                  {(item as LibraryItemSummary & { _reverse?: boolean })._reverse ? "↻ " : ""}
+                                  {getComposerTitle(item)}
+                                </div>
                                 <div className="mt-1 text-xs text-charcoal/55">{getComposerSubtitle(item)}</div>
-                                <div className="mt-2 text-[11px] text-charcoal/45">Starts at {item.fromDisplayName || "unknown"} and lands in {item.toDisplayName || "unknown"}.</div>
+                                <div className="mt-2 text-[11px] text-charcoal/45">
+                                  {(item as LibraryItemSummary & { _reverse?: boolean })._reverse
+                                    ? `Reversed: lands at ${item.fromDisplayName || "unknown"} and starts from ${item.toDisplayName || "unknown"}.`
+                                    : `Starts at ${item.fromDisplayName || "unknown"} and lands in ${item.toDisplayName || "unknown"}.`}
+                                </div>
                               </button>
                               <ClayButton className="px-3 py-2 text-[11px] uppercase tracking-[0.18em]" onClick={() => prependTransitionToBuilder(item)}>
                                 Add before
@@ -1054,7 +1157,11 @@ export default function AdminSequences() {
                     <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-moss">Post choices</div>
                     <h3 className="mt-2 font-heading text-xl text-charcoal">Continue from the current end</h3>
                     <div className="mt-4 max-h-[42rem] space-y-3 overflow-y-auto pr-1">
-                      {suggestedNextTransitions.length === 0 ? (
+                      {loadingGraph ? (
+                        <div className="rounded-[1.5rem] border border-dashed border-charcoal/15 bg-cream/35 p-5 text-sm text-charcoal/55">
+                          Loading graph data…
+                        </div>
+                      ) : suggestedNextTransitions.length === 0 ? (
                         <div className="rounded-[1.5rem] border border-dashed border-charcoal/15 bg-cream/35 p-5 text-sm text-charcoal/55">
                           No outgoing graph routes were found for the current end position.
                         </div>
@@ -1063,9 +1170,16 @@ export default function AdminSequences() {
                           <div key={item.id} className={`rounded-[1.5rem] border p-4 ${selectedItem?.id === item.id ? "border-moss/25 bg-moss/10" : "border-charcoal/10 bg-cream/35"}`}>
                             <div className="flex items-start justify-between gap-4">
                               <button type="button" onClick={() => loadLibraryItem(item)} className="min-w-0 flex-1 text-left">
-                                <div className="text-sm text-charcoal">{getComposerTitle(item)}</div>
+                                <div className="text-sm text-charcoal">
+                                  {(item as LibraryItemSummary & { _reverse?: boolean })._reverse ? "↻ " : ""}
+                                  {getComposerTitle(item)}
+                                </div>
                                 <div className="mt-1 text-xs text-charcoal/55">{getComposerSubtitle(item)}</div>
-                                <div className="mt-2 text-[11px] text-charcoal/45">Starts at {item.fromDisplayName || "unknown"} and finishes in {item.toDisplayName || "unknown"}.</div>
+                                <div className="mt-2 text-[11px] text-charcoal/45">
+                                  {(item as LibraryItemSummary & { _reverse?: boolean })._reverse
+                                    ? `Reversed: finishes at ${item.fromDisplayName || "unknown"} and starts from ${item.toDisplayName || "unknown"}.`
+                                    : `Starts at ${item.fromDisplayName || "unknown"} and finishes in ${item.toDisplayName || "unknown"}.`}
+                                </div>
                               </button>
                               <ClayButton className="px-3 py-2 text-[11px] uppercase tracking-[0.18em]" onClick={() => addTransitionToBuilder(item)}>
                                 Add after

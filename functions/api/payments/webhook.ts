@@ -211,7 +211,17 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
           .filter((n) => Number.isInteger(n) && n > 0);
 
         if (payPhase === "second") {
-          await env.DB.prepare(`UPDATE enrollment_orders SET status = 'paid' WHERE id = ?`).bind(orderIdFromMeta).run();
+          await env.DB.prepare(
+            `UPDATE enrollment_orders
+             SET status = 'paid',
+                 manual_review_status = 'none',
+                 manual_review_reason = NULL,
+                 last_payment_error = NULL,
+                 last_payment_attempt_at = datetime('now')
+             WHERE id = ?`,
+          )
+            .bind(orderIdFromMeta)
+            .run();
 
           let firstReg: {
             guardian_name: string;
@@ -323,7 +333,17 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
         }
 
         const newOrderStatus = laterDue > 0 ? "partially_paid" : "paid";
-        await env.DB.prepare(`UPDATE enrollment_orders SET status = ? WHERE id = ?`).bind(newOrderStatus, orderIdFromMeta).run();
+        await env.DB.prepare(
+          `UPDATE enrollment_orders
+           SET status = ?,
+               manual_review_status = 'none',
+               manual_review_reason = NULL,
+               last_payment_error = NULL,
+               last_payment_attempt_at = datetime('now')
+           WHERE id = ?`,
+        )
+          .bind(newOrderStatus, orderIdFromMeta)
+          .run();
 
         if (firstReg?.guardian_email) {
           await sendPaymentEmails(env, {
@@ -410,6 +430,24 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
       )
         .bind(pi.id)
         .run();
+      const orderIdFromMeta = pi.metadata?.enrollment_order_id ? Number(pi.metadata.enrollment_order_id) : null;
+      if (Number.isInteger(orderIdFromMeta) && orderIdFromMeta! > 0) {
+        const payPhase = String(pi.metadata?.pay_phase ?? "first");
+        await env.DB.prepare(
+          `UPDATE enrollment_orders
+           SET manual_review_status = 'required',
+               manual_review_reason = ?,
+               last_payment_error = ?,
+               last_payment_attempt_at = datetime('now')
+           WHERE id = ?`,
+        )
+          .bind(
+            payPhase === "second" ? "later_charge_failed" : "initial_payment_failed",
+            pi.last_payment_error?.message ?? "Payment failed",
+            orderIdFromMeta,
+          )
+          .run();
+      }
     }
 
     if (event.type === "invoice.paid") {

@@ -3,6 +3,7 @@
  * Returns { id, shareUrl, name, protected }
  */
 import bcrypt from "bcryptjs";
+import { getAdminFromRequest, hasAdminPermission } from "../../_utils/adminAuth";
 
 interface Env {
   DB: D1Database;
@@ -28,6 +29,12 @@ function uuidv4() {
 
 export async function onRequestPost({ request, env }: { request: Request; env: Env }) {
   if (!env.DB) return json({ error: "DB not configured" }, { status: 500 });
+  const origin = new URL(request.url).origin;
+  const isLocalOrigin = origin.includes("localhost") || origin.includes("127.0.0.1");
+  const admin = await getAdminFromRequest(env, request);
+  if (!isLocalOrigin && (!admin || !hasAdminPermission(admin, "dashboard", "write"))) {
+    return json({ error: "Unauthorized" }, { status: 401 });
+  }
 
   const body = (await request.json().catch(() => null)) as {
     name?: string;
@@ -47,7 +54,6 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
     .bind(id, name, isProtected, passwordHash)
     .run();
 
-  const origin = new URL(request.url).origin;
   const shareUrl = `${origin}/?studio=${id}`;
 
   return json({ id, shareUrl, name, protected: isProtected === 1 }, { status: 201 });

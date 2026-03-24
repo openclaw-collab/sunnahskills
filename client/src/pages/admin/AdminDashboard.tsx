@@ -31,11 +31,23 @@ type RegistrationRow = {
 };
 
 type PaymentRow = {
-  payment_id: number;
-  registration_id: number;
-  status: string;
-  amount: number;
-  currency: string;
+  order_id: number;
+  order_status: string;
+  manual_review_status: string;
+  manual_review_reason: string | null;
+  last_payment_error: string | null;
+  last_payment_attempt_at: string | null;
+  total_cents: number;
+  amount_due_today_cents: number;
+  later_amount_cents: number;
+  later_payment_date: string | null;
+  guardian_name: string | null;
+  guardian_email: string | null;
+  registration_count: number;
+  student_names: string | null;
+  paid_cents: number | null;
+  latest_payment_status: string | null;
+  first_registration_id: number | null;
   created_at: string;
 };
 
@@ -212,9 +224,9 @@ export default function AdminDashboard() {
       }
 
       if (hasAdminAccess(activeUser, "payments", "read")) {
-        requests.push(fetch("/api/admin/payments"));
+        requests.push(fetch("/api/admin/orders"));
         parsers.push((payload) =>
-          setPayments(((payload as { payments?: PaymentRow[] } | null)?.payments ?? []) as PaymentRow[]),
+          setPayments(((payload as { orders?: PaymentRow[] } | null)?.orders ?? []) as PaymentRow[]),
         );
       }
 

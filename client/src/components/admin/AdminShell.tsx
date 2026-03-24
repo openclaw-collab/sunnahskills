@@ -192,10 +192,11 @@ export function AdminShell({
       <main className="mx-auto max-w-7xl px-6 pt-28">
         <div className="mb-8 flex flex-wrap items-start justify-between gap-6">
           <div>
-            <Link href="/">
-              <a className="font-mono-label text-[11px] uppercase tracking-[0.2em] text-charcoal/55 transition-colors hover:text-moss">
-                Sunnah Skills
-              </a>
+            <Link
+              href="/"
+              className="font-mono-label text-[11px] uppercase tracking-[0.2em] text-charcoal/55 transition-colors hover:text-moss"
+            >
+              Sunnah Skills
             </Link>
             <SectionHeader eyebrow={eyebrow} title={title} className="mt-3" />
           </div>
@@ -253,35 +254,35 @@ export function AdminShell({
                 {visibleNav.map((item) => {
                   const active = item.id === currentSection;
                   return (
-                    <Link key={item.id} href={item.href}>
-                      <a
-                        aria-current={active ? "page" : undefined}
-                        className={cn(
-                          "group block min-w-[168px] rounded-[1.4rem] border px-4 py-3 text-left transition-all",
-                          active
-                            ? "border-moss/30 bg-moss/10 shadow-sm"
-                            : "border-charcoal/10 bg-cream/45 hover:border-moss/20 hover:bg-white",
-                        )}
-                      >
-                        <div className="flex items-start gap-3">
-                          <span
-                            className={cn(
-                              "mt-0.5 inline-flex h-8 w-8 items-center justify-center rounded-full border transition-colors",
-                              active
-                                ? "border-moss/25 bg-moss/15 text-moss"
-                                : "border-charcoal/10 bg-white/80 text-charcoal/50 group-hover:text-moss",
-                            )}
-                          >
-                            {item.icon}
-                          </span>
-                          <div className="min-w-0">
-                            <div className="text-sm text-charcoal">{item.label}</div>
-                            <div className="mt-1 text-[10px] uppercase tracking-[0.16em] text-charcoal/50">
-                              {item.hint}
-                            </div>
+                    <Link
+                      key={item.id}
+                      href={item.href}
+                      aria-current={active ? "page" : undefined}
+                      className={cn(
+                        "group block min-w-[168px] rounded-[1.4rem] border px-4 py-3 text-left transition-all",
+                        active
+                          ? "border-moss/30 bg-moss/10 shadow-sm"
+                          : "border-charcoal/10 bg-cream/45 hover:border-moss/20 hover:bg-white",
+                      )}
+                    >
+                      <div className="flex items-start gap-3">
+                        <span
+                          className={cn(
+                            "mt-0.5 inline-flex h-8 w-8 items-center justify-center rounded-full border transition-colors",
+                            active
+                              ? "border-moss/25 bg-moss/15 text-moss"
+                              : "border-charcoal/10 bg-white/80 text-charcoal/50 group-hover:text-moss",
+                          )}
+                        >
+                          {item.icon}
+                        </span>
+                        <div className="min-w-0">
+                          <div className="text-sm text-charcoal">{item.label}</div>
+                          <div className="mt-1 text-[10px] uppercase tracking-[0.16em] text-charcoal/50">
+                            {item.hint}
                           </div>
                         </div>
-                      </a>
+                      </div>
                     </Link>
                   );
                 })}

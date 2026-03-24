@@ -9,19 +9,24 @@ describe("SessionManager", () => {
     (globalThis as any).fetch = vi.fn(async () => ({
       ok: true,
       json: async () => ({
-        sessions: [
+        programs: [
           {
-            id: 1,
-            program_id: "bjj",
-            name: "Youth BJJ - Tuesday",
-            day_of_week: "Tuesday",
-            start_time: "16:00",
-            end_time: "17:00",
-            age_group: "6-10",
-            capacity: 20,
-            enrolled_count: 12,
-            status: "active",
-            visible: 1,
+            id: "bjj",
+            sessions: [
+              {
+                id: 1,
+                program_id: "bjj",
+                name: "Youth BJJ - Tuesday",
+                day_of_week: "Tuesday",
+                start_time: "16:00",
+                end_time: "17:00",
+                age_group: "6-10",
+                capacity: 20,
+                enrolled_count: 12,
+                status: "active",
+                visible: 1,
+              },
+            ],
           },
         ],
       }),
@@ -91,7 +96,7 @@ describe("SessionManager", () => {
   it("displays empty state when no sessions", async () => {
     (globalThis as any).fetch = vi.fn(async () => ({
       ok: true,
-      json: async () => ({ sessions: [] }),
+      json: async () => ({ programs: [{ id: "bjj", sessions: [] }] }),
     }));
 
     render(<SessionManager />);

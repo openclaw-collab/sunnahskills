@@ -99,6 +99,16 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
     const stripeJson = (await stripeRes.json().catch(() => null)) as { id?: string; last_payment_error?: { message?: string } };
 
     if (!stripeRes.ok || !stripeJson?.id) {
+      await env.DB.prepare(
+        `UPDATE enrollment_orders
+         SET manual_review_status = 'required',
+             manual_review_reason = 'later_charge_failed',
+             last_payment_error = ?,
+             last_payment_attempt_at = datetime('now')
+         WHERE id = ?`,
+      )
+        .bind(stripeJson?.last_payment_error?.message ?? "stripe_error", order.id)
+        .run();
       results.push({
         orderId: order.id,
         ok: false,
@@ -109,6 +119,13 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
 
     await env.DB.prepare(`UPDATE enrollment_orders SET second_stripe_payment_intent_id = ? WHERE id = ?`)
       .bind(stripeJson.id, order.id)
+      .run();
+    await env.DB.prepare(
+      `UPDATE enrollment_orders
+       SET last_payment_attempt_at = datetime('now')
+       WHERE id = ?`,
+    )
+      .bind(order.id)
       .run();
 
     await env.DB.prepare(

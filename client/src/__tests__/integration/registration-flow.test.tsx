@@ -5,12 +5,14 @@ import { render, mockLocalStorage } from "./test-utils";
 import { ProgramRegistrationPage } from "@/pages/registration/ProgramRegistrationPage";
 import { mockStore } from "./mocks/handlers";
 
+const mockNavigate = vi.fn();
+
 // Mock wouter's useLocation
 vi.mock("wouter", async () => {
   const actual = await vi.importActual("wouter");
   return {
     ...actual,
-    useLocation: () => ["/registration/bjj", vi.fn()],
+    useLocation: () => ["/registration/bjj", mockNavigate],
   };
 });
 
@@ -26,11 +28,22 @@ vi.mock("@stripe/react-stripe-js", () => ({
 
 // Helper: fill guardian step — SelectField has no htmlFor so use getByRole("combobox")
 async function fillGuardianStep(user: ReturnType<typeof userEvent.setup>) {
-  await user.type(screen.getByLabelText("Full name"), "John Doe");
-  await user.type(screen.getByLabelText("Email"), "john@example.com");
-  await user.type(screen.getByLabelText("Phone"), "555-123-4567");
-  await user.type(screen.getByLabelText("Emergency contact name"), "Jane Doe");
-  await user.type(screen.getByLabelText("Emergency contact phone"), "555-987-6543");
+  const fullName = await screen.findByLabelText("Full name");
+  const email = screen.getByLabelText("Email");
+  const phone = screen.getByLabelText("Phone");
+  const emergencyName = screen.getByLabelText("Emergency contact name");
+  const emergencyPhone = screen.getByLabelText("Emergency contact phone");
+
+  await user.clear(fullName);
+  await user.type(fullName, "John Doe");
+  await user.clear(email);
+  await user.type(email, "john@example.com");
+  await user.clear(phone);
+  await user.type(phone, "555-123-4567");
+  await user.clear(emergencyName);
+  await user.type(emergencyName, "Jane Doe");
+  await user.clear(emergencyPhone);
+  await user.type(emergencyPhone, "555-987-6543");
   const relationshipSelect = screen.getByRole("combobox");
   await user.selectOptions(relationshipSelect, "mother");
 }
@@ -39,6 +52,14 @@ describe("Registration Flow Integration", () => {
   beforeEach(() => {
     // Mock localStorage to prevent StorageEvent jsdom crash when hook saves drafts
     mockLocalStorage({});
+    mockNavigate.mockClear();
+    mockStore.currentGuardian = {
+      authenticated: true,
+      email: "",
+      accountNumber: "ACC-1001",
+      fullName: null,
+      phone: null,
+    };
   });
 
   it("completes full multi-step registration flow", async () => {
@@ -46,7 +67,7 @@ describe("Registration Flow Integration", () => {
     render(<ProgramRegistrationPage slug="bjj" />);
 
     // Step 1: Guardian Info — wizard shows "Step 1 / 5: Guardian"
-    expect(screen.getByText(/step 1/i)).toBeInTheDocument();
+    expect(await screen.findByText(/step 1/i)).toBeInTheDocument();
 
     await fillGuardianStep(user);
     await user.click(screen.getByRole("button", { name: /continue/i }));
@@ -131,7 +152,7 @@ describe("Registration Flow Integration", () => {
     const { unmount } = render(<ProgramRegistrationPage slug="bjj" />);
 
     // Fill out guardian info
-    await user.type(screen.getByLabelText("Full name"), "Sarah Smith");
+    await user.type(await screen.findByLabelText("Full name"), "Sarah Smith");
     await user.type(screen.getByLabelText("Email"), "sarah@example.com");
 
     // Unmount component (simulate navigation away)
@@ -222,7 +243,7 @@ describe("Registration Flow Integration", () => {
     render(<ProgramRegistrationPage slug="bjj" />);
 
     // Should be on step 1
-    expect(screen.getByText(/step 1/i)).toBeInTheDocument();
+    expect(await screen.findByText(/step 1/i)).toBeInTheDocument();
 
     // Try to continue without filling required fields
     await user.click(screen.getByRole("button", { name: /continue/i }));
@@ -234,23 +255,13 @@ describe("Registration Flow Integration", () => {
 
   it("handles waitlist scenario when program is full", async () => {
     const user = userEvent.setup();
-    const navigateMock = vi.fn();
-
-    vi.doMock("wouter", async () => {
-      const actual = await vi.importActual("wouter");
-      return {
-        ...actual,
-        useLocation: () => ["/registration/bjj", navigateMock],
-      };
-    });
-
     mockStore.shouldFailNextRequest = false;
     const originalFetch = global.fetch;
     global.fetch = vi.fn().mockImplementation((url: string, options: any) => {
-      if (url === "/api/register") {
+      if (url === "/api/register/cart") {
         return Promise.resolve({
           ok: true,
-          json: () => Promise.resolve({ waitlisted: true, position: 5 }),
+          json: () => Promise.resolve({ ok: true, enrollmentOrderId: 1, registrationIds: [], summary: { waitlisted: true } }),
         });
       }
       return originalFetch(url, options);
@@ -299,7 +310,10 @@ describe("Registration Flow Integration", () => {
 
     await user.click(screen.getByRole("button", { name: /continue/i }));
 
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith(expect.stringMatching(/^\/registration\/waitlist\?pos=1&program=/));
+    });
+
     global.fetch = originalFetch;
-    vi.doUnmock("wouter");
   });
 });

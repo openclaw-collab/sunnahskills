@@ -18,45 +18,47 @@ npx wrangler pages secret put STRIPE_WEBHOOK_SECRET
 
 For local webhook testing, the `STRIPE_WEBHOOK_SECRET` should come from `stripe listen`, not from a long-lived dashboard secret.
 
+For local worker testing in this repo, the validated path is:
+
+```bash
+npm run build
+node scripts/dev-test.mjs
+```
+
 ## Stripe dashboard setup
 
 1. Create a Stripe account at [dashboard.stripe.com](https://dashboard.stripe.com)
 2. Collect your API keys from **Developers → API keys**
 3. For test mode, use keys prefixed `pk_test_` / `sk_test_`
 
-## One-time payments (Archery, Outdoor, Bullyproofing)
+## Pricing source of truth
 
-No Stripe dashboard config needed for one-time payments — `PaymentIntent` amounts are calculated server-side from the `program_prices` table.
+Launch pricing is computed from D1, not Stripe product metadata:
 
-## Recurring subscriptions (BJJ)
+- `program_prices`
+- `semesters`
+- `shared/orderPricing.ts`
 
-BJJ uses Stripe Subscriptions. To enable live subscriptions:
+Stripe is used for charging and payment-method storage. It is not the authoritative catalog/pricing store.
 
-1. In the Stripe dashboard, create a **Product** for BJJ (e.g. "BJJ Monthly Tuition")
-2. Create a **Price** under that product (e.g. $120/month, $80/month per age group)
-3. Copy the Price ID (`price_...`)
-4. Update the `program_prices` row for BJJ in D1 — set the `metadata` JSON field:
+## Live payment model
 
-```json
-{ "stripe_price_id": "price_1234567890" }
-```
+Launch checkout is **order-based PaymentIntent**, not Stripe Subscriptions.
 
-Example D1 command:
+`POST /api/payments/create-order-intent`:
 
-```bash
-npx wrangler d1 execute sunnahskills-admin-v2 --command \
-  "UPDATE program_prices SET metadata = '{\"stripe_price_id\": \"price_ABC123\"}' WHERE program_id = 'bjj' AND age_group = 'kids';"
-```
+1. loads the `enrollment_order`
+2. recomputes pricing from D1
+3. applies sibling and promo-code math server-side
+4. creates or reuses a Stripe `Customer`
+5. creates the first Stripe `PaymentIntent`
+6. stores Stripe ids and order metadata back on the order
 
-If `stripe_price_id` is absent from the metadata, or `STRIPE_SECRET_KEY` is missing, the subscription endpoint returns `{ error: "subscriptions_not_configured" }` and the client falls back to a one-time PaymentIntent.
+If the order uses `payment_choice = 'plan'`, the remaining balance stays on the order and is collected later from the saved payment method.
 
-The admin price editor validates `stripe_price_id` values before saving them, so malformed IDs are rejected early instead of failing at checkout.
+## Discounts
 
-## Sibling discount
-
-A Stripe Coupon `SIBLING_10PCT` (10% off, `forever` duration) is auto-created on first use by `create-subscription.ts`. It is retrieved by ID on subsequent uses. No manual Stripe dashboard action needed.
-
-For one-time payments, the 10% sibling discount on **kids** lines (when registering an additional sibling) is calculated in `create-intent.ts` via `shared/orderPricing.ts` before creating the PaymentIntent (no Stripe coupon involved).
+Sibling and promo discounts are applied before the PaymentIntent is created and written back to D1 order/payment metadata for admin reconciliation.
 
 ## Multi-line family cart
 
@@ -64,9 +66,7 @@ For one-time payments, the 10% sibling discount on **kids** lines (when register
 - Webhook (`payment_intent.succeeded`) activates **all** registrations in the batch and sets the customer’s **default payment method** when possible.
 - `POST /api/payments/collect-order-balance` — **Bearer `CRON_SECRET`**; finds `partially_paid` orders past `later_payment_date` and confirms an **off-session** PaymentIntent for the remainder. Call this on a schedule you control (e.g. daily); the app UI does not mention this to families.
 
-Valid promo codes are now honored in both payment flows:
-- One-time checkout applies the discount in D1 before the PaymentIntent is created.
-- Subscriptions create a one-time Stripe coupon from the matching D1 discount row and attach it to the subscription.
+`POST /api/payments/collect-order-balance` is protected by **Bearer `CRON_SECRET`** and attempts the off-session later charge on or after `later_payment_date`.
 
 ## Webhook setup
 
@@ -75,11 +75,10 @@ The webhook endpoint is: `https://your-domain/api/payments/webhook`
 Register it in Stripe:
 
 1. Go to **Developers → Webhooks → Add endpoint**
-2. URL: `https://prototype.sunnahskills.pages.dev/api/payments/webhook`
+2. URL: `https://sunnahskills.pages.dev/api/payments/webhook`
 3. Events to listen for:
    - `payment_intent.succeeded`
-   - `invoice.paid`
-   - `invoice.payment_failed`
+   - `payment_intent.payment_failed`
 4. Copy the **Signing secret** and add it as a Cloudflare secret:
 
 ```bash
@@ -92,7 +91,7 @@ For local webhook testing:
 stripe listen --forward-to http://localhost:8788/api/payments/webhook
 ```
 
-The worker is authoritative for webhook handling. Duplicate `payment_intent.succeeded` events are ignored once a payment is already marked `paid`, and `invoice.payment_failed` now marks subscription payments as failed.
+The worker is authoritative for webhook handling. Duplicate `payment_intent.succeeded` events are ignored once a payment is already marked paid, and `payment_intent.payment_failed` marks the order for manual review.
 
 ## Appearance theme
 

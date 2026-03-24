@@ -13,6 +13,7 @@ import { StudioBlock } from "@/studio/StudioBlock";
 import { StudioText } from "@/studio/StudioText";
 import { MotionPage } from "@/components/motion/PageMotion";
 import { PROGRAMS } from "@/lib/programConfig";
+import { BJJ_MARKETING_GROUPS } from "@shared/bjjCatalog";
 
 const curriculum = [
   {
@@ -216,7 +217,7 @@ const Home = () => {
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-charcoal/60 uppercase tracking-wide">Age Range</span>
-                  <span className="font-serif-accent text-2xl text-moss">6-17</span>
+                  <span className="font-serif-accent text-2xl text-moss">5+</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-charcoal/60 uppercase tracking-wide">Parent Rating</span>
@@ -256,17 +257,17 @@ const Home = () => {
                 </div>
                 <div className="aspect-square rounded-md bg-cream border border-moss/5" />
                 <div className="aspect-square rounded-md bg-moss/5 border border-moss/10 relative">
-                  <StatusDot className="absolute bottom-1 left-1" ariaLabel="Archery Skills" />
+                  <StatusDot className="absolute bottom-1 left-1" ariaLabel="Women 11+ Tuesday" />
                 </div>
               </div>
               <div className="mt-4 text-[10px] font-body text-charcoal/60 flex flex-col gap-1.5">
                 <div className="flex items-center gap-2">
                   <StatusDot ariaLabel="BJJ Fundamentals" />
-                  BJJ Fundamentals
+                  Youth BJJ · Tue/Fri
                 </div>
                 <div className="flex items-center gap-2">
                   <StatusDot className="bg-moss" ariaLabel="Archery Skills" />
-                  Archery Skills
+                  Women 11+ · Tue/Thu
                 </div>
               </div>
             </TelemetryCard>
@@ -323,7 +324,7 @@ const Home = () => {
           <div className="text-center mb-20">
             <SectionHeader title="Enrollment Tracks" />
             <p className="mt-4 text-charcoal/60 font-body text-sm">
-              Select the appropriate development stage for your child.
+              BJJ is live now, with every public surface aligned to the same household-ready cohort structure.
             </p>
           </div>
           <motion.div
@@ -331,35 +332,24 @@ const Home = () => {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-10% 0px" }}
             transition={{ duration: 0.5 }}
-            className="grid grid-cols-1 md:grid-cols-3 gap-8 items-center"
+            className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-8 items-center"
           >
-            <PremiumCard>
-              <span className="font-mono-label text-xs text-charcoal/50 uppercase tracking-[0.18em] mb-2 block">
-                Ages 6-9
-              </span>
-              <h4 className="font-heading text-2xl text-charcoal mb-2">Foundations</h4>
-              <p className="text-xs font-body text-charcoal/60 mb-8 border-b border-charcoal/10 pb-6 w-full">
-                Focus, basic coordination, and introduction to discipline.
-              </p>
-            </PremiumCard>
-            <PremiumCard>
-              <span className="font-mono-label text-xs text-charcoal/50 uppercase tracking-[0.18em] mb-2 block">
-                Ages 10-13
-              </span>
-              <h4 className="font-heading text-2xl text-charcoal mb-2">Development</h4>
-              <p className="text-xs font-body text-charcoal/60 mb-8 border-b border-charcoal/10 pb-6 w-full">
-                Technical growth, active pressure testing, and real-world application.
-              </p>
-            </PremiumCard>
-            <PremiumCard>
-              <span className="font-mono-label text-xs text-charcoal/50 uppercase tracking-[0.18em] mb-2 block">
-                Ages 14-17
-              </span>
-              <h4 className="font-heading text-2xl text-charcoal mb-2">Leadership</h4>
-              <p className="text-xs font-body text-charcoal/60 mb-8 border-b border-charcoal/10 pb-6 w-full">
-                Advanced capability, outdoor reliance, and guiding younger peers.
-              </p>
-            </PremiumCard>
+            {BJJ_MARKETING_GROUPS.map((group) => (
+              <PremiumCard key={group.key}>
+                <span className="font-mono-label text-xs text-charcoal/50 uppercase tracking-[0.18em] mb-2 block">
+                  {group.ageLabel}
+                </span>
+                <h4 className="font-heading text-2xl text-charcoal mb-2">{group.label}</h4>
+                <p className="text-xs font-body text-charcoal/60 mb-4 border-b border-charcoal/10 pb-4 w-full">
+                  {group.sessions.map((session) => session.scheduleLabel).join(" · ")}
+                </p>
+                <div className="space-y-2 text-xs text-charcoal/65">
+                  {group.sessions.map((session) => (
+                    <div key={session.trackKey}>{session.label}</div>
+                  ))}
+                </div>
+              </PremiumCard>
+            ))}
           </motion.div>
         </div>
       </section>

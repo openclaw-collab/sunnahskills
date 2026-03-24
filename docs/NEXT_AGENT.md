@@ -18,4 +18,4 @@
 
 ## Git
 
-Product branch for handoff commits: **`prototype`** (merged plan §22).
+Product branch for handoff commits: **`main`** for production and **`prototype`** for preview validation.

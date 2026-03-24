@@ -5,19 +5,23 @@ import { PaymentsSummary } from "@/components/admin/PaymentsSummary";
 
 const mockPayments = [
   {
-    payment_id: 1,
+    order_id: 1,
     registration_id: 101,
-    status: "paid",
-    amount: 10000,
-    currency: "usd",
+    order_status: "paid",
+    latest_payment_status: "succeeded",
+    amount_due_today_cents: 10000,
+    guardian_name: "John Doe",
+    student_names: "Jimmy Doe",
     created_at: "2026-03-15T10:00:00Z",
   },
   {
-    payment_id: 2,
+    order_id: 2,
     registration_id: 102,
-    status: "pending",
-    amount: 5000,
-    currency: "USD",
+    order_status: "pending",
+    latest_payment_status: "requires_confirmation",
+    amount_due_today_cents: 5000,
+    guardian_name: "Jane Doe",
+    student_names: "Sara Doe",
     created_at: "2026-03-16T14:30:00Z",
   },
 ];
@@ -26,11 +30,13 @@ describe("PaymentsSummary", () => {
   it("renders payments table header", () => {
     render(<PaymentsSummary payments={mockPayments} />);
 
-    expect(screen.getByText("Payments")).toBeInTheDocument();
-    expect(screen.getByText("Payment")).toBeInTheDocument();
-    expect(screen.getByText("Registration")).toBeInTheDocument();
+    expect(screen.getByText("Orders & Payments")).toBeInTheDocument();
+    expect(screen.getByText("Order")).toBeInTheDocument();
+    expect(screen.getByText("Guardian")).toBeInTheDocument();
+    expect(screen.getByText("Students")).toBeInTheDocument();
     expect(screen.getByText("Status")).toBeInTheDocument();
-    expect(screen.getByText("Amount")).toBeInTheDocument();
+    expect(screen.getByText("Review")).toBeInTheDocument();
+    expect(screen.getByText("Today / Later")).toBeInTheDocument();
     expect(screen.getByText("Created")).toBeInTheDocument();
   });
 
@@ -38,7 +44,9 @@ describe("PaymentsSummary", () => {
     render(<PaymentsSummary payments={mockPayments} />);
 
     expect(screen.getByText("#1")).toBeInTheDocument();
-    expect(screen.getByText("#101")).toBeInTheDocument();
+    expect(screen.getByText("Reg: 101")).toBeInTheDocument();
+    expect(screen.getByText("John Doe")).toBeInTheDocument();
+    expect(screen.getByText("Jimmy Doe")).toBeInTheDocument();
     expect(screen.getByText("paid")).toBeInTheDocument();
     expect(screen.getByText("$100")).toBeInTheDocument();
   });
@@ -59,7 +67,7 @@ describe("PaymentsSummary", () => {
   it("displays empty state when no payments", () => {
     render(<PaymentsSummary payments={[]} />);
 
-    expect(screen.getByText(/no payments found/i)).toBeInTheDocument();
+    expect(screen.getByText(/no orders found/i)).toBeInTheDocument();
   });
 
   it("renders within PremiumCard", () => {

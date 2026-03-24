@@ -20,5 +20,6 @@ export async function onRequestGet({ request, env }: { request: Request; env: En
     email: g.email,
     accountNumber: g.accountNumber,
     fullName: g.fullName,
+    phone: g.phone,
   });
 }

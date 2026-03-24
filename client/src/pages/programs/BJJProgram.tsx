@@ -9,41 +9,10 @@ import { StatusDot } from "@/components/brand/StatusDot";
 import { ProgramPageHeroMedia } from "@/components/programs/ProgramPageHeroMedia";
 import { MotionDiv, MotionPage, MotionSection } from "@/components/motion/PageMotion";
 import { PROGRAMS, getProgramTypeLabel } from "@/lib/programConfig";
+import { BJJ_MARKETING_GROUPS } from "@shared/bjjCatalog";
 
 const BJJProgram = () => {
   const program = PROGRAMS.bjj;
-  const ageGroups = [
-    {
-      group: "Youth Foundations",
-      age: "6-9 years",
-      time: "45 minutes",
-      focus: "Basic movements, listening skills, and confidence through structure",
-    },
-    {
-      group: "Youth Development",
-      age: "10-13 years",
-      time: "45 minutes",
-      focus: "Fundamental grappling, pressure awareness, and steady technical growth",
-    },
-    {
-      group: "Teen Leadership",
-      age: "14-17 years",
-      time: "60 minutes",
-      focus: "Advanced techniques, composure under pressure, and mentorship",
-    },
-    {
-      group: "Competition Prep",
-      age: "14+ years",
-      time: "60 minutes",
-      focus: "Positional sparring, refined transitions, and controlled pace",
-    },
-    {
-      group: "Little Kids Program",
-      age: "Coming Soon",
-      time: "30 minutes",
-      focus: "Basic movement, simple games, and a friendly introduction to the mat",
-    },
-  ];
 
   return (
     <MotionPage className="bg-cream min-h-screen">
@@ -66,6 +35,9 @@ const BJJProgram = () => {
               </h1>
               <p className="mt-8 text-cream/75 font-body text-sm md:text-base max-w-2xl leading-relaxed text-pretty">
                 {program.heroLead}
+              </p>
+              <p className="mt-4 text-cream/65 font-body text-sm max-w-2xl leading-relaxed text-pretty">
+                Live enrollment is currently BJJ only. Women 11+ Tuesday and Thursday are separate enrollments; both can be added to the same household cart if needed.
               </p>
 
               <div className="mt-8 flex flex-wrap gap-2">
@@ -140,7 +112,7 @@ const BJJProgram = () => {
                       <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-cream/50">
                         Focus
                       </div>
-                      <div className="mt-1">Safety • Fundamentals • Confidence</div>
+                      <div className="mt-1">Household-ready enrollment • Technique • Discipline</div>
                     </div>
                     <div>
                       <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-cream/50">
@@ -159,7 +131,7 @@ const BJJProgram = () => {
       <MotionSection className="py-20 bg-white border-y border-charcoal/5">
         <div className="max-w-6xl mx-auto px-6">
           <div className="flex items-end justify-between gap-6 flex-wrap">
-            <SectionHeader eyebrow="Tracks" title="Age-Appropriate Progression" />
+            <SectionHeader eyebrow="Tracks" title="Current Live BJJ Cohorts" />
             <Link href="/programs/bjj/register">
               <ClayButton className="text-[11px] uppercase tracking-[0.18em] px-6 py-3">
                 Start Registration
@@ -168,21 +140,27 @@ const BJJProgram = () => {
           </div>
 
           <div className="mt-10 grid grid-cols-1 md:grid-cols-2 gap-6">
-            {ageGroups.map((group, index) => (
-              <MotionDiv key={group.group} delay={index * 0.04}>
+            {BJJ_MARKETING_GROUPS.map((group, index) => (
+              <MotionDiv key={group.key} delay={index * 0.04}>
                 <PremiumCard className="bg-white border border-charcoal/10">
                   <div className="flex items-center justify-between gap-4">
                     <div>
                       <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-charcoal/50">
-                        {group.age}
+                        {group.ageLabel}
                       </div>
-                      <div className="mt-1 font-heading text-xl text-charcoal">{group.group}</div>
+                      <div className="mt-1 font-heading text-xl text-charcoal">{group.label}</div>
                     </div>
                     <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-moss">
-                      {group.time}
+                      {group.sessions.length > 1 ? `${group.sessions.length} session options` : "Live now"}
                     </div>
                   </div>
-                  <p className="mt-4 font-body text-sm text-charcoal/70 leading-relaxed">{group.focus}</p>
+                  <div className="mt-4 space-y-2">
+                    {group.sessions.map((session) => (
+                      <div key={session.trackKey} className="text-sm text-charcoal/70 leading-relaxed">
+                        <strong className="text-charcoal">{session.label}:</strong> {session.scheduleLabel}
+                      </div>
+                    ))}
+                  </div>
                 </PremiumCard>
               </MotionDiv>
             ))}
@@ -200,11 +178,10 @@ const BJJProgram = () => {
                     Next step
                   </div>
                   <h2 className="mt-2 font-heading text-3xl md:text-4xl tracking-tight text-charcoal">
-                    Begin the training with a guided registration.
+                    Begin with your guardian account, then place the right track in your cart.
                   </h2>
                   <p className="mt-4 font-body text-charcoal/70 max-w-2xl text-pretty">
-                    Complete a structured enrollment flow, choose the right session, sign waivers, and handle payment
-                    in-app.
+                    The live flow is now auth-first: sign in, choose the exact BJJ track, confirm waivers, and complete payment in one household-aware checkout.
                   </p>
                 </div>
                 <div className="flex w-full flex-col gap-3 md:w-auto sm:flex-row">

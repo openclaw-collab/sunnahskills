@@ -18,6 +18,7 @@ import type {
   StudioThemePresetId,
 } from "./studioTypes";
 import {
+  canUseLocalStudio,
   normalizeCustomTheme,
   resolveActiveTheme,
   DEFAULT_CUSTOM_THEME,
@@ -26,6 +27,7 @@ import {
   genId,
   getPresetBase,
   isSessionToken,
+  isLocalStudioQueryValue,
   loadStudioState,
   saveStudioState,
   STUDIO_THEME_PRESETS,
@@ -43,6 +45,7 @@ async function fetchSession(id: string): Promise<StudioSession | { protected: tr
   try {
     const res = await apiFetch(`/api/studio/sessions/${id}`);
     if (res.status === 401) return { protected: true, id };
+    if (res.status === 404) return null;
     if (!res.ok) return null;
     return res.json();
   } catch {
@@ -128,8 +131,34 @@ export function StudioProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<StudioState>(() => {
     const local = loadStudioState();
     const token = getStudioParam();
-    if (!token) return local;
+    const localAllowed = canUseLocalStudio();
+    if (!token) {
+      return {
+        ...local,
+        enabled: localAllowed ? local.enabled : false,
+        mode: "local",
+      };
+    }
+    const isLocal = isLocalStudioQueryValue(token) && localAllowed;
+    if (isLocal) {
+      return {
+        ...local,
+        enabled: true,
+        mode: "local",
+        sessionId: null,
+        authed: true,
+      };
+    }
     const isSession = isSessionToken(token);
+    if (!isSession) {
+      return {
+        ...local,
+        enabled: false,
+        mode: "local",
+        sessionId: null,
+        authed: false,
+      };
+    }
     return {
       ...local,
       enabled: true,
@@ -156,7 +185,15 @@ export function StudioProvider({ children }: { children: React.ReactNode }) {
     setState((s) => ({ ...s, loading: true, error: null }));
     fetchSession(state.sessionId).then((res) => {
       if (!res) {
-        setState((s) => ({ ...s, loading: false, error: "Session not found." }));
+        setState((s) => ({
+          ...s,
+          loading: false,
+          enabled: false,
+          mode: "local",
+          sessionId: null,
+          authed: false,
+          error: "Session not found.",
+        }));
         return;
       }
       if ("protected" in res && res.protected) {
@@ -326,9 +363,13 @@ export function StudioProvider({ children }: { children: React.ReactNode }) {
 
   // Expose globally for autoText panel callback
   useEffect(() => {
+    if (!state.enabled) {
+      delete (window as any).__studioSetEdit;
+      return;
+    }
     (window as any).__studioSetEdit = (key: string, value: string) => setEdit(key, value);
     return () => void delete (window as any).__studioSetEdit;
-  }, [setEdit]);
+  }, [setEdit, state.enabled]);
 
   const clearEdit = useCallback(
     (key: string) => {
@@ -348,7 +389,10 @@ export function StudioProvider({ children }: { children: React.ReactNode }) {
   );
 
   const setEnabled = useCallback((enabled: boolean) => {
-    setState((s) => ({ ...s, enabled }));
+    setState((s) => {
+      if (enabled && s.mode === "local" && !canUseLocalStudio()) return s;
+      return { ...s, enabled };
+    });
   }, []);
 
   const setThemePreset = useCallback(

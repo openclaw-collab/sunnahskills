@@ -30,11 +30,22 @@ vi.mock("@stripe/react-stripe-js", () => ({
 // Helper: fill and submit guardian step
 // SelectField has no htmlFor — use getByRole("combobox") (only one native select on guardian step)
 const fillGuardianStep = async (user: ReturnType<typeof userEvent.setup>) => {
-  await user.type(screen.getByLabelText("Full name"), "John Doe");
-  await user.type(screen.getByLabelText("Email"), "john@example.com");
-  await user.type(screen.getByLabelText("Phone"), "555-123-4567");
-  await user.type(screen.getByLabelText("Emergency contact name"), "Jane Doe");
-  await user.type(screen.getByLabelText("Emergency contact phone"), "555-987-6543");
+  const fullName = await screen.findByLabelText("Full name");
+  const email = screen.getByLabelText("Email");
+  const phone = screen.getByLabelText("Phone");
+  const emergencyName = screen.getByLabelText("Emergency contact name");
+  const emergencyPhone = screen.getByLabelText("Emergency contact phone");
+
+  await user.clear(fullName);
+  await user.type(fullName, "John Doe");
+  await user.clear(email);
+  await user.type(email, "john@example.com");
+  await user.clear(phone);
+  await user.type(phone, "555-123-4567");
+  await user.clear(emergencyName);
+  await user.type(emergencyName, "Jane Doe");
+  await user.clear(emergencyPhone);
+  await user.type(emergencyPhone, "555-987-6543");
   const relationshipSelect = screen.getByRole("combobox");
   await user.selectOptions(relationshipSelect, "mother");
   await user.click(screen.getByRole("button", { name: /continue/i }));
@@ -82,12 +93,18 @@ describe("Payment Flow Integration", () => {
     mockConfirmPayment.mockClear();
     // Mock localStorage to prevent StorageEvent jsdom crash when hook saves drafts
     mockLocalStorage({});
+    mockStore.currentGuardian = {
+      authenticated: true,
+      email: "",
+      accountNumber: "ACC-1001",
+      fullName: null,
+      phone: null,
+    };
   });
 
-  it("creates payment intent for one-time payment program", async () => {
+  it("creates an order-backed payment intent for BJJ enrollment", async () => {
     const user = userEvent.setup();
     mockConfirmPayment.mockResolvedValueOnce({ error: null });
-    mockStore.subscriptionUnavailable = true;
 
     render(<ProgramRegistrationPage slug="bjj" />);
 
@@ -103,6 +120,7 @@ describe("Payment Flow Integration", () => {
     }, { timeout: 3000 });
 
     await waitFor(() => {
+      expect(mockStore.orders).toHaveLength(1);
       expect(mockStore.payments).toHaveLength(1);
       expect(mockStore.payments[0].id).toMatch(/^pi_/);
     });
@@ -110,10 +128,9 @@ describe("Payment Flow Integration", () => {
     expect(mockStore.registrations).toHaveLength(1);
     const registration = mockStore.registrations[0];
     expect(registration.status).toBe("pending_payment");
-    mockStore.subscriptionUnavailable = false;
   });
 
-  it("creates subscription for recurring payment program", async () => {
+  it("creates a single payment element from the order-first checkout flow", async () => {
     const user = userEvent.setup();
     mockConfirmPayment.mockResolvedValueOnce({ error: null });
 
@@ -131,11 +148,12 @@ describe("Payment Flow Integration", () => {
     }, { timeout: 3000 });
 
     await waitFor(() => {
+      expect(mockStore.orders).toHaveLength(1);
       expect(mockStore.payments).toHaveLength(1);
     });
   });
 
-  it("applies sibling discount to payment", async () => {
+  it("continues through payment setup when sibling pricing is selected", async () => {
     const user = userEvent.setup();
     mockConfirmPayment.mockResolvedValueOnce({ error: null });
 
@@ -152,6 +170,7 @@ describe("Payment Flow Integration", () => {
     const sessionSelect = await screen.findByLabelText(/pick your session/i);
     await user.selectOptions(sessionSelect, "1");
     await user.click(await screen.findByLabelText(/No, enrol directly/i));
+    await user.click(await screen.findByLabelText(/1 sibling/i));
     await user.click(screen.getByRole("button", { name: /continue/i }));
 
     await fillWaiversStep(user);
@@ -162,6 +181,7 @@ describe("Payment Flow Integration", () => {
     }, { timeout: 3000 });
 
     await waitFor(() => {
+      expect(mockStore.orders).toHaveLength(1);
       expect(mockStore.payments).toHaveLength(1);
     });
   });

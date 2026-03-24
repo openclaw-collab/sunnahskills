@@ -259,6 +259,10 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
   await env.DB.prepare(
     `UPDATE enrollment_orders SET
       stripe_payment_intent_id = ?,
+      manual_review_status = 'none',
+      manual_review_reason = NULL,
+      last_payment_error = NULL,
+      last_payment_attempt_at = datetime('now'),
       total_cents = ?,
       amount_due_today_cents = ?,
       later_amount_cents = ?,
@@ -268,9 +272,9 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
   )
     .bind(
       stripeJson.id,
-      adjustedTotal,
-      dueToday,
-      dueLater,
+        adjustedTotal,
+        dueToday,
+        dueLater,
       laterDate,
       JSON.stringify({
         discountCode: body?.discountCode ?? null,

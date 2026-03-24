@@ -8,6 +8,8 @@
  * Max file size enforced: 5 MB
  */
 
+import { parseCookieHeader } from "../../_utils/cookies";
+
 const MAX_BYTES = 5 * 1024 * 1024;
 
 interface Env {
@@ -30,6 +32,11 @@ function genId() {
   return `${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 9)}`;
 }
 
+function isAuthed(request: Request, sessionId: string) {
+  const cookies = parseCookieHeader(request.headers.get("Cookie") ?? request.headers.get("cookie") ?? "");
+  return cookies[`studio_auth_${sessionId}`] === "1";
+}
+
 export async function onRequestPost({ request, env }: { request: Request; env: Env }) {
   if (!env.DB) return json({ error: "DB not configured" }, { status: 500 });
 
@@ -46,6 +53,9 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
     .first<{ id: string; protected: number }>();
 
   if (!session) return json({ error: "Session not found" }, { status: 404 });
+  if (session.protected === 1 && !isAuthed(request, sessionId)) {
+    return json({ error: "Unauthorized" }, { status: 401 });
+  }
 
   const contentType = request.headers.get("Content-Type") ?? "";
   if (!contentType.includes("multipart/form-data")) {

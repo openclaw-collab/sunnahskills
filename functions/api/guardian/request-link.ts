@@ -18,7 +18,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
   if (!env.DB) return json({ error: "Something went wrong." }, { status: 500 });
   await ensureGuardianSchema(env);
 
-  const body = (await request.json().catch(() => null)) as { email?: string } | null;
+  const body = (await request.json().catch(() => null)) as { email?: string; next?: string } | null;
   const email = body?.email?.trim().toLowerCase();
   if (!email || !email.includes("@")) return json({ error: "Valid email is required." }, { status: 400 });
 
@@ -41,7 +41,8 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
     .run();
 
   const site = env.SITE_URL ?? "http://localhost:8788";
-  const verifyUrl = `${site.replace(/\/$/, "")}/api/guardian/verify?token=${encodeURIComponent(rawToken)}`;
+  const next = typeof body?.next === "string" && body.next.startsWith("/") ? body.next : "/register";
+  const verifyUrl = `${site.replace(/\/$/, "")}/api/guardian/verify?token=${encodeURIComponent(rawToken)}&next=${encodeURIComponent(next)}`;
   const fromEmail = env.EMAIL_FROM ?? "noreply@sunnahskills.pages.dev";
 
   await sendMailChannelsEmail(env, {

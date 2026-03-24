@@ -1,6 +1,7 @@
 import type { StudioCustomTheme, StudioState, StudioThemePreset, StudioThemePresetId } from "./studioTypes";
 
 const STORAGE_KEY = "sunnahskills:studio:v2";
+const LOCAL_STUDIO_QUERY_VALUE = "1";
 
 export const DEFAULT_CUSTOM_THEME: StudioCustomTheme = {
   pageBackground: "#F2F0E9",
@@ -159,6 +160,14 @@ export function defaultStudioState(): StudioState {
     localEdits: {},
     localComments: [],
   };
+}
+
+export function canUseLocalStudio() {
+  return import.meta.env.DEV || import.meta.env.VITE_ENABLE_STUDIO_LOCAL === "1";
+}
+
+export function isLocalStudioQueryValue(value: string | null) {
+  return value === LOCAL_STUDIO_QUERY_VALUE;
 }
 
 export function loadStudioState(): StudioState {

@@ -2,8 +2,8 @@
 
 Production-grade youth martial arts & outdoor program website with integrated registration, Stripe payments, admin dashboard, and a Stakeholder Studio review tool.
 
-**Live:** [prototype.sunnahskills.pages.dev](https://prototype.sunnahskills.pages.dev)  
-**Repo:** [github.com/openclaw-collab/sunnahskills](https://github.com/openclaw-collab/sunnahskills) — branch `prototype`  
+**Live:** [sunnahskills.pages.dev](https://sunnahskills.pages.dev)  
+**Repo:** [github.com/openclaw-collab/sunnahskills](https://github.com/openclaw-collab/sunnahskills) — branch `main`  
 **Stack:** React 18 + Vite · Cloudflare Pages Functions · Cloudflare D1 (SQLite) · Stripe Elements · MailChannels · Wouter · TanStack Query · Tailwind CSS · shadcn/ui
 
 ---
@@ -153,7 +153,7 @@ Copy `.env.example`. For Cloudflare, set secrets via `wrangler secret put` or th
 | `VITE_STRIPE_PUBLISHABLE_KEY` | Vite build env | Client-side Stripe key (`pk_test_...` or `pk_live_...`) |
 | `STRIPE_SECRET_KEY` | Cloudflare secret | Server-side Stripe key (`sk_test_...`) |
 | `STRIPE_WEBHOOK_SECRET` | Cloudflare secret | Webhook signing secret (`whsec_...`) |
-| `SITE_URL` | `wrangler.toml` [vars] | Full domain, e.g. `https://prototype.sunnahskills.pages.dev` |
+| `SITE_URL` | `wrangler.toml` [vars] | Full domain, e.g. `https://sunnahskills.pages.dev` |
 | `EMAIL_FROM` | `wrangler.toml` [vars] | Sender address for MailChannels |
 | `EMAIL_TO` | `wrangler.toml` [vars] | Admin notification recipient |
 

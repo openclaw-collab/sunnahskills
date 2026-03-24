@@ -209,7 +209,7 @@ Stakeholder receives URL: https://site.com/?studio=<UUID>
 
 ## Deployment
 
-Deployed to Cloudflare Pages. The `prototype` branch auto-deploys.
+Deployed to Cloudflare Pages. The `main` branch is production and `prototype` creates preview deployments.
 
 Build command: `npm run build`  
 Build output: `dist/`  

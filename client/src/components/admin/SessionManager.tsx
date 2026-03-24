@@ -25,7 +25,9 @@ export function SessionManager() {
     try {
       const res = await fetch("/api/programs");
       const json = (await res.json().catch(() => null)) as any;
-      const flat = (json?.sessions ?? []) as Session[];
+      const flat = Array.isArray(json?.programs)
+        ? (json.programs.flatMap((program: { sessions?: Session[] }) => program.sessions ?? []) as Session[])
+        : [];
       setSessions(flat);
     } finally {
       setLoading(false);
@@ -128,4 +130,3 @@ export function SessionManager() {
     </PremiumCard>
   );
 }
-

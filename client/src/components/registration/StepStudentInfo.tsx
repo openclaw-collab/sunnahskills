@@ -5,10 +5,14 @@ import { RadioGroup } from "./FormControls";
 import type { RegistrationStepProps } from "@/components/registration/steps";
 import type { ValidationErrors } from "@/hooks/useStepValidation";
 import { studentGenderOptions, studentSkillLevelOptions } from "@shared/registration-options";
+import type { SavedStudent } from "@/hooks/useGuardianSession";
+import { OutlineButton } from "@/components/brand/OutlineButton";
 
 type Props = RegistrationStepProps & {
   errors?: ValidationErrors;
   touch?: (field: string) => void;
+  savedStudents?: SavedStudent[];
+  onSelectSavedStudent?: (student: SavedStudent) => void;
 };
 
 function FieldError({ msg }: { msg?: string }) {
@@ -60,12 +64,42 @@ function FormInput({
   );
 }
 
-export function StepStudentInfo({ draft, updateDraft, errors = {}, touch }: Props) {
+export function StepStudentInfo({
+  draft,
+  updateDraft,
+  errors = {},
+  touch,
+  savedStudents = [],
+  onSelectSavedStudent,
+}: Props) {
   const set = (patch: Partial<typeof draft.student>) =>
     updateDraft((prev) => ({ ...prev, student: { ...prev.student, ...patch } }));
 
   return (
     <div className="space-y-5">
+      {savedStudents.length > 0 ? (
+        <div className="rounded-2xl border border-charcoal/10 bg-cream p-4">
+          <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-moss mb-2">
+            Saved students
+          </div>
+          <p className="mb-3 text-xs text-charcoal/60">
+            Start from a saved profile to avoid typing household details again.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {savedStudents.map((student) => (
+              <OutlineButton
+                key={student.id}
+                type="button"
+                className="px-4 py-2 text-[10px] uppercase tracking-[0.18em]"
+                onClick={() => onSelectSavedStudent?.(student)}
+              >
+                {student.full_name}
+              </OutlineButton>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <FormInput
           id="student-name"

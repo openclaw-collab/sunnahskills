@@ -11,6 +11,8 @@ export async function onRequestGet({ request, env }: { request: Request; env: En
 
   const url = new URL(request.url);
   const raw = url.searchParams.get("token") ?? "";
+  const next = url.searchParams.get("next") ?? "/register";
+  const safeNext = next.startsWith("/") ? next : "/register";
   if (raw.length < 20) {
     return Response.redirect(`${env.SITE_URL ?? "http://localhost:5173"}/register?error=invalid_link`, 302);
   }
@@ -36,7 +38,7 @@ export async function onRequestGet({ request, env }: { request: Request; env: En
   await env.DB.prepare(`UPDATE guardian_magic_tokens SET used_at = datetime('now') WHERE id = ?`).bind(row.tid).run();
 
   const session = await createGuardianSession(env, Number(row.aid));
-  const ok = `${site.replace(/\/$/, "")}/register?signed_in=1`;
+  const ok = `${site.replace(/\/$/, "")}${safeNext}${safeNext.includes("?") ? "&" : "?"}signed_in=1`;
   return new Response(null, {
     status: 302,
     headers: {

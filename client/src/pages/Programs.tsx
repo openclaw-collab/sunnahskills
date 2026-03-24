@@ -30,7 +30,7 @@ const Programs = () => {
           <p className="font-body text-pretty text-sm text-charcoal/70 max-w-2xl mb-12">
             <StudioText
               k="programs.intro"
-              defaultText="Every track has its own tempo, age grouping, and coaching rhythm. The overview below is meant to make that structure easy to understand before a family starts registration."
+              defaultText="Brazilian Jiu-Jitsu is the only live enrollment flow right now. The overview below keeps the public tracks, timing, and coming-soon status aligned before a family starts registration."
               as="span"
               className="inline"
               multiline
@@ -72,7 +72,7 @@ const Programs = () => {
                     <div className="flex flex-wrap gap-3">
                       {program.enrollmentStatus === "open" ? (
                         <ClayButton asChild className="px-5 py-2.5 text-[11px] uppercase tracking-[0.18em]">
-                          <Link href={program.registerPath}>Register now</Link>
+                          <Link href={program.registerPath}>{program.slug === "bjj" ? "Sign in to register" : "Register now"}</Link>
                         </ClayButton>
                       ) : (
                         <OutlineButton asChild className="px-5 py-2.5 text-[11px] uppercase tracking-[0.18em]">

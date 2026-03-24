@@ -130,10 +130,19 @@ export function RegistrationDetail({
                   <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-moss mb-2">
                     Payment
                   </div>
+                  {row("Order", detail.order_id ? `#${detail.order_id} · ${detail.order_status ?? "—"}` : "—")}
                   {row("Payment status", detail.payment_status ?? "unpaid")}
                   {row("Amount", detail.payment_amount ?? "—")}
                   {row("Currency", (detail.payment_currency ?? "usd").toUpperCase?.() ?? "USD")}
                   {row("Stripe PI", detail.stripe_payment_intent_id ?? "—")}
+                  {row("Manual review", detail.order_manual_review_status ?? "none")}
+                  {row("Review reason", detail.order_manual_review_reason ?? detail.order_last_payment_error ?? "—")}
+                  {row(
+                    "Later balance",
+                    detail.order_later_amount_cents
+                      ? `${detail.order_later_amount_cents} · ${detail.order_later_payment_date ?? "TBD"}`
+                      : "—",
+                  )}
                 </div>
               </div>
             </PremiumCard>
@@ -188,4 +197,3 @@ export function RegistrationDetail({
     </Dialog>
   );
 }
-

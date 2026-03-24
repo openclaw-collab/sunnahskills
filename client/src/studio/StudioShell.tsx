@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { cn } from "@/lib/utils";
 import { useStudio } from "./useStudio";
+import { canUseLocalStudio } from "./studioStore";
 import { ComponentHighlighter } from "./ComponentHighlighter";
 import { PasswordGate } from "./PasswordGate";
 import { InspectorPanel, PageImageLibrary, StudioTextPanel, StudioThemePanel } from "./InspectorPanel";
@@ -28,18 +29,19 @@ export default function StudioShell() {
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
-      if ((e.metaKey || e.ctrlKey) && e.key === "e") {
+      const allowLocalHotkeys = state.mode === "local" && canUseLocalStudio();
+      if (allowLocalHotkeys && (e.metaKey || e.ctrlKey) && e.key === "e") {
         e.preventDefault();
         setEnabled(!state.enabled);
       }
-      if (e.key === "Escape") {
+      if (allowLocalHotkeys && e.key === "Escape") {
         if (navigateMode) setNavigateMode(false);
         else if (open) setOpen(false);
       }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [state.enabled, navigateMode, open]);
+  }, [state.enabled, state.mode, navigateMode, open]);
 
   if (!state.enabled) return null;
 

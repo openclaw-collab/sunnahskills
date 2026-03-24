@@ -1,3 +1,5 @@
+import { BJJ_TRACKS } from "./bjjCatalog";
+
 export const guardianRelationshipOptions = [
   { value: "mother", label: "Mother" },
   { value: "father", label: "Father" },
@@ -18,13 +20,10 @@ export const studentSkillLevelOptions = [
 ] as const;
 
 /** BJJ track keys align with `program_sessions.age_group` / pricing rows (merged plan). */
-export const bjjTrackOptions = [
-  { value: "girls-5-10", label: "Girls 5–10" },
-  { value: "boys-7-13", label: "Boys 7–13" },
-  { value: "women-11-tue", label: "Teens+ Women 11+ — Tuesday" },
-  { value: "women-11-thu", label: "Teens+ Women 11+ — Thursday" },
-  { value: "men-14", label: "Teens+ Men 14+" },
-] as const;
+export const bjjTrackOptions = BJJ_TRACKS.map((track) => ({
+  value: track.key,
+  label: track.label,
+})) as ReadonlyArray<{ value: (typeof BJJ_TRACKS)[number]["key"]; label: string }>;
 
 /** @deprecated Use bjjTrackOptions */
 export const bjjClassGroupOptions = [
@@ -86,4 +85,3 @@ export const bullyproofingAgeGroupOptions = [
   { value: "10-13", label: "10–13 yrs" },
   { value: "14+", label: "14+ yrs" },
 ] as const;
-

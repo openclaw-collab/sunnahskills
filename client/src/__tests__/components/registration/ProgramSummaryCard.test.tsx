@@ -20,7 +20,7 @@ describe("ProgramSummaryCard", () => {
     );
 
     expect(screen.getByText("Age range")).toBeInTheDocument();
-    expect(screen.getByText("Youth + Teen Tracks")).toBeInTheDocument();
+    expect(screen.getByText("Girls 5–10 · Boys 7–13 · Women 11+ · Men 14+")).toBeInTheDocument();
   });
 
   it("displays program schedule", () => {

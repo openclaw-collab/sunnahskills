@@ -18,6 +18,8 @@ import { ResumeBanner } from "@/components/registration/ResumeBanner";
 import { OrderSummaryCard } from "@/components/registration/OrderSummaryCard";
 import { blockingMessageThroughDetails } from "@/hooks/useStepValidation";
 import { addLineToFamilyCart, loadFamilyCart } from "@/lib/familyCart";
+import { queryClient } from "@/lib/queryClient";
+import { useGuardianSession, useGuardianStudents } from "@/hooks/useGuardianSession";
 
 export function ProgramRegistrationPage({ slug }: { slug: ProgramSlug }) {
   const program = getProgramConfig(slug);
@@ -25,11 +27,35 @@ export function ProgramRegistrationPage({ slug }: { slug: ProgramSlug }) {
   const { draft, updateDraft, steps, currentStepIndex, goBack, goNext, hasSavedDraft, resumeDraft, reset } =
     useRegistration(slug);
   const [registrationId, setRegistrationId] = React.useState<number | null>(null);
+  const [enrollmentOrderId, setEnrollmentOrderId] = React.useState<number | null>(null);
   const [clientSecret, setClientSecret] = React.useState<string | null>(null);
   const [loadingPayment, setLoadingPayment] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const guardianSession = useGuardianSession();
+  const guardianStudents = useGuardianStudents(Boolean(guardianSession.data?.authenticated));
 
   if (!program) return null;
+
+  const isAuthenticatedGuardian = Boolean(guardianSession.data?.authenticated);
+
+  React.useEffect(() => {
+    if (!guardianSession.data?.authenticated) return;
+    updateDraft((prev) => ({
+      ...prev,
+      guardian: {
+        ...prev.guardian,
+        fullName: prev.guardian.fullName || guardianSession.data?.fullName || "",
+        email: guardianSession.data?.email || prev.guardian.email,
+        phone: prev.guardian.phone || guardianSession.data?.phone || "",
+      },
+    }));
+  }, [
+    guardianSession.data?.authenticated,
+    guardianSession.data?.email,
+    guardianSession.data?.fullName,
+    guardianSession.data?.phone,
+    updateDraft,
+  ]);
 
   if (program.enrollmentStatus !== "open") {
     return (
@@ -56,7 +82,62 @@ export function ProgramRegistrationPage({ slug }: { slug: ProgramSlug }) {
     );
   }
 
+  if (program.slug === "bjj" && guardianSession.isLoading) {
+    return (
+      <div className="bg-cream min-h-screen pb-24">
+        <div className="noise-overlay" />
+        <main className="mx-auto max-w-2xl px-6 pt-28">
+          <PremiumCard className="space-y-4 border border-charcoal/10 bg-white p-8">
+            <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-moss">Guardian account</div>
+            <p className="font-body text-sm text-charcoal/70">Loading your guardian session…</p>
+          </PremiumCard>
+        </main>
+      </div>
+    );
+  }
+
+  if (program.slug === "bjj" && !isAuthenticatedGuardian) {
+    return (
+      <div className="bg-cream min-h-screen pb-24">
+        <div className="noise-overlay" />
+        <main className="mx-auto max-w-2xl px-6 pt-28">
+          <SectionHeader eyebrow="Registration" title="Sign in before you register" className="mb-8" />
+          <PremiumCard className="space-y-6 border border-charcoal/10 bg-white p-8">
+            <p className="font-body text-sm leading-relaxed text-charcoal/75">
+              BJJ enrollment now runs through a guardian account so saved students, payment plans, and later charges stay
+              attached to the right household.
+            </p>
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <ClayButton asChild className="px-6 py-3 text-[11px] uppercase tracking-[0.18em]">
+                <Link href={`/register?next=${encodeURIComponent(`/programs/${program.slug}/register`)}`}>Sign in to continue</Link>
+              </ClayButton>
+              <OutlineButton asChild className="px-6 py-3 text-[11px] uppercase tracking-[0.18em]">
+                <Link href={program.detailPath}>Back to program</Link>
+              </OutlineButton>
+            </div>
+          </PremiumCard>
+        </main>
+      </div>
+    );
+  }
+
   async function setupPayment(regId: number) {
+    if (program?.slug === "bjj" && enrollmentOrderId) {
+      const intentRes = await fetch("/api/payments/create-order-intent", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          enrollmentOrderId,
+          discountCode: draft.payment.discountCode || undefined,
+        }),
+      });
+      const intentJson = (await intentRes.json().catch(() => null)) as any;
+      if (!intentRes.ok || !intentJson?.clientSecret) {
+        throw new Error(intentJson?.error ?? "Failed to create payment intent");
+      }
+      return intentJson.clientSecret as string;
+    }
+
     const isRecurring = program!.type === "recurring";
 
     if (isRecurring) {
@@ -160,10 +241,16 @@ export function ProgramRegistrationPage({ slug }: { slug: ProgramSlug }) {
                     );
                     return;
                   }
-                  addLineToFamilyCart(draft.guardian, {
+                  addLineToFamilyCart(
+                    {
+                      ...draft.guardian,
+                      email: guardianSession.data?.email || draft.guardian.email,
+                    },
+                    {
                     student: draft.student,
                     programDetails: draft.programDetails,
-                  });
+                    },
+                  );
                   navigate("/registration/cart");
                 }}
               >
@@ -191,6 +278,68 @@ export function ProgramRegistrationPage({ slug }: { slug: ProgramSlug }) {
           setLoadingPayment(true);
 
           (async () => {
+            if (program?.slug === "bjj") {
+              const regRes = await fetch("/api/register/cart", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                credentials: "include",
+                body: JSON.stringify({
+                  guardian: {
+                    ...draft.guardian,
+                    email: guardianSession.data?.email || draft.guardian.email,
+                  },
+                  lines: [
+                    {
+                      student: draft.student,
+                      programDetails: {
+                        sessionId: draft.programDetails.sessionId,
+                        priceId: draft.programDetails.priceId,
+                        preferredStartDate: draft.programDetails.preferredStartDate ?? "",
+                        scheduleChoice: draft.programDetails.scheduleChoice ?? "",
+                        programSpecific: draft.programDetails.programSpecific,
+                      },
+                      paymentChoice: draft.programDetails.paymentChoice,
+                    },
+                  ],
+                  waivers: draft.waivers,
+                }),
+              });
+
+              const regJson = (await regRes.json().catch(() => null)) as any;
+              if (!regRes.ok) {
+                throw new Error(regJson?.error ?? "Failed to submit registration");
+              }
+              if (regJson?.summary?.waitlisted) {
+                navigate(`/registration/waitlist?pos=1&program=${encodeURIComponent(program!.name)}`);
+                return;
+              }
+              const oid = Number(regJson?.enrollmentOrderId);
+              const rids = regJson?.registrationIds as number[] | undefined;
+              if (!Number.isInteger(oid) || oid <= 0 || !Array.isArray(rids) || !rids[0]) {
+                throw new Error("Invalid order response");
+              }
+              setEnrollmentOrderId(oid);
+              setRegistrationId(rids[0]);
+              const secret = await fetch("/api/payments/create-order-intent", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  enrollmentOrderId: oid,
+                  discountCode: draft.payment.discountCode || undefined,
+                }),
+              }).then(async (response) => {
+                const payload = (await response.json().catch(() => null)) as any;
+                if (!response.ok || !payload?.clientSecret) {
+                  throw new Error(payload?.error ?? "Failed to create payment intent");
+                }
+                return payload.clientSecret as string;
+              });
+              setClientSecret(secret);
+              await queryClient.invalidateQueries({ queryKey: ["/api/guardian/students"] });
+              goNext();
+              return;
+            }
+
             const regRes = await fetch("/api/register", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
@@ -208,7 +357,6 @@ export function ProgramRegistrationPage({ slug }: { slug: ProgramSlug }) {
               throw new Error(regJson?.error ?? "Failed to submit registration");
             }
 
-            // Handle waitlist
             if (regJson?.waitlisted) {
               navigate(`/registration/waitlist?pos=${regJson.position ?? 1}&program=${encodeURIComponent(program!.name)}`);
               return;
@@ -219,7 +367,6 @@ export function ProgramRegistrationPage({ slug }: { slug: ProgramSlug }) {
             }
 
             setRegistrationId(regJson.registrationId);
-
             const secret = await setupPayment(regJson.registrationId);
             setClientSecret(secret);
             goNext();
@@ -239,7 +386,29 @@ export function ProgramRegistrationPage({ slug }: { slug: ProgramSlug }) {
           if (stepId === "guardian")
             return <StepGuardianInfo draft={draft} updateDraft={updateDraft} />;
           if (stepId === "student")
-            return <StepStudentInfo draft={draft} updateDraft={updateDraft} />;
+            return (
+              <StepStudentInfo
+                draft={draft}
+                updateDraft={updateDraft}
+                savedStudents={guardianStudents.data?.students ?? []}
+                onSelectSavedStudent={(student) => {
+                  const dob = student.date_of_birth ?? "";
+                  const dobTime = dob ? Date.parse(dob) : NaN;
+                  const age = Number.isFinite(dobTime) ? Math.floor((Date.now() - dobTime) / 31557600000) : null;
+                  updateDraft((prev) => ({
+                    ...prev,
+                    student: {
+                      ...prev.student,
+                      fullName: student.full_name,
+                      dateOfBirth: dob,
+                      age,
+                      gender: student.gender ?? "",
+                      medicalNotes: student.medical_notes ?? "",
+                    },
+                  }));
+                }}
+              />
+            );
           if (stepId === "details")
             return <StepProgramDetails draft={draft} updateDraft={updateDraft} />;
           if (stepId === "waivers")

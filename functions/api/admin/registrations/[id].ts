@@ -50,13 +50,21 @@ export async function onRequestGet({ request, env }: { request: Request; env: En
       pay.status as payment_status,
       pay.amount as payment_amount,
       pay.currency as payment_currency,
-      pay.stripe_payment_intent_id as stripe_payment_intent_id
+      pay.stripe_payment_intent_id as stripe_payment_intent_id,
+      o.id as order_id,
+      o.status as order_status,
+      o.manual_review_status as order_manual_review_status,
+      o.manual_review_reason as order_manual_review_reason,
+      o.last_payment_error as order_last_payment_error,
+      o.later_amount_cents as order_later_amount_cents,
+      o.later_payment_date as order_later_payment_date
     FROM registrations r
     JOIN programs p ON p.id = r.program_id
     JOIN guardians g ON g.id = r.guardian_id
     JOIN students s ON s.id = r.student_id
     LEFT JOIN waivers w ON w.registration_id = r.id
     LEFT JOIN payments pay ON pay.registration_id = r.id
+    LEFT JOIN enrollment_orders o ON o.id = r.enrollment_order_id
     WHERE r.id = ?
     LIMIT 1
     `,

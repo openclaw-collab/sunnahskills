@@ -15,6 +15,7 @@ import {
   splitPaymentPlan,
   type SemesterRow,
 } from "../../../shared/orderPricing";
+import { getGuardianFromRequest } from "../../_utils/guardianAuth";
 
 interface Env {
   DB: D1Database;
@@ -128,6 +129,72 @@ async function insertGuardian(
     )
     .run();
   return result.meta?.last_row_id as number | undefined;
+}
+
+async function syncGuardianAccount(
+  env: Env,
+  guardianAccountId: number,
+  guardian: z.infer<typeof guardianSchema>,
+) {
+  await env.DB.prepare(
+    `UPDATE guardian_accounts
+     SET full_name = COALESCE(NULLIF(?, ''), full_name),
+         phone = COALESCE(NULLIF(?, ''), phone)
+     WHERE id = ?`,
+  )
+    .bind(
+      compactWhitespace(guardian.fullName),
+      sanitizePhone(guardian.phone),
+      guardianAccountId,
+    )
+    .run();
+}
+
+async function upsertSavedStudent(
+  env: Env,
+  guardianAccountId: number,
+  student: z.infer<typeof studentSchema>,
+) {
+  const fullName = compactWhitespace(student.fullName);
+  const dob = student.dateOfBirth.trim();
+  if (!fullName || !dob) return;
+
+  const existing = await env.DB.prepare(
+    `SELECT id FROM saved_students
+     WHERE guardian_account_id = ? AND lower(full_name) = lower(?) AND COALESCE(date_of_birth, '') = ?
+     LIMIT 1`,
+  )
+    .bind(guardianAccountId, fullName, dob)
+    .first<{ id: number }>();
+
+  if (existing?.id) {
+    await env.DB.prepare(
+      `UPDATE saved_students
+       SET gender = ?, medical_notes = ?
+       WHERE id = ? AND guardian_account_id = ?`,
+    )
+      .bind(
+        compactWhitespace(student.gender) || null,
+        sanitizeFreeText(student.medicalNotes, 1500) || null,
+        existing.id,
+        guardianAccountId,
+      )
+      .run();
+    return;
+  }
+
+  await env.DB.prepare(
+    `INSERT INTO saved_students (guardian_account_id, full_name, date_of_birth, gender, medical_notes, created_at)
+     VALUES (?, ?, ?, ?, ?, datetime('now'))`,
+  )
+    .bind(
+      guardianAccountId,
+      fullName,
+      dob,
+      compactWhitespace(student.gender) || null,
+      sanitizeFreeText(student.medicalNotes, 1500) || null,
+    )
+    .run();
 }
 
 async function insertStudent(env: Env, guardianId: number, student: z.infer<typeof studentSchema>) {
@@ -254,6 +321,8 @@ function validateLine(
 
 export async function onRequestPost({ request, env }: { request: Request; env: Env }) {
   if (!env.DB) return json({ error: "DB not configured" }, { status: 500 });
+  const guardianSession = await getGuardianFromRequest(env, request);
+  if (!guardianSession) return json({ error: "Please sign in before registering." }, { status: 401 });
 
   const parsed = cartPayloadSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) {
@@ -263,14 +332,18 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
   const body = parsed.data;
   const guardian = {
     ...body.guardian,
-    fullName: compactWhitespace(body.guardian.fullName),
-    email: body.guardian.email.trim().toLowerCase(),
+    fullName: compactWhitespace(body.guardian.fullName) || guardianSession.fullName || "",
+    email: guardianSession.email,
     phone: sanitizePhone(body.guardian.phone),
     emergencyContactName: compactWhitespace(body.guardian.emergencyContactName),
     emergencyContactPhone: sanitizePhone(body.guardian.emergencyContactPhone),
     relationship: compactWhitespace(body.guardian.relationship),
     notes: sanitizeFreeText(body.guardian.notes ?? "", 1500),
   };
+
+  if (body.guardian.email.trim().toLowerCase() !== guardianSession.email.trim().toLowerCase()) {
+    return json({ error: "The signed-in guardian email must match the registration email." }, { status: 400 });
+  }
 
   const waivers = {
     ...body.waivers,
@@ -361,6 +434,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
   }
 
   const allWaitlisted = linesMeta.length > 0 && linesMeta.every((l) => l.waitlisted);
+  await syncGuardianAccount(env, guardianSession.guardianAccountId, guardian);
   const guardianId = await insertGuardian(env, guardian);
   if (!guardianId) return json({ error: "Failed to create guardian" }, { status: 500 });
 
@@ -372,11 +446,12 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
 
   const orderInsert = await env.DB.prepare(
     `INSERT INTO enrollment_orders (
-      guardian_id, status, total_cents, amount_due_today_cents,
+      guardian_account_id, guardian_id, status, total_cents, amount_due_today_cents,
       later_amount_cents, later_payment_date, metadata_json, created_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))`,
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))`,
   )
     .bind(
+      guardianSession.guardianAccountId,
       guardianId,
       orderStatus,
       totalAfterSibling,
@@ -400,6 +475,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
 
     const studentId = await insertStudent(env, guardianId, line.student);
     if (!studentId) return json({ error: "Failed to create student", line: i }, { status: 500 });
+    await upsertSavedStudent(env, guardianSession.guardianAccountId, line.student);
 
     const registrationId = await insertRegistration(env, {
       guardianId,

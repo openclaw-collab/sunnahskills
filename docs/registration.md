@@ -2,18 +2,37 @@
 
 ## Overview
 
-Each program has its own registration route that wraps a shared 5-step wizard (`RegistrationWizard`). The wizard is program-aware: field sets, pricing logic, and payment type (one-time vs. subscription) all vary by program slug.
+Registration is now **auth-first** for the live BJJ launch path. Guardians start at `/register`, sign in or create an account, manage saved students, and then continue into the shared 5-step wizard (`RegistrationWizard`).
+
+The live checkout path is **order-first**, not registration-first:
+
+1. `POST /api/register/cart` creates the `enrollment_order`, linked `registrations`, and saved-student updates.
+2. `POST /api/payments/create-order-intent` creates the Stripe `PaymentIntent` for the amount due today.
+
+`POST /api/register` still exists for older/non-BJJ flows, but it is no longer the live frontend path for BJJ.
 
 ## Routes & enrollment status
 
 | Slug | URL | Enrollment | Payment (when open) |
 |---|---|---|---|
-| `bjj` | `/programs/bjj/register` | **Open** — full wizard | Subscription if configured, else PaymentIntent fallback |
+| `bjj` | `/programs/bjj/register` | **Open** — guardian-authenticated wizard | Order-based PaymentIntent |
 | `archery` | `/programs/archery/register` | **Coming soon** — waitlist screen | — |
 | `outdoor` | `/programs/outdoor/register` | **Coming soon** — waitlist screen | — |
 | `bullyproofing` | `/programs/bullyproofing/register` | **Coming soon** — waitlist screen | — |
 
-Non-BJJ `/programs/{slug}/register` URLs render a short **waitlist** message with links to **Contact** and the program detail page. The `/register` hub still lists all programs.
+`/register` is the guardian hub. Unauthenticated visitors are prompted to:
+
+- sign in with account number
+- request a magic-link sign-in email
+- create a guardian account
+
+Authenticated guardians can:
+
+- review account info
+- add or remove saved students
+- continue into BJJ registration from the same hub
+
+Non-BJJ `/programs/{slug}/register` URLs render a short **waitlist** message with links to **Contact** and the program detail page.
 
 **Server:** `POST /api/register` returns **403** for non-BJJ slugs even if called directly.
 
@@ -39,13 +58,13 @@ Step 5: Payment
 
 Fields: full name · email · phone · relationship (select) · emergency contact name · emergency contact phone · optional notes.
 
-Validation: full name, email, phone, and relationship are required.
+For authenticated BJJ guardians, account data pre-fills this step from `/api/guardian/me`.
 
 ### Step 2 — Student Info (`StepStudentInfo.tsx`)
 
 Fields: full name · preferred name · date of birth (auto-computes age) · gender (radio) · skill level (radio) · medical notes / allergies (textarea).
 
-Validation: full name and date of birth are required. The age field is derived from the DOB.
+Authenticated guardians can also pick from saved students returned by `/api/guardian/students`.
 
 ### Step 3 — Program Details (`StepProgramDetails.tsx`)
 
@@ -100,7 +119,12 @@ The UI collects all four checkboxes. Validation requires the liability waiver, m
 
 Shows `OrderSummaryCard` (pricing breakdown + discount code input), then Stripe `PaymentElement`.
 
-On submit: calls `POST /api/register`, then `create-subscription` for BJJ or `create-intent` for one-time programs, and finally `stripe.confirmPayment()`.
+For the live BJJ path, the wizard reaches payment by:
+
+1. calling `POST /api/register/cart`
+2. calling `POST /api/payments/create-order-intent`
+3. rendering Stripe Elements with the returned `clientSecret`
+4. confirming the payment through `stripe.confirmPayment()`
 
 ## Registration draft persistence
 
@@ -129,48 +153,39 @@ type RegistrationDraft = {
 
 ## Capacity / waitlist
 
-`POST /api/register` checks `program_sessions.capacity` vs `enrolled_count`:
+The live BJJ order flow checks `program_sessions.capacity` vs `enrolled_count` before finalizing payable registrations:
 
-- If `enrolled_count < capacity` → normal registration, status = `submitted`
+- If `enrolled_count < capacity` → normal registration, order continues to payment
 - If full → waitlist registration, status = `waitlisted`, returns `{ waitlisted: true, position }`
 - Frontend redirects to `/registration/waitlist?pos=N&program=...`
 - Waitlisted submissions still persist guardians, students, and waivers, and they trigger a dedicated waitlist confirmation email.
 
-## Payment: one-time (`create-intent.ts`)
+## Payment: order-first BJJ checkout (`create-order-intent.ts`)
 
-1. Looks up `program_prices` row for the selected `priceId`
-2. Calculates: `total = amount + registration_fee - discountAmount`
-3. Sibling discount: 10% off if `siblingCount > 0`
-4. Validates promo code against `discounts` table if provided
-5. Creates Stripe `PaymentIntent` server-side
-6. Inserts `payments` row with status `pending`
-7. Returns `{ clientSecret, paymentIntentId }`
+`POST /api/payments/create-order-intent` is the authoritative BJJ payment setup endpoint.
 
-Server-side validation now also rejects malformed `registrationId`, invalid sibling counts, and non-positive totals.
+It:
 
-## Payment: subscription (`create-subscription.ts`)
+1. loads the `enrollment_order` plus linked `registrations`
+2. recomputes tuition from D1 pricing and `shared/orderPricing.ts`
+3. applies sibling math and promo discounts server-side
+4. creates or reuses a Stripe `Customer`
+5. creates a Stripe `PaymentIntent` for the amount due today
+6. stores `stripe_payment_intent_id`, adjusted totals, later-payment date, and metadata back on the order
+7. inserts the first `payments` row with `payment_type = 'order_deposit'`
 
-For BJJ (recurring):
-
-1. Creates or retrieves Stripe `Customer` by guardian email
-2. Looks up `stripe_price_id` from `program_prices.metadata` JSON
-3. If `siblingCount > 0`: creates/retrieves a Stripe Coupon for 10% off (`SIBLING_10PCT`)
-4. Applies any valid promo code from the `discounts` table by creating a one-time Stripe coupon
-5. Creates Stripe `Subscription` with `payment_behavior: "default_incomplete"`, expands `latest_invoice.payment_intent`
-6. Inserts `payments` row with `payment_type: "subscription"` and `stripe_subscription_id`
-7. Returns `{ clientSecret }` from the subscription's payment intent
-
-If `STRIPE_SECRET_KEY` is not set, or no `stripe_price_id` is configured in `program_prices.metadata`, the subscription endpoint returns `{ error: "subscriptions_not_configured" }` and the client falls back to a one-time payment intent.
+If the line uses `payment_choice = 'plan'`, the remainder is stored on the order and later collected by `POST /api/payments/collect-order-balance`.
 
 ## Webhook (`webhook.ts`)
 
-Handles `payment_intent.succeeded` and `invoice.paid`:
-- Updates `payments.status` to `paid`
-- Updates `registrations.status` to `active`
-- Increments `program_sessions.enrolled_count` when a registration is tied to a session
-- Sends confirmation email via MailChannels
-- Ignores duplicate `payment_intent.succeeded` deliveries once a payment is already marked `paid`
-- Marks subscription invoices `failed` on `invoice.payment_failed`
+The webhook updates order + payment + registration state from Stripe events.
+
+Key behaviors:
+
+- `payment_intent.succeeded` marks the order paid or partially paid, updates linked registrations, and clears manual-review fields
+- `payment_intent.payment_failed` marks the order for manual review and stores the latest Stripe error
+- successful first payments can leave a later balance on the order
+- later-charge failures are not silent; they land in admin-visible manual-review fields
 
 ## Email notifications
 

@@ -28,3 +28,6 @@ playwright-report/
 
 # superturtle
 .superturtle/
+
+# local agent state
+.agent/

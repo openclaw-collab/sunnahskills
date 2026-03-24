@@ -6,17 +6,19 @@
 |---|---|
 | Platform | Cloudflare Pages |
 | Project name | `sunnahskills` |
-| Production branch | `prototype` |
+| Production branch | `main` |
+| Preview branch | `prototype` |
 | Build command | `npm run build` |
 | Build output | `dist/` |
 | Functions directory | `functions/` |
 | D1 database | `sunnahskills-admin-v2` (`fc0a958f-4bfe-487f-845f-bce49d4715d5`) |
 
-Live URL: `https://prototype.sunnahskills.pages.dev`
+Production Pages URL: `https://sunnahskills.pages.dev`
 
 ## Deploy
 
-The project auto-deploys on push to the `prototype` branch via the GitHub integration configured in the Cloudflare Pages dashboard.
+The project auto-deploys production on push to the `main` branch via the GitHub integration configured in the Cloudflare Pages dashboard.
+Pushes to `prototype` create preview deployments.
 
 To deploy manually:
 
@@ -54,7 +56,7 @@ npx wrangler pages secret put STRIPE_SECRET_KEY --project-name=sunnahskills
 npx wrangler pages secret put STRIPE_WEBHOOK_SECRET --project-name=sunnahskills
 ```
 
-`VITE_STRIPE_PUBLISHABLE_KEY` must be set as an **environment variable** (not secret) in the Pages dashboard because it is embedded at build time by Vite:
+`VITE_STRIPE_PUBLISHABLE_KEY` can be set as a Pages environment variable, but the app now also falls back to `/api/payments/public-config` at runtime. Keep the secret key and webhook secret in Pages secrets:
 
 - Cloudflare Pages → sunnahskills → Settings → Environment variables
 - Add `VITE_STRIPE_PUBLISHABLE_KEY` = `pk_test_...` (or `pk_live_...` for production)
@@ -71,7 +73,8 @@ npx wrangler d1 execute sunnahskills-admin-v2 --file=db/seed.sql --remote
 In the Cloudflare Pages dashboard:
 - Settings → Builds & deployments → Connect to Git
 - Select the `openclaw-collab/sunnahskills` repository
-- Branch: `prototype`
+- Production branch: `main`
+- Preview branch: `prototype`
 
 ## `wrangler.toml` reference
 
@@ -91,7 +94,7 @@ database_id = "fc0a958f-4bfe-487f-845f-bce49d4715d5"
 # bucket_name = "sunnahskills-studio-uploads"
 
 [vars]
-SITE_URL = "https://prototype.sunnahskills.pages.dev"
+SITE_URL = "https://sunnahskills.pages.dev"
 EMAIL_FROM = "noreply@sunnahskills.pages.dev"
 EMAIL_TO = "mysunnahskill@gmail.com"
 ```
@@ -111,9 +114,8 @@ Until R2 is active, Studio image uploads are stored as base64 data URLs in the D
 
 - Org: `openclaw-collab`
 - Repo: `sunnahskills`
-- Active branch: `prototype`
-
-The old `main` branch preserves the original Cloudflare Pages site. Do not overwrite it.
+- Production branch: `main`
+- Preview branch: `prototype`
 
 ## Troubleshooting
 
@@ -124,4 +126,4 @@ Check `wrangler.toml` `database_id` matches the ID returned by `wrangler d1 list
 Run `wrangler logout` then `wrangler login` again and verify with `wrangler whoami`.
 
 **Build fails with missing env variable:**
-`VITE_STRIPE_PUBLISHABLE_KEY` must be set as a Pages environment variable (not a secret) since Vite embeds it at build time. Set it in the Cloudflare Pages dashboard.
+`VITE_STRIPE_PUBLISHABLE_KEY` should be set in the Pages dashboard when you want a build-time key, but the app will also fetch the publishable key from `/api/payments/public-config` at runtime.

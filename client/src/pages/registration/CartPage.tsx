@@ -16,6 +16,7 @@ import {
 import { PaymentProvider } from "@/components/payment/PaymentProvider";
 import { PaymentForm } from "@/components/payment/PaymentForm";
 import type { RegistrationDraft } from "@/hooks/useRegistration";
+import { useGuardianSession } from "@/hooks/useGuardianSession";
 
 function formatScheduleDate(iso: string | null | undefined) {
   if (!iso?.trim()) return null;
@@ -43,6 +44,7 @@ function trackLabel(track: string) {
 export default function CartPage() {
   const [, navigate] = useLocation();
   const [cart, setCart] = React.useState<FamilyCart | null>(() => loadFamilyCart());
+  const guardianSession = useGuardianSession();
   const [discountCode, setDiscountCode] = React.useState("");
   const [waivers, setWaivers] = React.useState<RegistrationDraft["waivers"]>({
     liabilityWaiver: false,
@@ -68,6 +70,44 @@ export default function CartPage() {
 
   function refreshCart() {
     setCart(loadFamilyCart());
+  }
+
+  if (guardianSession.isLoading) {
+    return (
+      <MotionPage className="min-h-screen bg-cream pb-24">
+        <div className="noise-overlay" />
+        <main className="mx-auto max-w-2xl px-6 pt-28">
+          <PremiumCard className="space-y-4 border border-charcoal/10 bg-white p-8">
+            <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-moss">Guardian account</div>
+            <p className="font-body text-sm text-charcoal/70">Loading your guardian session…</p>
+          </PremiumCard>
+        </main>
+      </MotionPage>
+    );
+  }
+
+  if (!guardianSession.data?.authenticated) {
+    return (
+      <MotionPage className="min-h-screen bg-cream pb-24">
+        <div className="noise-overlay" />
+        <main className="mx-auto max-w-2xl px-6 pt-28">
+          <SectionHeader eyebrow="Registration" title="Sign in to open your cart" className="mb-6" />
+          <PremiumCard className="space-y-4 border border-charcoal/10 bg-white p-8">
+            <p className="font-body text-sm leading-relaxed text-charcoal/75">
+              Family checkout is tied to a guardian account so saved students, payment plans, and later balance collection stay on the correct household.
+            </p>
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <ClayButton asChild className="px-6 py-3 text-[11px] uppercase tracking-[0.18em]">
+                <Link href="/register?next=%2Fregistration%2Fcart">Sign in to continue</Link>
+              </ClayButton>
+              <OutlineButton asChild className="px-6 py-3 text-[11px] uppercase tracking-[0.18em]">
+                <Link href="/programs/bjj/register">Back to BJJ</Link>
+              </OutlineButton>
+            </div>
+          </PremiumCard>
+        </main>
+      </MotionPage>
+    );
   }
 
   if (!cart || cart.lines.length === 0) {
@@ -103,6 +143,12 @@ export default function CartPage() {
   async function submitCheckout() {
     setError(null);
     if (!cart || cart.lines.length === 0) return;
+    const signedInEmail = guardianSession.data?.email?.trim().toLowerCase() ?? "";
+    const cartEmail = cart.guardian.email.trim().toLowerCase();
+    if (!signedInEmail || cartEmail !== signedInEmail) {
+      setError("Your signed-in guardian account does not match the cart email. Re-open BJJ registration from the same guardian account.");
+      return;
+    }
     if (
       !waivers.liabilityWaiver ||
       !waivers.medicalConsent ||
@@ -121,7 +167,10 @@ export default function CartPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          guardian: cart.guardian,
+          guardian: {
+            ...cart.guardian,
+            email: signedInEmail,
+          },
           lines: cart.lines.map((l) => ({
             student: l.student,
             programDetails: {

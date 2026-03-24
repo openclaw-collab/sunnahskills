@@ -1,9 +1,25 @@
 import { loadStripe } from "@stripe/stripe-js";
 import type { Appearance } from "@stripe/stripe-js";
 
-const publishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY?.trim();
+const buildPublishableKey = (
+  import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY ??
+  import.meta.env.STRIPE_PUBLISHABLE_KEY ??
+  ""
+).trim();
 
-export const stripePromise = publishableKey ? loadStripe(publishableKey) : Promise.resolve(null);
+async function resolvePublishableKey() {
+  if (buildPublishableKey) return buildPublishableKey;
+  try {
+    const res = await fetch("/api/payments/public-config", { credentials: "same-origin" });
+    if (!res.ok) return "";
+    const json = (await res.json()) as { publishableKey?: string };
+    return String(json.publishableKey ?? "").trim();
+  } catch {
+    return "";
+  }
+}
+
+export const stripePromise = resolvePublishableKey().then((key) => (key ? loadStripe(key) : null));
 
 export const stripeAppearance: Appearance = {
   theme: "night",

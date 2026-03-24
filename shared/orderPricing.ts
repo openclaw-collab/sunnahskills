@@ -3,11 +3,12 @@ import {
   kidsLineSubtotalCents,
   lineTotalAfterSiblingCents,
 } from "./pricing";
+import { isKidsBjjTrackKey } from "./bjjCatalog";
 
 export type BjjTrack = string;
 
 export function isKidsBjjTrack(track: string) {
-  return track === "girls-5-10" || track === "boys-7-13";
+  return isKidsBjjTrackKey(track);
 }
 
 export function studentKey(fullName: string, dateOfBirth: string) {

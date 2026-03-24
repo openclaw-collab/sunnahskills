@@ -5,6 +5,7 @@ export type GuardianSessionUser = {
   email: string;
   accountNumber: string;
   fullName: string | null;
+  phone: string | null;
 };
 
 const COOKIE_NAME = "guardian_session";
@@ -102,14 +103,14 @@ export async function getGuardianFromRequest(
 
   const row = await env.DB.prepare(
     `SELECT s.guardian_account_id as aid, s.expires_at as exp,
-            a.email as email, a.account_number as account_number, a.full_name as full_name
+            a.email as email, a.account_number as account_number, a.full_name as full_name, a.phone as phone
      FROM guardian_sessions s
      JOIN guardian_accounts a ON a.id = s.guardian_account_id
      WHERE s.token = ?
      LIMIT 1`,
   )
     .bind(token)
-    .first<{ aid: number; exp: string; email: string; account_number: string; full_name: string | null }>();
+    .first<{ aid: number; exp: string; email: string; account_number: string; full_name: string | null; phone: string | null }>();
 
   if (!row) return null;
   const exp = Date.parse(String(row.exp));
@@ -123,6 +124,7 @@ export async function getGuardianFromRequest(
     email: String(row.email),
     accountNumber: String(row.account_number),
     fullName: row.full_name != null ? String(row.full_name) : null,
+    phone: row.phone != null ? String(row.phone) : null,
   };
 }
 

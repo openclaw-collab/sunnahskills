@@ -37,6 +37,10 @@ export interface AdminPaymentsResponse {
   payments: any[];
 }
 
+export interface AdminOrdersResponse {
+  orders: any[];
+}
+
 export interface StudioSessionResponse {
   id: string;
   name: string;
@@ -52,11 +56,22 @@ export interface StudioSessionResponse {
 export const mockStore = {
   registrations: [] as any[],
   payments: [] as any[],
+  orders: [] as any[],
+  guardianStudents: [] as any[],
   sessions: new Map<string, any>(),
   sessionPasswords: new Map<string, string>(),
   authenticatedSessions: new Set<string>(),
   currentUser: null as any,
+  currentGuardian: {
+    authenticated: true,
+    email: "",
+    accountNumber: "ACC-1001",
+    fullName: null,
+    phone: null,
+  } as any,
   nextRegistrationId: 1,
+  nextOrderId: 1,
+  nextStudentId: 1,
   shouldFailNextRequest: false,
   shouldFailPayment: false,
   networkError: false,
@@ -67,11 +82,22 @@ export const mockStore = {
 export function resetMockStore() {
   mockStore.registrations = [];
   mockStore.payments = [];
+  mockStore.orders = [];
+  mockStore.guardianStudents = [];
   mockStore.sessions.clear();
   mockStore.sessionPasswords.clear();
   mockStore.authenticatedSessions.clear();
   mockStore.currentUser = null;
+  mockStore.currentGuardian = {
+    authenticated: true,
+    email: "",
+    accountNumber: "ACC-1001",
+    fullName: null,
+    phone: null,
+  };
   mockStore.nextRegistrationId = 1;
+  mockStore.nextOrderId = 1;
+  mockStore.nextStudentId = 1;
   mockStore.shouldFailNextRequest = false;
   mockStore.shouldFailPayment = false;
   mockStore.networkError = false;
@@ -116,6 +142,77 @@ export const handlers = [
     return HttpResponse.json({ ok: false }, { status: 401 });
   }),
 
+  // Guardian endpoints
+  http.get("/api/guardian/me", () => {
+    if (mockStore.networkError) {
+      return HttpResponse.error();
+    }
+
+    if (mockStore.currentGuardian?.authenticated) {
+      return HttpResponse.json(mockStore.currentGuardian);
+    }
+
+    return HttpResponse.json({ authenticated: false }, { status: 401 });
+  }),
+
+  http.get("/api/guardian/students", () => {
+    if (!mockStore.currentGuardian?.authenticated) {
+      return HttpResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    return HttpResponse.json({ students: mockStore.guardianStudents });
+  }),
+
+  http.post("/api/guardian/students", async ({ request }) => {
+    if (!mockStore.currentGuardian?.authenticated) {
+      return HttpResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const body = await request.json() as Record<string, unknown>;
+    const student = {
+      id: mockStore.nextStudentId++,
+      full_name: String(body.fullName ?? ""),
+      date_of_birth: typeof body.dateOfBirth === "string" ? body.dateOfBirth : null,
+      gender: typeof body.gender === "string" ? body.gender : null,
+      medical_notes: typeof body.medicalNotes === "string" ? body.medicalNotes : null,
+      created_at: new Date().toISOString(),
+    };
+    mockStore.guardianStudents.push(student);
+    return HttpResponse.json({ ok: true, student });
+  }),
+
+  http.patch("/api/guardian/students/:id", async ({ params, request }) => {
+    if (!mockStore.currentGuardian?.authenticated) {
+      return HttpResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const id = Number(params.id);
+    const student = mockStore.guardianStudents.find((entry: any) => entry.id === id);
+    if (!student) {
+      return HttpResponse.json({ error: "Student not found" }, { status: 404 });
+    }
+
+    const body = await request.json() as Record<string, unknown>;
+    Object.assign(student, {
+      full_name: body.fullName ?? student.full_name,
+      date_of_birth: body.dateOfBirth ?? student.date_of_birth,
+      gender: body.gender ?? student.gender,
+      medical_notes: body.medicalNotes ?? student.medical_notes,
+    });
+
+    return HttpResponse.json({ ok: true, student });
+  }),
+
+  http.delete("/api/guardian/students/:id", ({ params }) => {
+    if (!mockStore.currentGuardian?.authenticated) {
+      return HttpResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const id = Number(params.id);
+    mockStore.guardianStudents = mockStore.guardianStudents.filter((entry: any) => entry.id !== id);
+    return HttpResponse.json({ ok: true });
+  }),
+
   // Registration endpoints
   http.post("/api/register", async ({ request }) => {
     if (mockStore.networkError) {
@@ -139,6 +236,90 @@ export const handlers = [
     mockStore.registrations.push(registration);
 
     return HttpResponse.json({ ok: true, registrationId, status: "submitted" });
+  }),
+
+  http.post("/api/register/cart", async ({ request }) => {
+    if (mockStore.networkError) {
+      return HttpResponse.error();
+    }
+
+    if (!mockStore.currentGuardian?.authenticated) {
+      return HttpResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    if (mockStore.shouldFailNextRequest) {
+      return HttpResponse.json({ error: "Registration failed" }, { status: 500 });
+    }
+
+    const body = await request.json() as {
+      guardian: { fullName?: string; email?: string; phone?: string };
+      lines?: Array<{
+        student?: Record<string, unknown>;
+        programDetails?: Record<string, unknown>;
+        paymentChoice?: "full" | "plan";
+      }>;
+      waivers?: Record<string, unknown>;
+    };
+
+    const orderId = mockStore.nextOrderId++;
+    const lines = body.lines ?? [];
+    const registrationIds: number[] = [];
+    const createdAt = new Date().toISOString();
+
+    lines.forEach((line) => {
+      const registrationId = mockStore.nextRegistrationId++;
+      registrationIds.push(registrationId);
+      mockStore.registrations.push({
+        id: registrationId,
+        enrollmentOrderId: orderId,
+        guardian: body.guardian,
+        student: line.student,
+        programSlug: "bjj",
+        programDetails: line.programDetails,
+        paymentChoice: line.paymentChoice ?? "full",
+        waivers: body.waivers,
+        status: "pending_payment",
+        createdAt,
+      });
+    });
+
+    const lineCount = Math.max(lines.length, 1);
+    const firstLine = lines[0];
+    const paymentChoice = firstLine?.paymentChoice ?? "full";
+    const totalCents = 10000 * lineCount;
+    const amountDueToday = paymentChoice === "plan" ? Math.round(totalCents / 2) : totalCents;
+    const laterAmount = paymentChoice === "plan" ? totalCents - amountDueToday : 0;
+
+    mockStore.orders.push({
+      order_id: orderId,
+      order_status: "pending_payment",
+      manual_review_status: "none",
+      manual_review_reason: null,
+      last_payment_error: null,
+      last_payment_attempt_at: null,
+      total_cents: totalCents,
+      amount_due_today_cents: amountDueToday,
+      later_amount_cents: laterAmount,
+      later_payment_date: laterAmount > 0 ? "2026-04-23" : null,
+      guardian_name: body.guardian?.fullName ?? null,
+      guardian_email: body.guardian?.email ?? null,
+      registration_count: registrationIds.length,
+      student_names: lines
+        .map((line) => String((line.student as Record<string, unknown> | undefined)?.fullName ?? ""))
+        .filter(Boolean)
+        .join(", "),
+      paid_cents: 0,
+      latest_payment_status: "requires_confirmation",
+      first_registration_id: registrationIds[0] ?? null,
+      created_at: createdAt,
+    });
+
+    return HttpResponse.json({
+      ok: true,
+      enrollmentOrderId: orderId,
+      registrationIds,
+      summary: { waitlisted: false },
+    });
   }),
 
   // Payment endpoints
@@ -166,6 +347,39 @@ export const handlers = [
 
     return HttpResponse.json({
       clientSecret: `pi_${Date.now()}_secret_${Math.random().toString(36).slice(2)}`,
+    });
+  }),
+
+  http.post("/api/payments/create-order-intent", async ({ request }) => {
+    if (mockStore.networkError) {
+      return HttpResponse.error();
+    }
+
+    if (mockStore.shouldFailNextRequest || mockStore.shouldFailPayment) {
+      mockStore.shouldFailPayment = false;
+      return HttpResponse.json({ error: "Payment creation failed" }, { status: 500 });
+    }
+
+    const body = (await request.json()) as { enrollmentOrderId: number };
+    const order = mockStore.orders.find((entry: any) => entry.order_id === body.enrollmentOrderId);
+    if (!order) {
+      return HttpResponse.json({ error: "Order not found" }, { status: 404 });
+    }
+
+    const payment = {
+      id: `pi_${Date.now()}`,
+      orderId: body.enrollmentOrderId,
+      amount: order.amount_due_today_cents ?? order.total_cents ?? 0,
+      status: "requires_confirmation",
+      createdAt: new Date().toISOString(),
+    };
+
+    mockStore.payments.push(payment);
+    order.latest_payment_status = payment.status;
+    order.last_payment_attempt_at = payment.createdAt;
+
+    return HttpResponse.json({
+      clientSecret: `${payment.id}_secret_${Math.random().toString(36).slice(2)}`,
     });
   }),
 
@@ -266,6 +480,37 @@ export const handlers = [
     }
 
     return HttpResponse.json({ payments: mockStore.payments });
+  }),
+
+  http.get("/api/admin/orders", () => {
+    if (!mockStore.currentUser) {
+      return HttpResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const orders = mockStore.orders.length > 0
+      ? mockStore.orders
+      : mockStore.payments.map((payment: any, index: number) => ({
+          order_id: payment.order_id ?? payment.payment_id ?? index + 1,
+          order_status: payment.status ?? "pending_payment",
+          manual_review_status: payment.manual_review_status ?? "none",
+          manual_review_reason: payment.manual_review_reason ?? null,
+          last_payment_error: payment.last_payment_error ?? null,
+          last_payment_attempt_at: payment.created_at ?? null,
+          total_cents: payment.amount ?? 0,
+          amount_due_today_cents: payment.amount ?? 0,
+          later_amount_cents: payment.later_amount_cents ?? 0,
+          later_payment_date: payment.later_payment_date ?? null,
+          guardian_name: payment.guardian_name ?? null,
+          guardian_email: payment.guardian_email ?? null,
+          registration_count: payment.registration_count ?? 1,
+          student_names: payment.student_names ?? null,
+          paid_cents: payment.status === "paid" || payment.status === "succeeded" ? payment.amount ?? 0 : 0,
+          latest_payment_status: payment.status ?? null,
+          first_registration_id: payment.registration_id ?? null,
+          created_at: payment.created_at ?? new Date().toISOString(),
+        }));
+
+    return HttpResponse.json({ orders });
   }),
 
   http.patch("/api/admin/registrations/:id", async ({ params, request }) => {
@@ -397,6 +642,19 @@ export const handlers = [
               end_time: "15:30",
               age_group: "boys-7-13",
               gender_group: "male",
+              capacity: 20,
+              enrolled_count: 0,
+              visible: 1,
+            },
+            {
+              id: 3,
+              program_id: "bjj",
+              name: "Girls 5–10 — Tuesday",
+              day_of_week: "Tuesday",
+              start_time: "13:30",
+              end_time: "14:20",
+              age_group: "girls-5-10",
+              gender_group: "female",
               capacity: 20,
               enrolled_count: 0,
               visible: 1,

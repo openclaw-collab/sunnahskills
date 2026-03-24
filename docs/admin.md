@@ -27,10 +27,10 @@ npx wrangler d1 execute sunnahskills-admin-v2 --command \
 |---|---|---|
 | `AdminOverview` | default view | Summary counts: registrations, revenue, open waitlist |
 | `RegistrationsTable` | Registrations tab | Full list with filters (program, status, search) |
-| `RegistrationDetail` | Drawer | Individual registration: guardian, student, waivers, payment, admin notes, status controls |
-| `PaymentsSummary` | Payments tab | Revenue by program, payment status breakdown |
+| `RegistrationDetail` | Drawer | Individual registration: guardian, student, waivers, order/payment status, later-balance details, admin notes, status controls |
+| `PaymentsSummary` | Payments tab | Order-aware operations view: paid/pending/manual-review state, amount due today vs. later, linked students |
 | `PricingManager` | Pricing tab | View/edit `program_prices` tiers **and** active **`semesters`** (classes in semester, price/class, reg fee, later-payment date) via `GET`/`PATCH` `/api/admin/semesters` |
-| `SessionManager` | Sessions tab | View/edit `program_sessions` — capacity, dates, status |
+| `SessionManager` | Sessions tab | View/edit `program_sessions` — capacity, dates, status, visibility |
 | `DiscountsManager` | Discounts tab | Create/deactivate promo codes |
 | `ContactsTable` | Contacts tab | Submitted contact form messages |
 | `AdminSequences` | `/admin/sequences` | Sequence builder for GrappleMap catalog entries |
@@ -47,7 +47,9 @@ All routes require a valid `admin_session` cookie (checked by `adminAuth` utilit
 | `/api/admin/registrations` | `GET` | List all registrations (query: `program`, `status`, `search`, `limit`, `offset`) |
 | `/api/admin/registrations/:id` | `GET` | Single registration with guardian + student + waivers + payment |
 | `/api/admin/registrations/:id` | `PATCH` | Update status or admin notes |
-| `/api/admin/payments` | `GET` | Payment list + aggregate by program |
+| `/api/admin/orders` | `GET` | Order-level payment operations view |
+| `/api/admin/orders/:id` | `GET` | Single order with linked registrations |
+| `/api/admin/orders/:id` | `PATCH` | Update manual review state, order status, later-payment date |
 | `/api/admin/programs` | `GET` | Program catalog |
 | `/api/admin/programs` | `PATCH` | Update program status or metadata |
 | `/api/admin/sessions` | `PATCH` | Update session visibility/status |
@@ -72,6 +74,15 @@ draft → submitted → pending_payment → paid → active
 ```
 
 Admin can manually move registrations to any status via the detail drawer.
+
+## Order and payment operations
+
+The live launch path is order-first, so admin payment work now centers on `enrollment_orders`:
+
+- one order can contain one or more linked registrations
+- each order tracks `manual_review_status`, `manual_review_reason`, `last_payment_error`, and `last_payment_attempt_at`
+- later balances live on the order as `later_amount_cents` + `later_payment_date`
+- the Payments tab is intended to surface the queue that requires human attention, not just raw payment rows
 
 ## Payment status values
 

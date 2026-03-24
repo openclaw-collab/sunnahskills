@@ -75,7 +75,7 @@ export function TechniqueModal({ scene, mode, onClose, onModeChange }: Technique
           </button>
         </div>
         <div className="flex-1 min-h-0">
-          <TechniqueViewer className="w-full h-full" sequencePath={scene.meta.dataPath} />
+          <TechniqueViewer className="w-full h-full" sequencePath={scene.meta.dataPath} controlsMode="compact" autoplay />
         </div>
         {scene.meta.description.length > 0 && (
           <div className="px-6 py-4 border-t border-moss/15">

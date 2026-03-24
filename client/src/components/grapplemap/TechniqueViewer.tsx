@@ -7,7 +7,7 @@ type TechniqueViewerProps = {
   sequencePath?: string;
   sequenceData?: { frames: number[][][][]; markers?: Marker[] };
   onThumbnailReady?: (dataUrl: string) => void;
-  controlsMode?: "none" | "ridges";
+  controlsMode?: "none" | "ridges" | "compact";
   autoplay?: boolean;
 };
 
@@ -17,7 +17,7 @@ export function TechniqueViewer({
   sequenceData,
   onThumbnailReady,
   controlsMode = "ridges",
-  autoplay = true,
+  autoplay = false,
 }: TechniqueViewerProps) {
   return (
     <Suspense fallback={null}>

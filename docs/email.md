@@ -1,81 +1,52 @@
-# Email Setup (MailChannels)
+# Email Setup (Resend)
 
 ## How it works
 
-The app sends transactional emails via [MailChannels Email API](https://www.mailchannels.com/).
-
-The email utility is in `functions/_utils/email.ts`.
+The app sends transactional emails via [Resend](https://resend.com/).
+The sender utility lives in `functions/_utils/email.ts`.
 
 ## Configuration
 
-Set these non-sensitive values in `wrangler.toml` under `[vars]`:
+Set non-sensitive values in `wrangler.toml` under `[vars]`:
 
 ```toml
 [vars]
-EMAIL_FROM = "noreply@sunnahskills.pages.dev"
+EMAIL_FROM = "admin@sunnahskills.com"
 EMAIL_TO = "mysunnahskill@gmail.com"
 ```
 
-- `EMAIL_FROM` — the sender address (must be a domain you control or a `*.pages.dev` domain)
-- `EMAIL_TO` — admin/notification recipient
+- `EMAIL_FROM` — sender address shown to families
+- `EMAIL_TO` — admin notification recipient
 
-Set this secret per environment:
+Set the API key as a Pages secret:
 
 ```bash
-wrangler pages secret put MAILCHANNELS_API_KEY --env production
-wrangler pages secret put MAILCHANNELS_API_KEY --env preview
+wrangler pages secret put RESEND_API_KEY --project-name sunnahskills --env production
+wrangler pages secret put RESEND_API_KEY --project-name sunnahskills --env preview
 ```
 
-- `MAILCHANNELS_API_KEY` — API key used in `X-Api-Key` header for MailChannels requests
+Optional override for endpoint (normally not needed):
 
-You must also configure MailChannels Domain Lockdown for your sending domain.
+- `RESEND_API_URL` (defaults to `https://api.resend.com/emails`)
+
+## Domain requirements
+
+Before production sends can succeed:
+
+1. Verify `sunnahskills.com` in Resend Domains.
+2. Add the DNS records Resend provides (SPF/DKIM).
+3. Keep `EMAIL_FROM` aligned with the verified domain.
 
 ## Email triggers
 
 | Event | Recipients |
 |---|---|
-| New registration submitted | Guardian (confirmation) + Admin (notification) |
-| Payment confirmed (webhook) | Guardian (receipt) |
-| Waitlisted | Guardian (waitlist position + next steps) |
-
-## Templates
-
-HTML templates live in `functions/_utils/emailTemplates.ts`. Each function returns an HTML string:
-
-| Function | Subject |
-|---|---|
-| `registrationConfirmationEmail(data)` | "Registration Confirmed — {program}" |
-| `paymentReceiptEmail(data)` | "Payment Received — {program}" |
-| `waitlistEmail(data)` | "You're on the waitlist — {program}" |
-| `adminNotificationEmail(data)` | "New Registration: {student} — {program}" |
-
-## Sending email
-
-```typescript
-import { sendEmail } from "../_utils/email";
-
-await sendEmail(env, {
-  to: guardian.email,
-  subject: "Registration Confirmed",
-  html: registrationConfirmationEmail({ ... }),
-});
-```
-
-The sender utility POSTs to `https://api.mailchannels.net/tx/v1/send` and adds `X-Api-Key` automatically when `MAILCHANNELS_API_KEY` is present.
-
-## SPF / DKIM (production requirement)
-
-For emails sent from a custom domain (not `*.pages.dev`), you must add SPF and DKIM records to your DNS:
-
-**SPF:** Add to your domain's DNS:
-```
-TXT  @  "v=spf1 include:relay.mailchannels.net ~all"
-```
-
-**DKIM:** Follow [MailChannels DKIM instructions](https://support.mailchannels.com/hc/en-us/articles/16918954360845).
-
-Without SPF/DKIM, emails from custom domains will land in spam or be rejected.
+| Guardian signup / sign-in link | Guardian |
+| Free trial booking confirmation | Guardian |
+| Registration submitted | Guardian + Admin |
+| Payment confirmed (webhook) | Guardian + Admin |
+| Waitlist confirmation | Guardian |
 
 ## Local development
 
-MailChannels only works from Cloudflare Workers. For local development with `wrangler pages dev`, emails will fail to send but the registration flow continues normally. To test email locally, temporarily stub `sendEmail` to `console.log` the payload.
+Without `RESEND_API_KEY`, the API still returns success for core registration/trial creation but `emailSent` is `false` and the UI shows a warning.

@@ -22,6 +22,7 @@ import {
   adminNewRegistrationEmail,
   adminPaymentReceivedEmail,
 } from "../_utils/emailTemplates";
+import { sendMailChannelsEmail } from "../_utils/email";
 
 describe("Utility Functions", () => {
   describe("adminAuth", () => {
@@ -559,6 +560,54 @@ describe("Utility Functions", () => {
         expect(result.html).toContain("&quot;");
         expect(result.html).toContain("&#039;");
       });
+    });
+  });
+
+  describe("email sender", () => {
+    it("returns false when RESEND_API_KEY is missing", async () => {
+      const fetchSpy = vi.spyOn(globalThis, "fetch");
+      const sent = await sendMailChannelsEmail(
+        {},
+        {
+          to: { email: "family@example.com" },
+          from: { email: "admin@sunnahskills.com", name: "Sunnah Skills" },
+          subject: "Test",
+          text: "hello",
+          html: "<p>hello</p>",
+        },
+      );
+
+      expect(sent).toBe(false);
+      expect(fetchSpy).not.toHaveBeenCalled();
+      fetchSpy.mockRestore();
+    });
+
+    it("sends with Authorization header when configured", async () => {
+      const fetchMock = vi.fn().mockResolvedValue(
+        new Response("ok", {
+          status: 200,
+          headers: { "content-type": "text/plain" },
+        }),
+      );
+      vi.stubGlobal("fetch", fetchMock);
+
+      const sent = await sendMailChannelsEmail(
+        { RESEND_API_KEY: "re_test_123" },
+        {
+          to: { email: "family@example.com" },
+          from: { email: "admin@sunnahskills.com", name: "Sunnah Skills" },
+          subject: "Test",
+          text: "hello",
+          html: "<p>hello</p>",
+        },
+      );
+
+      expect(sent).toBe(true);
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      const requestInit = fetchMock.mock.calls[0]?.[1] as RequestInit | undefined;
+      const headers = (requestInit?.headers ?? {}) as Record<string, string>;
+      expect(headers.Authorization).toBe("Bearer re_test_123");
+      vi.unstubAllGlobals();
     });
   });
 });

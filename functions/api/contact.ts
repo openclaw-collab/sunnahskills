@@ -1,4 +1,5 @@
 // /functions/api/contact.ts
+import { sendMailChannelsEmail } from "../_utils/email";
 
 interface ContactForm {
   name: string;
@@ -10,6 +11,10 @@ interface ContactForm {
 
 interface Env {
   DB: D1Database;
+  EMAIL_FROM?: string;
+  EMAIL_TO?: string;
+  RESEND_API_KEY?: string;
+  RESEND_API_URL?: string;
 }
 
 // Cloudflare D1 Database type
@@ -19,12 +24,13 @@ declare global {
   }
 }
 
-// Email notification function using Cloudflare Email
+// Email notification function (Resend via shared sender utility)
 async function sendEmailNotification(contact: ContactForm, env: Env) {
   try {
-    const emailData = {
-      to: "mysunnahskill@gmail.com", // Your email address
-      from: "noreply@sunnahskills.pages.dev", // Your domain email
+    const sent = await sendMailChannelsEmail(env, {
+      to: { email: env.EMAIL_TO ?? "mysunnahskill@gmail.com", name: "Sunnah Skills Admin" },
+      from: { email: env.EMAIL_FROM ?? "admin@sunnahskills.com", name: "Sunnah Skills Contact Form" },
+      replyTo: { email: contact.email, name: contact.name },
       subject: `New Contact Form Submission: ${contact.subject}`,
       text: `
 New contact form submission received:
@@ -48,48 +54,18 @@ Sunnah Skills Contact Form
 <p><strong>Timestamp:</strong> ${contact.timestamp}</p>
 <hr>
 <p><em>Sunnah Skills Contact Form</em></p>
-      `
-    };
-
-    // Using Cloudflare's Email API
-    const emailResponse = await fetch('https://api.mailchannels.net/tx/v1/send', {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-      },
-      body: JSON.stringify({
-        personalizations: [
-          {
-            to: [{ email: emailData.to, name: 'Sunnah Skills Admin' }],
-          },
-        ],
-        from: {
-          email: emailData.from,
-          name: 'Sunnah Skills Contact Form',
-        },
-        subject: emailData.subject,
-        content: [
-          {
-            type: 'text/plain',
-            value: emailData.text,
-          },
-          {
-            type: 'text/html',
-            value: emailData.html,
-          },
-        ],
-      }),
+      `,
     });
 
-    if (!emailResponse.ok) {
-      console.error('Failed to send email:', await emailResponse.text());
+    if (!sent) {
+      console.error("Failed to send contact notification email");
     } else {
-      console.log('Email notification sent successfully');
+      console.log("Email notification sent successfully");
     }
-    
-    return true;
+
+    return sent;
   } catch (error) {
-    console.error('Failed to send email notification:', error);
+    console.error("Failed to send email notification:", error);
     return false;
   }
 }

@@ -117,4 +117,4 @@ Output goes to `dist/`. The Cloudflare Pages build pipeline also runs this comma
 
 **Stripe Elements not loading:** `VITE_STRIPE_PUBLISHABLE_KEY` must be set in `.env` before running `npm run build`. Vite embeds it at build time.
 
-**Email not sending locally:** MailChannels only works from deployed Cloudflare Workers. Email is silently skipped in local dev — this is expected.
+**Email not sending locally:** set `RESEND_API_KEY` for local worker env. If it is missing, the app still works but returns `emailSent: false`.

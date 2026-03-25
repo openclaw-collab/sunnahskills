@@ -4,7 +4,7 @@ Production-grade youth martial arts & outdoor program website with integrated re
 
 **Live:** [sunnahskills.pages.dev](https://sunnahskills.pages.dev)  
 **Repo:** [github.com/openclaw-collab/sunnahskills](https://github.com/openclaw-collab/sunnahskills) — branch `main`  
-**Stack:** React 18 + Vite · Cloudflare Pages Functions · Cloudflare D1 (SQLite) · Stripe Elements · MailChannels · Wouter · TanStack Query · Tailwind CSS · shadcn/ui
+**Stack:** React 18 + Vite · Cloudflare Pages Functions · Cloudflare D1 (SQLite) · Stripe Elements · Resend · Wouter · TanStack Query · Tailwind CSS · shadcn/ui
 
 ---
 
@@ -154,9 +154,9 @@ Copy `.env.example`. For Cloudflare, set secrets via `wrangler secret put` or th
 | `STRIPE_SECRET_KEY` | Cloudflare secret | Server-side Stripe key (`sk_test_...`) |
 | `STRIPE_WEBHOOK_SECRET` | Cloudflare secret | Webhook signing secret (`whsec_...`) |
 | `SITE_URL` | `wrangler.toml` [vars] | Full domain, e.g. `https://sunnahskills.pages.dev` |
-| `EMAIL_FROM` | `wrangler.toml` [vars] | Sender address for MailChannels |
+| `EMAIL_FROM` | `wrangler.toml` [vars] | Sender address for transactional email |
 | `EMAIL_TO` | `wrangler.toml` [vars] | Admin notification recipient |
-| `MAILCHANNELS_API_KEY` | Cloudflare secret | MailChannels Email API key used as `X-Api-Key` |
+| `RESEND_API_KEY` | Cloudflare secret | Resend API key used by worker email sends |
 
 D1 is configured in `wrangler.toml` — no env variable needed beyond the binding:
 
@@ -190,4 +190,4 @@ database_id = "fc0a958f-4bfe-487f-845f-bce49d4715d5"
 - **[docs/cloudflare-deploy.md](docs/cloudflare-deploy.md)** — Deployment guide
 - **[docs/d1-setup.md](docs/d1-setup.md)** — D1 database setup + migration
 - **[docs/stripe.md](docs/stripe.md)** — Stripe keys, webhook, subscriptions
-- **[docs/email.md](docs/email.md)** — MailChannels email setup
+- **[docs/email.md](docs/email.md)** — Resend email setup

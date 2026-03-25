@@ -255,10 +255,12 @@ function isReoriented(a: Position, b: Position): Reorientation | null {
   if (Math.abs(headDistance(a) - headDistance(b)) > 0.05) return null;
 
   const direct = isReorientedWithoutSwap(a, b);
-  if (direct) return direct;
+  if (direct) return { ...direct, swapPlayers: false };
 
-  const swapped = isReorientedWithoutSwap(a, swapPlayers(b));
-  if (swapped) return { ...swapped, swapPlayers: true };
+  // Intentionally disabled:
+  // never resolve via swapped players to keep mannequin roles stable.
+  // const swapped = isReorientedWithoutSwap(a, swapPlayers(b));
+  // if (swapped) return { ...swapped, swapPlayers: true };
   return null;
 }
 

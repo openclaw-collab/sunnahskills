@@ -129,7 +129,7 @@ describe("Guardian account + trial email flows", () => {
       expect(String(vi.mocked(sendMailChannelsEmail).mock.calls[0]?.[1]?.html)).toContain("2039485721");
     });
 
-    it("returns a real send failure when the sign-in email cannot be delivered", async () => {
+    it("returns emailSent false when the sign-in email cannot be delivered", async () => {
       (env.DB as any).setMockData("guardian_accounts", [
         {
           id: 1,
@@ -149,8 +149,10 @@ describe("Guardian account + trial email flows", () => {
       const response = await requestLinkHandler({ request, env });
       const data = await parseJsonResponse(response);
 
-      expect(response.status).toBe(502);
-      expect(String(data.error)).toContain("could not be sent");
+      expect(response.status).toBe(200);
+      expect(data.ok).toBe(true);
+      expect(data.emailSent).toBe(false);
+      expect(String(data.message)).toContain("could not be sent");
     });
 
     it("returns a local preview link for localhost when sign-in email fails", async () => {

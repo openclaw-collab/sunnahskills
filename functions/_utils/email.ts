@@ -13,6 +13,8 @@ export interface MailEnv {
   EMAIL_FROM?: string;
   EMAIL_TO?: string;
   SITE_URL?: string;
+  MAILCHANNELS_API_KEY?: string;
+  MAILCHANNELS_API_URL?: string;
 }
 
 export async function sendMailChannelsEmail(env: MailEnv, args: SendEmailArgs): Promise<boolean> {
@@ -20,9 +22,15 @@ export async function sendMailChannelsEmail(env: MailEnv, args: SendEmailArgs): 
   if (!toList.length) return false;
   if (!args.from?.email) return false;
   try {
-    const res = await fetch("https://api.mailchannels.net/tx/v1/send", {
+    const endpoint = env.MAILCHANNELS_API_URL?.trim() || "https://api.mailchannels.net/tx/v1/send";
+    const headers: Record<string, string> = { "content-type": "application/json" };
+    if (env.MAILCHANNELS_API_KEY?.trim()) {
+      headers["X-Api-Key"] = env.MAILCHANNELS_API_KEY.trim();
+    }
+
+    const res = await fetch(endpoint, {
       method: "POST",
-      headers: { "content-type": "application/json" },
+      headers,
       body: JSON.stringify({
         personalizations: [{ to: toList.map((t) => ({ email: t.email, name: t.name })) }],
         from: { email: args.from.email, name: args.from.name },

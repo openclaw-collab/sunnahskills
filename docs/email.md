@@ -2,13 +2,13 @@
 
 ## How it works
 
-The app sends transactional emails via [MailChannels](https://www.mailchannels.com/). This is natively supported by Cloudflare Workers without any API key — MailChannels has a partnership with Cloudflare that allows Workers to send email for free through their API.
+The app sends transactional emails via [MailChannels Email API](https://www.mailchannels.com/).
 
 The email utility is in `functions/_utils/email.ts`.
 
 ## Configuration
 
-Set these in `wrangler.toml` under `[vars]` (non-sensitive):
+Set these non-sensitive values in `wrangler.toml` under `[vars]`:
 
 ```toml
 [vars]
@@ -18,6 +18,17 @@ EMAIL_TO = "mysunnahskill@gmail.com"
 
 - `EMAIL_FROM` — the sender address (must be a domain you control or a `*.pages.dev` domain)
 - `EMAIL_TO` — admin/notification recipient
+
+Set this secret per environment:
+
+```bash
+wrangler pages secret put MAILCHANNELS_API_KEY --env production
+wrangler pages secret put MAILCHANNELS_API_KEY --env preview
+```
+
+- `MAILCHANNELS_API_KEY` — API key used in `X-Api-Key` header for MailChannels requests
+
+You must also configure MailChannels Domain Lockdown for your sending domain.
 
 ## Email triggers
 
@@ -50,7 +61,7 @@ await sendEmail(env, {
 });
 ```
 
-The `sendEmail` function POSTs to `https://api.mailchannels.net/tx/v1/send`.
+The sender utility POSTs to `https://api.mailchannels.net/tx/v1/send` and adds `X-Api-Key` automatically when `MAILCHANNELS_API_KEY` is present.
 
 ## SPF / DKIM (production requirement)
 

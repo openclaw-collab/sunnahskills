@@ -72,16 +72,14 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
         }
       : undefined;
 
-    if (localPreview) {
-      return json({
-        ok: true,
-        emailSent: false,
-        message: "We found your account. Email delivery is unavailable in local preview, so use the direct sign-in link below.",
-        localPreview,
-      });
-    }
-
-    return json({ error: "We found your account, but the sign-in email could not be sent right now. Please try again shortly." }, { status: 502 });
+    return json({
+      ok: true,
+      emailSent: false,
+      message: localPreview
+        ? "We found your account. Email delivery is unavailable in local preview, so use the direct sign-in link below."
+        : "We found your account, but the sign-in email could not be sent right now. Please try again shortly.",
+      localPreview,
+    });
   }
 
   return json({ ok: true, message: "We sent your sign-in link to that email address." });

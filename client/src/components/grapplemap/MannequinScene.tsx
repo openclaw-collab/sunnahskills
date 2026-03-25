@@ -15,9 +15,9 @@ type PlaybackState = {
   timeRef: React.MutableRefObject<number> | null;
 };
 
-const COLOR_ATTACKER = 0x212833;
+const COLOR_ATTACKER = 0x1a1a1a;
 const COLOR_ATTACKER_GLOW = 0x4a9eff;
-const COLOR_DEFENDER = 0x5c4635;
+const COLOR_DEFENDER = 0x555555;
 const COLOR_DEFENDER_GLOW = 0xffa64a;
 
 const J = {
@@ -247,19 +247,15 @@ function HumanPlayer({
       color,
       roughness: 0.5,
       metalness: 0.1,
-      emissive: glowColor,
-      emissiveIntensity: 0.14,
       transparent: true,
-      opacity: 0.94,
+      opacity: 0.88,
     });
     createdMaterials.push(solidMat);
     const glowMat = new THREE.MeshBasicMaterial({
       color: glowColor,
+      wireframe: true,
       transparent: true,
-      opacity: 0.18,
-      blending: THREE.AdditiveBlending,
-      depthWrite: false,
-      toneMapped: false,
+      opacity: 0.7,
     });
     createdMaterials.push(glowMat);
 
@@ -267,19 +263,15 @@ function HumanPlayer({
       color,
       roughness: 0.4,
       metalness: 0.15,
-      emissive: glowColor,
-      emissiveIntensity: 0.22,
       transparent: true,
-      opacity: 0.96,
+      opacity: 0.92,
     });
     createdMaterials.push(jointSolidMat);
     const jointGlowMat = new THREE.MeshBasicMaterial({
       color: glowColor,
+      wireframe: true,
       transparent: true,
-      opacity: 0.22,
-      blending: THREE.AdditiveBlending,
-      depthWrite: false,
-      toneMapped: false,
+      opacity: 0.55,
     });
     createdMaterials.push(jointGlowMat);
 
@@ -290,7 +282,7 @@ function HumanPlayer({
       (solid.userData as any).jointIndex = j;
       group.add(solid);
 
-      const glowGeo = new THREE.IcosahedronGeometry(r * 1.18, 1);
+      const glowGeo = new THREE.IcosahedronGeometry(r * 1.08, 1);
       createdGeometries.push(glowGeo);
       const glow = new THREE.Mesh(glowGeo, jointGlowMat);
       (glow.userData as any).jointIndex = j;
@@ -309,7 +301,7 @@ function HumanPlayer({
       solid.userData = { ...seg };
       group.add(solid);
 
-      const glowGeo = new THREE.CylinderGeometry(seg.rTop * 1.14, seg.rBot * 1.14, 1, 8, 1);
+      const glowGeo = new THREE.CylinderGeometry(seg.rTop * 1.06, seg.rBot * 1.06, 1, 6, 1);
       glowGeo.translate(0, 0.5, 0);
       createdGeometries.push(glowGeo);
       const glow = new THREE.Mesh(glowGeo, glowMat);

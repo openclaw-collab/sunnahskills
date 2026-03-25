@@ -156,6 +156,7 @@ Copy `.env.example`. For Cloudflare, set secrets via `wrangler secret put` or th
 | `SITE_URL` | `wrangler.toml` [vars] | Full domain, e.g. `https://sunnahskills.pages.dev` |
 | `EMAIL_FROM` | `wrangler.toml` [vars] | Sender address for MailChannels |
 | `EMAIL_TO` | `wrangler.toml` [vars] | Admin notification recipient |
+| `MAILCHANNELS_API_KEY` | Cloudflare secret | MailChannels Email API key used as `X-Api-Key` |
 
 D1 is configured in `wrangler.toml` — no env variable needed beyond the binding:
 

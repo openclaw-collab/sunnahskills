@@ -23,10 +23,20 @@ export async function sendMailChannelsEmail(env: MailEnv, args: SendEmailArgs): 
   if (!args.from?.email) return false;
   try {
     const endpoint = env.MAILCHANNELS_API_URL?.trim() || "https://api.mailchannels.net/tx/v1/send";
-    const headers: Record<string, string> = { "content-type": "application/json" };
-    if (env.MAILCHANNELS_API_KEY?.trim()) {
-      headers["X-Api-Key"] = env.MAILCHANNELS_API_KEY.trim();
+    const apiKey = env.MAILCHANNELS_API_KEY?.trim();
+    if (!apiKey) {
+      console.error("MailChannels not configured", {
+        reason: "MAILCHANNELS_API_KEY is missing",
+        subject: args.subject,
+        to: toList.map((entry) => entry.email),
+      });
+      return false;
     }
+
+    const headers: Record<string, string> = {
+      "content-type": "application/json",
+      "X-Api-Key": apiKey,
+    };
 
     const res = await fetch(endpoint, {
       method: "POST",

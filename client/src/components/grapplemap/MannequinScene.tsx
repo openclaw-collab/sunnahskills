@@ -194,7 +194,8 @@ function OrbitControls({ targetRef }: { targetRef: React.MutableRefObject<THREE.
   }, [camera, gl.domElement]);
 
   useFrame(() => {
-    controls.target.lerp(targetRef.current, 0.2);
+    // Match Uchimata path: camera chaser is already smoothed upstream.
+    controls.target.copy(targetRef.current);
     controls.update();
   });
   useEffect(() => () => controls.dispose(), [controls]);
@@ -231,7 +232,6 @@ function HumanPlayer({
   const limbsRef = useRef<Array<{ solid: THREE.Mesh; glow: THREE.Mesh }>>([]);
   const jointMapRef = useRef<Record<number, { solid: THREE.Mesh; glow: THREE.Mesh }>>({});
   const lastPosRef = useRef<number[][] | null>(null);
-  const lastRawRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (!groupRef.current) return;
@@ -243,7 +243,6 @@ function HumanPlayer({
     limbsRef.current = [];
     jointMapRef.current = {};
     lastPosRef.current = null;
-    lastRawRef.current = null;
 
     const solidMat = new THREE.MeshStandardMaterial({
       color,
@@ -323,11 +322,45 @@ function HumanPlayer({
     if (!groupRef.current) return;
     if (!frames?.length) return;
 
+    const { v1, v2, v3, q, up } = POOL;
+    const jointMap = jointMapRef.current;
     const total = frames.length;
-    const raw = total === 1 ? 0 : timeRef.current % Math.max(1, total - 1);
-    if (lastRawRef.current != null && Math.abs(raw - lastRawRef.current) < 1e-5) return;
-    lastRawRef.current = raw;
 
+    if (total === 1) {
+      const frame = frames[0];
+      const pIdx = isAttacker ? 0 : 1;
+      const playerJoints = frame?.[pIdx];
+      if (!playerJoints) return;
+
+      for (const { solid, glow } of jointsRef.current) {
+        const j = (solid.userData as any).jointIndex as number;
+        const joint = playerJoints[j];
+        if (!joint) continue;
+        solid.position.set(joint[0], joint[1], joint[2]);
+        glow.position.set(joint[0], joint[1], joint[2]);
+      }
+
+      for (const { solid, glow } of limbsRef.current) {
+        const { from, to } = solid.userData as any;
+        const a = jointMap[from];
+        const b = jointMap[to];
+        if (!a || !b) continue;
+        v1.copy(a.solid.position);
+        v2.copy(b.solid.position);
+        const dist = v1.distanceTo(v2);
+        solid.position.copy(v1);
+        glow.position.copy(v1);
+        v3.copy(v2).sub(v1).normalize();
+        q.setFromUnitVectors(up, v3);
+        solid.quaternion.copy(q);
+        glow.quaternion.copy(q);
+        solid.scale.y = dist;
+        glow.scale.y = dist;
+      }
+      return;
+    }
+
+    const raw = total === 1 ? 0 : timeRef.current % Math.max(1, total - 1);
     const idx = Math.floor(raw);
     const t = raw - idx;
 
@@ -361,8 +394,6 @@ function HumanPlayer({
       glow.position.set(smoothed.x, smoothed.y, smoothed.z);
     }
 
-    const { v1, v2, v3, q, up } = POOL;
-    const jointMap = jointMapRef.current;
     for (const { solid, glow } of limbsRef.current) {
       const { from, to } = solid.userData as any;
       const a = jointMap[from];
@@ -404,7 +435,6 @@ function MannequinSceneInner({
   const controlsTargetRef = useRef(new THREE.Vector3(0, 1, 0));
   const lastCenterRef = useRef<THREE.Vector3 | null>(null);
   const lastPoseCenterRef = useRef<[number, number, number] | null>(null);
-  const lastCameraRawRef = useRef<number | null>(null);
 
   // Expose timeRef so the overlay can read/seek it
   useEffect(() => {
@@ -477,13 +507,13 @@ function MannequinSceneInner({
       controlsTargetRef.current.copy(center);
       lastCenterRef.current = center.clone();
       lastPoseCenterRef.current = [center.x, center.y / CAMERA_Y_SCALE, center.z];
-      lastCameraRawRef.current = null;
     }
   }, [data]);
 
   useFrame((_state, delta) => {
     if (playbackRef.current.paused) return;
-    timeRef.current += Math.min(delta, 0.05) * 8.0 * playbackRef.current.speed;
+    // Match Uchimata timing path: no hidden multiplier.
+    timeRef.current += Math.min(delta, 0.05) * playbackRef.current.speed;
   });
 
   useFrame(() => {
@@ -492,9 +522,6 @@ function MannequinSceneInner({
     if (total < 2) return;
 
     const raw = timeRef.current % Math.max(1, total - 1);
-    if (lastCameraRawRef.current != null && Math.abs(raw - lastCameraRawRef.current) < 1e-5) return;
-    lastCameraRawRef.current = raw;
-
     const idx = Math.floor(raw);
     const t = raw - idx;
     const cur = data.frames[idx] as Frame | undefined;
@@ -554,8 +581,8 @@ function MannequinSceneInner({
     <>
       <ambientLight intensity={0.5} />
       <directionalLight position={[5, 10, 5]} intensity={1.0} />
-      <directionalLight position={[-5, 5, -5]} intensity={0.35} />
-      <hemisphereLight args={["#ffffff", "#999999", 0.25]} />
+      <directionalLight position={[-5, 5, -5]} intensity={0.4} />
+      <hemisphereLight args={["#ffffff", "#999999", 0.3]} />
       <Grid targetRef={controlsTargetRef} />
 
       {data?.frames?.length ? (
@@ -890,7 +917,7 @@ export function MannequinViewer({
   return (
     <div className={className} style={{ position: "relative", width: "100%", height: "100%" }}>
       <Canvas
-        camera={{ position: [4.35, 3.05, 4.35], fov: 41, near: 0.1, far: 100 }}
+        camera={{ position: [5, 3.5, 5], fov: 45, near: 0.1, far: 100 }}
         gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
         dpr={typeof window !== "undefined" ? Math.min(window.devicePixelRatio || 1, 1.25) : 1}
         onCreated={({ gl }) => {

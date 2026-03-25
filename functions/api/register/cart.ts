@@ -90,6 +90,10 @@ function isValidPastDate(value: string) {
   return Number.isFinite(time) && time <= Date.now();
 }
 
+function isWomenTrack(track: string) {
+  return isBjjTrackKey(track) && BJJ_TRACK_BY_KEY[track].marketingGroup === "women";
+}
+
 function todayIso() {
   return new Date().toISOString().slice(0, 10);
 }
@@ -407,7 +411,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
 
   const prorationCode = body.prorationCode?.trim() ? await loadProrationCode(env, body.prorationCode) : null;
   if (body.prorationCode?.trim() && !prorationCode) {
-    return json({ error: "That proration code is invalid or already used." }, { status: 400 });
+    return json({ error: "That discount code is invalid or already used." }, { status: 400 });
   }
 
   const duplicateKeys = new Set<string>();
@@ -520,6 +524,11 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
         dueLaterCents: split.dueLater,
       },
     });
+  }
+
+  const womenOnlyOrder = lineMeta.length > 0 && lineMeta.every((line) => isWomenTrack(line.track));
+  if (!womenOnlyOrder && !body.waivers.photoConsent) {
+    return json({ error: "You must accept the media waiver requirement." }, { status: 400 });
   }
 
   await syncGuardianAccount(env, guardianSession.guardianAccountId, body.account);

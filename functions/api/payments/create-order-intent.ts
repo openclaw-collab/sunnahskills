@@ -29,6 +29,8 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
       o.amount_due_today_cents,
       o.later_amount_cents,
       o.later_payment_date,
+      o.trial_credit_cents,
+      o.sibling_discount_cents,
       o.stripe_payment_intent_id,
       o.stripe_customer_id,
       g.email as guardian_email,
@@ -47,6 +49,8 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
       amount_due_today_cents: number;
       later_amount_cents: number;
       later_payment_date: string | null;
+      trial_credit_cents: number | null;
+      sibling_discount_cents: number | null;
       stripe_payment_intent_id: string | null;
       stripe_customer_id: string | null;
       guardian_email: string | null;
@@ -56,7 +60,6 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
   if (!order) return json({ error: "Order not found" }, { status: 404 });
   if (order.status === "waitlisted") return json({ error: "This order is waitlisted." }, { status: 400 });
   if (order.status !== "pending_payment") return json({ error: "This order is not awaiting payment." }, { status: 400 });
-  if (order.stripe_payment_intent_id) return json({ error: "Payment was already started for this order." }, { status: 400 });
 
   const dueToday = Math.max(0, Math.round(Number(order.amount_due_today_cents ?? 0)));
   const dueLater = Math.max(0, Math.round(Number(order.later_amount_cents ?? 0)));
@@ -65,6 +68,40 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
     return json({ error: "Order contact details are incomplete." }, { status: 400 });
   }
   if (!env.STRIPE_SECRET_KEY) return json({ error: "Stripe not configured" }, { status: 500 });
+
+  if (order.stripe_payment_intent_id) {
+    const existingIntentRes = await fetch(
+      `https://api.stripe.com/v1/payment_intents/${encodeURIComponent(order.stripe_payment_intent_id)}`,
+      {
+        method: "GET",
+        headers: { Authorization: `Bearer ${env.STRIPE_SECRET_KEY}` },
+      },
+    );
+    const existingIntentJson = (await existingIntentRes.json().catch(() => null)) as {
+      id?: string;
+      client_secret?: string;
+      status?: string;
+    } | null;
+    if (
+      existingIntentRes.ok &&
+      existingIntentJson?.id &&
+      existingIntentJson.client_secret &&
+      existingIntentJson.status !== "succeeded" &&
+      existingIntentJson.status !== "canceled"
+    ) {
+      return json({
+        clientSecret: existingIntentJson.client_secret,
+        paymentIntentId: existingIntentJson.id,
+        enrollmentOrderId: orderId,
+        dueTodayCents: dueToday,
+        dueLaterCents: dueLater,
+        laterPaymentDate: order.later_payment_date ?? null,
+        trialCreditCents: Number(order.trial_credit_cents ?? 0),
+        siblingDiscountCents: Number(order.sibling_discount_cents ?? 0),
+      });
+    }
+    return json({ error: "Payment was already started for this order." }, { status: 400 });
+  }
 
   const regRows = await env.DB.prepare(
     `SELECT id FROM registrations WHERE enrollment_order_id = ? ORDER BY id ASC`,
@@ -176,5 +213,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
     dueTodayCents: dueToday,
     dueLaterCents: dueLater,
     laterPaymentDate: order.later_payment_date ?? null,
+    trialCreditCents: Number(order.trial_credit_cents ?? 0),
+    siblingDiscountCents: Number(order.sibling_discount_cents ?? 0),
   });
 }

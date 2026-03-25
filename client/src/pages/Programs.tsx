@@ -32,13 +32,13 @@ const Programs = () => {
               className="mb-10"
             />
             <p className="font-body text-pretty text-sm text-charcoal/70 max-w-2xl mb-12">
-              <StudioText
-                k="programs.intro"
-                defaultText="Brazilian Jiu-Jitsu is the only live enrollment track right now. Start with a free trial if you want to explore first, then open your Family & Member Account when you're ready to register."
-                as="span"
-                className="inline"
-                multiline
-              />
+                <StudioText
+                  k="programs.intro"
+                  defaultText="Brazilian Jiu-Jitsu is the only live enrollment track right now. Open your Family & Member Account when you're ready, then complete registration in one flow."
+                  as="span"
+                  className="inline"
+                  multiline
+                />
             </p>
           </StudioBlock>
 
@@ -81,9 +81,7 @@ const Programs = () => {
                       <div className="flex flex-wrap gap-3">
                         {program.enrollmentStatus === "open" ? (
                           <ClayButton asChild className="px-5 py-2.5 text-[11px] uppercase tracking-[0.18em]">
-                            <Link href={program.slug === "bjj" ? "/trial" : program.registerPath}>
-                              {program.slug === "bjj" ? "Start free trial" : "Register now"}
-                            </Link>
+                            <Link href={program.slug === "bjj" ? "/register" : program.registerPath}>Register now</Link>
                           </ClayButton>
                         ) : (
                           <OutlineButton

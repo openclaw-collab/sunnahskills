@@ -26,6 +26,11 @@ function WaiverRow({
 }
 
 export function StepWaivers({ draft, updateDraft }: RegistrationStepProps) {
+  const selectedBjjTrack = draft.programSlug === "bjj"
+    ? String((draft.programDetails.programSpecific as { bjjTrack?: string })?.bjjTrack ?? "")
+    : "";
+  const requiresPhotoConsent = !(draft.programSlug === "bjj" && selectedBjjTrack.startsWith("women-11-"));
+
   return (
     <div className="space-y-4">
       <WaiverRow
@@ -38,16 +43,22 @@ export function StepWaivers({ draft, updateDraft }: RegistrationStepProps) {
           }))
         }
       />
-      <WaiverRow
-        label="I consent to photo/media use for program communications."
-        checked={draft.waivers.photoConsent}
-        onCheckedChange={(next) =>
-          updateDraft((prev) => ({
-            ...prev,
-            waivers: { ...prev.waivers, photoConsent: next },
-          }))
-        }
-      />
+      {requiresPhotoConsent ? (
+        <WaiverRow
+          label="I consent to photo/media use for program communications."
+          checked={draft.waivers.photoConsent}
+          onCheckedChange={(next) =>
+            updateDraft((prev) => ({
+              ...prev,
+              waivers: { ...prev.waivers, photoConsent: next },
+            }))
+          }
+        />
+      ) : (
+        <div className="rounded-2xl border border-charcoal/10 bg-cream p-4 font-body text-sm text-charcoal/70">
+          Media waiver is not required for women-only registrations.
+        </div>
+      )}
       <WaiverRow
         label="I consent to medical treatment in case of emergency."
         checked={draft.waivers.medicalConsent}

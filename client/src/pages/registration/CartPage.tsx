@@ -21,6 +21,12 @@ type WaiverRecord = {
   version_label: string;
 };
 
+const WOMEN_TRACK_KEYS = new Set(["women-11-tue", "women-11-thu"]);
+
+function isWomenTrackKey(track: string) {
+  return WOMEN_TRACK_KEYS.has(track);
+}
+
 function money(cents: number) {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(cents / 100);
 }
@@ -34,7 +40,13 @@ export default function CartPage() {
   const [clientSecret, setClientSecret] = React.useState<string | null>(null);
   const [orderId, setOrderId] = React.useState<number | null>(null);
   const [firstRegistrationId, setFirstRegistrationId] = React.useState<number | null>(null);
-  const [summary, setSummary] = React.useState<{ dueTodayCents: number; dueLaterCents: number; laterPaymentDate: string | null } | null>(null);
+  const [summary, setSummary] = React.useState<{
+    dueTodayCents: number;
+    dueLaterCents: number;
+    laterPaymentDate: string | null;
+    siblingDiscountCents: number;
+    trialCreditCents: number;
+  } | null>(null);
   const [prorationCode, setProrationCode] = React.useState("");
   const [waivers, setWaivers] = React.useState({
     liabilityWaiver: false,
@@ -44,8 +56,15 @@ export default function CartPage() {
     signatureText: "",
     signedAt: new Date().toISOString().slice(0, 10),
   });
+  const [waiverErrors, setWaiverErrors] = React.useState<Record<string, string>>({});
   const [submitting, setSubmitting] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const cartLines = cart?.lines ?? [];
+  const womenOnlyOrder = React.useMemo(
+    () => Boolean(cartLines.length) && cartLines.every((line) => isWomenTrackKey(line.programDetails.programSpecific.bjjTrack)),
+    [cartLines],
+  );
+  const requiresPhotoConsent = !womenOnlyOrder;
 
   React.useEffect(() => {
     (async () => {
@@ -90,7 +109,7 @@ export default function CartPage() {
     );
   }
 
-  if (!cart || cart.lines.length === 0) {
+  if (phase === "review" && (!cart || cart.lines.length === 0)) {
     return (
       <MotionPage className="min-h-screen bg-cream pb-24">
         <div className="noise-overlay" />
@@ -120,44 +139,79 @@ export default function CartPage() {
       ? `${window.location.origin}/registration/success?rid=${firstRegistrationId ?? ""}&order=${orderId ?? ""}`
       : "/registration/success";
 
+  function clearWaiverError(field: string) {
+    setWaiverErrors((prev) => {
+      if (!prev[field]) return prev;
+      const next = { ...prev };
+      delete next[field];
+      return next;
+    });
+  }
+
+  function validateWaiverInputs() {
+    const issues: Record<string, string> = {};
+    if (!waivers.liabilityWaiver) issues.liabilityWaiver = "Liability waiver is required.";
+    if (!waivers.medicalConsent) issues.medicalConsent = "Medical consent is required.";
+    if (!waivers.termsAgreement) issues.termsAgreement = "Terms acceptance is required.";
+    if (requiresPhotoConsent && !waivers.photoConsent) issues.photoConsent = "Media waiver is required.";
+    if (!waivers.signatureText.trim()) issues.signatureText = "Signature is required.";
+    const signedAt = Date.parse(waivers.signedAt);
+    if (!Number.isFinite(signedAt) || signedAt > Date.now()) {
+      issues.signedAt = "Signed date must be today or in the past.";
+    }
+    setWaiverErrors(issues);
+    return Object.keys(issues).length === 0;
+  }
+
   async function submitCheckout() {
-    if (!cart) return;
-    const currentCart = cart;
     if (!waiver?.id) {
       setError("The live waiver could not be loaded.");
+      return;
+    }
+    if (!validateWaiverInputs()) {
+      setError("Please complete every required waiver field before checkout.");
       return;
     }
     setSubmitting(true);
     setError(null);
     try {
-      const regRes = await fetch("/api/register/cart", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          account: {
-            ...currentCart.account,
-            email: sessionQuery.data?.email ?? currentCart.account.email,
-          },
-          lines: currentCart.lines,
-          prorationCode: prorationCode.trim() || undefined,
-          waivers: {
-            waiverId: waiver.id,
-            ...waivers,
-          },
-        }),
-      });
-      const regJson = (await regRes.json().catch(() => null)) as any;
-      if (!regRes.ok) throw new Error(regJson?.error ?? "Could not submit the registrations.");
-      if (regJson?.summary?.waitlisted) {
-        clearFamilyCart();
-        navigate("/registration/waitlist");
-        return;
-      }
+      let nextOrderId = orderId;
 
-      const nextOrderId = Number(regJson?.enrollmentOrderId ?? 0);
-      const registrationIds = Array.isArray(regJson?.registrationIds) ? (regJson.registrationIds as number[]) : [];
-      setOrderId(nextOrderId);
-      setFirstRegistrationId(registrationIds[0] ?? null);
+      if (!nextOrderId) {
+        if (!cart) throw new Error("Your cart is empty.");
+        const currentCart = cart;
+        const regRes = await fetch("/api/register/cart", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            account: {
+              ...currentCart.account,
+              email: sessionQuery.data?.email ?? currentCart.account.email,
+            },
+            lines: currentCart.lines,
+            prorationCode: prorationCode.trim() || undefined,
+            waivers: {
+              waiverId: waiver.id,
+              ...waivers,
+            },
+          }),
+        });
+        const regJson = (await regRes.json().catch(() => null)) as any;
+        if (!regRes.ok) throw new Error(regJson?.error ?? "Could not submit the registrations.");
+        if (regJson?.summary?.waitlisted) {
+          clearFamilyCart();
+          navigate("/registration/waitlist");
+          return;
+        }
+
+        nextOrderId = Number(regJson?.enrollmentOrderId ?? 0);
+        const registrationIds = Array.isArray(regJson?.registrationIds) ? (regJson.registrationIds as number[]) : [];
+        setOrderId(nextOrderId);
+        setFirstRegistrationId(registrationIds[0] ?? null);
+      }
+      if (!nextOrderId || !Number.isInteger(nextOrderId) || nextOrderId <= 0) {
+        throw new Error("Could not start checkout for this order.");
+      }
 
       const payRes = await fetch("/api/payments/create-order-intent", {
         method: "POST",
@@ -174,10 +228,10 @@ export default function CartPage() {
         dueTodayCents: Number(payJson.dueTodayCents ?? 0),
         dueLaterCents: Number(payJson.dueLaterCents ?? 0),
         laterPaymentDate: payJson.laterPaymentDate ?? null,
+        siblingDiscountCents: Number(payJson.siblingDiscountCents ?? 0),
+        trialCreditCents: Number(payJson.trialCreditCents ?? 0),
       });
       setPhase("pay");
-      clearFamilyCart();
-      setCart(null);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Could not finish checkout.");
     } finally {
@@ -196,7 +250,7 @@ export default function CartPage() {
             <PremiumCard className="border border-charcoal/10 bg-white p-6">
               <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-moss mb-3">Registration lines</div>
               <div className="space-y-3">
-                {cart.lines.map((line) => (
+                {cartLines.map((line) => (
                   <div key={line.id} className="rounded-2xl border border-charcoal/10 bg-cream/40 p-4">
                     <div className="flex items-start justify-between gap-4">
                       <div>
@@ -226,16 +280,16 @@ export default function CartPage() {
 
               <div className="mt-6">
                 <label className="text-sm text-charcoal">
-                  One-time proration code (optional)
+                  Staff discount code (optional)
                   <Input
                     className="mt-2 bg-cream/50 border-charcoal/10"
                     value={prorationCode}
                     onChange={(event) => setProrationCode(event.target.value.toUpperCase())}
-                    placeholder="Only enter a staff-issued code"
+                    placeholder="Enter code if one was provided"
                   />
                 </label>
                 <div className="mt-2 text-xs uppercase tracking-[0.16em] text-charcoal/55">
-                  Without a valid staff code, pricing stays at the standard full-term amount.
+                  Leave blank for standard tuition pricing.
                 </div>
               </div>
             </PremiumCard>
@@ -254,31 +308,81 @@ export default function CartPage() {
                   </div>
 
                   <div className="mt-5 space-y-4">
-                    <label className="flex items-start gap-3 text-sm text-charcoal">
-                      <Checkbox checked={waivers.liabilityWaiver} onCheckedChange={(checked) => setWaivers((prev) => ({ ...prev, liabilityWaiver: checked === true }))} />
+                    <label className={`flex items-start gap-3 rounded-xl border px-3 py-3 text-sm text-charcoal ${waiverErrors.liabilityWaiver ? "border-clay bg-clay/5" : "border-charcoal/10 bg-cream/35"}`}>
+                      <Checkbox
+                        checked={waivers.liabilityWaiver}
+                        onCheckedChange={(checked) => {
+                          setWaivers((prev) => ({ ...prev, liabilityWaiver: checked === true }));
+                          clearWaiverError("liabilityWaiver");
+                        }}
+                      />
                       <span>I accept the liability waiver.</span>
                     </label>
-                    <label className="flex items-start gap-3 text-sm text-charcoal">
-                      <Checkbox checked={waivers.medicalConsent} onCheckedChange={(checked) => setWaivers((prev) => ({ ...prev, medicalConsent: checked === true }))} />
+                    <label className={`flex items-start gap-3 rounded-xl border px-3 py-3 text-sm text-charcoal ${waiverErrors.medicalConsent ? "border-clay bg-clay/5" : "border-charcoal/10 bg-cream/35"}`}>
+                      <Checkbox
+                        checked={waivers.medicalConsent}
+                        onCheckedChange={(checked) => {
+                          setWaivers((prev) => ({ ...prev, medicalConsent: checked === true }));
+                          clearWaiverError("medicalConsent");
+                        }}
+                      />
                       <span>I confirm the emergency-contact information and authorize emergency care if needed.</span>
                     </label>
-                    <label className="flex items-start gap-3 text-sm text-charcoal">
-                      <Checkbox checked={waivers.termsAgreement} onCheckedChange={(checked) => setWaivers((prev) => ({ ...prev, termsAgreement: checked === true }))} />
+                    <label className={`flex items-start gap-3 rounded-xl border px-3 py-3 text-sm text-charcoal ${waiverErrors.termsAgreement ? "border-clay bg-clay/5" : "border-charcoal/10 bg-cream/35"}`}>
+                      <Checkbox
+                        checked={waivers.termsAgreement}
+                        onCheckedChange={(checked) => {
+                          setWaivers((prev) => ({ ...prev, termsAgreement: checked === true }));
+                          clearWaiverError("termsAgreement");
+                        }}
+                      />
                       <span>I accept the payment and registration policies for this order.</span>
                     </label>
-                    <label className="flex items-start gap-3 text-sm text-charcoal">
-                      <Checkbox checked={waivers.photoConsent} onCheckedChange={(checked) => setWaivers((prev) => ({ ...prev, photoConsent: checked === true }))} />
-                      <span>I consent to photo usage for community updates.</span>
-                    </label>
+                    {requiresPhotoConsent ? (
+                      <label className={`flex items-start gap-3 rounded-xl border px-3 py-3 text-sm text-charcoal ${waiverErrors.photoConsent ? "border-clay bg-clay/5" : "border-charcoal/10 bg-cream/35"}`}>
+                        <Checkbox
+                          checked={waivers.photoConsent}
+                          onCheckedChange={(checked) => {
+                            setWaivers((prev) => ({ ...prev, photoConsent: checked === true }));
+                            clearWaiverError("photoConsent");
+                          }}
+                        />
+                        <span>I accept the media waiver for community updates.</span>
+                      </label>
+                    ) : (
+                      <div className="rounded-xl border border-charcoal/10 bg-cream/35 px-3 py-3 text-sm text-charcoal/70">
+                        Media waiver is not required for women-only registrations.
+                      </div>
+                    )}
 
                     <label className="text-sm text-charcoal">
                       Signature
-                      <Input className="mt-2 bg-cream/50 border-charcoal/10" value={waivers.signatureText} onChange={(event) => setWaivers((prev) => ({ ...prev, signatureText: event.target.value }))} />
+                      <Input
+                        className={`mt-2 bg-cream/50 ${waiverErrors.signatureText ? "border-clay focus-visible:ring-clay/30" : "border-charcoal/10"}`}
+                        value={waivers.signatureText}
+                        onChange={(event) => {
+                          setWaivers((prev) => ({ ...prev, signatureText: event.target.value }));
+                          clearWaiverError("signatureText");
+                        }}
+                      />
                     </label>
                     <label className="text-sm text-charcoal">
                       Signed on
-                      <Input className="mt-2 bg-cream/50 border-charcoal/10" type="date" value={waivers.signedAt} onChange={(event) => setWaivers((prev) => ({ ...prev, signedAt: event.target.value }))} />
+                      <Input
+                        className={`mt-2 bg-cream/50 ${waiverErrors.signedAt ? "border-clay focus-visible:ring-clay/30" : "border-charcoal/10"}`}
+                        type="date"
+                        value={waivers.signedAt}
+                        onChange={(event) => {
+                          setWaivers((prev) => ({ ...prev, signedAt: event.target.value }));
+                          clearWaiverError("signedAt");
+                        }}
+                      />
                     </label>
+                    {Object.keys(waiverErrors).length > 0 ? (
+                      <div className="rounded-xl border border-clay/25 bg-clay/10 px-3 py-3 text-sm text-clay">
+                        Complete every required waiver checkbox, signature, and date before continuing.
+                      </div>
+                    ) : null}
                   </div>
                 </>
               ) : (
@@ -293,7 +397,7 @@ export default function CartPage() {
                   disabled={submitting}
                   onClick={submitCheckout}
                 >
-                  {submitting ? "Preparing payment..." : "Continue to payment"}
+                  {submitting ? "Preparing payment..." : orderId ? "Retry payment setup" : "Continue to payment"}
                 </ClayButton>
                 <OutlineButton asChild className="px-6 py-3 text-[11px] uppercase tracking-[0.18em]">
                   <Link href="/programs/bjj/register">Back to cart builder</Link>
@@ -306,13 +410,30 @@ export default function CartPage() {
             <PremiumCard className="border border-charcoal/10 bg-white p-6">
               <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-moss mb-3">Payment</div>
               <PaymentProvider clientSecret={clientSecret}>
-                <PaymentForm returnUrl={returnUrl} onSuccess={() => navigate(returnUrl)} />
+                <PaymentForm
+                  returnUrl={returnUrl}
+                  onSuccess={() => {
+                    clearFamilyCart();
+                    setCart(null);
+                    navigate(returnUrl);
+                  }}
+                />
               </PaymentProvider>
             </PremiumCard>
 
             <PremiumCard className="border border-charcoal/10 bg-white p-6">
               <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-moss mb-3">Order summary</div>
               <div className="space-y-3 text-sm text-charcoal/75">
+                {summary && summary.siblingDiscountCents > 0 ? (
+                  <div>
+                    Sibling discount: <strong className="text-charcoal">−{money(summary.siblingDiscountCents)}</strong>
+                  </div>
+                ) : null}
+                {summary && summary.trialCreditCents > 0 ? (
+                  <div>
+                    Trial class credit: <strong className="text-charcoal">−{money(summary.trialCreditCents)}</strong>
+                  </div>
+                ) : null}
                 <div>Due today: <strong className="text-charcoal">{money(summary?.dueTodayCents ?? 0)}</strong></div>
                 <div>
                   Later balance: <strong className="text-charcoal">{money(summary?.dueLaterCents ?? 0)}</strong>

@@ -279,7 +279,7 @@ export default function BJJRegistration() {
                         : `Due today ${money(paymentSplit.dueToday)}.`}
                     </div>
                     <div className="mt-1 text-xs uppercase tracking-[0.16em] text-charcoal/55">
-                      Proration only applies when staff gives you a one-time code at checkout.
+                      Staff discount codes can adjust totals at checkout when provided.
                     </div>
                   </div>
                 ) : null}

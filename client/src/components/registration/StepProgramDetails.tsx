@@ -317,14 +317,14 @@ export function StepProgramDetails(props: RegistrationStepProps) {
           }
           options={[
             { value: "0", label: "No siblings", sublabel: "No discount" },
-            { value: "1", label: "1 sibling", sublabel: "−10% on all fees" },
-            { value: "2", label: "2+ siblings", sublabel: "−10% on all fees" },
+            { value: "1", label: "1 sibling", sublabel: "Second child line gets −10%" },
+            { value: "2", label: "2+ siblings", sublabel: "Each additional child line gets −10%" },
           ]}
         />
         {draft.programDetails.siblingCount > 0 && (
           <p className="mt-2 font-body text-xs text-moss">
             {slug === "bjj"
-              ? "Multi-student cart: additional siblings receive 10% off each kids track line. Single-registration checkout uses your selection above."
+              ? "Sibling discount applies only to child participant lines: first child at standard tuition, second and later child lines at 10% off."
               : "A 10% sibling discount will be applied at checkout."}
           </p>
         )}

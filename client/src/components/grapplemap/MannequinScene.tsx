@@ -118,44 +118,27 @@ const POOL = {
 const SEQUENCE_CACHE = new Map<string, SequenceData | null>();
 const SEQUENCE_PENDING = new Map<string, Promise<SequenceData | null>>();
 
-const ROLE_MATCH_JOINTS = [J.Core, J.Neck, J.Head, J.LeftHip, J.RightHip, J.LeftShoulder, J.RightShoulder] as const;
-const CAMERA_TARGET_DRAG = 0.16;
+const CAMERA_TARGET_DRAG = 0.2;
+const MAX_CAMERA_JUMP = 2.0;
+const BLEND_FRAMES = 3;
+const CAMERA_Y_SCALE = 0.7;
 
 function lerp(a: number, b: number, t: number) {
   return a + (b - a) * t;
 }
 
-function playerMatchCost(left: PlayerFrame, right: PlayerFrame) {
-  return ROLE_MATCH_JOINTS.reduce((sum, joint) => {
-    const a = left[joint];
-    const b = right[joint];
-    if (!a || !b) return sum;
-    return sum + Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
-  }, 0);
+function smoothenJoint(targetX: number, targetY: number, targetZ: number, lastX: number, lastY: number, lastZ: number) {
+  const lag = Math.min(0.83, 0.6 + targetY);
+  const factor = 1 - lag;
+  return {
+    x: lastX * lag + targetX * factor,
+    y: lastY * lag + targetY * factor,
+    z: lastZ * lag + targetZ * factor,
+  };
 }
 
 function normalizeRoleFrames(frames: number[][][][]): number[][][][] {
-  if (!Array.isArray(frames) || frames.length === 0) return [];
-
-  const normalized: Frame[] = [];
-  const first = frames[0] as Frame | undefined;
-  if (!first?.[0] || !first?.[1]) return frames;
-
-  normalized.push([first[0], first[1]]);
-  let previous: Frame = normalized[0];
-
-  for (let index = 1; index < frames.length; index += 1) {
-    const frame = frames[index] as Frame | undefined;
-    if (!frame?.[0] || !frame?.[1]) continue;
-
-    const directCost = playerMatchCost(previous[0], frame[0]) + playerMatchCost(previous[1], frame[1]);
-    const swappedCost = playerMatchCost(previous[0], frame[1]) + playerMatchCost(previous[1], frame[0]);
-    const next: Frame = swappedCost + 0.001 < directCost ? [frame[1], frame[0]] : [frame[0], frame[1]];
-    normalized.push(next);
-    previous = next;
-  }
-
-  return normalized;
+  return Array.isArray(frames) ? frames : [];
 }
 
 function getPoseCenter(pose: Frame | null) {
@@ -167,20 +150,6 @@ function getPoseCenter(pose: Frame | null) {
     (coreA[0] + coreB[0]) * 0.5,
     ((coreA[1] + coreB[1]) * 0.5) * 0.7,
     (coreA[2] + coreB[2]) * 0.5,
-  );
-}
-
-function getInterpolatedCenter(cur: Frame | null, next: Frame | null, t: number) {
-  const curA = cur?.[0]?.[J.Core];
-  const curB = cur?.[1]?.[J.Core];
-  const nextA = next?.[0]?.[J.Core];
-  const nextB = next?.[1]?.[J.Core];
-  if (!curA || !curB || !nextA || !nextB) return null;
-
-  return new THREE.Vector3(
-    (lerp(curA[0], nextA[0], t) + lerp(curB[0], nextB[0], t)) * 0.5,
-    ((lerp(curA[1], nextA[1], t) + lerp(curB[1], nextB[1], t)) * 0.5) * 0.7,
-    (lerp(curA[2], nextA[2], t) + lerp(curB[2], nextB[2], t)) * 0.5,
   );
 }
 
@@ -261,6 +230,7 @@ function HumanPlayer({
   const jointsRef = useRef<Array<{ solid: THREE.Mesh; glow: THREE.Mesh }>>([]);
   const limbsRef = useRef<Array<{ solid: THREE.Mesh; glow: THREE.Mesh }>>([]);
   const jointMapRef = useRef<Record<number, { solid: THREE.Mesh; glow: THREE.Mesh }>>({});
+  const lastPosRef = useRef<number[][] | null>(null);
 
   useEffect(() => {
     if (!groupRef.current) return;
@@ -271,6 +241,7 @@ function HumanPlayer({
     jointsRef.current = [];
     limbsRef.current = [];
     jointMapRef.current = {};
+    lastPosRef.current = null;
 
     const solidMat = new THREE.MeshStandardMaterial({
       color,
@@ -359,8 +330,7 @@ function HumanPlayer({
     if (!frames?.length) return;
 
     const total = frames.length;
-    if (total === 1) return;
-    const raw = timeRef.current % Math.max(1, total - 1);
+    const raw = total === 1 ? 0 : timeRef.current % Math.max(1, total - 1);
     const idx = Math.floor(raw);
     const t = raw - idx;
 
@@ -368,19 +338,30 @@ function HumanPlayer({
     const next = frames[Math.min(idx + 1, total - 1)];
     const pIdx = isAttacker ? 0 : 1;
     const pCur = cur?.[pIdx];
-    const pNext = next?.[pIdx];
+    const pNext = next?.[pIdx] ?? pCur;
     if (!pCur || !pNext) return;
+
+    if (!lastPosRef.current) {
+      lastPosRef.current = pCur.map((joint) => [...joint]);
+    }
+    const lastPositions = lastPosRef.current;
 
     for (const { solid, glow } of jointsRef.current) {
       const j = (solid.userData as any).jointIndex as number;
       const curJoint = pCur[j];
       const nextJoint = pNext[j];
       if (!curJoint || !nextJoint) continue;
-      const x = lerp(curJoint[0], nextJoint[0], t);
-      const y = lerp(curJoint[1], nextJoint[1], t);
-      const z = lerp(curJoint[2], nextJoint[2], t);
-      solid.position.set(x, y, z);
-      glow.position.set(x, y, z);
+      const targetX = lerp(curJoint[0], nextJoint[0], t);
+      const targetY = lerp(curJoint[1], nextJoint[1], t);
+      const targetZ = lerp(curJoint[2], nextJoint[2], t);
+      const last = lastPositions[j];
+      if (!last) continue;
+      const smoothed = smoothenJoint(targetX, targetY, targetZ, last[0], last[1], last[2]);
+      last[0] = smoothed.x;
+      last[1] = smoothed.y;
+      last[2] = smoothed.z;
+      solid.position.set(smoothed.x, smoothed.y, smoothed.z);
+      glow.position.set(smoothed.x, smoothed.y, smoothed.z);
     }
 
     const { v1, v2, v3, q, up } = POOL;
@@ -422,10 +403,10 @@ function MannequinSceneInner({
   onLoaded?: (loaded: boolean) => void;
 }) {
   const [data, setData] = useState<SequenceData | null>(null);
-  const [loading, setLoading] = useState(true);
   const timeRef = useRef(0);
   const controlsTargetRef = useRef(new THREE.Vector3(0, 1, 0));
   const lastCenterRef = useRef<THREE.Vector3 | null>(null);
+  const lastPoseCenterRef = useRef<[number, number, number] | null>(null);
 
   // Expose timeRef so the overlay can read/seek it
   useEffect(() => {
@@ -441,19 +422,16 @@ function MannequinSceneInner({
         ...sequenceData,
         frames: normalizeRoleFrames(sequenceData.frames),
       });
-      setLoading(false);
       onLoaded?.(true);
       return;
     }
 
     let cancelled = false;
     const controller = new AbortController();
-    setLoading(true);
 
     const cached = SEQUENCE_CACHE.get(sequencePath);
     if (cached !== undefined) {
       setData(cached);
-      setLoading(false);
       onLoaded?.(Boolean(cached));
       return () => {
         cancelled = true;
@@ -466,13 +444,11 @@ function MannequinSceneInner({
         const json = await loadSequenceData(sequencePath, controller.signal);
         if (!cancelled) {
           setData(json);
-          setLoading(false);
           onLoaded?.(Boolean(json));
         }
       } catch {
         if (!cancelled) {
           setData(null);
-          setLoading(false);
           onLoaded?.(false);
         }
       }
@@ -502,6 +478,7 @@ function MannequinSceneInner({
     if (center) {
       controlsTargetRef.current.copy(center);
       lastCenterRef.current = center.clone();
+      lastPoseCenterRef.current = [center.x, center.y / CAMERA_Y_SCALE, center.z];
     }
   }, [data]);
 
@@ -521,17 +498,54 @@ function MannequinSceneInner({
     const cur = data.frames[idx] as Frame | undefined;
     const next = data.frames[Math.min(idx + 1, total - 1)] as Frame | undefined;
     if (!cur || !next) return;
-    const targetCenter = getInterpolatedCenter(cur, next, t);
-    if (!targetCenter) return;
+
+    const curA = cur[0]?.[J.Core];
+    const curB = cur[1]?.[J.Core];
+    const nextA = next[0]?.[J.Core];
+    const nextB = next[1]?.[J.Core];
+    if (!curA || !curB || !nextA || !nextB) return;
+
+    const curCenterX = (curA[0] + curB[0]) * 0.5;
+    const curCenterY = (curA[1] + curB[1]) * 0.5;
+    const curCenterZ = (curA[2] + curB[2]) * 0.5;
+    const nextCenterX = (nextA[0] + nextB[0]) * 0.5;
+    const nextCenterY = (nextA[1] + nextB[1]) * 0.5;
+    const nextCenterZ = (nextA[2] + nextB[2]) * 0.5;
+
+    let targetX = lerp(curCenterX, nextCenterX, t);
+    let targetY = lerp(curCenterY, nextCenterY, t);
+    let targetZ = lerp(curCenterZ, nextCenterZ, t);
+
+    const lastPoseCenter = lastPoseCenterRef.current;
+    if (lastPoseCenter) {
+      const coreJumpDist = Math.hypot(curCenterX - lastPoseCenter[0], curCenterZ - lastPoseCenter[2]);
+      if (coreJumpDist > 0.5 && idx < BLEND_FRAMES) {
+        const blendFactor = Math.min(1, idx / BLEND_FRAMES);
+        const smoothFactor = blendFactor * 0.5;
+        targetX = lastPoseCenter[0] + (targetX - lastPoseCenter[0]) * smoothFactor;
+        targetZ = lastPoseCenter[2] + (targetZ - lastPoseCenter[2]) * smoothFactor;
+      }
+    }
+    lastPoseCenterRef.current = [curCenterX, curCenterY, curCenterZ];
 
     if (!lastCenterRef.current) {
-      lastCenterRef.current = targetCenter.clone();
-      controlsTargetRef.current.copy(targetCenter);
+      lastCenterRef.current = new THREE.Vector3(targetX, targetY, targetZ);
+      controlsTargetRef.current.set(targetX, targetY * CAMERA_Y_SCALE, targetZ);
       return;
     }
 
-    lastCenterRef.current.lerp(targetCenter, CAMERA_TARGET_DRAG);
-    controlsTargetRef.current.copy(lastCenterRef.current);
+    const lastCenter = lastCenterRef.current;
+    const jumpDist = Math.hypot(targetX - lastCenter.x, targetZ - lastCenter.z);
+    if (jumpDist > MAX_CAMERA_JUMP) {
+      const scale = MAX_CAMERA_JUMP / jumpDist;
+      targetX = lastCenter.x + (targetX - lastCenter.x) * scale;
+      targetZ = lastCenter.z + (targetZ - lastCenter.z) * scale;
+    }
+
+    lastCenter.set(targetX, targetY, targetZ);
+    controlsTargetRef.current.x += (targetX - controlsTargetRef.current.x) * CAMERA_TARGET_DRAG;
+    controlsTargetRef.current.y += (targetY * CAMERA_Y_SCALE - controlsTargetRef.current.y) * CAMERA_TARGET_DRAG;
+    controlsTargetRef.current.z += (targetZ - controlsTargetRef.current.z) * CAMERA_TARGET_DRAG;
   });
 
   return (

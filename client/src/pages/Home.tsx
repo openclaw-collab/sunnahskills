@@ -223,49 +223,75 @@ function SnapshotDeck() {
   }, [reduceMotion]);
 
   return (
-    <div className="relative mt-6 h-[16.5rem] perspective-[1200px]">
-      {snapshotCards.map((card, index) => {
-        const distance = (index - activeIndex + snapshotCards.length) % snapshotCards.length;
-        const visible = distance < 3;
-        const translateY = distance * 18;
-        const translateX = distance * 8;
-        const scale = 1 - distance * 0.06;
-        const rotate = distance === 0 ? -4 : distance === 1 ? 2 : 5;
+    <div className="relative mt-6 grid gap-4 lg:grid-cols-[0.78fr_1.22fr]">
+      <div className="grid grid-cols-2 gap-2 rounded-[1.8rem] border border-charcoal/8 bg-cream/45 p-2">
+        {snapshotCards.map((card, index) => {
+          const isActive = index === activeIndex;
+          return (
+            <button
+              key={card.label}
+              type="button"
+              onClick={() => setActiveIndex(index)}
+              className={`rounded-[1.15rem] border px-3 py-3 text-left transition-colors ${
+                isActive ? "border-moss/25 bg-white shadow-sm" : "border-transparent bg-transparent text-charcoal/60"
+              }`}
+            >
+              <div className="font-mono-label text-[9px] uppercase tracking-[0.16em] text-charcoal/45">{card.label}</div>
+              <div className={`mt-2 font-serif-accent text-2xl italic ${isActive ? "text-moss" : "text-charcoal/72"}`}>{card.value}</div>
+            </button>
+          );
+        })}
+      </div>
 
-        return (
-          <motion.div
-            key={card.label}
-            initial={false}
-            animate={
-              visible
-                ? {
-                    opacity: 1,
-                    y: translateY,
-                    x: translateX,
-                    scale,
-                    rotate,
-                    zIndex: 10 - distance,
-                  }
-                : {
-                    opacity: 0,
-                    y: 54,
-                    x: 20,
-                    scale: 0.86,
-                    rotate: 8,
-                    zIndex: 1,
-                  }
-            }
-            transition={{ duration: reduceMotion ? 0 : 0.65, ease: [0.22, 1, 0.36, 1] }}
-            className="absolute inset-x-0 top-0 rounded-[1.8rem] border border-charcoal/10 bg-white px-5 py-5 shadow-[0_24px_70px_rgba(26,26,26,0.10)]"
-          >
-            <div className="flex items-center justify-between gap-4">
-              <span className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-charcoal/45">{card.label}</span>
-              <span className="font-serif-accent text-4xl italic text-moss">{card.value}</span>
-            </div>
-            <p className="mt-8 max-w-[14rem] text-sm leading-relaxed text-charcoal/68">{card.note}</p>
-          </motion.div>
-        );
-      })}
+      <div className="relative h-[16.5rem] perspective-[1200px]">
+        {snapshotCards.map((card, index) => {
+          const distance = (index - activeIndex + snapshotCards.length) % snapshotCards.length;
+          const visible = distance < 3;
+          const translateY = distance * 18;
+          const translateX = distance * 14;
+          const scale = 1 - distance * 0.06;
+          const rotate = distance === 0 ? -3 : distance === 1 ? 2 : 5;
+
+          return (
+            <motion.div
+              key={card.label}
+              initial={false}
+              animate={
+                visible
+                  ? {
+                      opacity: 1,
+                      y: translateY,
+                      x: translateX,
+                      scale,
+                      rotate,
+                      zIndex: 10 - distance,
+                    }
+                  : {
+                      opacity: 0,
+                      y: 54,
+                      x: 24,
+                      scale: 0.86,
+                      rotate: 8,
+                      zIndex: 1,
+                    }
+              }
+              transition={{ duration: reduceMotion ? 0 : 0.65, ease: [0.22, 1, 0.36, 1] }}
+              className="absolute inset-x-0 top-0 rounded-[1.8rem] border border-charcoal/10 bg-white px-5 py-5 shadow-[0_24px_70px_rgba(26,26,26,0.10)]"
+            >
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-charcoal/45">{card.label}</div>
+                  <div className="mt-4 font-serif-accent text-5xl italic leading-none text-moss">{card.value}</div>
+                </div>
+                <span className="rounded-full border border-moss/15 bg-moss/6 px-3 py-1 font-mono-label text-[9px] uppercase tracking-[0.18em] text-charcoal/55">
+                  Live now
+                </span>
+              </div>
+              <p className="mt-8 max-w-[18rem] text-sm leading-relaxed text-charcoal/68">{card.note}</p>
+            </motion.div>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -273,18 +299,34 @@ function SnapshotDeck() {
 function MiniScheduleCalendar() {
   return (
     <div className="rounded-[1.8rem] border border-charcoal/10 bg-white p-4 shadow-[0_24px_60px_rgba(26,26,26,0.08)]">
-      <div className="grid grid-cols-4 gap-3">
+      <div className="mb-4 flex items-center justify-between rounded-[1.2rem] border border-charcoal/8 bg-cream/45 px-4 py-3">
+        <div>
+          <div className="font-mono-label text-[9px] uppercase tracking-[0.18em] text-charcoal/42">Spring Semester</div>
+          <div className="mt-1 font-heading text-lg text-charcoal">Weekly training calendar</div>
+        </div>
+        <div className="rounded-full border border-moss/15 bg-moss/6 px-3 py-1 font-mono-label text-[9px] uppercase tracking-[0.18em] text-charcoal/55">
+          Tue to Sat
+        </div>
+      </div>
+      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
         {schedulePreviewGroups.map((group) => (
           <div key={group.day} className="rounded-[1.35rem] border border-charcoal/8 bg-cream/55 p-3">
-            <div className="font-mono-label text-[9px] uppercase tracking-[0.18em] text-charcoal/40">{group.day}</div>
+            <div className="flex items-center justify-between gap-2">
+              <div className="font-mono-label text-[9px] uppercase tracking-[0.18em] text-charcoal/40">{group.day}</div>
+              <div className="h-8 w-8 rounded-full border border-charcoal/8 bg-white text-center font-heading text-sm leading-8 text-charcoal">
+                {group.day.slice(0, 1)}
+              </div>
+            </div>
             <div className="mt-3 space-y-2">
               {group.items.map((row) => (
                 <div
                   key={`${group.day}-${row.track}-${row.time}`}
-                  className="rounded-xl border border-charcoal/6 bg-white px-2.5 py-2 shadow-[0_8px_22px_rgba(26,26,26,0.05)]"
+                  className="rounded-xl border border-charcoal/6 bg-white px-3 py-3 shadow-[0_8px_22px_rgba(26,26,26,0.05)]"
                 >
                   <div className="font-heading text-[13px] leading-none text-charcoal">{row.track}</div>
-                  <div className="mt-1 font-mono-label text-[8px] uppercase tracking-[0.14em] text-clay">{row.time}</div>
+                  <div className="mt-2 inline-flex rounded-full bg-clay/10 px-2.5 py-1 font-mono-label text-[8px] uppercase tracking-[0.14em] text-clay">
+                    {row.time}
+                  </div>
                 </div>
               ))}
             </div>

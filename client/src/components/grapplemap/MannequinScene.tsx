@@ -231,6 +231,7 @@ function HumanPlayer({
   const limbsRef = useRef<Array<{ solid: THREE.Mesh; glow: THREE.Mesh }>>([]);
   const jointMapRef = useRef<Record<number, { solid: THREE.Mesh; glow: THREE.Mesh }>>({});
   const lastPosRef = useRef<number[][] | null>(null);
+  const lastRawRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (!groupRef.current) return;
@@ -242,6 +243,7 @@ function HumanPlayer({
     limbsRef.current = [];
     jointMapRef.current = {};
     lastPosRef.current = null;
+    lastRawRef.current = null;
 
     const solidMat = new THREE.MeshStandardMaterial({
       color,
@@ -323,6 +325,9 @@ function HumanPlayer({
 
     const total = frames.length;
     const raw = total === 1 ? 0 : timeRef.current % Math.max(1, total - 1);
+    if (lastRawRef.current != null && Math.abs(raw - lastRawRef.current) < 1e-5) return;
+    lastRawRef.current = raw;
+
     const idx = Math.floor(raw);
     const t = raw - idx;
 
@@ -399,6 +404,7 @@ function MannequinSceneInner({
   const controlsTargetRef = useRef(new THREE.Vector3(0, 1, 0));
   const lastCenterRef = useRef<THREE.Vector3 | null>(null);
   const lastPoseCenterRef = useRef<[number, number, number] | null>(null);
+  const lastCameraRawRef = useRef<number | null>(null);
 
   // Expose timeRef so the overlay can read/seek it
   useEffect(() => {
@@ -471,6 +477,7 @@ function MannequinSceneInner({
       controlsTargetRef.current.copy(center);
       lastCenterRef.current = center.clone();
       lastPoseCenterRef.current = [center.x, center.y / CAMERA_Y_SCALE, center.z];
+      lastCameraRawRef.current = null;
     }
   }, [data]);
 
@@ -485,6 +492,9 @@ function MannequinSceneInner({
     if (total < 2) return;
 
     const raw = timeRef.current % Math.max(1, total - 1);
+    if (lastCameraRawRef.current != null && Math.abs(raw - lastCameraRawRef.current) < 1e-5) return;
+    lastCameraRawRef.current = raw;
+
     const idx = Math.floor(raw);
     const t = raw - idx;
     const cur = data.frames[idx] as Frame | undefined;

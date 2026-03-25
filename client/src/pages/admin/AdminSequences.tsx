@@ -49,6 +49,7 @@ type LibraryItemSummary = {
   fromFamily?: string;
   toFamily?: string;
   reverse?: boolean;
+  bidirectional?: boolean;
 };
 
 type GraphLinkStep = {
@@ -417,6 +418,68 @@ export default function AdminSequences() {
     [transitions],
   );
 
+  const directOutgoingTransitionsByNode = useMemo(() => {
+    const map = new Map<number, LibraryItemSummary[]>();
+
+    const pushRoute = (nodeId: number, transition: LibraryItemSummary) => {
+      const current = map.get(nodeId) ?? [];
+      current.push(transition);
+      map.set(nodeId, current);
+    };
+
+    transitions.forEach((transition) => {
+      if (transition.fromNodeId != null) {
+        pushRoute(transition.fromNodeId, applyDirectionalTransition(transition, false));
+      }
+      if (transition.bidirectional && transition.toNodeId != null) {
+        pushRoute(transition.toNodeId, applyDirectionalTransition(transition, true));
+      }
+    });
+
+    map.forEach((items, nodeId) => {
+      const deduped = Array.from(
+        items.reduce<Map<string, LibraryItemSummary>>((acc, item) => {
+          acc.set(getTransitionBuilderKey(item), item);
+          return acc;
+        }, new Map()).values(),
+      ).sort((left, right) => getComposerTitle(left).localeCompare(getComposerTitle(right)));
+      map.set(nodeId, deduped);
+    });
+
+    return map;
+  }, [transitions]);
+
+  const directIncomingTransitionsByNode = useMemo(() => {
+    const map = new Map<number, LibraryItemSummary[]>();
+
+    const pushRoute = (nodeId: number, transition: LibraryItemSummary) => {
+      const current = map.get(nodeId) ?? [];
+      current.push(transition);
+      map.set(nodeId, current);
+    };
+
+    transitions.forEach((transition) => {
+      if (transition.toNodeId != null) {
+        pushRoute(transition.toNodeId, applyDirectionalTransition(transition, false));
+      }
+      if (transition.bidirectional && transition.fromNodeId != null) {
+        pushRoute(transition.fromNodeId, applyDirectionalTransition(transition, true));
+      }
+    });
+
+    map.forEach((items, nodeId) => {
+      const deduped = Array.from(
+        items.reduce<Map<string, LibraryItemSummary>>((acc, item) => {
+          acc.set(getTransitionBuilderKey(item), item);
+          return acc;
+        }, new Map()).values(),
+      ).sort((left, right) => getComposerTitle(left).localeCompare(getComposerTitle(right)));
+      map.set(nodeId, deduped);
+    });
+
+    return map;
+  }, [transitions]);
+
   const ensurePreviewAsset = useCallback(
     async (previewPath: string) => {
       if (previewCache[previewPath]) {
@@ -508,33 +571,53 @@ export default function AdminSequences() {
 
   const outgoingTransitionsByNode = useMemo(() => {
     const map = new Map<number, LibraryItemSummary[]>();
-    graphLinks.forEach((links, nodeId) => {
-      const items = links.outgoing
+    const allNodeIds = new Set<number>([
+      ...Array.from(graphLinks.keys()),
+      ...Array.from(directOutgoingTransitionsByNode.keys()),
+    ]);
+    allNodeIds.forEach((nodeId) => {
+      const graphItems = (graphLinks.get(nodeId)?.outgoing ?? [])
         .map((step) => {
           const transition = transitionsByGraphId.get(step.transitionId);
           return transition ? applyDirectionalTransition(transition, step.reverse) : null;
         })
-        .filter((item): item is LibraryItemSummary => item != null)
-        .sort((left, right) => getComposerTitle(left).localeCompare(getComposerTitle(right)));
-      map.set(nodeId, items);
+        .filter((item): item is LibraryItemSummary => item != null);
+      const directItems = directOutgoingTransitionsByNode.get(nodeId) ?? [];
+      const merged = Array.from(
+        [...graphItems, ...directItems].reduce<Map<string, LibraryItemSummary>>((acc, item) => {
+          acc.set(getTransitionBuilderKey(item), item);
+          return acc;
+        }, new Map()).values(),
+      ).sort((left, right) => getComposerTitle(left).localeCompare(getComposerTitle(right)));
+      map.set(nodeId, merged);
     });
     return map;
-  }, [graphLinks, transitionsByGraphId]);
+  }, [directOutgoingTransitionsByNode, graphLinks, transitionsByGraphId]);
 
   const incomingTransitionsByNode = useMemo(() => {
     const map = new Map<number, LibraryItemSummary[]>();
-    graphLinks.forEach((links, nodeId) => {
-      const items = links.incoming
+    const allNodeIds = new Set<number>([
+      ...Array.from(graphLinks.keys()),
+      ...Array.from(directIncomingTransitionsByNode.keys()),
+    ]);
+    allNodeIds.forEach((nodeId) => {
+      const graphItems = (graphLinks.get(nodeId)?.incoming ?? [])
         .map((step) => {
           const transition = transitionsByGraphId.get(step.transitionId);
           return transition ? applyDirectionalTransition(transition, step.reverse) : null;
         })
-        .filter((item): item is LibraryItemSummary => item != null)
-        .sort((left, right) => getComposerTitle(left).localeCompare(getComposerTitle(right)));
-      map.set(nodeId, items);
+        .filter((item): item is LibraryItemSummary => item != null);
+      const directItems = directIncomingTransitionsByNode.get(nodeId) ?? [];
+      const merged = Array.from(
+        [...graphItems, ...directItems].reduce<Map<string, LibraryItemSummary>>((acc, item) => {
+          acc.set(getTransitionBuilderKey(item), item);
+          return acc;
+        }, new Map()).values(),
+      ).sort((left, right) => getComposerTitle(left).localeCompare(getComposerTitle(right)));
+      map.set(nodeId, merged);
     });
     return map;
-  }, [graphLinks, transitionsByGraphId]);
+  }, [directIncomingTransitionsByNode, graphLinks, transitionsByGraphId]);
 
   const suggestedNextTransitions = useMemo(() => {
     if (currentPositionNodeId == null) return [];

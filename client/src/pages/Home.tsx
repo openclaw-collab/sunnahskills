@@ -13,6 +13,7 @@ import { StudioBlock } from "@/studio/StudioBlock";
 import { StudioText } from "@/studio/StudioText";
 import { MotionPage } from "@/components/motion/PageMotion";
 import { PROGRAMS } from "@/lib/programConfig";
+import { motionTime } from "@/lib/motion";
 import { BJJ_MARKETING_GROUPS } from "@shared/bjjCatalog";
 
 const curriculum = [
@@ -27,7 +28,7 @@ const curriculum = [
     titleClassName: "text-charcoal",
     bodyClassName: "text-charcoal/70",
     listClassName: "text-charcoal/60",
-    visual: <ProgramVisual slug="bjj" variant="card" />,
+    visual: <ProgramVisual slug="bjj" variant="card" className="h-full" />,
   },
   {
     id: "archery",
@@ -40,7 +41,7 @@ const curriculum = [
     titleClassName: "text-cream",
     bodyClassName: "text-cream/75",
     listClassName: "text-cream/65",
-    visual: <ProgramVisual slug="archery" variant="card" />,
+    visual: <ProgramVisual slug="archery" variant="card" className="h-full" />,
   },
   {
     id: "outdoor",
@@ -53,7 +54,7 @@ const curriculum = [
     titleClassName: "text-cream",
     bodyClassName: "text-cream/70",
     listClassName: "text-cream/60",
-    visual: <ProgramVisual slug="outdoor" variant="card" />,
+    visual: <ProgramVisual slug="outdoor" variant="card" className="h-full" />,
   },
   {
     id: "bullyproofing",
@@ -66,7 +67,7 @@ const curriculum = [
     titleClassName: "text-cream",
     bodyClassName: "text-cream/90",
     listClassName: "text-cream/75",
-    visual: <ProgramVisual slug="bullyproofing" variant="card" />,
+    visual: <ProgramVisual slug="bullyproofing" variant="card" className="h-full" />,
   },
 ];
 
@@ -165,9 +166,9 @@ function heroVariant(index: number, reduceMotion: boolean) {
     animate: {
       opacity: 1,
       y: 0,
-      transition: {
-        duration: 0.48,
-        delay: 0.04 + index * 0.04,
+        transition: {
+        duration: motionTime(0.48),
+        delay: motionTime(0.04 + index * 0.04),
         ease: [0.16, 1, 0.3, 1] as const,
       },
     },
@@ -177,16 +178,16 @@ function heroVariant(index: number, reduceMotion: boolean) {
 function StickyCurriculumCard({ item }: { item: (typeof curriculum)[number] }) {
   const reduceMotion = useReducedMotion();
   return (
-    <div className="protocol-card relative sticky top-0 h-screen flex items-center justify-center p-6 pt-24">
+    <div className="protocol-card relative flex min-h-[40rem] items-center justify-center px-4 py-8 md:px-6 md:py-10 lg:sticky lg:top-0 lg:h-screen lg:p-6 lg:pt-24">
       <motion.div
         initial={reduceMotion ? false : { opacity: 0.94, y: 12 }}
         whileInView={reduceMotion ? undefined : { opacity: 1, y: 0 }}
         viewport={{ once: true, margin: "-5% 0px -5% 0px" }}
-        transition={reduceMotion ? undefined : { duration: 0.32, ease: [0.16, 1, 0.3, 1] }}
-        className={`protocol-content w-full max-w-6xl rounded-[3rem] h-[80vh] shadow-2xl overflow-hidden ${item.cardClassName}`}
+        transition={reduceMotion ? undefined : { duration: motionTime(0.32), ease: [0.16, 1, 0.3, 1] }}
+        className={`protocol-content h-full min-h-[36rem] w-full max-w-6xl overflow-hidden rounded-[3rem] shadow-2xl lg:h-[80vh] ${item.cardClassName}`}
       >
-        <div className="flex h-full flex-col md:flex-row">
-          <div className="flex flex-1 items-center p-10 md:p-14">
+        <div className="flex h-full flex-col lg:flex-row">
+          <div className="flex flex-1 items-center p-8 md:p-10 lg:p-12 xl:p-14">
             <div className="z-10">
               <span className={`font-mono-label text-xs uppercase tracking-[0.18em] mb-4 block ${item.numberClassName}`}>
                 {item.number}
@@ -200,9 +201,9 @@ function StickyCurriculumCard({ item }: { item: (typeof curriculum)[number] }) {
               </ul>
             </div>
           </div>
-          <div className="relative md:w-1/2 min-h-[260px] md:min-h-full overflow-hidden border-t border-charcoal/10 md:border-t-0 md:border-l md:border-charcoal/10">
+          <div className="relative min-h-[280px] overflow-hidden border-t border-charcoal/10 lg:min-h-full lg:w-[48%] lg:border-l lg:border-t-0 lg:border-charcoal/10">
             <div className="absolute inset-0">{item.visual}</div>
-            <div className="absolute inset-0 bg-gradient-to-l from-transparent via-transparent to-black/10 md:bg-gradient-to-t md:from-black/5 md:to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/10 via-transparent to-transparent lg:bg-gradient-to-l lg:from-transparent lg:via-transparent lg:to-black/10" />
           </div>
         </div>
       </motion.div>
@@ -223,8 +224,8 @@ function SnapshotDeck() {
   }, [reduceMotion]);
 
   return (
-    <div className="relative mt-6 grid gap-4 lg:grid-cols-[0.92fr_1.08fr]">
-      <div className="grid grid-cols-2 gap-2 rounded-[1.6rem] border border-charcoal/8 bg-cream/45 p-2">
+    <div className="relative mt-6 grid gap-4 lg:grid-cols-[minmax(0,0.92fr)_minmax(18rem,1.08fr)] lg:items-stretch">
+      <div className="grid grid-cols-1 gap-2 rounded-[1.6rem] border border-charcoal/8 bg-cream/45 p-2 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
         {snapshotCards.map((card, index) => {
           const isActive = index === activeIndex;
           return (
@@ -232,7 +233,7 @@ function SnapshotDeck() {
               key={card.label}
               type="button"
               onClick={() => setActiveIndex(index)}
-              className={`rounded-[1.05rem] border px-3 py-3 text-left transition-all ${
+              className={`min-h-[7.5rem] rounded-[1.2rem] border px-4 py-4 text-left transition-all ${
                 isActive
                   ? "border-moss/25 bg-white shadow-[0_10px_26px_rgba(26,26,26,0.08)]"
                   : "border-transparent bg-transparent text-charcoal/60 hover:border-charcoal/8 hover:bg-white/40"
@@ -240,19 +241,20 @@ function SnapshotDeck() {
             >
               <div className="font-mono-label text-[9px] uppercase tracking-[0.16em] text-charcoal/45">{card.label}</div>
               <div className={`mt-2 font-serif-accent text-2xl italic ${isActive ? "text-moss" : "text-charcoal/72"}`}>{card.value}</div>
+              <p className="mt-3 max-w-[16rem] text-xs leading-relaxed text-charcoal/55">{card.note}</p>
             </button>
           );
         })}
       </div>
 
-      <div className="relative min-h-[17rem] rounded-[1.6rem] border border-charcoal/10 bg-white px-5 py-5 shadow-[0_20px_52px_rgba(26,26,26,0.09)]">
+      <div className="relative min-h-[18rem] rounded-[1.6rem] border border-charcoal/10 bg-white px-5 py-5 shadow-[0_20px_52px_rgba(26,26,26,0.09)] lg:min-h-full lg:px-6 lg:py-6">
         <AnimatePresence mode="wait">
           <motion.div
             key={snapshotCards[activeIndex].label}
             initial={reduceMotion ? false : { opacity: 0, y: 8 }}
             animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
             exit={reduceMotion ? undefined : { opacity: 0, y: -8 }}
-            transition={reduceMotion ? undefined : { duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
+            transition={reduceMotion ? undefined : { duration: motionTime(0.32), ease: [0.22, 1, 0.36, 1] }}
             className="flex h-full flex-col"
           >
             <div className="flex items-start justify-between gap-4">
@@ -268,7 +270,9 @@ function SnapshotDeck() {
                 Live now
               </span>
             </div>
-            <p className="mt-8 max-w-[24rem] text-sm leading-relaxed text-charcoal/68">{snapshotCards[activeIndex].note}</p>
+            <p className="mt-6 max-w-[24rem] text-sm leading-relaxed text-charcoal/68 lg:text-[15px]">
+              {snapshotCards[activeIndex].note}
+            </p>
             <div className="mt-auto pt-8">
               <div className="flex items-center gap-1.5">
                 {snapshotCards.map((card, index) => (
@@ -303,7 +307,7 @@ function MiniScheduleCalendar() {
           Tue to Sat
         </div>
       </div>
-      <div className="grid gap-3 sm:grid-cols-2 2xl:grid-cols-4">
+      <div className="grid gap-3 md:grid-cols-2 2xl:grid-cols-4">
         {schedulePreviewGroups.map((group) => (
           <div key={group.day} className="rounded-[1.25rem] border border-charcoal/8 bg-cream/55 p-3 lg:p-4">
             <div className="flex items-center justify-between gap-2">
@@ -401,10 +405,11 @@ const Home = () => {
             initial={prefersReducedMotion ? false : { opacity: 0, y: 20 }}
             whileInView={prefersReducedMotion ? undefined : { opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-10% 0px" }}
-            transition={prefersReducedMotion ? undefined : { duration: 0.42 }}
-            className="mt-12 grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-12 xl:items-start"
+            transition={prefersReducedMotion ? undefined : { duration: motionTime(0.42) }}
+            className="mt-12 grid grid-cols-1 gap-6 md:auto-rows-fr md:grid-cols-2 xl:grid-cols-12 xl:items-start"
+            data-testid="home-overview"
           >
-            <InfoCard title="Academy Snapshot" label="Snapshot" className="overflow-hidden md:order-1 xl:col-span-4">
+            <InfoCard title="Academy Snapshot" label="Snapshot" className="h-full overflow-hidden md:order-1 xl:col-span-4" >
               <div className="space-y-3">
                 {academyStatusRows.map((row) => (
                   <div key={row.label} className="flex items-center justify-between rounded-2xl border border-charcoal/8 bg-cream/40 px-4 py-3">
@@ -412,11 +417,13 @@ const Home = () => {
                     <span className="font-heading text-right text-sm text-charcoal">{row.value}</span>
                   </div>
                 ))}
-                <SnapshotDeck />
+                <div data-testid="academy-snapshot-card">
+                  <SnapshotDeck />
+                </div>
               </div>
             </InfoCard>
 
-            <DarkCard className="order-3 md:order-2 xl:col-span-3">
+            <DarkCard className="order-3 h-full md:order-2 xl:col-span-3">
               <div className="mb-5 flex items-center gap-3">
                 <StatusDot ariaLabel="Technique preview" />
                 <span className="font-mono-label text-[11px] text-cream/70 uppercase tracking-[0.2em]">
@@ -437,9 +444,11 @@ const Home = () => {
               </div>
             </DarkCard>
 
-            <InfoCard title="Weekly Schedule" label="Current sessions" className="order-2 md:order-3 md:col-span-2 xl:col-span-5">
+            <InfoCard title="Weekly Schedule" label="Current sessions" className="order-2 h-full md:order-3 md:col-span-2 xl:col-span-5">
               <div className="space-y-4">
-                <MiniScheduleCalendar />
+                <div data-testid="home-mini-schedule">
+                  <MiniScheduleCalendar />
+                </div>
                 <div className="rounded-2xl border border-moss/15 bg-moss/5 px-4 py-3 text-xs leading-relaxed text-charcoal/70">
                   Women Tuesday and Thursday are separate enrollments. Friday youth classes share the same training window but stay in distinct tracks.
                 </div>
@@ -505,11 +514,12 @@ const Home = () => {
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-10% 0px" }}
-            transition={{ duration: 0.5 }}
-            className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:gap-8 2xl:grid-cols-4 items-start"
+            transition={{ duration: motionTime(0.5) }}
+            className="grid grid-cols-1 items-start gap-6 md:grid-cols-2 xl:gap-8 2xl:grid-cols-4"
+            data-testid="enrollment-tracks"
           >
             {BJJ_MARKETING_GROUPS.map((group) => (
-              <PremiumCard key={group.key} className="relative h-full overflow-hidden border border-charcoal/10 bg-white p-0">
+              <PremiumCard key={group.key} className="relative h-full overflow-hidden border border-charcoal/10 bg-white p-0" data-testid={`enrollment-card-${group.key}`}>
                 <div className={`absolute inset-x-0 top-0 h-28 bg-gradient-to-br ${enrollmentCardMeta[group.key].accent}`} />
                 <div className="relative flex h-full flex-col p-6 lg:p-7 xl:p-8">
                   <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -517,7 +527,7 @@ const Home = () => {
                       <span className="font-mono-label text-[10px] text-charcoal/48 uppercase tracking-[0.18em] mb-2 block">
                         {enrollmentCardMeta[group.key].eyebrow}
                       </span>
-                      <h4 className="font-heading text-2xl text-charcoal">{group.label}</h4>
+                      <h4 className="font-heading text-2xl text-charcoal xl:text-[1.85rem]">{group.label}</h4>
                       <p className="mt-2 text-sm leading-relaxed text-charcoal/62">{enrollmentCardMeta[group.key].summary}</p>
                     </div>
                     <div className="rounded-full border border-charcoal/10 bg-white/85 px-3 py-1 text-[10px] font-mono-label uppercase tracking-[0.16em] text-charcoal/55 backdrop-blur">

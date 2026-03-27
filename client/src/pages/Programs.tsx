@@ -42,11 +42,11 @@ const Programs = () => {
             </p>
           </StudioBlock>
 
-          <MotionSection className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <MotionSection className="grid grid-cols-1 gap-6 lg:grid-cols-2" data-testid="programs-grid">
             {PROGRAM_ORDER.map((program, index) => (
               <MotionDiv key={program.slug} className="h-full" delay={index * 0.04}>
-                <PremiumCard className="group h-full overflow-hidden border border-charcoal/10 bg-white p-0 shadow-sm transition-shadow duration-200 hover:shadow-[0_30px_80px_rgba(26,26,26,0.10)]">
-                  <ProgramVisual slug={program.slug} variant="card" />
+                <PremiumCard className="group h-full overflow-hidden border border-charcoal/10 bg-white p-0 shadow-sm transition-shadow duration-200 hover:shadow-[0_30px_80px_rgba(26,26,26,0.10)]" data-testid={`program-card-${program.slug}`}>
+                  <ProgramVisual slug={program.slug} variant="card" className="xl:min-h-[24rem]" />
 
                   <div className="space-y-6 p-6 md:p-8">
                     <div className="space-y-3">

@@ -1,16 +1,22 @@
 import React from "react";
 import { cn } from "@/lib/utils";
 
-type PremiumCardProps = {
+type PremiumCardProps = React.ComponentPropsWithoutRef<"section"> & {
   title?: string;
-  className?: string;
-  children?: React.ReactNode;
+  "data-testid"?: string;
 };
 
-export function PremiumCard({ title, className, children }: PremiumCardProps) {
+export function PremiumCard({
+  title,
+  className,
+  children,
+  "data-testid": dataTestId,
+  ...props
+}: PremiumCardProps) {
   return (
     <section
-      data-testid="premium-card-root"
+      {...props}
+      data-testid={dataTestId ?? "premium-card-root"}
       className={cn(
         "rounded-[2.5rem] bg-cream text-charcoal",
         "border border-moss/10 shadow-sm",
@@ -25,4 +31,3 @@ export function PremiumCard({ title, className, children }: PremiumCardProps) {
     </section>
   );
 }
-

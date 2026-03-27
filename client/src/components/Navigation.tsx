@@ -178,7 +178,7 @@ const Navigation = () => {
       {/* Mobile toggle */}
       <button
         className={cn(
-          "md:hidden inline-flex items-center justify-center rounded-full p-2",
+          "md:hidden inline-flex min-h-11 min-w-11 items-center justify-center rounded-full p-2.5",
           scrolled ? "border border-charcoal/15 text-charcoal" : "border border-cream/30 text-cream",
         )}
         onClick={() => setMobileOpen((v) => !v)}
@@ -189,11 +189,11 @@ const Navigation = () => {
 
       {mobileOpen && (
         <div className="absolute top-full mt-3 left-0 right-0 rounded-3xl bg-charcoal/95 text-cream border border-cream/10 shadow-xl md:hidden">
-          <div className="flex flex-col gap-3 px-4 py-4 text-xs uppercase tracking-[0.18em]">
+          <div className="flex flex-col gap-2 px-4 py-4 text-xs uppercase tracking-[0.18em]">
             <div className="py-1.5 border-b border-cream/5">
               <div className="mb-2 font-mono-label text-[10px] uppercase tracking-[0.18em] text-cream/50">Programs</div>
               <Link href="/programs">
-                <a className="mb-2 block text-cream" onClick={() => setMobileOpen(false)}>
+                <a className="mb-2 flex min-h-11 items-center rounded-2xl px-3 text-cream hover:bg-cream/10" onClick={() => setMobileOpen(false)}>
                   All programs
                 </a>
               </Link>
@@ -201,7 +201,7 @@ const Navigation = () => {
                 {programLinks.map((item) => (
                   <Link href={item.href} key={item.href}>
                     <a
-                      className="block text-[11px] text-cream/80"
+                      className="flex min-h-11 items-center rounded-2xl px-3 text-[11px] text-cream/80 hover:bg-cream/10"
                       onClick={() => setMobileOpen(false)}
                     >
                       {item.label}
@@ -214,14 +214,14 @@ const Navigation = () => {
             {navSections.map((item) => (
               <Link key={item.label} href={item.href}>
                 <a
-                  className="py-1.5 border-b border-cream/5 last:border-0"
+                  className="flex min-h-11 items-center rounded-2xl border-b border-cream/5 px-3 py-3 last:border-0 hover:bg-cream/10"
                   onClick={() => setMobileOpen(false)}
                 >
                   {item.label}
                 </a>
               </Link>
             ))}
-            <ClayButton asChild className="w-full mt-1 text-[11px] tracking-[0.18em]">
+            <ClayButton asChild className="mt-1 min-h-11 w-full text-[11px] tracking-[0.18em]">
               <Link href={PRIMARY_CTA_HREF}>Start Your Free Trial</Link>
             </ClayButton>
           </div>

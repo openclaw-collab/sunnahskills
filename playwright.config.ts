@@ -29,6 +29,14 @@ export default defineConfig({
     ['json', { outputFile: 'test-results/e2e-results.json' }],
   ],
 
+  expect: {
+    toHaveScreenshot: {
+      animations: 'disabled',
+      caret: 'hide',
+      scale: 'css',
+    },
+  },
+
   use: {
     baseURL: BASE_URL,
     trace: 'on-first-retry',

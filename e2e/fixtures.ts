@@ -127,9 +127,10 @@ export const waitFor = {
   // Wait for page to be fully loaded including React render
   pageLoad: async (page: Page) => {
     await page.waitForLoadState('domcontentloaded');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('load').catch(() => {});
     // Wait for React SPA to mount (nav is always rendered by App.tsx)
     await page.waitForSelector('nav, main, [role="main"]', { timeout: 15_000 }).catch(() => {});
+    await page.waitForTimeout(150);
   },
 
   // Wait for animations to complete

@@ -67,7 +67,7 @@ export function ProgramVisual({ slug, variant = "card", className }: ProgramVisu
     <div
       className={cn(
         "relative overflow-hidden rounded-[2rem] border border-white/10 bg-charcoal text-cream",
-        variant === "hero" ? "min-h-[320px] md:min-h-[400px]" : "aspect-[16/10]",
+        variant === "hero" ? "min-h-[320px] md:min-h-[400px]" : "min-h-[18rem] aspect-[16/10] xl:aspect-[5/4]",
         className,
       )}
     >
@@ -90,7 +90,7 @@ export function ProgramVisual({ slug, variant = "card", className }: ProgramVisu
         aria-hidden
       />
 
-      <div className="relative z-10 flex h-full min-h-0 flex-col justify-between p-5 md:p-6">
+      <div className="relative z-10 flex h-full min-h-0 flex-col justify-between p-5 md:p-6 xl:p-7">
         <div className="flex items-start justify-between gap-3">
           <div
             className={cn(
@@ -108,9 +108,9 @@ export function ProgramVisual({ slug, variant = "card", className }: ProgramVisu
           </div>
         </div>
 
-        <div className={centerPill}>{meta.label}</div>
+        <div className={cn(centerPill, "xl:px-6 xl:py-3.5")}>{meta.label}</div>
 
-        <div className="space-y-1 text-[10px] font-mono-label uppercase tracking-[0.18em] text-cream/80">
+        <div className="space-y-1 text-[10px] font-mono-label uppercase tracking-[0.18em] text-cream/80 xl:text-[11px]">
           <div>{meta.subtitle}</div>
           <div className="text-cream/65">{meta.footer}</div>
         </div>

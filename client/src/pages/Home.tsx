@@ -224,8 +224,8 @@ function SnapshotDeck() {
   }, [reduceMotion]);
 
   return (
-    <div className="relative mt-6 space-y-4">
-      <div className="grid grid-cols-2 gap-3">
+    <div className="relative mt-4 flex h-full flex-col gap-3">
+      <div className="grid grid-cols-2 gap-2.5">
         {snapshotCards.map((card, index) => {
           const isActive = index === activeIndex;
           return (
@@ -233,7 +233,7 @@ function SnapshotDeck() {
               key={card.label}
               type="button"
               onClick={() => setActiveIndex(index)}
-              className={`min-h-[6.75rem] rounded-[1.35rem] border px-4 py-4 text-left transition-all ${
+              className={`min-h-[5.5rem] rounded-[1.15rem] border px-3.5 py-3 text-left transition-all ${
                 isActive
                   ? "border-charcoal/15 bg-charcoal text-cream shadow-sm"
                   : "border-charcoal/8 bg-cream/45 text-charcoal/70 hover:border-charcoal/15 hover:bg-white"
@@ -242,7 +242,7 @@ function SnapshotDeck() {
               <div className={`font-mono-label text-[9px] uppercase tracking-[0.14em] ${isActive ? "text-cream/55" : "text-charcoal/45"}`}>
                 {card.label}
               </div>
-              <div className={`mt-3 font-serif-accent text-[2rem] italic leading-none ${isActive ? "text-clay" : "text-charcoal"}`}>
+              <div className={`mt-2.5 font-serif-accent text-[1.7rem] italic leading-none ${isActive ? "text-clay" : "text-charcoal"}`}>
                 {card.value}
               </div>
             </button>
@@ -250,8 +250,8 @@ function SnapshotDeck() {
         })}
       </div>
 
-      <div className="relative overflow-hidden rounded-[1.75rem] border border-charcoal/10 bg-white shadow-sm">
-        <div className="absolute inset-x-0 top-0 h-20 bg-[radial-gradient(circle_at_top_left,rgba(170,95,72,0.14),transparent_58%)]" aria-hidden />
+      <div className="relative flex-1 overflow-hidden rounded-[1.5rem] border border-charcoal/10 bg-white shadow-sm">
+        <div className="absolute inset-x-0 top-0 h-16 bg-[radial-gradient(circle_at_top_left,rgba(170,95,72,0.14),transparent_58%)]" aria-hidden />
         <AnimatePresence mode="wait">
           <motion.div
             key={snapshotCards[activeIndex].label}
@@ -259,14 +259,14 @@ function SnapshotDeck() {
             animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
             exit={reduceMotion ? undefined : { opacity: 0, y: -8 }}
             transition={reduceMotion ? undefined : { duration: motionTime(0.32), ease: [0.22, 1, 0.36, 1] }}
-            className="relative flex min-h-[15rem] flex-col px-5 py-5 lg:px-6 lg:py-6"
+            className="relative flex h-full min-h-[11rem] flex-col px-4 py-4 lg:px-5 lg:py-5"
           >
             <div className="flex items-start justify-between gap-4">
               <div>
                 <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-charcoal/45">
                   {snapshotCards[activeIndex].label}
                 </div>
-                <div className="mt-4 font-serif-accent text-5xl italic leading-none text-charcoal">
+                <div className="mt-3 font-serif-accent text-[2.5rem] italic leading-none text-charcoal">
                   {snapshotCards[activeIndex].value}
                 </div>
               </div>
@@ -275,14 +275,14 @@ function SnapshotDeck() {
               </span>
             </div>
 
-            <p className="mt-5 max-w-[22rem] text-sm leading-relaxed text-charcoal/70 text-pretty lg:text-[15px]">
+            <p className="mt-3.5 max-w-[18rem] text-[13px] leading-relaxed text-charcoal/70 text-pretty">
               {snapshotCards[activeIndex].note}
             </p>
 
-            <div className="mt-auto flex items-end justify-between gap-5 pt-8">
-              <div className="max-w-[12rem] rounded-[1.2rem] border border-charcoal/8 bg-cream/55 px-3 py-3">
+            <div className="mt-auto flex items-end justify-between gap-4 pt-4">
+              <div className="max-w-[10rem] rounded-[1rem] border border-charcoal/8 bg-cream/55 px-3 py-2.5">
                 <div className="font-mono-label text-[8px] uppercase tracking-[0.14em] text-charcoal/45">Why it matters</div>
-                <div className="mt-2 text-xs leading-relaxed text-charcoal/65">
+                <div className="mt-1.5 text-[11px] leading-relaxed text-charcoal/65">
                   Parents can see exactly how the academy is paced before they commit to registration.
                 </div>
               </div>
@@ -309,30 +309,30 @@ function SnapshotDeck() {
 
 function MiniScheduleCalendar() {
   return (
-    <div className="rounded-[1.6rem] border border-charcoal/10 bg-white p-4 shadow-[0_20px_56px_rgba(26,26,26,0.07)] lg:p-5">
-      <div className="mb-4 flex flex-col gap-3 rounded-[1rem] border border-charcoal/8 bg-cream/45 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+    <div className="rounded-[1.35rem] border border-charcoal/10 bg-white p-3.5 shadow-sm">
+      <div className="mb-3 flex flex-col gap-2 rounded-[1rem] border border-charcoal/8 bg-cream/45 px-3.5 py-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <div className="font-mono-label text-[9px] uppercase tracking-[0.18em] text-charcoal/42">Spring Semester</div>
-          <div className="mt-1 font-heading text-lg text-charcoal">Weekly training calendar</div>
+          <div className="mt-1 font-heading text-base text-charcoal">Weekly training calendar</div>
         </div>
         <div className="rounded-full border border-moss/15 bg-moss/6 px-3 py-1 font-mono-label text-[9px] uppercase tracking-[0.18em] text-charcoal/55">
           Tue to Sat
         </div>
       </div>
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div className="grid gap-2.5 sm:grid-cols-2">
         {schedulePreviewGroups.map((group) => (
-          <div key={group.day} className="rounded-[1.35rem] border border-charcoal/8 bg-cream/55 p-3.5 lg:p-4">
+          <div key={group.day} className="rounded-[1.15rem] border border-charcoal/8 bg-cream/55 p-3">
             <div className="flex items-center justify-between gap-2">
               <div className="font-mono-label text-[9px] uppercase tracking-[0.18em] text-charcoal/40">{group.day}</div>
-              <div className="h-8 w-8 rounded-full border border-charcoal/8 bg-white text-center font-heading text-sm leading-8 text-charcoal">
+              <div className="h-7 w-7 rounded-full border border-charcoal/8 bg-white text-center font-heading text-xs leading-7 text-charcoal">
                 {group.day.slice(0, 1)}
               </div>
             </div>
-            <div className="mt-3 space-y-2">
+            <div className="mt-2.5 space-y-1.5">
               {group.items.map((row) => (
-                <div key={`${group.day}-${row.track}-${row.time}`} className="rounded-xl border border-charcoal/6 bg-white px-3 py-3 shadow-sm">
-                  <div className="font-heading text-[13px] leading-none text-charcoal">{row.track}</div>
-                  <div className="mt-2 inline-flex rounded-full bg-clay/10 px-2.5 py-1 font-mono-label text-[8px] uppercase tracking-[0.14em] text-clay">
+                <div key={`${group.day}-${row.track}-${row.time}`} className="rounded-xl border border-charcoal/6 bg-white px-3 py-2.5 shadow-sm">
+                  <div className="font-heading text-[12px] leading-none text-charcoal">{row.track}</div>
+                  <div className="mt-1.5 inline-flex rounded-full bg-clay/10 px-2 py-1 font-mono-label text-[8px] uppercase tracking-[0.12em] text-clay">
                     {row.time}
                   </div>
                 </div>
@@ -410,7 +410,7 @@ const Home = () => {
         </div>
       </header>
 
-      <section id="overview" className="relative z-20 overflow-hidden bg-cream py-28 xl:py-32">
+      <section id="overview" className="relative z-20 overflow-hidden bg-cream py-24 xl:py-28">
         <div className="pointer-events-none absolute inset-x-0 top-10 h-72 bg-[radial-gradient(circle_at_center,rgba(170,95,72,0.08),transparent_64%)]" aria-hidden />
         <div className="relative mx-auto max-w-[92rem] px-6">
           <SectionHeader eyebrow="Current Sessions" title="This Week at Sunnah Skills" />
@@ -419,11 +419,11 @@ const Home = () => {
             whileInView={prefersReducedMotion ? undefined : { opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-10% 0px" }}
             transition={prefersReducedMotion ? undefined : { duration: motionTime(0.42) }}
-            className="mt-12 grid grid-cols-1 gap-6 lg:grid-cols-2 xl:grid-cols-[minmax(19rem,0.92fr)_minmax(20rem,0.96fr)_minmax(31rem,1.55fr)] xl:items-start xl:gap-5 2xl:grid-cols-[minmax(20rem,0.9fr)_minmax(21rem,0.98fr)_minmax(34rem,1.62fr)]"
+            className="mt-12 grid grid-cols-1 gap-6 lg:grid-cols-2 xl:grid-cols-[minmax(18rem,0.95fr)_minmax(18rem,0.95fr)_minmax(25rem,1.2fr)] xl:items-stretch xl:gap-5 2xl:grid-cols-[minmax(18rem,0.92fr)_minmax(19rem,0.96fr)_minmax(27rem,1.22fr)]"
             data-testid="home-overview"
           >
-            <InfoCard title="Academy Snapshot" label="Snapshot" className="overflow-hidden lg:order-1 xl:min-h-[35rem]" >
-              <div className="space-y-3">
+            <InfoCard title="Academy Snapshot" label="Snapshot" className="overflow-hidden lg:order-1 xl:min-h-[31rem]">
+              <div className="flex h-full flex-col space-y-3">
                 {academyStatusRows.map((row) => (
                   <div key={row.label} className="flex items-center justify-between rounded-2xl border border-charcoal/8 bg-cream/40 px-4 py-3">
                     <span className="text-[10px] uppercase tracking-[0.16em] text-charcoal/50">{row.label}</span>
@@ -436,7 +436,7 @@ const Home = () => {
               </div>
             </InfoCard>
 
-            <DarkCard className="order-2 lg:order-2 xl:mt-6 xl:min-h-[31rem]">
+            <DarkCard className="order-2 flex flex-col lg:order-2 xl:min-h-[31rem]">
               <div className="mb-5 flex items-center gap-3">
                 <StatusDot ariaLabel="Technique preview" />
                 <span className="font-mono-label text-[11px] text-cream/70 uppercase tracking-[0.2em]">
@@ -457,12 +457,12 @@ const Home = () => {
               </div>
             </DarkCard>
 
-            <InfoCard title="Weekly Schedule" label="Current sessions" className="order-3 lg:col-span-2 xl:col-span-1 xl:min-h-[35rem]">
-              <div className="space-y-4">
+            <InfoCard title="Weekly Schedule" label="Current sessions" className="order-3 lg:col-span-2 xl:col-span-1 xl:min-h-[31rem]">
+              <div className="flex h-full flex-col space-y-3">
                 <div data-testid="home-mini-schedule">
                   <MiniScheduleCalendar />
                 </div>
-                <div className="rounded-2xl border border-moss/15 bg-moss/5 px-4 py-3 text-xs leading-relaxed text-charcoal/70">
+                <div className="mt-auto rounded-2xl border border-moss/15 bg-moss/5 px-4 py-3 text-[11px] leading-relaxed text-charcoal/70">
                   Women Tuesday and Thursday are separate enrollments. Friday youth classes share the same training window but stay in distinct tracks.
                 </div>
               </div>

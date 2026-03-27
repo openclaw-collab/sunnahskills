@@ -14,6 +14,15 @@ export default function AdminLogin() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const nextPath = (() => {
+    try {
+      const next = new URLSearchParams(window.location.search).get("next");
+      if (next && next.startsWith("/") && !next.startsWith("//")) return next;
+    } catch {
+      /* ignore */
+    }
+    return "/admin/dashboard";
+  })();
 
   return (
     <MotionPage className="bg-cream min-h-screen pb-24">
@@ -46,7 +55,7 @@ export default function AdminLogin() {
                   });
                   return;
                 }
-                setLocation("/admin/dashboard");
+                setLocation(nextPath);
               } catch (e) {
                 const msg = "Login failed";
                 setError(msg);

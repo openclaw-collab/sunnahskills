@@ -10,6 +10,8 @@ export type StudioTextFieldCandidate = {
   currentValue: string;
   defaultValue: string;
   edited: boolean;
+  componentId?: string;
+  autoId?: string;
 };
 
 export type StudioImageSlotCandidate = {
@@ -197,6 +199,43 @@ export function discoverTextFields(componentId: string, edits: Record<string, st
       currentValue: edits[key] ?? text,
       defaultValue: text,
       edited: key in edits,
+      componentId,
+      autoId,
+    });
+  }
+
+  return items;
+}
+
+export function listPageTextFields(edits: Record<string, string>): StudioTextFieldCandidate[] {
+  const seen = new Set<string>();
+  const items: StudioTextFieldCandidate[] = [];
+
+  const candidates = Array.from(document.querySelectorAll<HTMLElement>("[data-studio-field], [data-studio-auto-id]"));
+  for (const element of candidates) {
+    const fieldKey = element.dataset.studioField;
+    const autoId = element.dataset.studioAutoId;
+    if (!fieldKey && autoId && element.closest("[data-studio-field]") !== element) continue;
+
+    const key = fieldKey
+      ? `${element.closest<HTMLElement>("[data-studio-component]")?.dataset.studioComponent ?? "page"}.${fieldKey}`
+      : autoId;
+    if (!key || seen.has(key)) continue;
+
+    const text = (element.textContent ?? "").replace(/\s+/g, " ").trim();
+    if (!text && !edits[key]) continue;
+
+    seen.add(key);
+    items.push({
+      key,
+      label: fieldKey
+        ? fieldKey.replace(/[-_]+/g, " ")
+        : (autoId?.split(".").pop() ?? autoId ?? "text").replace(/[-_]+/g, " "),
+      currentValue: edits[key] ?? text,
+      defaultValue: text,
+      edited: key in edits,
+      componentId: element.closest<HTMLElement>("[data-studio-component]")?.dataset.studioComponent,
+      autoId,
     });
   }
 

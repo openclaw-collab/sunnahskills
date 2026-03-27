@@ -2,7 +2,13 @@ import { useMemo, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import { useStudio } from "./useStudio";
 import { resolveActiveTheme } from "./studioStore";
-import { discoverImageSlots, discoverSurfaceCandidates, discoverTextFields, listPageImageSlots } from "./studioDom";
+import {
+  discoverImageSlots,
+  discoverSurfaceCandidates,
+  discoverTextFields,
+  listPageImageSlots,
+  listPageTextFields,
+} from "./studioDom";
 
 type PanelProps = {
   selectedSurfaceKey: string;
@@ -159,6 +165,65 @@ export function PageImageLibrary() {
               slotKey={slot.slotKey}
               uploadedUrl={uploadedSlots.get(slot.slotKey) ?? slot.currentSrc}
               uploadImage={uploadImage}
+            />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export function PageTextLibrary() {
+  const { state, edits, setEdit, clearEdit, setPinnedComponentId } = useStudio();
+
+  const pageTextFields = useMemo(() => listPageTextFields(edits), [edits, state.enabled, state.session?.uploads]);
+
+  if (pageTextFields.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="rounded-2xl border border-charcoal/10 bg-white p-4 space-y-3">
+      <div>
+        <div className="font-mono-label text-[9px] uppercase tracking-widest text-clay">Page copy</div>
+        <div className="mt-1 text-sm text-charcoal/55">
+          Every visible text node on this page is editable here, even when it is not wrapped in a manual Studio field.
+        </div>
+      </div>
+      <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
+        {pageTextFields.map((field) => (
+          <div key={field.key} className="rounded-xl border border-charcoal/10 bg-cream/20 p-3">
+            <div className="flex items-start justify-between gap-3 mb-2">
+              <div>
+                <div className="text-sm text-charcoal">{field.label}</div>
+                <div className="mt-1 font-mono-label text-[9px] uppercase tracking-widest text-charcoal/35">
+                  {field.key}
+                </div>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                {field.componentId ? (
+                  <button
+                    type="button"
+                    onClick={() => setPinnedComponentId(field.componentId ?? null)}
+                    className="rounded-full border border-charcoal/10 bg-white px-3 py-1.5 text-[10px] font-mono-label uppercase tracking-widest text-charcoal/55 hover:bg-cream"
+                  >
+                    Jump to block
+                  </button>
+                ) : null}
+                {field.edited ? (
+                  <button
+                    type="button"
+                    onClick={() => clearEdit(field.key)}
+                    className="rounded-full border border-charcoal/10 bg-white px-3 py-1.5 text-[10px] font-mono-label uppercase tracking-widest text-charcoal/50 hover:bg-cream"
+                  >
+                    Reset
+                  </button>
+                ) : null}
+              </div>
+            </div>
+            <EditableValue
+              value={field.currentValue}
+              onSave={(nextValue) => setEdit(field.key, nextValue, { oldValue: field.defaultValue })}
             />
           </div>
         ))}

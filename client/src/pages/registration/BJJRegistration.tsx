@@ -13,6 +13,8 @@ import { useProgramsCatalog } from "@/hooks/useProgramsCatalog";
 import { addLineToFamilyCart, loadFamilyCart, removeCartLine, type AccountCartSnapshot } from "@/lib/familyCart";
 import { BJJ_MARKETING_GROUPS, BJJ_TRACK_BY_KEY, isEligibleForBjjTrack, type BjjMarketingGroup } from "../../../../shared/bjjCatalog";
 import { computeLineTuitionCents, splitPaymentPlan } from "../../../../shared/orderPricing";
+import { StudioBlock } from "@/studio/StudioBlock";
+import { StudioText } from "@/studio/StudioText";
 
 function computeAge(dateOfBirth: string | null | undefined) {
   if (!dateOfBirth) return null;
@@ -88,9 +90,16 @@ export default function BJJRegistration() {
       <MotionPage className="min-h-screen bg-cream pb-24">
         <div className="noise-overlay" />
         <main className="mx-auto max-w-5xl px-6 pt-28">
-          <PremiumCard className="border border-charcoal/10 bg-white p-6">
-            <div className="text-sm text-charcoal/70">Loading your account and BJJ offerings...</div>
-          </PremiumCard>
+          <StudioBlock id="registration.bjj.loading" label="BJJ loading state">
+            <PremiumCard className="border border-charcoal/10 bg-white p-6">
+              <StudioText
+                k="registration.bjj.loadingCopy"
+                defaultText="Loading your account and BJJ offerings..."
+                as="p"
+                className="text-sm text-charcoal/70"
+              />
+            </PremiumCard>
+          </StudioBlock>
         </main>
       </MotionPage>
     );
@@ -101,21 +110,29 @@ export default function BJJRegistration() {
       <MotionPage className="min-h-screen bg-cream pb-24">
         <div className="noise-overlay" />
         <main className="mx-auto max-w-3xl px-6 pt-28">
-          <SectionHeader eyebrow="BJJ Registration" title="Sign in before you register" className="mb-6" />
-          <PremiumCard className="border border-charcoal/10 bg-white p-6">
-            <p className="text-sm leading-relaxed text-charcoal/70">
-              Live BJJ enrollment now runs through the Family &amp; Member Account so your participants, waivers,
-              payment plan, and later charges all stay tied to the right account.
-            </p>
-            <div className="mt-6 flex flex-wrap gap-3">
-              <ClayButton asChild className="px-6 py-3 text-[11px] uppercase tracking-[0.18em]">
-                <Link href="/register?next=%2Fprograms%2Fbjj%2Fregister">Open your account</Link>
-              </ClayButton>
-              <OutlineButton asChild className="px-6 py-3 text-[11px] uppercase tracking-[0.18em]">
-                <Link href="/trial">Start with a free trial</Link>
-              </OutlineButton>
-            </div>
-          </PremiumCard>
+          <StudioBlock id="registration.bjj.signin" label="BJJ account sign-in gate">
+            <SectionHeader
+              eyebrow={<StudioText k="registration.bjj.signinEyebrow" defaultText="BJJ Registration" />}
+              title={<StudioText k="registration.bjj.signinTitle" defaultText="Sign in before you register" />}
+              className="mb-6"
+            />
+            <PremiumCard className="border border-charcoal/10 bg-white p-6">
+              <StudioText
+                k="registration.bjj.signinCopy"
+                defaultText="Live BJJ enrollment now runs through the Family & Member Account so your participants, waivers, payment plan, and later charges all stay tied to the right account."
+                as="p"
+                className="text-sm leading-relaxed text-charcoal/70"
+              />
+              <div className="mt-6 flex flex-wrap gap-3">
+                <ClayButton asChild className="px-6 py-3 text-[11px] uppercase tracking-[0.18em]">
+                  <Link href="/register?next=%2Fprograms%2Fbjj%2Fregister">Open your account</Link>
+                </ClayButton>
+                <OutlineButton asChild className="px-6 py-3 text-[11px] uppercase tracking-[0.18em]">
+                  <Link href="/trial">Start with a free trial</Link>
+                </OutlineButton>
+              </div>
+            </PremiumCard>
+          </StudioBlock>
         </main>
       </MotionPage>
     );
@@ -126,18 +143,26 @@ export default function BJJRegistration() {
       <MotionPage className="min-h-screen bg-cream pb-24">
         <div className="noise-overlay" />
         <main className="mx-auto max-w-3xl px-6 pt-28">
-          <SectionHeader eyebrow="BJJ Registration" title="Finish your account setup first" className="mb-6" />
-          <PremiumCard className="border border-charcoal/10 bg-white p-6">
-            <p className="text-sm leading-relaxed text-charcoal/70">
-              Before registration opens, we need the account details and at least one participant profile saved. Adults
-              can add themselves only. Families can add children and themselves under the same account.
-            </p>
-            <div className="mt-6">
-              <ClayButton asChild className="px-6 py-3 text-[11px] uppercase tracking-[0.18em]">
-                <Link href="/register">Finish account setup</Link>
-              </ClayButton>
-            </div>
-          </PremiumCard>
+          <StudioBlock id="registration.bjj.account-setup" label="BJJ account setup gate">
+            <SectionHeader
+              eyebrow={<StudioText k="registration.bjj.setupEyebrow" defaultText="BJJ Registration" />}
+              title={<StudioText k="registration.bjj.setupTitle" defaultText="Finish your account setup first" />}
+              className="mb-6"
+            />
+            <PremiumCard className="border border-charcoal/10 bg-white p-6">
+              <StudioText
+                k="registration.bjj.setupCopy"
+                defaultText="Before registration opens, we need the account details and at least one participant profile saved. Adults can add themselves only. Families can add children and themselves under the same account."
+                as="p"
+                className="text-sm leading-relaxed text-charcoal/70"
+              />
+              <div className="mt-6">
+                <ClayButton asChild className="px-6 py-3 text-[11px] uppercase tracking-[0.18em]">
+                  <Link href="/register">Finish account setup</Link>
+                </ClayButton>
+              </div>
+            </PremiumCard>
+          </StudioBlock>
         </main>
       </MotionPage>
     );
@@ -156,14 +181,23 @@ export default function BJJRegistration() {
     <MotionPage className="min-h-screen bg-cream pb-24">
       <div className="noise-overlay" />
       <main className="mx-auto max-w-7xl px-6 pt-28">
-        <SectionHeader eyebrow="BJJ Registration" title="Build the registrations on one screen" className="mb-6" />
-        <p className="mb-8 max-w-3xl text-sm leading-relaxed text-charcoal/70">
-          Choose a participant first, then we&apos;ll show only the BJJ tracks that actually fit that profile. You can add
-          multiple people and offerings to the same cart before checkout.
-        </p>
+        <StudioBlock id="registration.bjj.hero" label="BJJ registration hero">
+          <SectionHeader
+            eyebrow={<StudioText k="registration.bjj.heroEyebrow" defaultText="BJJ Registration" />}
+            title={<StudioText k="registration.bjj.heroTitle" defaultText="Build the registrations on one screen" />}
+            className="mb-6"
+          />
+          <StudioText
+            k="registration.bjj.heroPitch"
+            defaultText="Choose a participant first, then we'll show only the BJJ tracks that actually fit that profile. You can add multiple people and offerings to the same cart before checkout."
+            as="p"
+            className="mb-8 max-w-3xl text-sm leading-relaxed text-charcoal/70"
+          />
+        </StudioBlock>
 
         <div className="grid gap-6 xl:grid-cols-[0.9fr_1.15fr_0.95fr]">
-          <PremiumCard className="border border-charcoal/10 bg-white p-6">
+          <StudioBlock id="registration.bjj.participants" label="BJJ participant chooser">
+            <PremiumCard className="border border-charcoal/10 bg-white p-6">
             <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-moss mb-3">Participants</div>
             <div className="space-y-3">
               {participants.map((participant) => {
@@ -193,9 +227,11 @@ export default function BJJRegistration() {
                 <Link href="/register">Manage profiles</Link>
               </OutlineButton>
             </div>
-          </PremiumCard>
+            </PremiumCard>
+          </StudioBlock>
 
-          <PremiumCard className="border border-charcoal/10 bg-white p-6">
+          <StudioBlock id="registration.bjj.tracks" label="BJJ track chooser">
+            <PremiumCard className="border border-charcoal/10 bg-white p-6">
             <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-moss mb-3">Eligible BJJ tracks</div>
             {!selectedParticipant ? (
               <div className="text-sm text-charcoal/70">Select a participant to begin.</div>
@@ -337,9 +373,11 @@ export default function BJJRegistration() {
                 </div>
               </div>
             )}
-          </PremiumCard>
+            </PremiumCard>
+          </StudioBlock>
 
-          <PremiumCard className="border border-charcoal/10 bg-white p-6">
+          <StudioBlock id="registration.bjj.cart" label="BJJ cart preview">
+            <PremiumCard className="border border-charcoal/10 bg-white p-6">
             <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-moss mb-3">Live cart</div>
             <div className="space-y-3">
               {(cart?.lines ?? []).map((line) => (
@@ -383,7 +421,8 @@ export default function BJJRegistration() {
                 <Link href="/register">Manage account</Link>
               </OutlineButton>
             </div>
-          </PremiumCard>
+            </PremiumCard>
+          </StudioBlock>
         </div>
       </main>
     </MotionPage>

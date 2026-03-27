@@ -13,6 +13,8 @@ import { useGuardianSession } from "@/hooks/useGuardianSession";
 import { PaymentProvider } from "@/components/payment/PaymentProvider";
 import { PaymentForm } from "@/components/payment/PaymentForm";
 import { BJJ_TRACK_BY_KEY } from "../../../../shared/bjjCatalog";
+import { StudioBlock } from "@/studio/StudioBlock";
+import { StudioText } from "@/studio/StudioText";
 
 type WaiverRecord = {
   id: number;
@@ -79,9 +81,16 @@ export default function CartPage() {
       <MotionPage className="min-h-screen bg-cream pb-24">
         <div className="noise-overlay" />
         <main className="mx-auto max-w-4xl px-6 pt-28">
-          <PremiumCard className="border border-charcoal/10 bg-white p-6">
-            <div className="text-sm text-charcoal/70">Loading your account...</div>
-          </PremiumCard>
+          <StudioBlock id="registration.cart.loading" label="Cart loading state">
+            <PremiumCard className="border border-charcoal/10 bg-white p-6">
+              <StudioText
+                k="registration.cart.loadingCopy"
+                defaultText="Loading your account..."
+                as="p"
+                className="text-sm text-charcoal/70"
+              />
+            </PremiumCard>
+          </StudioBlock>
         </main>
       </MotionPage>
     );
@@ -92,18 +101,26 @@ export default function CartPage() {
       <MotionPage className="min-h-screen bg-cream pb-24">
         <div className="noise-overlay" />
         <main className="mx-auto max-w-3xl px-6 pt-28">
-          <SectionHeader eyebrow="Checkout" title="Sign in to finish checkout" className="mb-6" />
-          <PremiumCard className="border border-charcoal/10 bg-white p-6">
-            <p className="text-sm leading-relaxed text-charcoal/70">
-              Checkout is tied to your Family &amp; Member Account so participant records, waivers, and payment plans all
-              stay in one place.
-            </p>
-            <div className="mt-6">
-              <ClayButton asChild className="px-6 py-3 text-[11px] uppercase tracking-[0.18em]">
-                <Link href="/register?next=%2Fregistration%2Fcart">Open your account</Link>
-              </ClayButton>
-            </div>
-          </PremiumCard>
+          <StudioBlock id="registration.cart.signin" label="Cart sign-in gate">
+            <SectionHeader
+              eyebrow={<StudioText k="registration.cart.signinEyebrow" defaultText="Checkout" />}
+              title={<StudioText k="registration.cart.signinTitle" defaultText="Sign in to finish checkout" />}
+              className="mb-6"
+            />
+            <PremiumCard className="border border-charcoal/10 bg-white p-6">
+              <StudioText
+                k="registration.cart.signinCopy"
+                defaultText="Checkout is tied to your Family & Member Account so participant records, waivers, and payment plans all stay in one place."
+                as="p"
+                className="text-sm leading-relaxed text-charcoal/70"
+              />
+              <div className="mt-6">
+                <ClayButton asChild className="px-6 py-3 text-[11px] uppercase tracking-[0.18em]">
+                  <Link href="/register?next=%2Fregistration%2Fcart">Open your account</Link>
+                </ClayButton>
+              </div>
+            </PremiumCard>
+          </StudioBlock>
         </main>
       </MotionPage>
     );
@@ -114,21 +131,29 @@ export default function CartPage() {
       <MotionPage className="min-h-screen bg-cream pb-24">
         <div className="noise-overlay" />
         <main className="mx-auto max-w-3xl px-6 pt-28">
-          <SectionHeader eyebrow="Checkout" title="Your cart is empty" className="mb-6" />
-          <PremiumCard className="border border-charcoal/10 bg-white p-6">
-            <p className="text-sm leading-relaxed text-charcoal/70">
-              Add one or more BJJ registrations first, then come back here to review the order, confirm the waiver,
-              and pay.
-            </p>
-            <div className="mt-6 flex flex-wrap gap-3">
-              <ClayButton asChild className="px-6 py-3 text-[11px] uppercase tracking-[0.18em]">
-                <Link href="/programs/bjj/register">Back to BJJ</Link>
-              </ClayButton>
-              <OutlineButton asChild className="px-6 py-3 text-[11px] uppercase tracking-[0.18em]">
-                <Link href="/trial">Start with a free trial</Link>
-              </OutlineButton>
-            </div>
-          </PremiumCard>
+          <StudioBlock id="registration.cart.empty" label="Empty cart state">
+            <SectionHeader
+              eyebrow={<StudioText k="registration.cart.emptyEyebrow" defaultText="Checkout" />}
+              title={<StudioText k="registration.cart.emptyTitle" defaultText="Your cart is empty" />}
+              className="mb-6"
+            />
+            <PremiumCard className="border border-charcoal/10 bg-white p-6">
+              <StudioText
+                k="registration.cart.emptyCopy"
+                defaultText="Add one or more BJJ registrations first, then come back here to review the order, confirm the waiver, and pay."
+                as="p"
+                className="text-sm leading-relaxed text-charcoal/70"
+              />
+              <div className="mt-6 flex flex-wrap gap-3">
+                <ClayButton asChild className="px-6 py-3 text-[11px] uppercase tracking-[0.18em]">
+                  <Link href="/programs/bjj/register">Back to BJJ</Link>
+                </ClayButton>
+                <OutlineButton asChild className="px-6 py-3 text-[11px] uppercase tracking-[0.18em]">
+                  <Link href="/trial">Start with a free trial</Link>
+                </OutlineButton>
+              </div>
+            </PremiumCard>
+          </StudioBlock>
         </main>
       </MotionPage>
     );
@@ -243,12 +268,24 @@ export default function CartPage() {
     <MotionPage className="min-h-screen bg-cream pb-24">
       <div className="noise-overlay" />
       <main className="mx-auto max-w-5xl px-6 pt-28">
-        <SectionHeader eyebrow="Checkout" title="Review the order and confirm the waiver" className="mb-6" />
+        <StudioBlock id="registration.cart.page" label="Cart page">
+          <SectionHeader
+            eyebrow={<StudioText k="registration.cart.eyebrow" defaultText="Checkout" />}
+            title={<StudioText k="registration.cart.title" defaultText="Review the order and confirm the waiver" />}
+            className="mb-6"
+          />
+        </StudioBlock>
 
         {phase === "review" ? (
-          <div className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
-            <PremiumCard className="border border-charcoal/10 bg-white p-6">
-              <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-moss mb-3">Registration lines</div>
+          <StudioBlock id="registration.cart.review" label="Cart review">
+            <div className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
+              <PremiumCard className="border border-charcoal/10 bg-white p-6">
+                <StudioText
+                  k="registration.cart.linesHeading"
+                  defaultText="Registration lines"
+                  as="div"
+                  className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-moss mb-3"
+                />
               <div className="space-y-3">
                 {cartLines.map((line) => (
                   <div key={line.id} className="rounded-2xl border border-charcoal/10 bg-cream/40 p-4">
@@ -260,9 +297,20 @@ export default function CartPage() {
                             ? BJJ_TRACK_BY_KEY[line.programDetails.programSpecific.bjjTrack as keyof typeof BJJ_TRACK_BY_KEY].registerLabel
                             : line.programDetails.programSpecific.bjjTrack}
                         </div>
-                        <div className="mt-2 text-sm text-charcoal/65">
-                          {line.paymentChoice === "plan" ? "Pay half now, half on May 12, 2026" : "Pay in full"}
-                        </div>
+                        <StudioText
+                          k={
+                            line.paymentChoice === "plan"
+                              ? "registration.cart.linePaymentPlan"
+                              : "registration.cart.linePaymentFull"
+                          }
+                          defaultText={
+                            line.paymentChoice === "plan"
+                              ? "Pay half now, half on May 12, 2026"
+                              : "Pay in full"
+                          }
+                          as="div"
+                          className="mt-2 text-sm text-charcoal/65"
+                        />
                       </div>
                       <OutlineButton
                         className="px-3 py-2 text-[10px] uppercase tracking-[0.18em]"
@@ -271,7 +319,11 @@ export default function CartPage() {
                           setCart(loadFamilyCart());
                         }}
                       >
-                        Remove
+                        <StudioText
+                          k="registration.cart.removeLine"
+                          defaultText="Remove"
+                          as="span"
+                        />
                       </OutlineButton>
                     </div>
                   </div>
@@ -280,7 +332,11 @@ export default function CartPage() {
 
               <div className="mt-6">
                 <label className="text-sm text-charcoal">
-                  Staff discount code (optional)
+                  <StudioText
+                    k="registration.cart.discountLabel"
+                    defaultText="Staff discount code (optional)"
+                    as="span"
+                  />
                   <Input
                     className="mt-2 bg-cream/50 border-charcoal/10"
                     value={prorationCode}
@@ -288,19 +344,37 @@ export default function CartPage() {
                     placeholder="Enter code if one was provided"
                   />
                 </label>
-                <div className="mt-2 text-xs uppercase tracking-[0.16em] text-charcoal/55">
-                  Leave blank for standard tuition pricing.
-                </div>
+                <StudioText
+                  k="registration.cart.discountHelper"
+                  defaultText="Leave blank for standard tuition pricing."
+                  as="div"
+                  className="mt-2 text-xs uppercase tracking-[0.16em] text-charcoal/55"
+                />
               </div>
-            </PremiumCard>
+              </PremiumCard>
 
-            <PremiumCard className="border border-charcoal/10 bg-white p-6">
-              <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-moss mb-3">Waiver and payment consent</div>
+              <PremiumCard className="border border-charcoal/10 bg-white p-6">
+                <StudioText
+                  k="registration.cart.waiverHeading"
+                  defaultText="Waiver and payment consent"
+                  as="div"
+                  className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-moss mb-3"
+                />
               {waiver ? (
                 <>
                   <div className="rounded-2xl border border-charcoal/10 bg-cream/40 p-4">
-                    <div className="text-sm font-medium text-charcoal">{waiver.title}</div>
-                    <div className="mt-1 text-xs uppercase tracking-[0.16em] text-charcoal/55">Version {waiver.version_label}</div>
+                    <StudioText
+                      k="registration.cart.waiverTitle"
+                      defaultText={waiver.title}
+                      as="div"
+                      className="text-sm font-medium text-charcoal"
+                    />
+                    <StudioText
+                      k="registration.cart.waiverVersion"
+                      defaultText={`Version ${waiver.version_label}`}
+                      as="div"
+                      className="mt-1 text-xs uppercase tracking-[0.16em] text-charcoal/55"
+                    />
                     <div
                       className="prose prose-sm mt-4 max-w-none text-charcoal"
                       dangerouslySetInnerHTML={{ __html: waiver.body_html }}
@@ -316,7 +390,11 @@ export default function CartPage() {
                           clearWaiverError("liabilityWaiver");
                         }}
                       />
-                      <span>I accept the liability waiver.</span>
+                      <StudioText
+                        k="registration.cart.liabilityText"
+                        defaultText="I accept the liability waiver."
+                        as="span"
+                      />
                     </label>
                     <label className={`flex items-start gap-3 rounded-xl border px-3 py-3 text-sm text-charcoal ${waiverErrors.medicalConsent ? "border-clay bg-clay/5" : "border-charcoal/10 bg-cream/35"}`}>
                       <Checkbox
@@ -326,7 +404,11 @@ export default function CartPage() {
                           clearWaiverError("medicalConsent");
                         }}
                       />
-                      <span>I confirm the emergency-contact information and authorize emergency care if needed.</span>
+                      <StudioText
+                        k="registration.cart.medicalText"
+                        defaultText="I confirm the emergency-contact information and authorize emergency care if needed."
+                        as="span"
+                      />
                     </label>
                     <label className={`flex items-start gap-3 rounded-xl border px-3 py-3 text-sm text-charcoal ${waiverErrors.termsAgreement ? "border-clay bg-clay/5" : "border-charcoal/10 bg-cream/35"}`}>
                       <Checkbox
@@ -336,7 +418,11 @@ export default function CartPage() {
                           clearWaiverError("termsAgreement");
                         }}
                       />
-                      <span>I accept the payment and registration policies for this order.</span>
+                      <StudioText
+                        k="registration.cart.termsText"
+                        defaultText="I accept the payment and registration policies for this order."
+                        as="span"
+                      />
                     </label>
                     {requiresPhotoConsent ? (
                       <label className={`flex items-start gap-3 rounded-xl border px-3 py-3 text-sm text-charcoal ${waiverErrors.photoConsent ? "border-clay bg-clay/5" : "border-charcoal/10 bg-cream/35"}`}>
@@ -347,16 +433,23 @@ export default function CartPage() {
                             clearWaiverError("photoConsent");
                           }}
                         />
-                        <span>I accept the media waiver for community updates.</span>
+                        <StudioText
+                          k="registration.cart.mediaText"
+                          defaultText="I accept the media waiver for community updates."
+                          as="span"
+                        />
                       </label>
                     ) : (
-                      <div className="rounded-xl border border-charcoal/10 bg-cream/35 px-3 py-3 text-sm text-charcoal/70">
-                        Media waiver is not required for women-only registrations.
-                      </div>
+                      <StudioText
+                        k="registration.cart.mediaNotRequired"
+                        defaultText="Media waiver is not required for women-only registrations."
+                        as="div"
+                        className="rounded-xl border border-charcoal/10 bg-cream/35 px-3 py-3 text-sm text-charcoal/70"
+                      />
                     )}
 
                     <label className="text-sm text-charcoal">
-                      Signature
+                      <StudioText k="registration.cart.signatureLabel" defaultText="Signature" as="span" />
                       <Input
                         className={`mt-2 bg-cream/50 ${waiverErrors.signatureText ? "border-clay focus-visible:ring-clay/30" : "border-charcoal/10"}`}
                         value={waivers.signatureText}
@@ -367,7 +460,7 @@ export default function CartPage() {
                       />
                     </label>
                     <label className="text-sm text-charcoal">
-                      Signed on
+                      <StudioText k="registration.cart.signedOnLabel" defaultText="Signed on" as="span" />
                       <Input
                         className={`mt-2 bg-cream/50 ${waiverErrors.signedAt ? "border-clay focus-visible:ring-clay/30" : "border-charcoal/10"}`}
                         type="date"
@@ -379,14 +472,22 @@ export default function CartPage() {
                       />
                     </label>
                     {Object.keys(waiverErrors).length > 0 ? (
-                      <div className="rounded-xl border border-clay/25 bg-clay/10 px-3 py-3 text-sm text-clay">
-                        Complete every required waiver checkbox, signature, and date before continuing.
-                      </div>
+                      <StudioText
+                        k="registration.cart.waiverError"
+                        defaultText="Complete every required waiver checkbox, signature, and date before continuing."
+                        as="div"
+                        className="rounded-xl border border-clay/25 bg-clay/10 px-3 py-3 text-sm text-clay"
+                      />
                     ) : null}
                   </div>
                 </>
               ) : (
-                <div className="text-sm text-charcoal/70">Loading the active waiver...</div>
+                <StudioText
+                  k="registration.cart.waiverLoading"
+                  defaultText="Loading the active waiver..."
+                  as="div"
+                  className="text-sm text-charcoal/70"
+                />
               )}
 
               {error ? <div className="mt-4 text-sm text-clay">{error}</div> : null}
@@ -397,18 +498,31 @@ export default function CartPage() {
                   disabled={submitting}
                   onClick={submitCheckout}
                 >
-                  {submitting ? "Preparing payment..." : orderId ? "Retry payment setup" : "Continue to payment"}
+                  <StudioText
+                    k={submitting ? "registration.cart.preparingPayment" : orderId ? "registration.cart.retryPayment" : "registration.cart.continuePayment"}
+                    defaultText={submitting ? "Preparing payment..." : orderId ? "Retry payment setup" : "Continue to payment"}
+                    as="span"
+                  />
                 </ClayButton>
                 <OutlineButton asChild className="px-6 py-3 text-[11px] uppercase tracking-[0.18em]">
-                  <Link href="/programs/bjj/register">Back to cart builder</Link>
+                  <Link href="/programs/bjj/register">
+                    <StudioText k="registration.cart.backToBuilder" defaultText="Back to cart builder" />
+                  </Link>
                 </OutlineButton>
               </div>
-            </PremiumCard>
-          </div>
+              </PremiumCard>
+            </div>
+          </StudioBlock>
         ) : clientSecret ? (
-          <div className="grid gap-6 lg:grid-cols-[1fr_0.95fr]">
-            <PremiumCard className="border border-charcoal/10 bg-white p-6">
-              <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-moss mb-3">Payment</div>
+          <StudioBlock id="registration.cart.payment" label="Cart payment">
+            <div className="grid gap-6 lg:grid-cols-[1fr_0.95fr]">
+              <PremiumCard className="border border-charcoal/10 bg-white p-6">
+                <StudioText
+                  k="registration.cart.paymentHeading"
+                  defaultText="Payment"
+                  as="div"
+                  className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-moss mb-3"
+                />
               <PaymentProvider clientSecret={clientSecret}>
                 <PaymentForm
                   returnUrl={returnUrl}
@@ -419,36 +533,52 @@ export default function CartPage() {
                   }}
                 />
               </PaymentProvider>
-            </PremiumCard>
+              </PremiumCard>
 
-            <PremiumCard className="border border-charcoal/10 bg-white p-6">
-              <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-moss mb-3">Order summary</div>
+              <PremiumCard className="border border-charcoal/10 bg-white p-6">
+                <StudioText
+                  k="registration.cart.summaryHeading"
+                  defaultText="Order summary"
+                  as="div"
+                  className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-moss mb-3"
+                />
               <div className="space-y-3 text-sm text-charcoal/75">
                 {summary && summary.siblingDiscountCents > 0 ? (
                   <div>
-                    Sibling discount: <strong className="text-charcoal">−{money(summary.siblingDiscountCents)}</strong>
+                    <StudioText k="registration.cart.summarySibling" defaultText="Sibling discount:" as="span" />{" "}
+                    <strong className="text-charcoal">−{money(summary.siblingDiscountCents)}</strong>
                   </div>
                 ) : null}
                 {summary && summary.trialCreditCents > 0 ? (
                   <div>
-                    Trial class credit: <strong className="text-charcoal">−{money(summary.trialCreditCents)}</strong>
+                    <StudioText k="registration.cart.summaryTrial" defaultText="Trial class credit:" as="span" />{" "}
+                    <strong className="text-charcoal">−{money(summary.trialCreditCents)}</strong>
                   </div>
                 ) : null}
-                <div>Due today: <strong className="text-charcoal">{money(summary?.dueTodayCents ?? 0)}</strong></div>
                 <div>
-                  Later balance: <strong className="text-charcoal">{money(summary?.dueLaterCents ?? 0)}</strong>
+                  <StudioText k="registration.cart.summaryDueToday" defaultText="Due today:" as="span" />{" "}
+                  <strong className="text-charcoal">{money(summary?.dueTodayCents ?? 0)}</strong>
                 </div>
                 <div>
-                  Later charge date: <strong className="text-charcoal">{summary?.laterPaymentDate ?? "None"}</strong>
+                  <StudioText k="registration.cart.summaryLaterBalance" defaultText="Later balance:" as="span" />{" "}
+                  <strong className="text-charcoal">{money(summary?.dueLaterCents ?? 0)}</strong>
+                </div>
+                <div>
+                  <StudioText k="registration.cart.summaryLaterDate" defaultText="Later charge date:" as="span" />{" "}
+                  <strong className="text-charcoal">{summary?.laterPaymentDate ?? "None"}</strong>
                 </div>
                 {summary && summary.dueLaterCents > 0 ? (
-                  <div className="rounded-2xl border border-clay/15 bg-clay/5 p-4 text-sm text-charcoal/75">
-                    Your card will be saved for the automatic second half on {summary.laterPaymentDate ?? "the scheduled date"}.
-                  </div>
+                  <StudioText
+                    k="registration.cart.summarySavedCard"
+                    defaultText={`Your card will be saved for the automatic second half on ${summary.laterPaymentDate ?? "the scheduled date"}.`}
+                    as="div"
+                    className="rounded-2xl border border-clay/15 bg-clay/5 p-4 text-sm text-charcoal/75"
+                  />
                 ) : null}
               </div>
-            </PremiumCard>
-          </div>
+              </PremiumCard>
+            </div>
+          </StudioBlock>
         ) : null}
       </main>
     </MotionPage>

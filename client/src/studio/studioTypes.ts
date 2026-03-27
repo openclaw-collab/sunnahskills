@@ -89,8 +89,8 @@ export type StudioSession = {
 
 export type StudioState = {
   enabled: boolean;
-  /** "local" = ?studio=1 / localStorage only. "session" = ?studio=UUID synced via D1. */
-  mode: "local" | "session";
+  /** "local" = ?studio=1 / localStorage only. "admin" = ?studio=admin after admin sign-in. "session" = ?studio=UUID synced via D1. */
+  mode: "local" | "admin" | "session";
   sessionId: string | null;
   authed: boolean;
   syncing: boolean;

@@ -26,6 +26,7 @@ import {
   applyThemePreset,
   genId,
   getPresetBase,
+  isAdminStudioQueryValue,
   isSessionToken,
   isLocalStudioQueryValue,
   loadStudioState,
@@ -72,6 +73,15 @@ async function createSession(opts: { name?: string; password?: string }): Promis
     return res.json();
   } catch {
     return null;
+  }
+}
+
+async function fetchCurrentAdmin(): Promise<boolean> {
+  try {
+    const res = await apiFetch("/api/auth/me");
+    return res.ok;
+  } catch {
+    return false;
   }
 }
 
@@ -149,6 +159,16 @@ export function StudioProvider({ children }: { children: React.ReactNode }) {
         authed: true,
       };
     }
+    if (isAdminStudioQueryValue(token)) {
+      return {
+        ...local,
+        enabled: false,
+        mode: "admin",
+        sessionId: null,
+        authed: false,
+        loading: true,
+      };
+    }
     const isSession = isSessionToken(token);
     if (!isSession) {
       return {
@@ -212,6 +232,37 @@ export function StudioProvider({ children }: { children: React.ReactNode }) {
       }));
     });
   }, [state.mode, state.sessionId]);
+
+  useEffect(() => {
+    if (state.mode !== "admin") return;
+
+    let cancelled = false;
+    setState((s) => ({ ...s, loading: true, error: null }));
+    fetchCurrentAdmin().then((ok) => {
+      if (cancelled) return;
+      if (ok) {
+        setState((s) => ({
+          ...s,
+          loading: false,
+          enabled: true,
+          authed: true,
+          error: null,
+        }));
+        return;
+      }
+      setState((s) => ({
+        ...s,
+        loading: false,
+        enabled: false,
+        authed: false,
+        error: "Admin sign-in required.",
+      }));
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [state.mode]);
 
   // ── Polling (10s) ───────────────────────────────────────────────────────────
 

@@ -70,6 +70,7 @@ export default function CartPage() {
     trialCreditCents: number;
     promoDiscountCents: number;
   } | null>(null);
+  const [laterChargeAuthorized, setLaterChargeAuthorized] = React.useState(false);
   const [prorationCode, setProrationCode] = React.useState("");
   const [lineDiscountDrafts, setLineDiscountDrafts] = React.useState<Record<string, string>>({});
   const [lineDiscountOpen, setLineDiscountOpen] = React.useState<Record<string, boolean>>({});
@@ -110,6 +111,12 @@ export default function CartPage() {
       Object.fromEntries(Object.entries(prev).filter(([lineId]) => activeLineIds.has(lineId))),
     );
   }, [cartLines]);
+
+  React.useEffect(() => {
+    if (!summary || summary.dueLaterCents <= 0) {
+      setLaterChargeAuthorized(false);
+    }
+  }, [summary]);
 
   React.useEffect(() => {
     (async () => {
@@ -678,9 +685,10 @@ export default function CartPage() {
                   as="div"
                   className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-moss mb-3"
                 />
-              <PaymentProvider clientSecret={clientSecret}>
+                <PaymentProvider clientSecret={clientSecret}>
                 <PaymentForm
                   returnUrl={returnUrl}
+                  submitDisabled={(summary?.dueLaterCents ?? 0) > 0 && !laterChargeAuthorized}
                   onSuccess={() => {
                     clearFamilyCart();
                     setCart(null);
@@ -729,12 +737,34 @@ export default function CartPage() {
                   <strong className="text-charcoal">{summary?.laterPaymentDate ?? "None"}</strong>
                 </div>
                 {summary && summary.dueLaterCents > 0 ? (
-                  <StudioText
-                    k="registration.cart.summarySavedCard"
-                    defaultText={`Your card will be saved for the automatic second half on ${summary.laterPaymentDate ?? "the scheduled date"}.`}
-                    as="div"
-                    className="rounded-2xl border border-clay/15 bg-clay/5 p-4 text-sm text-charcoal/75"
-                  />
+                  <div className="space-y-3 rounded-2xl border border-clay/15 bg-clay/5 p-4 text-sm text-charcoal/75">
+                    <StudioText
+                      k="registration.cart.summaryAutoCharge"
+                      defaultText={`We will automatically charge this card for the remaining balance of ${money(summary.dueLaterCents)} on ${summary.laterPaymentDate ?? "the scheduled date"}.`}
+                      as="div"
+                    />
+                    <label className="flex items-start gap-3 text-sm text-charcoal">
+                      <Checkbox
+                        checked={laterChargeAuthorized}
+                        onCheckedChange={(checked) => setLaterChargeAuthorized(Boolean(checked))}
+                        className="mt-1"
+                      />
+                      <span>
+                        <StudioText
+                          k="registration.cart.autoChargeAgreement"
+                          defaultText={`I authorize Sunnah Skills to automatically charge this card for the remaining balance of ${money(summary.dueLaterCents)} on ${summary.laterPaymentDate ?? "the scheduled date"}.`}
+                        />
+                      </span>
+                    </label>
+                    {!laterChargeAuthorized ? (
+                      <StudioText
+                        k="registration.cart.autoChargeAgreementRequired"
+                        defaultText="You must agree to the automatic later charge before completing payment."
+                        as="div"
+                        className="text-xs text-clay"
+                      />
+                    ) : null}
+                  </div>
                 ) : null}
               </div>
               </PremiumCard>

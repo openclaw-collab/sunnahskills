@@ -6,9 +6,11 @@ import { DarkCard } from "@/components/brand/DarkCard";
 export function PaymentForm({
   returnUrl,
   onSuccess,
+  submitDisabled = false,
 }: {
   returnUrl: string;
   onSuccess?: () => void;
+  submitDisabled?: boolean;
 }) {
   const stripe = useStripe();
   const elements = useElements();
@@ -52,11 +54,10 @@ export function PaymentForm({
       <ClayButton
         type="submit"
         className="w-full px-7 py-3.5 text-[11px] uppercase tracking-[0.18em]"
-        disabled={submitting || !stripe || !elements}
+        disabled={submitDisabled || submitting || !stripe || !elements}
       >
         {submitting ? "Processing..." : "Complete Payment"}
       </ClayButton>
     </form>
   );
 }
-

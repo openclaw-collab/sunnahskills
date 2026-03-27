@@ -23,28 +23,37 @@ export type SemesterRow = {
   end_date: string | null;
 };
 
-/**
- * Rank among students who have at least one kids line (0 = first child in cart, 1+ = sibling).
- */
-export function kidsSiblingRankForLine(
-  lines: { track: string; student: { fullName: string; dateOfBirth: string } }[],
-  lineIndex: number,
-): number {
-  const target = lines[lineIndex];
-  if (!isKidsBjjTrack(target.track)) return 0;
+function participantLastName(fullName: string) {
+  const parts = fullName
+    .trim()
+    .split(/\s+/)
+    .map((part) => part.replace(/^[^A-Za-z0-9']+|[^A-Za-z0-9']+$/g, ""))
+    .filter(Boolean);
+  return parts.length > 0 ? parts[parts.length - 1].toLowerCase() : "";
+}
 
-  const orderKeys: string[] = [];
-  const seen = new Set<string>();
+/**
+ * Child participant lines that share a last name form a sibling group.
+ * Every line in a sibling group of 2+ children is eligible for the 10% discount.
+ */
+export function siblingDiscountEligibleForLine(
+  lines: { participantType: "self" | "child"; student: { fullName: string; dateOfBirth: string } }[],
+  lineIndex: number,
+): boolean {
+  const target = lines[lineIndex];
+  if (!target || target.participantType !== "child") return false;
+
+  const lastName = participantLastName(target.student.fullName);
+  if (!lastName) return false;
+
+  const matchingChildren = new Set<string>();
   for (const line of lines) {
-    if (!isKidsBjjTrack(line.track)) continue;
-    const k = studentKey(line.student.fullName, line.student.dateOfBirth);
-    if (!seen.has(k)) {
-      seen.add(k);
-      orderKeys.push(k);
-    }
+    if (line.participantType !== "child") continue;
+    if (participantLastName(line.student.fullName) !== lastName) continue;
+    matchingChildren.add(studentKey(line.student.fullName, line.student.dateOfBirth));
   }
-  const myKey = studentKey(target.student.fullName, target.student.dateOfBirth);
-  return Math.max(0, orderKeys.indexOf(myKey));
+
+  return matchingChildren.size >= 2;
 }
 
 export function computeLaterPaymentDateIso(sem: SemesterRow | null): string | null {
@@ -67,7 +76,8 @@ export type LinePricingInput = {
   programPriceFrequency: string | null;
   priceMetadataJson: string | null;
   paymentChoice: "full" | "plan";
-  siblingRankAmongKidsStudents: number;
+  siblingRankAmongKidsStudents?: number;
+  siblingDiscountEligible?: boolean;
   semester: SemesterRow | null;
   trialCreditCents?: number;
   prorationAllowed?: boolean;
@@ -184,8 +194,11 @@ function linePricingCore(input: LinePricingInput): LineCore {
   const registrationFeeCents = Math.max(0, regFee);
   const lineSubtotalCents = Math.max(0, baseTuitionCents - trialCreditCents + registrationFeeCents);
 
-  const kidsLineIndex = input.siblingRankAmongKidsStudents;
-  const afterSiblingCents = lineTotalAfterSiblingCents(kidsLineIndex, lineSubtotalCents, isKidsBjjTrack(input.track));
+  const siblingDiscountEligible =
+    typeof input.siblingDiscountEligible === "boolean"
+      ? input.siblingDiscountEligible
+      : (input.siblingRankAmongKidsStudents ?? 0) > 0 && isKidsBjjTrack(input.track);
+  const afterSiblingCents = lineTotalAfterSiblingCents(lineSubtotalCents, siblingDiscountEligible);
   const siblingDiscountCents = lineSubtotalCents - afterSiblingCents;
 
   return {

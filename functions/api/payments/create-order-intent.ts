@@ -1,3 +1,5 @@
+import { DEFAULT_CURRENCY } from "../../../shared/money";
+
 interface Env {
   DB: D1Database;
   STRIPE_SECRET_KEY?: string;
@@ -65,17 +67,26 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
 
   const dueToday = Math.max(0, Math.round(Number(order.amount_due_today_cents ?? 0)));
   const dueLater = Math.max(0, Math.round(Number(order.later_amount_cents ?? 0)));
+  const trialCreditCents = Math.max(0, Number(order.trial_credit_cents ?? 0));
+  const siblingDiscountCents = Math.max(0, Number(order.sibling_discount_cents ?? 0));
   let promoDiscountCents = 0;
   let lineDiscountCodes: string[] = [];
+  let prorationCode: string | null = null;
   try {
-    const metadata = JSON.parse(order.metadata_json ?? "{}") as { promoDiscountCents?: number; lineDiscountCodes?: string[] };
+    const metadata = JSON.parse(order.metadata_json ?? "{}") as {
+      promoDiscountCents?: number;
+      lineDiscountCodes?: string[];
+      prorationCode?: string | null;
+    };
     promoDiscountCents = Math.max(0, Number(metadata.promoDiscountCents ?? 0));
     lineDiscountCodes = Array.isArray(metadata.lineDiscountCodes)
       ? metadata.lineDiscountCodes.map((code) => String(code).trim().toUpperCase()).filter(Boolean)
       : [];
+    prorationCode = metadata.prorationCode ? String(metadata.prorationCode).trim().toUpperCase() : null;
   } catch {
     promoDiscountCents = 0;
     lineDiscountCodes = [];
+    prorationCode = null;
   }
   if (dueToday <= 0) return json({ error: "Payment total must be greater than zero" }, { status: 400 });
   if (!order.guardian_email || !order.guardian_name) {
@@ -110,8 +121,8 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
         dueTodayCents: dueToday,
         dueLaterCents: dueLater,
         laterPaymentDate: order.later_payment_date ?? null,
-        trialCreditCents: Number(order.trial_credit_cents ?? 0),
-        siblingDiscountCents: Number(order.sibling_discount_cents ?? 0),
+        trialCreditCents,
+        siblingDiscountCents,
         promoDiscountCents,
       });
     }
@@ -151,7 +162,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
 
   const intentParams = new URLSearchParams();
   intentParams.set("amount", String(dueToday));
-  intentParams.set("currency", "usd");
+  intentParams.set("currency", DEFAULT_CURRENCY);
   intentParams.set("customer", customerId);
   intentParams.set("setup_future_usage", "off_session");
   intentParams.set("automatic_payment_methods[enabled]", "true");
@@ -175,6 +186,8 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
     return json({ error: "Stripe error creating PaymentIntent" }, { status: 502 });
   }
 
+  const totalDiscountCents = trialCreditCents + siblingDiscountCents + promoDiscountCents;
+  const grossSubtotalCents = Math.max(0, Number(order.total_cents ?? dueToday + dueLater) + totalDiscountCents);
   await env.DB.prepare(
     `UPDATE enrollment_orders
      SET stripe_payment_intent_id = ?,
@@ -190,7 +203,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
       registration_id, enrollment_order_id, stripe_payment_intent_id, amount, subtotal,
       discount_amount, currency, status, payment_type, metadata, created_at, updated_at
     )
-    SELECT ?, ?, ?, ?, ?, ?, 'usd', 'pending', 'order_deposit', ?, datetime('now'), datetime('now')
+    SELECT ?, ?, ?, ?, ?, ?, ?, 'pending', 'order_deposit', ?, datetime('now'), datetime('now')
     WHERE NOT EXISTS (
       SELECT 1
       FROM payments
@@ -203,14 +216,16 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
       orderId,
       intentJson.id,
       dueToday,
-      Number(order.total_cents ?? dueToday + dueLater),
-      promoDiscountCents,
+      grossSubtotalCents,
+      totalDiscountCents,
+      DEFAULT_CURRENCY,
       JSON.stringify({
         enrollmentOrderId: orderId,
         registrationIds,
         dueLaterCents: dueLater,
         discountCodes: lineDiscountCodes,
         promoDiscountCents,
+        prorationCode,
         payPhase: "first",
       }),
       orderId,
@@ -231,8 +246,8 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
     dueTodayCents: dueToday,
     dueLaterCents: dueLater,
     laterPaymentDate: order.later_payment_date ?? null,
-    trialCreditCents: Number(order.trial_credit_cents ?? 0),
-    siblingDiscountCents: Number(order.sibling_discount_cents ?? 0),
+    trialCreditCents,
+    siblingDiscountCents,
     promoDiscountCents,
   });
 }

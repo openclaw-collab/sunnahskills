@@ -4,6 +4,7 @@ import { ClayButton } from "@/components/brand/ClayButton";
 import { OutlineButton } from "@/components/brand/OutlineButton";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { formatMoneyFromCents } from "@shared/money";
 
 type Discount = {
   id: number;
@@ -21,9 +22,7 @@ type Discount = {
 type Program = { id: string; name: string; slug: string };
 
 function money(cents: number) {
-  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 2 }).format(
-    cents / 100,
-  );
+  return formatMoneyFromCents(cents);
 }
 
 function formatDiscountValueInput(type: Discount["type"], value: number) {

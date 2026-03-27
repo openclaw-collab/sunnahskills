@@ -1,6 +1,7 @@
 import React, { useMemo } from "react";
 import { TelemetryCard } from "@/components/brand/TelemetryCard";
 import { PremiumCard } from "@/components/brand/PremiumCard";
+import { formatMoneyFromCents } from "@shared/money";
 
 type RegistrationRow = {
   registration_id: number;
@@ -21,12 +22,8 @@ function sumCents(rows: Array<{ amount: number | null | undefined }>) {
   return rows.reduce((acc, r) => acc + (typeof r.amount === "number" ? r.amount : 0), 0);
 }
 
-function money(amountCents: number, currency = "USD") {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency,
-    maximumFractionDigits: 0,
-  }).format(amountCents / 100);
+function money(amountCents: number, currency = "CAD") {
+  return formatMoneyFromCents(amountCents, { currency });
 }
 
 export function AdminOverview({
@@ -93,4 +90,3 @@ export function AdminOverview({
     </div>
   );
 }
-

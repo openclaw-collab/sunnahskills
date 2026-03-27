@@ -179,7 +179,7 @@ CREATE TABLE IF NOT EXISTS payments (
   subtotal INTEGER,
   discount_amount INTEGER DEFAULT 0,
   tax_amount INTEGER DEFAULT 0,
-  currency TEXT DEFAULT 'usd',
+  currency TEXT DEFAULT 'cad',
   status TEXT DEFAULT 'unpaid', -- unpaid, pending, paid, failed, refunded, partially_refunded
   payment_type TEXT, -- 'one_time', 'recurring', 'deposit'
   receipt_url TEXT,

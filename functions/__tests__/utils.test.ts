@@ -437,7 +437,7 @@ describe("Utility Functions", () => {
         expect(result.html).toContain("€100");
       });
 
-      it("should default to USD if currency not provided", () => {
+      it("should default to CAD if currency not provided", () => {
         const result = paymentReceiptEmail({
           guardianName: "John Doe",
           studentName: "Jimmy Doe",

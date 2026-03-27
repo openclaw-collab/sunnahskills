@@ -1,3 +1,5 @@
+import { DEFAULT_CURRENCY } from "../../../shared/money";
+
 /**
  * Secured endpoint for automated second payment (off-session) after the later-payment date.
  * Call from an external cron (e.g. daily) with Authorization: Bearer CRON_SECRET.
@@ -80,7 +82,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
 
     const params = new URLSearchParams();
     params.set("amount", String(amount));
-    params.set("currency", "usd");
+    params.set("currency", DEFAULT_CURRENCY);
     params.set("customer", order.stripe_customer_id);
     params.set("off_session", "true");
     params.set("confirm", "true");
@@ -143,7 +145,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
         metadata,
         created_at,
         updated_at
-      ) VALUES (?, ?, ?, ?, ?, 0, 'usd', 'pending', 'order_balance', ?, datetime('now'), datetime('now'))
+      ) VALUES (?, ?, ?, ?, ?, 0, ?, 'pending', 'order_balance', ?, datetime('now'), datetime('now'))
       `,
     )
       .bind(
@@ -152,6 +154,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
         stripeJson.id,
         amount,
         amount,
+        DEFAULT_CURRENCY,
         JSON.stringify({
           enrollmentOrderId: order.id,
           registrationIds,

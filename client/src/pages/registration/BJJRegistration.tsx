@@ -12,7 +12,8 @@ import { useGuardianSession, useGuardianStudents } from "@/hooks/useGuardianSess
 import { useProgramsCatalog } from "@/hooks/useProgramsCatalog";
 import { addLineToFamilyCart, loadFamilyCart, removeCartLine, type AccountCartSnapshot } from "@/lib/familyCart";
 import { BJJ_MARKETING_GROUPS, BJJ_TRACK_BY_KEY, isEligibleForBjjTrack, type BjjMarketingGroup } from "../../../../shared/bjjCatalog";
-import { computeLineTuitionCents, splitPaymentPlan } from "../../../../shared/orderPricing";
+import { computeLaterPaymentDateIso, computeLineTuitionCents, splitPaymentPlan } from "../../../../shared/orderPricing";
+import { formatMoneyFromCents } from "@shared/money";
 import { StudioBlock } from "@/studio/StudioBlock";
 import { StudioText } from "@/studio/StudioText";
 
@@ -29,7 +30,14 @@ function computeAge(dateOfBirth: string | null | undefined) {
 }
 
 function money(cents: number) {
-  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(cents / 100);
+  return formatMoneyFromCents(cents);
+}
+
+function formatScheduleDate(iso: string | null) {
+  if (!iso) return null;
+  const date = new Date(`${iso}T12:00:00`);
+  if (Number.isNaN(date.getTime())) return iso;
+  return date.toLocaleDateString("en-CA", { month: "short", day: "numeric", year: "numeric" });
 }
 
 export default function BJJRegistration() {
@@ -84,6 +92,8 @@ export default function BJJRegistration() {
         })
       : null;
   const paymentSplit = cartLinePreview ? splitPaymentPlan(cartLinePreview.afterSiblingCents, paymentChoice) : null;
+  const laterPaymentDate = computeLaterPaymentDateIso(semester);
+  const laterPaymentLabel = formatScheduleDate(laterPaymentDate);
 
   if (sessionQuery.isLoading || participantsQuery.isLoading || programsQuery.isLoading) {
     return (
@@ -292,7 +302,9 @@ export default function BJJRegistration() {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="full">Pay in full</SelectItem>
-                        <SelectItem value="plan">Pay half now, half on May 12</SelectItem>
+                        <SelectItem value="plan">
+                          {laterPaymentLabel ? `Pay half now, half on ${laterPaymentLabel}` : "Pay half now, half later"}
+                        </SelectItem>
                       </SelectContent>
                     </Select>
                   </label>
@@ -311,7 +323,7 @@ export default function BJJRegistration() {
                     <div>Estimated full-term total: <strong className="text-charcoal">{money(cartLinePreview?.afterSiblingCents ?? 0)}</strong></div>
                     <div className="mt-1">
                       {paymentChoice === "plan"
-                        ? `Due today ${money(paymentSplit.dueToday)} and ${money(paymentSplit.dueLater)} on May 12, 2026.`
+                        ? `Due today ${money(paymentSplit.dueToday)} and ${money(paymentSplit.dueLater)}${laterPaymentLabel ? ` on ${laterPaymentLabel}` : " later"}.`
                         : `Due today ${money(paymentSplit.dueToday)}.`}
                     </div>
                     <div className="mt-1 text-xs uppercase tracking-[0.16em] text-charcoal/55">

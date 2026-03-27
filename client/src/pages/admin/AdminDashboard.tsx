@@ -15,6 +15,7 @@ import { SessionManager } from "@/components/admin/SessionManager";
 import { ContactsTable } from "@/components/admin/ContactsTable";
 import { TrialsManager } from "@/components/admin/TrialsManager";
 import { AdminShell, type AdminPermissionKey, type AdminSection, type AdminUser, hasAdminAccess } from "@/components/admin/AdminShell";
+import { formatMoneyFromCents } from "@shared/money";
 
 type AdminMeResponse = { ok: true; user: AdminUser } | { ok: false };
 
@@ -116,12 +117,8 @@ const DASHBOARD_TABS: DashboardTabConfig[] = [
   { value: "export", label: "Export", permission: "exports", required: "read" },
 ];
 
-function money(amountCents: number, currency = "USD") {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency,
-    maximumFractionDigits: 0,
-  }).format(amountCents / 100);
+function money(amountCents: number, currency = "CAD") {
+  return formatMoneyFromCents(amountCents, { currency });
 }
 
 function numberValue(value: number | string | null | undefined) {

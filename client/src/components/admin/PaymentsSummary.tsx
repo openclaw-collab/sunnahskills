@@ -1,5 +1,6 @@
 import React from "react";
 import { PremiumCard } from "@/components/brand/PremiumCard";
+import { formatMoneyFromCents } from "@shared/money";
 
 type PaymentRow = {
   order_id?: number;
@@ -24,12 +25,8 @@ type PaymentRow = {
   created_at: string;
 };
 
-function money(amountCents: number, currency = "USD") {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency,
-    maximumFractionDigits: 0,
-  }).format(amountCents / 100);
+function money(amountCents: number, currency = "CAD") {
+  return formatMoneyFromCents(amountCents, { currency });
 }
 
 export function PaymentsSummary({ payments }: { payments: PaymentRow[] }) {
@@ -77,10 +74,10 @@ export function PaymentsSummary({ payments }: { payments: PaymentRow[] }) {
                   </div>
                 </td>
                 <td className="py-2 pr-4 align-top">
-                  <div>{money(p.amount_due_today_cents ?? p.amount ?? 0, (p.currency ?? "usd").toUpperCase())}</div>
+                  <div>{money(p.amount_due_today_cents ?? p.amount ?? 0, (p.currency ?? "cad").toUpperCase())}</div>
                   <div className="text-xs text-charcoal/55">
                     {(p.later_amount_cents ?? 0) > 0
-                      ? `${money(p.later_amount_cents ?? 0)} on ${p.later_payment_date ?? "TBD"}`
+                      ? `${money(p.later_amount_cents ?? 0, (p.currency ?? "cad").toUpperCase())} on ${p.later_payment_date ?? "TBD"}`
                       : "No later balance"}
                   </div>
                 </td>

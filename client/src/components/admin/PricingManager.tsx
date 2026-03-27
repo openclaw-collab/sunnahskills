@@ -3,6 +3,7 @@ import { PremiumCard } from "@/components/brand/PremiumCard";
 import { ClayButton } from "@/components/brand/ClayButton";
 import { OutlineButton } from "@/components/brand/OutlineButton";
 import { Input } from "@/components/ui/input";
+import { formatMoneyFromCents } from "@shared/money";
 
 type Program = { id: string; name: string; slug: string };
 type Price = {
@@ -31,9 +32,7 @@ type SemesterRow = {
 };
 
 function money(cents: number) {
-  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(
-    cents / 100,
-  );
+  return formatMoneyFromCents(cents);
 }
 
 function centsToDollarsInput(cents: number | null | undefined) {

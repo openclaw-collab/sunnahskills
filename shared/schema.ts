@@ -86,7 +86,7 @@ export const paymentSchema = z.object({
   subtotal: z.number().int().optional().nullable(),
   discount_amount: z.number().int().optional().nullable(),
   tax_amount: z.number().int().optional().nullable(),
-  currency: z.string().default("usd"),
+  currency: z.string().default("cad"),
   status: paymentStatusEnum.default("unpaid"),
   payment_type: z.string().optional().nullable(),
   receipt_url: z.string().url().optional().nullable(),

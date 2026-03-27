@@ -1,10 +1,10 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo } from "react";
 import { DarkCard } from "@/components/brand/DarkCard";
 import type { ProgramConfig } from "@/lib/programConfig";
 import { useProgramsCatalog } from "@/hooks/useProgramsCatalog";
+import { formatMoneyFromCents } from "@shared/money";
 import {
   getLinePriceBreakdown,
-  isKidsBjjTrack,
   type SemesterRow,
 } from "@shared/orderPricing";
 import type { BjjTrackValue } from "@/hooks/useRegistration";
@@ -19,7 +19,7 @@ const PLACEHOLDER_PRICES: Record<string, { label: string; amount: string; monthl
 const REG_FEE_PROGRAMS = ["bjj"];
 
 function money(cents: number) {
-  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(cents / 100);
+  return formatMoneyFromCents(cents);
 }
 
 function formatScheduleDate(iso: string | null) {
@@ -70,7 +70,6 @@ export function OrderSummaryCard({
   onDiscountCodeChange,
   bjjLinePreview,
 }: Props) {
-  const [promoApplied, setPromoApplied] = useState(false);
   const { data: catalog, isLoading: catalogLoading } = useProgramsCatalog();
 
   const price = PLACEHOLDER_PRICES[program.slug] ?? { label: "Program fee", amount: "TBD" };
@@ -85,8 +84,6 @@ export function OrderSummaryCard({
 
     const semester = mapCatalogSemesterToRow(bjj.active_semester);
     const track = bjjLinePreview.track;
-    const isKids = isKidsBjjTrack(track);
-    const siblingRank = siblingCount >= 1 && isKids ? 1 : 0;
 
     return getLinePriceBreakdown({
       track,
@@ -96,7 +93,7 @@ export function OrderSummaryCard({
       programPriceFrequency: tier.frequency,
       priceMetadataJson: tier.metadata,
       paymentChoice: bjjLinePreview.paymentChoice,
-      siblingRankAmongKidsStudents: siblingRank,
+      siblingDiscountEligible: siblingCount > 0,
       semester,
     });
   }, [program.slug, bjjLinePreview, catalog?.programs, siblingCount]);
@@ -166,7 +163,7 @@ export function OrderSummaryCard({
                 <div>
                   <div className="font-body text-sm text-moss">Sibling discount</div>
                   <div className="font-mono-label text-[9px] uppercase tracking-[0.15em] text-moss/60 mt-0.5">
-                    Kids lines · −10% on additional siblings
+                    Child sibling line · −10%
                   </div>
                 </div>
                 <div className="font-mono-label text-[12px] text-moss">−{money(bjjBreakdown.siblingDiscountCents)}</div>
@@ -213,20 +210,10 @@ export function OrderSummaryCard({
             <div>
               <div className="font-body text-sm text-moss">Sibling discount</div>
               <div className="font-mono-label text-[9px] uppercase tracking-[0.15em] text-moss/60 mt-0.5">
-                {siblingCount} sibling{siblingCount > 1 ? "s" : ""} indicated · kids tracks −10%
+                {siblingCount} sibling{siblingCount > 1 ? "s" : ""} indicated · child sibling lines −10%
               </div>
             </div>
             <div className="font-mono-label text-[12px] text-moss">At checkout</div>
-          </div>
-        )}
-
-        {promoApplied && discountCode && (
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <div className="font-body text-sm text-moss">Promo code</div>
-              <div className="font-mono-label text-[9px] uppercase tracking-[0.15em] text-moss/60 mt-0.5">{discountCode}</div>
-            </div>
-            <div className="font-mono-label text-[12px] text-moss">Applied</div>
           </div>
         )}
 
@@ -240,30 +227,18 @@ export function OrderSummaryCard({
 
       <div className="mt-5 pt-5 border-t border-cream/10">
         <div className="font-mono-label text-[9px] uppercase tracking-[0.18em] text-cream/40 mb-2">Promo / discount code</div>
-        <div className="flex gap-2">
+        <div className="space-y-2">
           <input
             type="text"
             value={discountCode}
-            onChange={(e) => {
-              onDiscountCodeChange(e.target.value.toUpperCase());
-              setPromoApplied(false);
-            }}
+            onChange={(e) => onDiscountCodeChange(e.target.value.toUpperCase())}
             placeholder="E.g. SIBLING10"
-            className="flex-1 rounded-xl bg-white/8 border border-cream/15 px-3 py-2 text-sm font-body text-cream placeholder:text-cream/25 focus:outline-none focus:border-clay focus:ring-1 focus:ring-clay/30 transition-colors"
+            className="w-full rounded-xl bg-white/8 border border-cream/15 px-3 py-2 text-sm font-body text-cream placeholder:text-cream/25 focus:outline-none focus:border-clay focus:ring-1 focus:ring-clay/30 transition-colors"
           />
-          <button
-            type="button"
-            onClick={() => {
-              if (discountCode.trim()) setPromoApplied(true);
-            }}
-            className="rounded-xl bg-clay/20 border border-clay/30 px-3 py-2 font-mono-label text-[9px] uppercase tracking-[0.15em] text-clay hover:bg-clay/30 transition-colors whitespace-nowrap"
-          >
-            Apply
-          </button>
         </div>
-        {promoApplied && (
-          <p className="font-body text-xs text-moss mt-1">Code applied — discount confirmed at checkout.</p>
-        )}
+        <p className="font-body text-xs text-cream/45 mt-1">
+          Enter a code here if staff gave you one. It will be validated by the live payment endpoint before any charge is created.
+        </p>
       </div>
 
       <div className="mt-5 rounded-xl bg-white/5 px-4 py-3">

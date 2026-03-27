@@ -1,12 +1,13 @@
 import { z } from "zod";
 import { sendMailChannelsEmail } from "../../_utils/email";
 import { adminNewRegistrationEmail, registrationConfirmationEmail, waitlistConfirmationEmail } from "../../_utils/emailTemplates";
+import { promoDiscountForSubtotal, resolveDiscountCode } from "../../_utils/discounts";
 import { getGuardianFromRequest } from "../../_utils/guardianAuth";
 import { BJJ_TRACK_BY_KEY, isBjjTrackKey, isEligibleForBjjTrack, normalizeGenderLabel } from "../../../shared/bjjCatalog";
 import {
   computeLaterPaymentDateIso,
   computeLineTuitionCents,
-  kidsSiblingRankForLine,
+  siblingDiscountEligibleForLine,
   splitPaymentPlan,
   type SemesterRow,
 } from "../../../shared/orderPricing";
@@ -359,61 +360,6 @@ async function loadProrationCode(env: Env, code: string) {
     .first<{ id: number; code: string }>();
 }
 
-type DiscountRow = {
-  id: number;
-  code: string;
-  type: "percentage" | "fixed" | "sibling";
-  value: number;
-  program_id: string | null;
-  max_uses: number | null;
-  current_uses: number | null;
-  valid_from: string | null;
-  valid_until: string | null;
-};
-
-async function loadDiscountCode(env: Env, code: string, programId: string) {
-  const normalized = code.trim().toUpperCase();
-  if (!normalized) return { row: null as DiscountRow | null, reason: "missing" as string | null };
-
-  const row = await env.DB.prepare(
-    `SELECT id, code, type, value, program_id, max_uses, current_uses, valid_from, valid_until
-     FROM discounts
-     WHERE code = ? AND active = 1
-     LIMIT 1`,
-  )
-    .bind(normalized)
-    .first<DiscountRow>();
-
-  if (!row) return { row: null as DiscountRow | null, reason: "not_found" as string | null };
-  if (row.program_id && row.program_id !== programId) {
-    return { row: null as DiscountRow | null, reason: "program_mismatch" as string | null };
-  }
-  if (row.type === "sibling") {
-    return { row: null as DiscountRow | null, reason: "unsupported_type" as string | null };
-  }
-  if (row.max_uses != null && row.current_uses != null && Number(row.current_uses) >= Number(row.max_uses)) {
-    return { row: null as DiscountRow | null, reason: "max_uses_reached" as string | null };
-  }
-
-  const now = Date.now();
-  const validFrom = row.valid_from ? Date.parse(String(row.valid_from)) : null;
-  const validUntil = row.valid_until ? Date.parse(String(row.valid_until)) : null;
-  if (validFrom && now < validFrom) return { row: null as DiscountRow | null, reason: "not_started" as string | null };
-  if (validUntil && now > validUntil) return { row: null as DiscountRow | null, reason: "expired" as string | null };
-
-  return { row, reason: null as string | null };
-}
-
-function promoDiscountForSubtotal(subtotalAfterSibling: number, discount: DiscountRow) {
-  if (discount.type === "percentage") {
-    return Math.max(0, Math.min(subtotalAfterSibling, Math.round((subtotalAfterSibling * Number(discount.value)) / 100)));
-  }
-  if (discount.type === "fixed") {
-    return Math.max(0, Math.min(subtotalAfterSibling, Math.round(Number(discount.value))));
-  }
-  return 0;
-}
-
 async function resolveTrialMatch(
   env: Env,
   accountEmail: string,
@@ -484,7 +430,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
   }
 
   const lineSkeleton = body.lines.map((line) => ({
-    track: line.programDetails.programSpecific.bjjTrack,
+    participantType: line.participant.participantType,
     student: {
       fullName: line.participant.fullName,
       dateOfBirth: line.participant.dateOfBirth,
@@ -559,7 +505,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
       line.participant.fullName,
     );
 
-    const siblingRank = kidsSiblingRankForLine(lineSkeleton, index);
+    const siblingDiscountEligible = siblingDiscountEligibleForLine(lineSkeleton, index);
     const trialCreditCents = trialMatch.id ? BJJ_TRACK_BY_KEY[track].defaultPerClassCents : 0;
     const pricing = computeLineTuitionCents({
       track,
@@ -569,7 +515,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
       programPriceFrequency: priceRow.frequency,
       priceMetadataJson: priceRow.metadata,
       paymentChoice: line.paymentChoice,
-      siblingRankAmongKidsStudents: siblingRank,
+      siblingDiscountEligible,
       semester,
       trialCreditCents,
       prorationAllowed: Boolean(prorationCode),
@@ -578,8 +524,8 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
     let promoCode: string | null = null;
     let promoDiscountCents = 0;
     if (line.discountCode?.trim()) {
-      const discount = await loadDiscountCode(env, line.discountCode, "bjj");
-      if (!discount.row) {
+      const discount = await resolveDiscountCode(env.DB, line.discountCode, { programId: "bjj" });
+      if (!discount.valid || !discount.row) {
         const message =
           discount.reason === "program_mismatch"
             ? "That discount code does not apply to this registration."
@@ -690,16 +636,6 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
     .run();
   const orderId = Number(orderInsert.meta?.last_row_id ?? 0);
   if (!orderId) return json({ error: "Could not create order." }, { status: 500 });
-
-  if (prorationCode?.id) {
-    await env.DB.prepare(
-      `UPDATE proration_codes
-       SET redeemed_at = datetime('now'), redeemed_order_id = ?
-       WHERE id = ?`,
-    )
-      .bind(orderId, prorationCode.id)
-      .run();
-  }
 
   const registrationIds: number[] = [];
   for (let index = 0; index < body.lines.length; index += 1) {

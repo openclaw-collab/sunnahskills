@@ -59,7 +59,7 @@ describe("OrderSummaryCard", () => {
 
     expect(screen.getByText("Sibling discount")).toBeInTheDocument();
     expect(screen.getByText(/1 sibling/)).toBeInTheDocument();
-    expect(screen.getByText(/kids tracks/)).toBeInTheDocument();
+    expect(screen.getByText(/child sibling lines/)).toBeInTheDocument();
   });
 
   it("shows plural form for multiple siblings", () => {
@@ -91,21 +91,17 @@ describe("OrderSummaryCard", () => {
     expect(handleChange).toHaveBeenCalledWith("PROMO20");
   });
 
-  it("applies promo code when Apply button clicked", () => {
-    const handleChange = vi.fn();
+  it("shows the live-validation promo helper copy", () => {
     render(
       <OrderSummaryCard
         program={PROGRAMS.bjj}
         siblingCount={0}
         discountCode="PROMO20"
-        onDiscountCodeChange={handleChange}
+        onDiscountCodeChange={() => {}}
       />,
     );
 
-    const applyButton = screen.getByRole("button", { name: /apply/i });
-    fireEvent.click(applyButton);
-
-    expect(screen.getByText(/code applied/i)).toBeInTheDocument();
+    expect(screen.getByText(/validated by the live payment endpoint/i)).toBeInTheDocument();
   });
 
   it("displays total section", () => {

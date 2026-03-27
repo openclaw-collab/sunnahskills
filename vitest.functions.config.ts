@@ -22,6 +22,7 @@ export default defineConfig({
     include: [
       "functions/__tests__/guardian-account.test.ts",
       "functions/__tests__/utils.test.ts",
+      "functions/__tests__/payments.test.ts",
     ],
     exclude: ["node_modules", "dist", ".idea", ".git", ".cache"],
     reporters: ["verbose"],

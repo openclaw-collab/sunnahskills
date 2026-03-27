@@ -10,7 +10,9 @@ import { onRequestPost as webhookHandler } from "../api/payments/webhook";
 import { createMockEnv, createMockRequest, parseJsonResponse } from "./setup";
 import Stripe from "stripe";
 
-vi.mock("stripe");
+vi.mock("stripe", () => ({
+  default: vi.fn(),
+}));
 vi.mock("../_utils/email", () => ({
   sendMailChannelsEmail: vi.fn().mockResolvedValue(true),
 }));
@@ -42,6 +44,7 @@ describe("Payment Endpoints", () => {
       customers: {
         list: vi.fn().mockResolvedValue({ data: [] }),
         create: vi.fn().mockResolvedValue({ id: "cus_test123" }),
+        update: vi.fn().mockResolvedValue({ id: "cus_test123" }),
       },
       coupons: {
         retrieve: vi.fn().mockRejectedValue(new Error("Not found")),
@@ -51,16 +54,21 @@ describe("Payment Endpoints", () => {
         create: vi.fn().mockResolvedValue({
           id: "sub_test123",
           latest_invoice: {
+            subtotal: 10000,
+            currency: "cad",
+            total_discount_amounts: [],
             payment_intent: {
               id: "pi_test123",
               client_secret: "pi_test123_secret",
+              amount: 10000,
+              currency: "cad",
             },
           },
         }),
       },
     };
 
-    vi.mocked(Stripe).mockImplementation(() => mockStripe);
+    vi.mocked(Stripe).mockImplementation(() => mockStripe as any);
   });
 
   describe("POST /api/payments/create-intent", () => {
@@ -198,8 +206,9 @@ describe("Payment Endpoints", () => {
       const body = new URLSearchParams(fetchCall[1]?.body as string);
       const amount = body.get("amount");
 
-      // Subtotal: 10000 + 5000 = 15000, 10% discount = 1500, Total: 13500
-      expect(amount).toBe("13500");
+      // 13 default scheduled classes * 10000 per class + 5000 reg fee = 135000.
+      // 10% sibling discount applies to eligible kids lines after subtotal.
+      expect(amount).toBe("121500");
     });
 
     it("should apply discount code", async () => {
@@ -237,8 +246,9 @@ describe("Payment Endpoints", () => {
       const body = new URLSearchParams(fetchCall[1]?.body as string);
       const amount = body.get("amount");
 
-      // Subtotal: 15000, 20% discount = 3000, Total: 12000
-      expect(amount).toBe("12000");
+      // 13 default scheduled classes * 10000 per class + 5000 reg fee = 135000.
+      // 20% promo applies after sibling math, so total becomes 108000.
+      expect(amount).toBe("108000");
     });
 
     it("should handle Stripe API error", async () => {
@@ -362,9 +372,12 @@ describe("Payment Endpoints", () => {
       mockDb.setMockData("registrations", [
         {
           id: 1,
-          program_id: 1,
+          program_id: "bjj",
           price_id: 1,
           amount: 10000,
+          guardian_email: "test@example.com",
+          guardian_name: "Test User",
+          program_specific_data: JSON.stringify({ bjjTrack: "men-14" }),
           price_metadata: JSON.stringify({ stripe_price_id: "price_test123" }),
         },
       ]);
@@ -386,9 +399,12 @@ describe("Payment Endpoints", () => {
       mockDb.setMockData("registrations", [
         {
           id: 1,
-          program_id: 1,
+          program_id: "bjj",
           price_id: 1,
           amount: 10000,
+          guardian_email: "test@example.com",
+          guardian_name: "Test User",
+          program_specific_data: JSON.stringify({ bjjTrack: "boys-7-13" }),
           price_metadata: JSON.stringify({ stripe_price_id: "price_test123" }),
         },
       ]);
@@ -418,9 +434,12 @@ describe("Payment Endpoints", () => {
       mockDb.setMockData("registrations", [
         {
           id: 1,
-          program_id: 1,
+          program_id: "bjj",
           price_id: 1,
           amount: 10000,
+          guardian_email: "test@example.com",
+          guardian_name: "Test User",
+          program_specific_data: JSON.stringify({ bjjTrack: "boys-7-13" }),
           price_metadata: JSON.stringify({ stripe_price_id: "price_test123" }),
         },
       ]);
@@ -449,9 +468,12 @@ describe("Payment Endpoints", () => {
       mockDb.setMockData("registrations", [
         {
           id: 1,
-          program_id: 1,
+          program_id: "bjj",
           price_id: 1,
           amount: 10000,
+          guardian_email: "test@example.com",
+          guardian_name: "Test User",
+          program_specific_data: JSON.stringify({ bjjTrack: "men-14" }),
           price_metadata: JSON.stringify({ stripe_price_id: "price_test123" }),
         },
       ]);
@@ -547,7 +569,8 @@ describe("Payment Endpoints", () => {
       const mockDb = env.DB as any;
       mockDb.setMockData("registrations", [{ id: 1, session_id: 1 }]);
 
-      const request = createMockRequest("POST", "https://example.com/api/payments/webhook", {
+      const request = new Request("https://example.com/api/payments/webhook", {
+        method: "POST",
         headers: { "stripe-signature": "valid-sig" },
         body: "test-payload",
       });
@@ -571,7 +594,8 @@ describe("Payment Endpoints", () => {
 
       mockStripe.webhooks.constructEvent.mockReturnValue(mockEvent);
 
-      const request = createMockRequest("POST", "https://example.com/api/payments/webhook", {
+      const request = new Request("https://example.com/api/payments/webhook", {
+        method: "POST",
         headers: { "stripe-signature": "valid-sig" },
         body: "test-payload",
       });
@@ -595,7 +619,8 @@ describe("Payment Endpoints", () => {
 
       mockStripe.webhooks.constructEvent.mockReturnValue(mockEvent);
 
-      const request = createMockRequest("POST", "https://example.com/api/payments/webhook", {
+      const request = new Request("https://example.com/api/payments/webhook", {
+        method: "POST",
         headers: { "stripe-signature": "valid-sig" },
         body: "test-payload",
       });
@@ -628,7 +653,8 @@ describe("Payment Endpoints", () => {
       const mockDb = env.DB as any;
       mockDb.setMockData("registrations", [{ id: 1, session_id: 1 }]);
 
-      const request = createMockRequest("POST", "https://example.com/api/payments/webhook", {
+      const request = new Request("https://example.com/api/payments/webhook", {
+        method: "POST",
         headers: { "stripe-signature": "valid-sig" },
         body: "test-payload",
       });
@@ -661,7 +687,8 @@ describe("Payment Endpoints", () => {
       const mockDb = env.DB as any;
       mockDb.setMockData("registrations", [{ id: 1, session_id: 1 }]);
 
-      const request = createMockRequest("POST", "https://example.com/api/payments/webhook", {
+      const request = new Request("https://example.com/api/payments/webhook", {
+        method: "POST",
         headers: { "stripe-signature": "valid-sig" },
         body: "test-payload",
       });
@@ -694,7 +721,8 @@ describe("Payment Endpoints", () => {
       const mockDb = env.DB as any;
       mockDb.setMockData("registrations", [{ id: 1, session_id: 1 }]);
 
-      const request = createMockRequest("POST", "https://example.com/api/payments/webhook", {
+      const request = new Request("https://example.com/api/payments/webhook", {
+        method: "POST",
         headers: { "stripe-signature": "valid-sig" },
         body: "test-payload",
       });

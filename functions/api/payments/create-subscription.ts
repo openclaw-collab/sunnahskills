@@ -1,4 +1,6 @@
 import Stripe from "stripe";
+import { DEFAULT_CURRENCY, normalizeCurrencyCode } from "../../../shared/money";
+import { discountInvalidReasonMessage, resolveDiscountCode } from "../../_utils/discounts";
 
 interface Env {
   DB: D1Database;
@@ -26,6 +28,12 @@ function compactWhitespace(value: string) {
 
 function isValidStripePriceId(value: string) {
   return /^price_[A-Za-z0-9]+$/.test(value.trim());
+}
+
+function promoCouponIdForDiscount(discount: { id: number; type: string; value: number }) {
+  const typeToken = discount.type === "fixed" ? "fixed" : "percent";
+  const valueToken = Math.max(0, Math.round(Number(discount.value ?? 0)));
+  return `promo-${discount.id}-${typeToken}-${valueToken}`;
 }
 
 async function ensureProgramPriceMetadataColumn(env: Env) {
@@ -70,6 +78,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
     SELECT r.id,
            r.program_id,
            r.price_id,
+           r.program_specific_data,
            p.amount,
            p.registration_fee,
            p.metadata as price_metadata,
@@ -86,6 +95,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
       id: number;
       program_id: string;
       price_id: number | null;
+      program_specific_data: string | null;
       amount: number | null;
       registration_fee: number | null;
       price_metadata: string | null;
@@ -156,58 +166,28 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
   // Promo code coupon if configured in D1.
   if (body.discountCode) {
     const code = body.discountCode.trim().toUpperCase();
-    const disc = await env.DB.prepare(
-      `
-      SELECT id, type, value, program_id, max_uses, current_uses, valid_from, valid_until, active
-      FROM discounts
-      WHERE code = ? AND active = 1
-      LIMIT 1
-      `,
-    )
-      .bind(code)
-      .first<{
-        id: number;
-        type: "percentage" | "fixed" | "sibling";
-        value: number;
-        program_id: string | null;
-        max_uses: number | null;
-        current_uses: number | null;
-        valid_from: string | null;
-        valid_until: string | null;
-        active: number;
-      }>();
-
-    if (disc && (!disc.program_id || disc.program_id === reg.program_id)) {
-      const now = Date.now();
-      const validFrom = disc.valid_from ? Date.parse(disc.valid_from) : null;
-      const validUntil = disc.valid_until ? Date.parse(disc.valid_until) : null;
-      const withinWindow = (!validFrom || now >= validFrom) && (!validUntil || now <= validUntil);
-      const underMaxUses =
-        disc.max_uses == null ||
-        disc.current_uses == null ||
-        Number(disc.current_uses) < Number(disc.max_uses);
-
-      if (withinWindow && underMaxUses) {
-        const couponId = `promo-${disc.id}`;
-        const couponParams: Stripe.CouponCreateParams =
-          disc.type === "fixed"
-            ? {
-                id: couponId,
-                amount_off: Math.max(0, Math.round(Number(disc.value))),
-                currency: "usd",
-                duration: "once",
-                name: `Promo ${code}`,
-              }
-            : {
-                id: couponId,
-                percent_off: Math.max(0, Math.min(100, Number(disc.value))),
-                duration: "once",
-                name: `Promo ${code}`,
-              };
-        const promoCoupon = await ensureCoupon(stripe, couponParams);
-        if (promoCoupon) discounts.push({ coupon: couponId });
-      }
+    const discount = await resolveDiscountCode(env.DB, code, { programId: reg.program_id });
+    if (!discount.valid || !discount.row) {
+      return json({ error: discountInvalidReasonMessage(discount.reason) }, { status: 400 });
     }
+    const couponId = promoCouponIdForDiscount(discount.row);
+    const couponParams: Stripe.CouponCreateParams =
+      discount.row.type === "fixed"
+        ? {
+            id: couponId,
+            amount_off: Math.max(0, Math.round(Number(discount.row.value))),
+            currency: DEFAULT_CURRENCY,
+            duration: "once",
+            name: `Promo ${code}`,
+          }
+        : {
+            id: couponId,
+            percent_off: Math.max(0, Math.min(100, Number(discount.row.value))),
+            duration: "once",
+            name: `Promo ${code}`,
+          };
+    const promoCoupon = await ensureCoupon(stripe, couponParams);
+    if (promoCoupon) discounts.push({ coupon: couponId });
   }
 
   const subscription = await stripe.subscriptions.create({
@@ -226,6 +206,12 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
   const latestInvoice = subscription.latest_invoice as Stripe.Invoice | null;
   const paymentIntent = latestInvoice?.payment_intent as Stripe.PaymentIntent | null;
   const clientSecret = paymentIntent?.client_secret ?? null;
+  const subtotalAmount = Number(latestInvoice?.subtotal ?? paymentIntent?.amount ?? 0);
+  const discountAmount = (latestInvoice?.total_discount_amounts ?? []).reduce(
+    (sum, item) => sum + Number(item.amount ?? 0),
+    0,
+  );
+  const currency = normalizeCurrencyCode(latestInvoice?.currency ?? paymentIntent?.currency ?? DEFAULT_CURRENCY);
 
   if (!clientSecret) {
     return json({ error: "Could not retrieve clientSecret from subscription" }, { status: 500 });
@@ -246,7 +232,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
       metadata,
       created_at,
       updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, 'usd', 'pending', 'subscription', ?, datetime('now'), datetime('now'))
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', 'subscription', ?, datetime('now'), datetime('now'))
     `,
   )
     .bind(
@@ -254,12 +240,14 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
       paymentIntent?.id ?? null,
       subscription.id,
       paymentIntent?.amount ?? 0,
-      paymentIntent?.amount ?? 0,
-      0,
+      subtotalAmount,
+      discountAmount,
+      currency,
       JSON.stringify({
         stripeCustomerId: customer.id,
         stripeSubscriptionId: subscription.id,
         siblingCount,
+        siblingApplied: siblingCount > 0,
         discountCode: body.discountCode?.trim().toUpperCase() ?? null,
       }),
     )

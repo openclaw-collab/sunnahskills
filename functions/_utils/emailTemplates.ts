@@ -246,11 +246,7 @@ export function paymentReceiptEmail(params: {
   siteUrl?: string;
 }) {
   const title = "Payment received";
-  const money = new Intl.NumberFormat(undefined, {
-    style: "currency",
-    currency: (params.currency || "usd").toUpperCase(),
-    maximumFractionDigits: 0,
-  }).format(params.amountCents / 100);
+  const money = formatMoneyFromCents(params.amountCents, { currency: params.currency });
 
   const text = `Sunnah Skills — Payment received
 
@@ -338,11 +334,7 @@ export function adminPaymentReceivedEmail(params: {
   siteUrl?: string;
 }) {
   const title = "Payment received";
-  const money = new Intl.NumberFormat(undefined, {
-    style: "currency",
-    currency: (params.currency || "usd").toUpperCase(),
-    maximumFractionDigits: 0,
-  }).format(params.amountCents / 100);
+  const money = formatMoneyFromCents(params.amountCents, { currency: params.currency });
 
   const dashUrl = params.siteUrl ? `${params.siteUrl}/admin/dashboard` : undefined;
   const text = `Payment received
@@ -434,3 +426,4 @@ Bring this QR code for check-in: ${params.qrVerifyUrl}`;
 
   return { subject: "Sunnah Skills — Free trial confirmed", text, html };
 }
+import { formatMoneyFromCents } from "../../shared/money";

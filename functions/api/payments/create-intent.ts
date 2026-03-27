@@ -1,4 +1,6 @@
 import { computeLineTuitionCents, type SemesterRow } from "../../../shared/orderPricing";
+import { DEFAULT_CURRENCY } from "../../../shared/money";
+import { discountInvalidReasonMessage, promoDiscountForSubtotal, resolveDiscountCode } from "../../_utils/discounts";
 
 interface Env {
   DB: D1Database;
@@ -57,7 +59,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
     }>();
 
   if (!reg) return json({ error: "Registration not found" }, { status: 404 });
-  if (!Number.isInteger(Number(reg.price_id ?? null)) || !Number.isInteger(Number(reg.amount ?? null))) {
+  if (reg.price_id == null || reg.amount == null) {
     return json({ error: "Registration has no price selected" }, { status: 400 });
   }
 
@@ -81,9 +83,6 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
     return json({ error: "siblingCount must be between 0 and 2" }, { status: 400 });
   }
 
-  const isKids = track === "girls-5-10" || track === "boys-7-13";
-  const siblingRank = siblingCount >= 1 && isKids ? 1 : 0;
-
   const linePricing = computeLineTuitionCents({
     track,
     priceId: Number(reg.price_id),
@@ -92,42 +91,21 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
     programPriceFrequency: reg.frequency,
     priceMetadataJson: reg.price_metadata,
     paymentChoice: "full",
-    siblingRankAmongKidsStudents: siblingRank,
+    siblingDiscountEligible: siblingCount > 0,
     semester: semesterRow ?? null,
   });
 
   const subtotal = linePricing.lineSubtotalCents;
-  let siblingDiscount = linePricing.siblingDiscountCents;
+  const siblingDiscount = linePricing.siblingDiscountCents;
   const afterSibling = linePricing.afterSiblingCents;
   let promoDiscount = 0;
 
   if (body.discountCode) {
-    const disc = await env.DB.prepare(
-      `
-      SELECT type, value, program_id, max_uses, current_uses, valid_from, valid_until, active
-      FROM discounts
-      WHERE code = ? AND active = 1
-      LIMIT 1
-      `,
-    )
-      .bind(body.discountCode.trim().toUpperCase())
-      .first();
-
-    if (disc && (!disc.program_id || disc.program_id === reg.program_id)) {
-      const now = Date.now();
-      const validFrom = disc.valid_from ? Date.parse(String(disc.valid_from)) : null;
-      const validUntil = disc.valid_until ? Date.parse(String(disc.valid_until)) : null;
-      const withinWindow = (!validFrom || now >= validFrom) && (!validUntil || now <= validUntil);
-      const underMaxUses =
-        disc.max_uses == null ||
-        disc.current_uses == null ||
-        Number(disc.current_uses) < Number(disc.max_uses);
-
-      if (withinWindow && underMaxUses) {
-        if (disc.type === "fixed") promoDiscount = Math.min(afterSibling, Number(disc.value));
-        if (disc.type === "percentage") promoDiscount = Math.floor((afterSibling * Number(disc.value)) / 100);
-      }
+    const discount = await resolveDiscountCode(env.DB, body.discountCode, { programId: reg.program_id });
+    if (!discount.valid || !discount.row) {
+      return json({ error: discountInvalidReasonMessage(discount.reason) }, { status: 400 });
     }
+    promoDiscount = promoDiscountForSubtotal(afterSibling, discount.row);
   }
   const discountAmount = siblingDiscount + promoDiscount;
   const total = Math.max(0, afterSibling - promoDiscount);
@@ -140,7 +118,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
 
   const params = new URLSearchParams();
   params.set("amount", String(total));
-  params.set("currency", "usd");
+  params.set("currency", DEFAULT_CURRENCY);
   params.set("automatic_payment_methods[enabled]", "true");
   params.set("metadata[registration_id]", String(body.registrationId));
   params.set("metadata[program_id]", String(reg.program_id ?? ""));
@@ -173,7 +151,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
       metadata,
       created_at,
       updated_at
-    ) VALUES (?, ?, ?, ?, ?, 'usd', 'pending', 'one_time', ?, datetime('now'), datetime('now'))
+    ) VALUES (?, ?, ?, ?, ?, ?, 'pending', 'one_time', ?, datetime('now'), datetime('now'))
     `,
   )
     .bind(
@@ -182,6 +160,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
       total,
       subtotal,
       discountAmount,
+      DEFAULT_CURRENCY,
       JSON.stringify({ discountCode: body.discountCode ?? null }),
     )
     .run();

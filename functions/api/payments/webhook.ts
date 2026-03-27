@@ -1,4 +1,5 @@
 import Stripe from "stripe";
+import { DEFAULT_CURRENCY } from "../../../shared/money";
 import { sendMailChannelsEmail } from "../../_utils/email";
 import { adminPaymentReceivedEmail, paymentReceiptEmail } from "../../_utils/emailTemplates";
 
@@ -98,6 +99,32 @@ async function incrementDiscountUse(env: Env, metadataJson: string | null | unde
       .bind(code)
       .run();
   }
+}
+
+function readPaymentMetadata(metadataJson: string | null | undefined) {
+  if (!metadataJson) return {};
+  try {
+    return JSON.parse(metadataJson) as {
+      prorationCode?: string | null;
+    };
+  } catch {
+    return {};
+  }
+}
+
+async function redeemProrationCode(env: Env, code: string | null | undefined, orderId: number) {
+  const normalized = String(code ?? "")
+    .trim()
+    .toUpperCase();
+  if (!normalized) return;
+  await env.DB.prepare(
+    `UPDATE proration_codes
+     SET redeemed_at = COALESCE(redeemed_at, datetime('now')),
+         redeemed_order_id = COALESCE(redeemed_order_id, ?)
+     WHERE code = ? AND active = 1`,
+  )
+    .bind(orderId, normalized)
+    .run();
 }
 
 async function sendPaymentEmails(
@@ -202,6 +229,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
 
       const orderIdFromMeta = pi.metadata?.enrollment_order_id ? Number(pi.metadata.enrollment_order_id) : null;
       const payPhase = String(pi.metadata?.pay_phase ?? "first");
+      const paymentMetadata = readPaymentMetadata(payment?.metadata);
 
       if (Number.isInteger(orderIdFromMeta) && orderIdFromMeta! > 0) {
         await env.DB.prepare(
@@ -269,7 +297,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
                 regIds.length > 1 ? `Household — remaining balance (${regIds.length} enrollments)` : firstReg.student_name,
               programName: firstReg.program_name,
               amount: Number(pi.amount_received ?? 0),
-              currency: String(pi.currency ?? "usd"),
+              currency: String(pi.currency ?? DEFAULT_CURRENCY),
               registrationId: regIds[0] ?? 0,
               receiptUrl,
             });
@@ -352,6 +380,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
         )
           .bind(newOrderStatus, orderIdFromMeta)
           .run();
+        await redeemProrationCode(env, paymentMetadata.prorationCode ?? null, orderIdFromMeta);
 
         if (firstReg?.guardian_email) {
           await sendPaymentEmails(env, {
@@ -361,7 +390,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
               regIds.length > 1 ? `Household (${regIds.length} students)` : firstReg.student_name,
             programName: firstReg.program_name,
             amount: Number(pi.amount_received ?? 0),
-            currency: String(pi.currency ?? "usd"),
+            currency: String(pi.currency ?? DEFAULT_CURRENCY),
             registrationId: regIds[0] ?? 0,
             receiptUrl,
           });
@@ -423,7 +452,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
             studentName: reg.student_name,
             programName: reg.program_name,
             amount: Number(reg.amount ?? pi.amount_received ?? 0),
-            currency: String(reg.currency ?? pi.currency ?? "usd"),
+            currency: String(reg.currency ?? pi.currency ?? DEFAULT_CURRENCY),
             registrationId,
             receiptUrl,
           });
@@ -506,7 +535,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
                 studentName: reg.student_name,
                 programName: reg.program_name,
                 amount: Number(payment.amount ?? invoice.amount_paid ?? 0),
-                currency: String(invoice.currency ?? payment.currency ?? "usd"),
+                currency: String(invoice.currency ?? payment.currency ?? DEFAULT_CURRENCY),
                 registrationId: payment.registration_id,
                 receiptUrl: invoice.hosted_invoice_url ?? invoice.invoice_pdf ?? null,
               });

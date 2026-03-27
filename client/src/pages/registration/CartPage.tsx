@@ -13,6 +13,7 @@ import { useGuardianSession } from "@/hooks/useGuardianSession";
 import { PaymentProvider } from "@/components/payment/PaymentProvider";
 import { PaymentForm } from "@/components/payment/PaymentForm";
 import { BJJ_TRACK_BY_KEY } from "../../../../shared/bjjCatalog";
+import { formatMoneyFromCents } from "@shared/money";
 import { StudioBlock } from "@/studio/StudioBlock";
 import { StudioText } from "@/studio/StudioText";
 
@@ -30,7 +31,7 @@ function isWomenTrackKey(track: string) {
 }
 
 function money(cents: number) {
-  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(cents / 100);
+  return formatMoneyFromCents(cents);
 }
 
 function discountReasonCopy(reason: string | undefined) {
@@ -45,6 +46,8 @@ function discountReasonCopy(reason: string | undefined) {
       return "That code isn't active yet.";
     case "expired":
       return "That code has expired.";
+    case "unsupported_type":
+      return "Sibling pricing is applied automatically. That code doesn't need to be entered here.";
     default:
       return "That discount code couldn't be applied.";
   }
@@ -328,14 +331,6 @@ export default function CartPage() {
       setLineDiscountFeedback((prev) => ({
         ...prev,
         [lineId]: { tone: "error", message: discountReasonCopy(json?.reason) },
-      }));
-      return;
-    }
-
-    if (json.type === "sibling") {
-      setLineDiscountFeedback((prev) => ({
-        ...prev,
-        [lineId]: { tone: "error", message: "Sibling pricing is applied automatically. That code doesn't need to be entered here." },
       }));
       return;
     }

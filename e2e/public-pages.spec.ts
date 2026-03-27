@@ -76,6 +76,21 @@ test.describe('Public pages', () => {
     await expect(page.getByText('Time grid · scroll horizontally on small screens')).toBeVisible();
   });
 
+  test('schedule page groups simultaneous classes into shared time slots', async ({ page }) => {
+    await navigateTo.schedule(page);
+    await waitFor.pageLoad(page);
+
+    const weeklyView = page.getByTestId('schedule-weekly-view');
+    await expect(weeklyView.getByText('2 classes running').first()).toBeVisible();
+    await expect(weeklyView.getByText('Girls 5–10').first()).toBeVisible();
+    await expect(weeklyView.getByText('Boys 7–13').first()).toBeVisible();
+    await expect(weeklyView.getByText('Parallel').first()).toBeVisible();
+
+    await page.getByRole('button', { name: 'Month', exact: true }).click();
+    await expect(page.getByText('2:30 PM · 2 classes').first()).toBeVisible();
+    await expect(page.getByText('10:00 AM · 2 classes').first()).toBeVisible();
+  });
+
   test('about, contact, and registration hub load current headings', async ({ page }) => {
     await navigateTo.about(page);
     await waitFor.pageLoad(page);

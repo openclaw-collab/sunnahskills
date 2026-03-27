@@ -6,6 +6,8 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const authFile = join(__dirname, '../playwright/.auth/admin.json');
+const adminEmail = process.env.ADMIN_EMAIL || 'muadh@sunnahskills.com';
+const adminPassword = process.env.ADMIN_PASSWORD || 'testpassword123';
 
 /**
  * Admin authentication setup.
@@ -13,7 +15,7 @@ const authFile = join(__dirname, '../playwright/.auth/admin.json');
  * Saves session cookie/storage to playwright/.auth/admin.json.
  *
  * Credentials come from .dev.vars.test (loaded by wrangler dev:test server):
- *   ADMIN_EMAIL=admin@sunnahskills.com
+ *   ADMIN_EMAIL=muadh@sunnahskills.com
  *   ADMIN_PASSWORD=testpassword123
  */
 setup('authenticate as admin', async ({ page }) => {
@@ -24,8 +26,8 @@ setup('authenticate as admin', async ({ page }) => {
   await page.waitForSelector('#admin-email', { timeout: 15_000 });
 
   // Labels are associated via htmlFor="admin-email" / htmlFor="admin-password"
-  await page.getByLabel('Email').fill('admin@sunnahskills.com');
-  await page.getByLabel('Password').fill('testpassword123');
+  await page.getByLabel('Email').fill(adminEmail);
+  await page.getByLabel('Password').fill(adminPassword);
   await page.getByRole('button', { name: /sign in/i }).click();
 
   // Wait for redirect to dashboard after successful login

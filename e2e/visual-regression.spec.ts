@@ -42,4 +42,14 @@ test.describe('Visual regression', () => {
     await grid.scrollIntoViewIfNeeded();
     await expect(grid).toHaveScreenshot('programs-grid-desktop.png');
   });
+
+  test('schedule week view keeps grouped concurrent classes legible', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 1100 });
+    await navigateTo.schedule(page);
+    await waitFor.pageLoad(page);
+
+    const weeklyView = page.getByTestId('schedule-weekly-view');
+    await weeklyView.scrollIntoViewIfNeeded();
+    await expect(weeklyView).toHaveScreenshot('schedule-weekly-view-desktop.png');
+  });
 });

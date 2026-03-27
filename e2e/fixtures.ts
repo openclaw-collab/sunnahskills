@@ -61,7 +61,7 @@ export const test = base.extend<TestFixtures>({
 
     // Navigate to admin login using accessible locators
     await page.goto('/admin/login');
-    await page.getByLabel(/email/i).fill(process.env.ADMIN_EMAIL || 'admin@sunnahskills.com');
+    await page.getByLabel(/email/i).fill(process.env.ADMIN_EMAIL || 'muadh@sunnahskills.com');
     await page.getByLabel(/password/i).fill(process.env.ADMIN_PASSWORD || 'testpassword123');
     await page.getByRole('button', { name: /sign in|login/i }).click();
 

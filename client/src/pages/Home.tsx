@@ -224,8 +224,8 @@ function SnapshotDeck() {
   }, [reduceMotion]);
 
   return (
-    <div className="relative mt-6 grid gap-4 lg:grid-cols-[minmax(0,0.92fr)_minmax(18rem,1.08fr)] lg:items-stretch">
-      <div className="grid grid-cols-1 gap-2 rounded-[1.6rem] border border-charcoal/8 bg-cream/45 p-2 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
+    <div className="relative mt-6 space-y-4">
+      <div className="grid grid-cols-2 gap-3">
         {snapshotCards.map((card, index) => {
           const isActive = index === activeIndex;
           return (
@@ -233,21 +233,25 @@ function SnapshotDeck() {
               key={card.label}
               type="button"
               onClick={() => setActiveIndex(index)}
-              className={`min-h-[7.5rem] rounded-[1.2rem] border px-4 py-4 text-left transition-all ${
+              className={`min-h-[6.75rem] rounded-[1.35rem] border px-4 py-4 text-left transition-all ${
                 isActive
-                  ? "border-moss/25 bg-white shadow-[0_10px_26px_rgba(26,26,26,0.08)]"
-                  : "border-transparent bg-transparent text-charcoal/60 hover:border-charcoal/8 hover:bg-white/40"
+                  ? "border-charcoal/15 bg-charcoal text-cream shadow-sm"
+                  : "border-charcoal/8 bg-cream/45 text-charcoal/70 hover:border-charcoal/15 hover:bg-white"
               }`}
             >
-              <div className="font-mono-label text-[9px] uppercase tracking-[0.16em] text-charcoal/45">{card.label}</div>
-              <div className={`mt-2 font-serif-accent text-2xl italic ${isActive ? "text-moss" : "text-charcoal/72"}`}>{card.value}</div>
-              <p className="mt-3 max-w-[16rem] text-xs leading-relaxed text-charcoal/55">{card.note}</p>
+              <div className={`font-mono-label text-[9px] uppercase tracking-[0.14em] ${isActive ? "text-cream/55" : "text-charcoal/45"}`}>
+                {card.label}
+              </div>
+              <div className={`mt-3 font-serif-accent text-[2rem] italic leading-none ${isActive ? "text-clay" : "text-charcoal"}`}>
+                {card.value}
+              </div>
             </button>
           );
         })}
       </div>
 
-      <div className="relative min-h-[18rem] rounded-[1.6rem] border border-charcoal/10 bg-white px-5 py-5 shadow-[0_20px_52px_rgba(26,26,26,0.09)] lg:min-h-full lg:px-6 lg:py-6">
+      <div className="relative overflow-hidden rounded-[1.75rem] border border-charcoal/10 bg-white shadow-sm">
+        <div className="absolute inset-x-0 top-0 h-20 bg-[radial-gradient(circle_at_top_left,rgba(170,95,72,0.14),transparent_58%)]" aria-hidden />
         <AnimatePresence mode="wait">
           <motion.div
             key={snapshotCards[activeIndex].label}
@@ -255,25 +259,33 @@ function SnapshotDeck() {
             animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
             exit={reduceMotion ? undefined : { opacity: 0, y: -8 }}
             transition={reduceMotion ? undefined : { duration: motionTime(0.32), ease: [0.22, 1, 0.36, 1] }}
-            className="flex h-full flex-col"
+            className="relative flex min-h-[15rem] flex-col px-5 py-5 lg:px-6 lg:py-6"
           >
             <div className="flex items-start justify-between gap-4">
               <div>
                 <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-charcoal/45">
                   {snapshotCards[activeIndex].label}
                 </div>
-                <div className="mt-4 font-serif-accent text-5xl italic leading-none text-moss">
+                <div className="mt-4 font-serif-accent text-5xl italic leading-none text-charcoal">
                   {snapshotCards[activeIndex].value}
                 </div>
               </div>
-              <span className="rounded-full border border-moss/15 bg-moss/6 px-3 py-1 font-mono-label text-[9px] uppercase tracking-[0.18em] text-charcoal/55">
-                Live now
+              <span className="rounded-full border border-charcoal/10 bg-charcoal/5 px-3 py-1 font-mono-label text-[9px] uppercase tracking-[0.16em] text-charcoal/55">
+                Academy now
               </span>
             </div>
-            <p className="mt-6 max-w-[24rem] text-sm leading-relaxed text-charcoal/68 lg:text-[15px]">
+
+            <p className="mt-5 max-w-[22rem] text-sm leading-relaxed text-charcoal/70 text-pretty lg:text-[15px]">
               {snapshotCards[activeIndex].note}
             </p>
-            <div className="mt-auto pt-8">
+
+            <div className="mt-auto flex items-end justify-between gap-5 pt-8">
+              <div className="max-w-[12rem] rounded-[1.2rem] border border-charcoal/8 bg-cream/55 px-3 py-3">
+                <div className="font-mono-label text-[8px] uppercase tracking-[0.14em] text-charcoal/45">Why it matters</div>
+                <div className="mt-2 text-xs leading-relaxed text-charcoal/65">
+                  Parents can see exactly how the academy is paced before they commit to registration.
+                </div>
+              </div>
               <div className="flex items-center gap-1.5">
                 {snapshotCards.map((card, index) => (
                   <button
@@ -307,9 +319,9 @@ function MiniScheduleCalendar() {
           Tue to Sat
         </div>
       </div>
-      <div className="grid gap-3 md:grid-cols-2 2xl:grid-cols-4">
+      <div className="grid gap-3 sm:grid-cols-2">
         {schedulePreviewGroups.map((group) => (
-          <div key={group.day} className="rounded-[1.25rem] border border-charcoal/8 bg-cream/55 p-3 lg:p-4">
+          <div key={group.day} className="rounded-[1.35rem] border border-charcoal/8 bg-cream/55 p-3.5 lg:p-4">
             <div className="flex items-center justify-between gap-2">
               <div className="font-mono-label text-[9px] uppercase tracking-[0.18em] text-charcoal/40">{group.day}</div>
               <div className="h-8 w-8 rounded-full border border-charcoal/8 bg-white text-center font-heading text-sm leading-8 text-charcoal">
@@ -318,7 +330,7 @@ function MiniScheduleCalendar() {
             </div>
             <div className="mt-3 space-y-2">
               {group.items.map((row) => (
-                <div key={`${group.day}-${row.track}-${row.time}`} className="rounded-xl border border-charcoal/6 bg-white px-3 py-3 shadow-[0_8px_22px_rgba(26,26,26,0.05)]">
+                <div key={`${group.day}-${row.track}-${row.time}`} className="rounded-xl border border-charcoal/6 bg-white px-3 py-3 shadow-sm">
                   <div className="font-heading text-[13px] leading-none text-charcoal">{row.track}</div>
                   <div className="mt-2 inline-flex rounded-full bg-clay/10 px-2.5 py-1 font-mono-label text-[8px] uppercase tracking-[0.14em] text-clay">
                     {row.time}
@@ -406,10 +418,10 @@ const Home = () => {
             whileInView={prefersReducedMotion ? undefined : { opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-10% 0px" }}
             transition={prefersReducedMotion ? undefined : { duration: motionTime(0.42) }}
-            className="mt-12 grid grid-cols-1 gap-6 md:auto-rows-fr md:grid-cols-2 xl:grid-cols-12 xl:items-start"
+            className="mt-12 grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-12 xl:items-start"
             data-testid="home-overview"
           >
-            <InfoCard title="Academy Snapshot" label="Snapshot" className="h-full overflow-hidden md:order-1 xl:col-span-4" >
+            <InfoCard title="Academy Snapshot" label="Snapshot" className="overflow-hidden md:order-1 xl:col-span-3" >
               <div className="space-y-3">
                 {academyStatusRows.map((row) => (
                   <div key={row.label} className="flex items-center justify-between rounded-2xl border border-charcoal/8 bg-cream/40 px-4 py-3">
@@ -423,7 +435,7 @@ const Home = () => {
               </div>
             </InfoCard>
 
-            <DarkCard className="order-3 h-full md:order-2 xl:col-span-3">
+            <DarkCard className="order-3 md:order-2 xl:col-span-3">
               <div className="mb-5 flex items-center gap-3">
                 <StatusDot ariaLabel="Technique preview" />
                 <span className="font-mono-label text-[11px] text-cream/70 uppercase tracking-[0.2em]">
@@ -444,7 +456,7 @@ const Home = () => {
               </div>
             </DarkCard>
 
-            <InfoCard title="Weekly Schedule" label="Current sessions" className="order-2 h-full md:order-3 md:col-span-2 xl:col-span-5">
+            <InfoCard title="Weekly Schedule" label="Current sessions" className="order-2 md:order-3 md:col-span-2 xl:col-span-6">
               <div className="space-y-4">
                 <div data-testid="home-mini-schedule">
                   <MiniScheduleCalendar />

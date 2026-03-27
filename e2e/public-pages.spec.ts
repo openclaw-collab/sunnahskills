@@ -66,14 +66,14 @@ test.describe('Public pages', () => {
     await waitFor.pageLoad(page);
 
     await expect(page.getByRole('heading', { name: 'Weekly class schedule' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Week', exact: true })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Month', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Weekly', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Monthly', exact: true })).toBeVisible();
 
-    await page.getByRole('button', { name: 'Month', exact: true }).click();
+    await page.getByRole('button', { name: 'Monthly', exact: true }).click();
     await expect(page.getByRole('button', { name: 'This month', exact: true })).toBeVisible();
 
-    await page.getByRole('button', { name: 'Week', exact: true }).click();
-    await expect(page.getByText('Time grid · scroll horizontally on small screens')).toBeVisible();
+    await page.getByRole('button', { name: 'Weekly', exact: true }).click();
+    await expect(page.getByText('Each day now reads as one coherent column.')).toBeVisible();
   });
 
   test('schedule page groups simultaneous classes into shared time slots', async ({ page }) => {
@@ -86,7 +86,7 @@ test.describe('Public pages', () => {
     await expect(weeklyView.getByText('Boys 7–13').first()).toBeVisible();
     await expect(weeklyView.getByText('Parallel').first()).toBeVisible();
 
-    await page.getByRole('button', { name: 'Month', exact: true }).click();
+    await page.getByRole('button', { name: 'Monthly', exact: true }).click();
     await expect(page.getByText('2:30 PM · 2 classes').first()).toBeVisible();
     await expect(page.getByText('10:00 AM · 2 classes').first()).toBeVisible();
   });

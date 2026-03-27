@@ -3,6 +3,7 @@ import { navigateTo, waitFor } from './fixtures';
 
 test.describe('Visual regression', () => {
   test('homepage snapshot card is stable on mobile', async ({ mobilePage }) => {
+    await mobilePage.emulateMedia({ reducedMotion: 'reduce' });
     await navigateTo.home(mobilePage);
     await waitFor.pageLoad(mobilePage);
 
@@ -13,6 +14,7 @@ test.describe('Visual regression', () => {
 
   test('homepage snapshot and mini-schedule hold together on desktop', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 1100 });
+    await page.emulateMedia({ reducedMotion: 'reduce' });
     await navigateTo.home(page);
     await waitFor.pageLoad(page);
 
@@ -25,6 +27,7 @@ test.describe('Visual regression', () => {
 
   test('enrollment cards stay balanced on desktop', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 1100 });
+    await page.emulateMedia({ reducedMotion: 'reduce' });
     await navigateTo.home(page);
     await waitFor.pageLoad(page);
 
@@ -35,6 +38,7 @@ test.describe('Visual regression', () => {
 
   test('program cards stay balanced on desktop', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 1100 });
+    await page.emulateMedia({ reducedMotion: 'reduce' });
     await navigateTo.programs(page);
     await waitFor.pageLoad(page);
 
@@ -45,6 +49,7 @@ test.describe('Visual regression', () => {
 
   test('schedule week view keeps grouped concurrent classes legible', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 1100 });
+    await page.emulateMedia({ reducedMotion: 'reduce' });
     await navigateTo.schedule(page);
     await waitFor.pageLoad(page);
 

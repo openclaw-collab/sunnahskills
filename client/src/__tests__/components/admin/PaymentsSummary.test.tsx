@@ -48,20 +48,20 @@ describe("PaymentsSummary", () => {
     expect(screen.getByText("John Doe")).toBeInTheDocument();
     expect(screen.getByText("Jimmy Doe")).toBeInTheDocument();
     expect(screen.getByText("paid")).toBeInTheDocument();
-    expect(screen.getByText("$100")).toBeInTheDocument();
+    expect(screen.getByText("$100.00")).toBeInTheDocument();
   });
 
   it("formats currency correctly", () => {
     render(<PaymentsSummary payments={mockPayments} />);
 
-    expect(screen.getByText("$100")).toBeInTheDocument();
-    expect(screen.getByText("$50")).toBeInTheDocument();
+    expect(screen.getByText("$100.00")).toBeInTheDocument();
+    expect(screen.getByText("$50.00")).toBeInTheDocument();
   });
 
   it("handles uppercase and lowercase currency codes", () => {
     render(<PaymentsSummary payments={mockPayments} />);
 
-    expect(screen.getAllByText(/\$\d+/).length).toBe(2);
+    expect(screen.getAllByText(/\$\d+\.\d{2}/).length).toBe(2);
   });
 
   it("displays empty state when no payments", () => {

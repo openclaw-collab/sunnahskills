@@ -21,7 +21,7 @@ describe("DiscountsManager", () => {
     render(<DiscountsManager />);
 
     expect(await screen.findByText("Discounts")).toBeInTheDocument();
-    expect(screen.getByText(/create promo codes/i)).toBeInTheDocument();
+    expect(screen.getByText(/create, edit, disable, or delete promo codes/i)).toBeInTheDocument();
   });
 
   it("renders form fields for creating discount", async () => {

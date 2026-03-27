@@ -2,6 +2,7 @@ import React, { ReactElement, ReactNode } from "react";
 import { render as rtlRender, RenderOptions } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { vi } from "vitest";
+import { StudioProvider } from "@/studio/StudioProvider";
 
 // ============================================================================
 // Query Client Factory for Tests
@@ -43,7 +44,9 @@ interface AllProvidersProps {
 export function AllProviders({ children, queryClient }: AllProvidersProps) {
   const client = queryClient ?? createTestQueryClient();
   return (
-    <QueryClientProvider client={client}>{children}</QueryClientProvider>
+    <StudioProvider>
+      <QueryClientProvider client={client}>{children}</QueryClientProvider>
+    </StudioProvider>
   );
 }
 
@@ -68,7 +71,9 @@ export function render(
 
   return rtlRender(ui, {
     wrapper: ({ children }) => (
-      <QueryClientProvider client={client}>{children}</QueryClientProvider>
+      <StudioProvider>
+        <QueryClientProvider client={client}>{children}</QueryClientProvider>
+      </StudioProvider>
     ),
     ...renderOptions,
   });
@@ -82,7 +87,9 @@ export function createWrapper(queryClient?: QueryClient) {
   const client = queryClient ?? createTestQueryClient();
   return function Wrapper({ children }: { children: ReactNode }) {
     return (
-      <QueryClientProvider client={client}>{children}</QueryClientProvider>
+      <StudioProvider>
+        <QueryClientProvider client={client}>{children}</QueryClientProvider>
+      </StudioProvider>
     );
   };
 }

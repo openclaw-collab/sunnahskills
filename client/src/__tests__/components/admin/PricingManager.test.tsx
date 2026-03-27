@@ -77,8 +77,8 @@ describe("PricingManager", () => {
   it("formats amounts as currency", async () => {
     render(<PricingManager />);
 
-    expect(await screen.findByText("$150")).toBeInTheDocument();
-    expect(screen.getByText("$50")).toBeInTheDocument();
+    expect(await screen.findByText("$150.00")).toBeInTheDocument();
+    expect(screen.getByText("$50.00")).toBeInTheDocument();
   });
 
   it("renders enable/disable button", async () => {

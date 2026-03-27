@@ -21,8 +21,8 @@ const mockRegistrations = [
 ];
 
 const mockPayments = [
-  { payment_id: 1, status: "paid", amount: 10000, currency: "USD" },
-  { payment_id: 2, status: "pending", amount: 5000, currency: "USD" },
+  { payment_id: 1, status: "paid", amount: 10000, currency: "CAD" },
+  { payment_id: 2, status: "pending", amount: 5000, currency: "CAD" },
 ];
 
 describe("AdminOverview", () => {
@@ -53,7 +53,7 @@ describe("AdminOverview", () => {
       <AdminOverview registrations={mockRegistrations} payments={mockPayments} />
     );
 
-    expect(screen.getByText("$100")).toBeInTheDocument();
+    expect(screen.getByText("$100.00")).toBeInTheDocument();
   });
 
   it("renders snapshot section", () => {
@@ -80,7 +80,7 @@ describe("AdminOverview", () => {
       <AdminOverview registrations={mockRegistrations} payments={mockPayments} />
     );
 
-    expect(screen.getByText(/paid • \$100/)).toBeInTheDocument();
+    expect(screen.getByText(/paid • \$100\.00/)).toBeInTheDocument();
   });
 
   it("handles empty data gracefully", () => {

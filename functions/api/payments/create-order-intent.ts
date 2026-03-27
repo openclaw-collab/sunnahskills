@@ -31,6 +31,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
       o.later_payment_date,
       o.trial_credit_cents,
       o.sibling_discount_cents,
+      o.metadata_json,
       o.stripe_payment_intent_id,
       o.stripe_customer_id,
       g.email as guardian_email,
@@ -51,6 +52,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
       later_payment_date: string | null;
       trial_credit_cents: number | null;
       sibling_discount_cents: number | null;
+      metadata_json: string | null;
       stripe_payment_intent_id: string | null;
       stripe_customer_id: string | null;
       guardian_email: string | null;
@@ -63,6 +65,18 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
 
   const dueToday = Math.max(0, Math.round(Number(order.amount_due_today_cents ?? 0)));
   const dueLater = Math.max(0, Math.round(Number(order.later_amount_cents ?? 0)));
+  let promoDiscountCents = 0;
+  let lineDiscountCodes: string[] = [];
+  try {
+    const metadata = JSON.parse(order.metadata_json ?? "{}") as { promoDiscountCents?: number; lineDiscountCodes?: string[] };
+    promoDiscountCents = Math.max(0, Number(metadata.promoDiscountCents ?? 0));
+    lineDiscountCodes = Array.isArray(metadata.lineDiscountCodes)
+      ? metadata.lineDiscountCodes.map((code) => String(code).trim().toUpperCase()).filter(Boolean)
+      : [];
+  } catch {
+    promoDiscountCents = 0;
+    lineDiscountCodes = [];
+  }
   if (dueToday <= 0) return json({ error: "Payment total must be greater than zero" }, { status: 400 });
   if (!order.guardian_email || !order.guardian_name) {
     return json({ error: "Order contact details are incomplete." }, { status: 400 });
@@ -98,6 +112,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
         laterPaymentDate: order.later_payment_date ?? null,
         trialCreditCents: Number(order.trial_credit_cents ?? 0),
         siblingDiscountCents: Number(order.sibling_discount_cents ?? 0),
+        promoDiscountCents,
       });
     }
     return json({ error: "Payment was already started for this order." }, { status: 400 });
@@ -175,7 +190,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
       registration_id, enrollment_order_id, stripe_payment_intent_id, amount, subtotal,
       discount_amount, currency, status, payment_type, metadata, created_at, updated_at
     )
-    SELECT ?, ?, ?, ?, ?, 0, 'usd', 'pending', 'order_deposit', ?, datetime('now'), datetime('now')
+    SELECT ?, ?, ?, ?, ?, ?, 'usd', 'pending', 'order_deposit', ?, datetime('now'), datetime('now')
     WHERE NOT EXISTS (
       SELECT 1
       FROM payments
@@ -189,10 +204,13 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
       intentJson.id,
       dueToday,
       Number(order.total_cents ?? dueToday + dueLater),
+      promoDiscountCents,
       JSON.stringify({
         enrollmentOrderId: orderId,
         registrationIds,
         dueLaterCents: dueLater,
+        discountCodes: lineDiscountCodes,
+        promoDiscountCents,
         payPhase: "first",
       }),
       orderId,
@@ -215,5 +233,6 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
     laterPaymentDate: order.later_payment_date ?? null,
     trialCreditCents: Number(order.trial_credit_cents ?? 0),
     siblingDiscountCents: Number(order.sibling_discount_cents ?? 0),
+    promoDiscountCents,
   });
 }

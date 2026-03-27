@@ -72,24 +72,32 @@ async function loadPaymentBySubscription(env: Env, subscriptionId: string) {
 
 async function incrementDiscountUse(env: Env, metadataJson: string | null | undefined) {
   if (!metadataJson) return;
-  let code: string | null = null;
+  let codes: string[] = [];
   try {
     const metadata = JSON.parse(metadataJson) as Record<string, unknown>;
-    code = typeof metadata.discountCode === "string" ? metadata.discountCode.trim().toUpperCase() : null;
+    if (Array.isArray(metadata.discountCodes)) {
+      codes = metadata.discountCodes
+        .map((value) => String(value).trim().toUpperCase())
+        .filter(Boolean);
+    } else if (typeof metadata.discountCode === "string") {
+      codes = [metadata.discountCode.trim().toUpperCase()];
+    }
   } catch {
-    code = null;
+    codes = [];
   }
-  if (!code) return;
+  if (codes.length === 0) return;
 
-  await env.DB.prepare(
-    `
-    UPDATE discounts
-    SET current_uses = COALESCE(current_uses, 0) + 1
-    WHERE code = ? AND active = 1 AND (max_uses IS NULL OR current_uses < max_uses)
-    `,
-  )
-    .bind(code)
-    .run();
+  for (const code of codes) {
+    await env.DB.prepare(
+      `
+      UPDATE discounts
+      SET current_uses = COALESCE(current_uses, 0) + 1
+      WHERE code = ? AND active = 1 AND (max_uses IS NULL OR current_uses < max_uses)
+      `,
+    )
+      .bind(code)
+      .run();
+  }
 }
 
 async function sendPaymentEmails(

@@ -8,7 +8,7 @@ import { OutlineButton } from "@/components/brand/OutlineButton";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
-import { loadFamilyCart, removeCartLine, clearFamilyCart, type FamilyCart } from "@/lib/familyCart";
+import { loadFamilyCart, removeCartLine, clearFamilyCart, updateCartLine, type FamilyCart } from "@/lib/familyCart";
 import { useGuardianSession } from "@/hooks/useGuardianSession";
 import { PaymentProvider } from "@/components/payment/PaymentProvider";
 import { PaymentForm } from "@/components/payment/PaymentForm";
@@ -33,6 +33,23 @@ function money(cents: number) {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(cents / 100);
 }
 
+function discountReasonCopy(reason: string | undefined) {
+  switch (reason) {
+    case "not_found":
+      return "That discount code wasn't found.";
+    case "program_mismatch":
+      return "That code doesn't apply to this registration.";
+    case "max_uses_reached":
+      return "That code has already been fully used.";
+    case "not_started":
+      return "That code isn't active yet.";
+    case "expired":
+      return "That code has expired.";
+    default:
+      return "That discount code couldn't be applied.";
+  }
+}
+
 export default function CartPage() {
   const [, navigate] = useLocation();
   const [cart, setCart] = React.useState<FamilyCart | null>(() => loadFamilyCart());
@@ -48,8 +65,14 @@ export default function CartPage() {
     laterPaymentDate: string | null;
     siblingDiscountCents: number;
     trialCreditCents: number;
+    promoDiscountCents: number;
   } | null>(null);
   const [prorationCode, setProrationCode] = React.useState("");
+  const [lineDiscountDrafts, setLineDiscountDrafts] = React.useState<Record<string, string>>({});
+  const [lineDiscountOpen, setLineDiscountOpen] = React.useState<Record<string, boolean>>({});
+  const [lineDiscountFeedback, setLineDiscountFeedback] = React.useState<
+    Record<string, { tone: "success" | "error"; message: string }>
+  >({});
   const [waivers, setWaivers] = React.useState({
     liabilityWaiver: false,
     photoConsent: false,
@@ -67,6 +90,23 @@ export default function CartPage() {
     [cartLines],
   );
   const requiresPhotoConsent = !womenOnlyOrder;
+
+  React.useEffect(() => {
+    const nextDrafts = Object.fromEntries(cartLines.map((line) => [line.id, line.discountCode ?? ""]));
+    const nextOpen = Object.fromEntries(cartLines.map((line) => [line.id, Boolean(line.discountCode)]));
+    const activeLineIds = new Set(cartLines.map((line) => line.id));
+    setLineDiscountDrafts(nextDrafts);
+    setLineDiscountOpen((prev) => {
+      const merged = { ...nextOpen };
+      for (const line of cartLines) {
+        if (prev[line.id]) merged[line.id] = true;
+      }
+      return merged;
+    });
+    setLineDiscountFeedback((prev) =>
+      Object.fromEntries(Object.entries(prev).filter(([lineId]) => activeLineIds.has(lineId))),
+    );
+  }, [cartLines]);
 
   React.useEffect(() => {
     (async () => {
@@ -255,6 +295,7 @@ export default function CartPage() {
         laterPaymentDate: payJson.laterPaymentDate ?? null,
         siblingDiscountCents: Number(payJson.siblingDiscountCents ?? 0),
         trialCreditCents: Number(payJson.trialCreditCents ?? 0),
+        promoDiscountCents: Number(payJson.promoDiscountCents ?? 0),
       });
       setPhase("pay");
     } catch (caught) {
@@ -262,6 +303,64 @@ export default function CartPage() {
     } finally {
       setSubmitting(false);
     }
+  }
+
+  async function applyLineDiscount(lineId: string) {
+    const code = lineDiscountDrafts[lineId]?.trim().toUpperCase() ?? "";
+    if (!code) {
+      setLineDiscountFeedback((prev) => ({
+        ...prev,
+        [lineId]: { tone: "error", message: "Enter a discount code first." },
+      }));
+      return;
+    }
+
+    const res = await fetch("/api/discounts/validate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ code, programId: "bjj" }),
+    });
+    const json = (await res.json().catch(() => null)) as
+      | { valid?: boolean; reason?: string; type?: string }
+      | null;
+
+    if (!res.ok || !json?.valid) {
+      setLineDiscountFeedback((prev) => ({
+        ...prev,
+        [lineId]: { tone: "error", message: discountReasonCopy(json?.reason) },
+      }));
+      return;
+    }
+
+    if (json.type === "sibling") {
+      setLineDiscountFeedback((prev) => ({
+        ...prev,
+        [lineId]: { tone: "error", message: "Sibling pricing is applied automatically. That code doesn't need to be entered here." },
+      }));
+      return;
+    }
+
+    const nextCart = updateCartLine(lineId, (line) => ({ ...line, discountCode: code }));
+    setCart(nextCart);
+    setLineDiscountFeedback((prev) => ({
+      ...prev,
+      [lineId]: { tone: "success", message: "Discount code saved for this registration." },
+    }));
+  }
+
+  function clearLineDiscount(lineId: string) {
+    const nextCart = updateCartLine(lineId, (line) => {
+      const nextLine = { ...line };
+      delete nextLine.discountCode;
+      return nextLine;
+    });
+    setCart(nextCart);
+    setLineDiscountDrafts((prev) => ({ ...prev, [lineId]: "" }));
+    setLineDiscountOpen((prev) => ({ ...prev, [lineId]: false }));
+    setLineDiscountFeedback((prev) => ({
+      ...prev,
+      [lineId]: { tone: "success", message: "Discount code removed." },
+    }));
   }
 
   return (
@@ -311,6 +410,21 @@ export default function CartPage() {
                           as="div"
                           className="mt-2 text-sm text-charcoal/65"
                         />
+                        <div className="mt-3 flex flex-wrap items-center gap-2">
+                          <OutlineButton
+                            className="px-3 py-2 text-[10px] uppercase tracking-[0.18em]"
+                            onClick={() =>
+                              setLineDiscountOpen((prev) => ({ ...prev, [line.id]: !prev[line.id] }))
+                            }
+                          >
+                            {line.discountCode ? "Edit discount" : "Add discount"}
+                          </OutlineButton>
+                          {line.discountCode ? (
+                            <div className="text-xs uppercase tracking-[0.16em] text-moss">
+                              Code saved: {line.discountCode}
+                            </div>
+                          ) : null}
+                        </div>
                       </div>
                       <OutlineButton
                         className="px-3 py-2 text-[10px] uppercase tracking-[0.18em]"
@@ -326,6 +440,52 @@ export default function CartPage() {
                         />
                       </OutlineButton>
                     </div>
+                    {lineDiscountOpen[line.id] ? (
+                      <div className="mt-4 rounded-2xl border border-charcoal/10 bg-white px-4 py-4">
+                        <div className="font-mono-label text-[9px] uppercase tracking-[0.18em] text-charcoal/50">
+                          Discount code
+                        </div>
+                        <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                          <Input
+                            className="bg-cream/50 border-charcoal/10"
+                            value={lineDiscountDrafts[line.id] ?? ""}
+                            onChange={(event) =>
+                              setLineDiscountDrafts((prev) => ({
+                                ...prev,
+                                [line.id]: event.target.value.toUpperCase(),
+                              }))
+                            }
+                            placeholder="Enter code for this registration"
+                          />
+                          <ClayButton
+                            className="px-4 py-2 text-[10px] uppercase tracking-[0.18em]"
+                            onClick={() => applyLineDiscount(line.id)}
+                          >
+                            Apply code
+                          </ClayButton>
+                          {line.discountCode ? (
+                            <OutlineButton
+                              className="px-4 py-2 text-[10px] uppercase tracking-[0.18em]"
+                              onClick={() => clearLineDiscount(line.id)}
+                            >
+                              Remove code
+                            </OutlineButton>
+                          ) : null}
+                        </div>
+                        <div className="mt-2 text-xs uppercase tracking-[0.16em] text-charcoal/55">
+                          Applies only to this registration line.
+                        </div>
+                        {lineDiscountFeedback[line.id] ? (
+                          <div
+                            className={`mt-3 text-sm ${
+                              lineDiscountFeedback[line.id]?.tone === "error" ? "text-clay" : "text-moss"
+                            }`}
+                          >
+                            {lineDiscountFeedback[line.id]?.message}
+                          </div>
+                        ) : null}
+                      </div>
+                    ) : null}
                   </div>
                 ))}
               </div>
@@ -334,7 +494,7 @@ export default function CartPage() {
                 <label className="text-sm text-charcoal">
                   <StudioText
                     k="registration.cart.discountLabel"
-                    defaultText="Staff discount code (optional)"
+                    defaultText="Staff proration code (optional)"
                     as="span"
                   />
                   <Input
@@ -346,7 +506,7 @@ export default function CartPage() {
                 </label>
                 <StudioText
                   k="registration.cart.discountHelper"
-                  defaultText="Leave blank for standard tuition pricing."
+                  defaultText="Use this only when staff provided a remaining-classes code for the whole order."
                   as="div"
                   className="mt-2 text-xs uppercase tracking-[0.16em] text-charcoal/55"
                 />
@@ -553,6 +713,12 @@ export default function CartPage() {
                   <div>
                     <StudioText k="registration.cart.summaryTrial" defaultText="Trial class credit:" as="span" />{" "}
                     <strong className="text-charcoal">−{money(summary.trialCreditCents)}</strong>
+                  </div>
+                ) : null}
+                {summary && summary.promoDiscountCents > 0 ? (
+                  <div>
+                    <StudioText k="registration.cart.summaryPromo" defaultText="Discount codes:" as="span" />{" "}
+                    <strong className="text-charcoal">−{money(summary.promoDiscountCents)}</strong>
                   </div>
                 ) : null}
                 <div>

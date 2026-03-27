@@ -48,6 +48,7 @@ const participantSchema = z.object({
 const lineSchema = z.object({
   participant: participantSchema,
   paymentChoice: z.enum(["full", "plan"]),
+  discountCode: z.string().trim().max(64).optional().default(""),
   programDetails: z.object({
     sessionId: z.number().int().positive().nullable().optional(),
     priceId: z.number().int().positive().nullable().optional(),
@@ -269,6 +270,8 @@ async function insertRegistrationRecord(
     experienceLevel: string;
     track: string;
     notes: string;
+    discountCode: string | null;
+    promoDiscountCents: number;
   },
 ) {
   const result = await env.DB.prepare(
@@ -291,6 +294,8 @@ async function insertRegistrationRecord(
         participantType: args.participantType,
         experienceLevel: args.experienceLevel,
         notes: args.notes || undefined,
+        discountCode: args.discountCode,
+        promoDiscountCents: args.promoDiscountCents,
       }),
       args.orderId,
       args.paymentChoice,
@@ -352,6 +357,61 @@ async function loadProrationCode(env: Env, code: string) {
   )
     .bind(code.trim().toUpperCase())
     .first<{ id: number; code: string }>();
+}
+
+type DiscountRow = {
+  id: number;
+  code: string;
+  type: "percentage" | "fixed" | "sibling";
+  value: number;
+  program_id: string | null;
+  max_uses: number | null;
+  current_uses: number | null;
+  valid_from: string | null;
+  valid_until: string | null;
+};
+
+async function loadDiscountCode(env: Env, code: string, programId: string) {
+  const normalized = code.trim().toUpperCase();
+  if (!normalized) return { row: null as DiscountRow | null, reason: "missing" as string | null };
+
+  const row = await env.DB.prepare(
+    `SELECT id, code, type, value, program_id, max_uses, current_uses, valid_from, valid_until
+     FROM discounts
+     WHERE code = ? AND active = 1
+     LIMIT 1`,
+  )
+    .bind(normalized)
+    .first<DiscountRow>();
+
+  if (!row) return { row: null as DiscountRow | null, reason: "not_found" as string | null };
+  if (row.program_id && row.program_id !== programId) {
+    return { row: null as DiscountRow | null, reason: "program_mismatch" as string | null };
+  }
+  if (row.type === "sibling") {
+    return { row: null as DiscountRow | null, reason: "unsupported_type" as string | null };
+  }
+  if (row.max_uses != null && row.current_uses != null && Number(row.current_uses) >= Number(row.max_uses)) {
+    return { row: null as DiscountRow | null, reason: "max_uses_reached" as string | null };
+  }
+
+  const now = Date.now();
+  const validFrom = row.valid_from ? Date.parse(String(row.valid_from)) : null;
+  const validUntil = row.valid_until ? Date.parse(String(row.valid_until)) : null;
+  if (validFrom && now < validFrom) return { row: null as DiscountRow | null, reason: "not_started" as string | null };
+  if (validUntil && now > validUntil) return { row: null as DiscountRow | null, reason: "expired" as string | null };
+
+  return { row, reason: null as string | null };
+}
+
+function promoDiscountForSubtotal(subtotalAfterSibling: number, discount: DiscountRow) {
+  if (discount.type === "percentage") {
+    return Math.max(0, Math.min(subtotalAfterSibling, Math.round((subtotalAfterSibling * Number(discount.value)) / 100)));
+  }
+  if (discount.type === "fixed") {
+    return Math.max(0, Math.min(subtotalAfterSibling, Math.round(Number(discount.value))));
+  }
+  return 0;
 }
 
 async function resolveTrialMatch(
@@ -438,7 +498,14 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
     track: string;
     participantAge: number;
     trialBookingId: number | null;
-    pricing: ReturnType<typeof computeLineTuitionCents> & { dueTodayCents: number; dueLaterCents: number };
+    promoCode: string | null;
+    promoDiscountCents: number;
+    afterPromoCents: number;
+    pricing: ReturnType<typeof computeLineTuitionCents> & {
+      dueTodayCents: number;
+      dueLaterCents: number;
+      afterPromoCents: number;
+    };
     manualReviewReason: string | null;
   }> = [];
 
@@ -508,7 +575,30 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
       prorationAllowed: Boolean(prorationCode),
       chargeDateIso: todayIso(),
     });
-    const split = splitPaymentPlan(pricing.afterSiblingCents, line.paymentChoice);
+    let promoCode: string | null = null;
+    let promoDiscountCents = 0;
+    if (line.discountCode?.trim()) {
+      const discount = await loadDiscountCode(env, line.discountCode, "bjj");
+      if (!discount.row) {
+        const message =
+          discount.reason === "program_mismatch"
+            ? "That discount code does not apply to this registration."
+            : discount.reason === "max_uses_reached"
+              ? "That discount code has already been fully used."
+              : discount.reason === "not_started"
+                ? "That discount code is not active yet."
+                : discount.reason === "expired"
+                  ? "That discount code has expired."
+                  : discount.reason === "unsupported_type"
+                    ? "Sibling pricing is already applied automatically on eligible lines."
+                    : "That discount code is invalid.";
+        return json({ error: message, line: index }, { status: 400 });
+      }
+      promoCode = discount.row.code;
+      promoDiscountCents = promoDiscountForSubtotal(pricing.afterSiblingCents, discount.row);
+    }
+    const afterPromoCents = Math.max(0, pricing.afterSiblingCents - promoDiscountCents);
+    const split = splitPaymentPlan(afterPromoCents, line.paymentChoice);
 
     lineMeta.push({
       waitlisted,
@@ -517,9 +607,13 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
       track,
       participantAge,
       trialBookingId: trialMatch.id,
+      promoCode,
+      promoDiscountCents,
+      afterPromoCents,
       manualReviewReason: trialMatch.ambiguous ? "trial_match_ambiguous" : null,
       pricing: {
         ...pricing,
+        afterPromoCents,
         dueTodayCents: split.dueToday,
         dueLaterCents: split.dueLater,
       },
@@ -535,16 +629,18 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
   const guardianId = await insertGuardianRecord(env, body.account);
   if (!guardianId) return json({ error: "Could not create account record." }, { status: 500 });
 
-  const totalCents = lineMeta.filter((line) => !line.waitlisted).reduce((sum, line) => sum + line.pricing.afterSiblingCents, 0);
+  const totalCents = lineMeta.filter((line) => !line.waitlisted).reduce((sum, line) => sum + line.afterPromoCents, 0);
   const dueTodayCents = lineMeta.filter((line) => !line.waitlisted).reduce((sum, line) => sum + line.pricing.dueTodayCents, 0);
   const dueLaterCents = lineMeta.filter((line) => !line.waitlisted).reduce((sum, line) => sum + line.pricing.dueLaterCents, 0);
   const siblingDiscountCents = lineMeta.reduce((sum, line) => sum + line.pricing.siblingDiscountCents, 0);
   const trialCreditCents = lineMeta.reduce((sum, line) => sum + line.pricing.trialCreditCents, 0);
+  const promoDiscountCents = lineMeta.filter((line) => !line.waitlisted).reduce((sum, line) => sum + line.promoDiscountCents, 0);
   const allWaitlisted = lineMeta.length > 0 && lineMeta.every((line) => line.waitlisted);
   const reviewReasons = new Set<string>();
   if (prorationCode) reviewReasons.add("prorated");
   if (trialCreditCents > 0) reviewReasons.add("trial_credit");
   if (siblingDiscountCents > 0) reviewReasons.add("sibling_discount");
+  if (promoDiscountCents > 0) reviewReasons.add("promo_discount");
   if (dueLaterCents > 0) reviewReasons.add("payment_plan");
   for (const line of lineMeta) {
     if (line.manualReviewReason) reviewReasons.add(line.manualReviewReason);
@@ -583,6 +679,11 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
         prorationCode: prorationCode?.code ?? null,
         trialCreditCents,
         siblingDiscountCents,
+        promoDiscountCents,
+        lineDiscountCodes: lineMeta
+          .filter((line) => !line.waitlisted)
+          .map((line) => line.promoCode)
+          .filter((code): code is string => Boolean(code)),
         waiverVersionId: waiver.id,
       }),
     )
@@ -621,6 +722,8 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
       experienceLevel: line.participant.experienceLevel,
       track: meta.track,
       notes: line.programDetails.programSpecific.notes,
+      discountCode: meta.promoCode,
+      promoDiscountCents: meta.promoDiscountCents,
     });
     if (!registrationId) return json({ error: "Could not create registration.", line: index }, { status: 500 });
 
@@ -693,6 +796,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
       laterPaymentDate: allWaitlisted ? null : computeLaterPaymentDateIso(semester),
       trialCreditCents,
       siblingDiscountCents,
+      promoDiscountCents,
       prorationApplied: Boolean(prorationCode),
       waiverVersion: waiver.version_label,
     },

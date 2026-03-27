@@ -24,6 +24,7 @@ export type FamilyCartLine = {
   id: string;
   participant: ParticipantCartSnapshot;
   paymentChoice: "full" | "plan";
+  discountCode?: string;
   programDetails: {
     sessionId: number;
     priceId: number;
@@ -90,4 +91,16 @@ export function removeCartLine(lineId: string) {
     return;
   }
   saveFamilyCart({ ...existing, lines });
+}
+
+export function updateCartLine(
+  lineId: string,
+  updater: (line: FamilyCartLine) => FamilyCartLine,
+) {
+  const existing = loadFamilyCart();
+  if (!existing) return null;
+  const lines = existing.lines.map((line) => (line.id === lineId ? updater(line) : line));
+  const next = { ...existing, lines };
+  saveFamilyCart(next);
+  return next;
 }

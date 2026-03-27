@@ -410,18 +410,19 @@ const Home = () => {
         </div>
       </header>
 
-      <section id="overview" className="py-32 bg-cream relative z-20 overflow-hidden">
-        <div className="max-w-7xl mx-auto px-6">
+      <section id="overview" className="relative z-20 overflow-hidden bg-cream py-28 xl:py-32">
+        <div className="pointer-events-none absolute inset-x-0 top-10 h-72 bg-[radial-gradient(circle_at_center,rgba(170,95,72,0.08),transparent_64%)]" aria-hidden />
+        <div className="relative mx-auto max-w-[92rem] px-6">
           <SectionHeader eyebrow="Current Sessions" title="This Week at Sunnah Skills" />
           <motion.div
             initial={prefersReducedMotion ? false : { opacity: 0, y: 20 }}
             whileInView={prefersReducedMotion ? undefined : { opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-10% 0px" }}
             transition={prefersReducedMotion ? undefined : { duration: motionTime(0.42) }}
-            className="mt-12 grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-12 xl:items-start"
+            className="mt-12 grid grid-cols-1 gap-6 lg:grid-cols-2 xl:grid-cols-[minmax(19rem,0.92fr)_minmax(20rem,0.96fr)_minmax(31rem,1.55fr)] xl:items-start xl:gap-5 2xl:grid-cols-[minmax(20rem,0.9fr)_minmax(21rem,0.98fr)_minmax(34rem,1.62fr)]"
             data-testid="home-overview"
           >
-            <InfoCard title="Academy Snapshot" label="Snapshot" className="overflow-hidden md:order-1 xl:col-span-3" >
+            <InfoCard title="Academy Snapshot" label="Snapshot" className="overflow-hidden lg:order-1 xl:min-h-[35rem]" >
               <div className="space-y-3">
                 {academyStatusRows.map((row) => (
                   <div key={row.label} className="flex items-center justify-between rounded-2xl border border-charcoal/8 bg-cream/40 px-4 py-3">
@@ -435,7 +436,7 @@ const Home = () => {
               </div>
             </InfoCard>
 
-            <DarkCard className="order-3 md:order-2 xl:col-span-3">
+            <DarkCard className="order-2 lg:order-2 xl:mt-6 xl:min-h-[31rem]">
               <div className="mb-5 flex items-center gap-3">
                 <StatusDot ariaLabel="Technique preview" />
                 <span className="font-mono-label text-[11px] text-cream/70 uppercase tracking-[0.2em]">
@@ -456,7 +457,7 @@ const Home = () => {
               </div>
             </DarkCard>
 
-            <InfoCard title="Weekly Schedule" label="Current sessions" className="order-2 md:order-3 md:col-span-2 xl:col-span-6">
+            <InfoCard title="Weekly Schedule" label="Current sessions" className="order-3 lg:col-span-2 xl:col-span-1 xl:min-h-[35rem]">
               <div className="space-y-4">
                 <div data-testid="home-mini-schedule">
                   <MiniScheduleCalendar />

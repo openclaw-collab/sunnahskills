@@ -8,6 +8,8 @@ import { ClayButton } from "@/components/brand/ClayButton";
 import { OutlineButton } from "@/components/brand/OutlineButton";
 import { ProgressIndicator, type ProgressStep } from "@/components/registration/ProgressIndicator";
 import { MotionPage } from "@/components/motion/PageMotion";
+import { StudioBlock } from "@/studio/StudioBlock";
+import { StudioText } from "@/studio/StudioText";
 
 export type WizardStepRenderArgs = {
   stepId: string;
@@ -77,53 +79,63 @@ export function RegistrationWizard({
       <main className="max-w-6xl mx-auto px-6 pt-28">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
           <div className="lg:col-span-2 space-y-6">
-            <SectionHeader eyebrow="Registration" title={program.name} />
-            <p className="font-body text-sm text-charcoal/70 max-w-2xl">
-              {program.shortPitch}
-            </p>
+            <StudioBlock id={`registration.${program.slug}.hero`} label={`${program.name} hero`}>
+              <SectionHeader
+                eyebrow={<StudioText k={`registration.${program.slug}.eyebrow`} defaultText="Registration" />}
+                title={<StudioText k={`registration.${program.slug}.title`} defaultText={program.name} />}
+              />
+              <StudioText
+                k={`registration.${program.slug}.pitch`}
+                defaultText={program.shortPitch}
+                as="p"
+                className="font-body text-sm text-charcoal/70 max-w-2xl"
+              />
+            </StudioBlock>
 
-            <PremiumCard className="bg-white border border-charcoal/10">
-              <ProgressIndicator steps={steps} currentStepIndex={currentStepIndex} className="mb-6" />
+            <StudioBlock id={`registration.${program.slug}.wizard`} label={`${program.name} wizard`}>
+              <PremiumCard className="bg-white border border-charcoal/10">
+                <ProgressIndicator steps={steps} currentStepIndex={currentStepIndex} className="mb-6" />
 
-              <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-moss">
-                Step {currentStepIndex + 1} / {steps.length}: {step?.label}
-              </div>
-
-              <AnimatePresence mode="wait" initial={false}>
-                <motion.div
-                  key={step?.id ?? currentStepIndex}
-                  className="mt-6"
-                  variants={stepVariants}
-                  initial="initial"
-                  animate="animate"
-                  exit="exit"
-                >
-                  {step ? renderStep({ stepId: step.id }) : null}
-                </motion.div>
-              </AnimatePresence>
-
-              <div className="mt-8 flex flex-col gap-4">
-                {footerExtra ? <div className="flex flex-wrap gap-3 justify-end">{footerExtra}</div> : null}
-                <div className="flex flex-col sm:flex-row gap-3 justify-between">
-                  <OutlineButton
-                    type="button"
-                    onClick={onBack}
-                    disabled={currentStepIndex === 0}
-                    className="px-7 py-3.5 text-[11px] uppercase tracking-[0.18em] disabled:opacity-50"
-                  >
-                    Back
-                  </OutlineButton>
-
-                  <ClayButton
-                    type="button"
-                    onClick={isLast ? onSubmit : onNext}
-                    className="px-7 py-3.5 text-[11px] uppercase tracking-[0.18em]"
-                  >
-                    {footerCta}
-                  </ClayButton>
+                <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-moss">
+                  Step {currentStepIndex + 1} / {steps.length}: {step?.label}
                 </div>
-              </div>
-            </PremiumCard>
+
+                <AnimatePresence mode="wait" initial={false}>
+                  <motion.div
+                    key={step?.id ?? currentStepIndex}
+                    className="mt-6"
+                    variants={stepVariants}
+                    initial="initial"
+                    animate="animate"
+                    exit="exit"
+                  >
+                    {step ? renderStep({ stepId: step.id }) : null}
+                  </motion.div>
+                </AnimatePresence>
+
+                <div className="mt-8 flex flex-col gap-4">
+                  {footerExtra ? <div className="flex flex-wrap gap-3 justify-end">{footerExtra}</div> : null}
+                  <div className="flex flex-col sm:flex-row gap-3 justify-between">
+                    <OutlineButton
+                      type="button"
+                      onClick={onBack}
+                      disabled={currentStepIndex === 0}
+                      className="px-7 py-3.5 text-[11px] uppercase tracking-[0.18em] disabled:opacity-50"
+                    >
+                      Back
+                    </OutlineButton>
+
+                    <ClayButton
+                      type="button"
+                      onClick={isLast ? onSubmit : onNext}
+                      className="px-7 py-3.5 text-[11px] uppercase tracking-[0.18em]"
+                    >
+                      {footerCta}
+                    </ClayButton>
+                  </div>
+                </div>
+              </PremiumCard>
+            </StudioBlock>
           </div>
 
           <div className="space-y-4">

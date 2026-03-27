@@ -4,7 +4,7 @@ import { useStudio } from "./useStudio";
 import { canUseLocalStudio } from "./studioStore";
 import { ComponentHighlighter } from "./ComponentHighlighter";
 import { PasswordGate } from "./PasswordGate";
-import { InspectorPanel, PageImageLibrary, StudioTextPanel, StudioThemePanel } from "./InspectorPanel";
+import { InspectorPanel, PageImageLibrary, PageTextLibrary, StudioTextPanel, StudioThemePanel } from "./InspectorPanel";
 import { ChangesExport } from "./ChangesExport";
 import { listVisibleStudioComponents } from "./studioDom";
 
@@ -12,6 +12,7 @@ type PanelTab = "inspect" | "theme" | "text" | "export";
 
 export default function StudioShell() {
   const { state, setEnabled, pinnedComponentId, setPinnedComponentId, blocks } = useStudio();
+  const adminLoginHref = `/admin?next=${encodeURIComponent(`${window.location.pathname}${window.location.search}`)}`;
 
   const [open, setOpen] = useState(true);
   const [tab, setTab] = useState<PanelTab>("inspect");
@@ -42,6 +43,42 @@ export default function StudioShell() {
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, [state.enabled, state.mode, navigateMode, open]);
+
+  if (state.mode === "admin" && !state.authed) {
+    return (
+      <div
+        data-studio-ui="1"
+        className="fixed inset-0 z-[100] flex items-center justify-center bg-charcoal/60 backdrop-blur-sm"
+      >
+        <div className="w-[min(100vw-2rem,30rem)] rounded-3xl bg-white shadow-2xl p-8">
+          <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-moss mb-3">
+            Stakeholder Studio
+          </div>
+          <h2 className="font-heading text-2xl text-charcoal mb-1">Admin sign-in required</h2>
+          <p className="font-body text-sm text-charcoal/60 mb-6">
+            This Studio link only opens for signed-in admins.
+          </p>
+          <div className="flex flex-col gap-3">
+            {state.loading ? (
+              <div className="rounded-full bg-cream px-5 py-3 text-center text-[11px] font-mono-label uppercase tracking-[0.18em] text-charcoal/60">
+                Checking your admin session...
+              </div>
+            ) : (
+              <a
+                href={adminLoginHref}
+                className="rounded-full bg-charcoal px-5 py-3 text-center text-[11px] font-mono-label uppercase tracking-[0.18em] text-cream transition-colors hover:bg-moss"
+              >
+                Sign in as admin
+              </a>
+            )}
+            {state.error && !state.loading && (
+              <p className="text-sm text-charcoal/55">{state.error}</p>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (!state.enabled) return null;
 
@@ -204,6 +241,7 @@ export default function StudioShell() {
                   </div>
                 </div>
                 <PageImageLibrary />
+                <PageTextLibrary />
                 <InspectorPanel
                   selectedSurfaceKey={selectedSurfaceKey}
                   onSelectSurface={setSelectedSurfaceKey}

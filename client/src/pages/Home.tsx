@@ -79,7 +79,7 @@ const testimonials = [
   {
     quote:
       "The BJJ program has taught my son discipline and respect. He has learned that true strength comes from technique, not just power.",
-    name: "Ahmed's Dad",
+    name: "Hammad's Dad",
   },
   {
     quote:
@@ -293,8 +293,8 @@ function SnapshotDeck() {
 
 function MiniScheduleCalendar() {
   return (
-    <div className="rounded-[1.6rem] border border-charcoal/10 bg-white p-4 shadow-[0_20px_56px_rgba(26,26,26,0.07)]">
-      <div className="mb-4 flex items-center justify-between rounded-[1rem] border border-charcoal/8 bg-cream/45 px-4 py-3">
+    <div className="rounded-[1.6rem] border border-charcoal/10 bg-white p-4 shadow-[0_20px_56px_rgba(26,26,26,0.07)] lg:p-5">
+      <div className="mb-4 flex flex-col gap-3 rounded-[1rem] border border-charcoal/8 bg-cream/45 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <div className="font-mono-label text-[9px] uppercase tracking-[0.18em] text-charcoal/42">Spring Semester</div>
           <div className="mt-1 font-heading text-lg text-charcoal">Weekly training calendar</div>
@@ -303,9 +303,9 @@ function MiniScheduleCalendar() {
           Tue to Sat
         </div>
       </div>
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-3 sm:grid-cols-2 2xl:grid-cols-4">
         {schedulePreviewGroups.map((group) => (
-          <div key={group.day} className="rounded-[1.25rem] border border-charcoal/8 bg-cream/55 p-3">
+          <div key={group.day} className="rounded-[1.25rem] border border-charcoal/8 bg-cream/55 p-3 lg:p-4">
             <div className="flex items-center justify-between gap-2">
               <div className="font-mono-label text-[9px] uppercase tracking-[0.18em] text-charcoal/40">{group.day}</div>
               <div className="h-8 w-8 rounded-full border border-charcoal/8 bg-white text-center font-heading text-sm leading-8 text-charcoal">
@@ -402,9 +402,9 @@ const Home = () => {
             whileInView={prefersReducedMotion ? undefined : { opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-10% 0px" }}
             transition={prefersReducedMotion ? undefined : { duration: 0.42 }}
-            className="mt-12 grid grid-cols-1 gap-6 lg:grid-cols-[1fr_1.05fr_1fr]"
+            className="mt-12 grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-12 xl:items-start"
           >
-            <InfoCard title="Academy Snapshot" label="Snapshot" className="md:order-1 overflow-hidden">
+            <InfoCard title="Academy Snapshot" label="Snapshot" className="overflow-hidden md:order-1 xl:col-span-4">
               <div className="space-y-3">
                 {academyStatusRows.map((row) => (
                   <div key={row.label} className="flex items-center justify-between rounded-2xl border border-charcoal/8 bg-cream/40 px-4 py-3">
@@ -416,7 +416,7 @@ const Home = () => {
               </div>
             </InfoCard>
 
-            <DarkCard className="md:order-2 order-3">
+            <DarkCard className="order-3 md:order-2 xl:col-span-3">
               <div className="mb-5 flex items-center gap-3">
                 <StatusDot ariaLabel="Technique preview" />
                 <span className="font-mono-label text-[11px] text-cream/70 uppercase tracking-[0.2em]">
@@ -437,7 +437,7 @@ const Home = () => {
               </div>
             </DarkCard>
 
-            <InfoCard title="Weekly Schedule" label="Current sessions" className="md:order-3 order-2">
+            <InfoCard title="Weekly Schedule" label="Current sessions" className="order-2 md:order-3 md:col-span-2 xl:col-span-5">
               <div className="space-y-4">
                 <MiniScheduleCalendar />
                 <div className="rounded-2xl border border-moss/15 bg-moss/5 px-4 py-3 text-xs leading-relaxed text-charcoal/70">
@@ -506,13 +506,13 @@ const Home = () => {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-10% 0px" }}
             transition={{ duration: 0.5 }}
-            className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 items-start"
+            className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:gap-8 2xl:grid-cols-4 items-start"
           >
             {BJJ_MARKETING_GROUPS.map((group) => (
               <PremiumCard key={group.key} className="relative h-full overflow-hidden border border-charcoal/10 bg-white p-0">
                 <div className={`absolute inset-x-0 top-0 h-28 bg-gradient-to-br ${enrollmentCardMeta[group.key].accent}`} />
-                <div className="relative flex h-full flex-col p-6">
-                  <div className="flex items-start justify-between gap-4">
+                <div className="relative flex h-full flex-col p-6 lg:p-7 xl:p-8">
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                     <div>
                       <span className="font-mono-label text-[10px] text-charcoal/48 uppercase tracking-[0.18em] mb-2 block">
                         {enrollmentCardMeta[group.key].eyebrow}
@@ -530,7 +530,7 @@ const Home = () => {
                   </div>
                   <div className="mt-4 flex-1 space-y-3">
                     {group.sessions.map((session) => (
-                      <div key={session.trackKey} className="rounded-2xl border border-charcoal/8 bg-white px-4 py-3 shadow-[0_10px_30px_rgba(26,26,26,0.05)]">
+                      <div key={session.trackKey} className="rounded-2xl border border-charcoal/8 bg-white px-4 py-3 shadow-[0_10px_30px_rgba(26,26,26,0.05)] lg:px-5">
                         <div className="font-body text-sm text-charcoal">{session.label}</div>
                         <div className="mt-1 text-[10px] uppercase tracking-[0.14em] text-charcoal/50">
                           {session.scheduleLabel}

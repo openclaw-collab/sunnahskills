@@ -59,7 +59,7 @@ WHERE program_id = 'bjj'
   );
 
 UPDATE program_sessions
-SET name = 'Girls 5–10 — Friday', season = NULL, capacity = 16, status = 'active', visible = 1
+SET name = 'Girls 5–10 — Friday', season = NULL, capacity = 20, status = 'active', visible = 1
 WHERE program_id = 'bjj' AND age_group = 'girls-5-10' AND gender_group = 'female' AND day_of_week = 'Friday' AND start_time = '10:00' AND end_time = '11:00';
 INSERT INTO program_sessions (program_id, name, season, day_of_week, start_time, end_time, age_group, gender_group, capacity, status, visible)
 SELECT 'bjj', 'Girls 5–10 — Friday', NULL, 'Friday', '10:00', '11:00', 'girls-5-10', 'female', 16, 'active', 1
@@ -69,7 +69,7 @@ WHERE NOT EXISTS (
 );
 
 UPDATE program_sessions
-SET name = 'Girls 5–10 — Tuesday', season = NULL, capacity = 16, status = 'active', visible = 1
+SET name = 'Girls 5–10 — Tuesday', season = NULL, capacity = 20, status = 'active', visible = 1
 WHERE program_id = 'bjj' AND age_group = 'girls-5-10' AND gender_group = 'female' AND day_of_week = 'Tuesday' AND start_time = '14:30' AND end_time = '15:30';
 INSERT INTO program_sessions (program_id, name, season, day_of_week, start_time, end_time, age_group, gender_group, capacity, status, visible)
 SELECT 'bjj', 'Girls 5–10 — Tuesday', NULL, 'Tuesday', '14:30', '15:30', 'girls-5-10', 'female', 16, 'active', 1
@@ -79,7 +79,7 @@ WHERE NOT EXISTS (
 );
 
 UPDATE program_sessions
-SET name = 'Boys 7–13 — Friday', season = NULL, capacity = 16, status = 'active', visible = 1
+SET name = 'Boys 7–13 — Friday', season = NULL, capacity = 20, status = 'active', visible = 1
 WHERE program_id = 'bjj' AND age_group = 'boys-7-13' AND gender_group = 'male' AND day_of_week = 'Friday' AND start_time = '10:00' AND end_time = '11:00';
 INSERT INTO program_sessions (program_id, name, season, day_of_week, start_time, end_time, age_group, gender_group, capacity, status, visible)
 SELECT 'bjj', 'Boys 7–13 — Friday', NULL, 'Friday', '10:00', '11:00', 'boys-7-13', 'male', 16, 'active', 1
@@ -89,7 +89,7 @@ WHERE NOT EXISTS (
 );
 
 UPDATE program_sessions
-SET name = 'Boys 7–13 — Tuesday', season = NULL, capacity = 16, status = 'active', visible = 1
+SET name = 'Boys 7–13 — Tuesday', season = NULL, capacity = 20, status = 'active', visible = 1
 WHERE program_id = 'bjj' AND age_group = 'boys-7-13' AND gender_group = 'male' AND day_of_week = 'Tuesday' AND start_time = '14:30' AND end_time = '15:30';
 INSERT INTO program_sessions (program_id, name, season, day_of_week, start_time, end_time, age_group, gender_group, capacity, status, visible)
 SELECT 'bjj', 'Boys 7–13 — Tuesday', NULL, 'Tuesday', '14:30', '15:30', 'boys-7-13', 'male', 16, 'active', 1
@@ -99,7 +99,7 @@ WHERE NOT EXISTS (
 );
 
 UPDATE program_sessions
-SET name = 'Teens+ Women 11+ — Tuesday', season = NULL, capacity = 14, status = 'active', visible = 1
+SET name = 'Teens+ Women 11+ — Tuesday', season = NULL, capacity = 20, status = 'active', visible = 1
 WHERE program_id = 'bjj' AND age_group = 'women-11-tue' AND gender_group = 'female' AND day_of_week = 'Tuesday' AND start_time = '12:30' AND end_time = '14:00';
 INSERT INTO program_sessions (program_id, name, season, day_of_week, start_time, end_time, age_group, gender_group, capacity, status, visible)
 SELECT 'bjj', 'Teens+ Women 11+ — Tuesday', NULL, 'Tuesday', '12:30', '14:00', 'women-11-tue', 'female', 14, 'active', 1
@@ -109,7 +109,7 @@ WHERE NOT EXISTS (
 );
 
 UPDATE program_sessions
-SET name = 'Teens+ Women 11+ — Thursday', season = NULL, capacity = 14, status = 'active', visible = 1
+SET name = 'Teens+ Women 11+ — Thursday', season = NULL, capacity = 20, status = 'active', visible = 1
 WHERE program_id = 'bjj' AND age_group = 'women-11-thu' AND gender_group = 'female' AND day_of_week = 'Thursday' AND start_time = '20:00' AND end_time = '21:30';
 INSERT INTO program_sessions (program_id, name, season, day_of_week, start_time, end_time, age_group, gender_group, capacity, status, visible)
 SELECT 'bjj', 'Teens+ Women 11+ — Thursday', NULL, 'Thursday', '20:00', '21:30', 'women-11-thu', 'female', 14, 'active', 1
@@ -119,7 +119,7 @@ WHERE NOT EXISTS (
 );
 
 UPDATE program_sessions
-SET name = 'Teens+ Men 14+ — Friday', season = NULL, capacity = 18, status = 'active', visible = 1
+SET name = 'Teens+ Men 14+ — Friday', season = NULL, capacity = 20, status = 'active', visible = 1
 WHERE program_id = 'bjj' AND age_group = 'men-14' AND gender_group = 'male' AND day_of_week = 'Friday' AND start_time = '20:00' AND end_time = '21:00';
 INSERT INTO program_sessions (program_id, name, season, day_of_week, start_time, end_time, age_group, gender_group, capacity, status, visible)
 SELECT 'bjj', 'Teens+ Men 14+ — Friday', NULL, 'Friday', '20:00', '21:00', 'men-14', 'male', 18, 'active', 1
@@ -129,7 +129,7 @@ WHERE NOT EXISTS (
 );
 
 UPDATE program_sessions
-SET name = 'Teens+ Men 14+ — Saturday', season = NULL, capacity = 18, status = 'active', visible = 1
+SET name = 'Teens+ Men 14+ — Saturday', season = NULL, capacity = 20, status = 'active', visible = 1
 WHERE program_id = 'bjj' AND age_group = 'men-14' AND gender_group = 'male' AND day_of_week = 'Saturday' AND start_time = '20:00' AND end_time = '21:00';
 INSERT INTO program_sessions (program_id, name, season, day_of_week, start_time, end_time, age_group, gender_group, capacity, status, visible)
 SELECT 'bjj', 'Teens+ Men 14+ — Saturday', NULL, 'Saturday', '20:00', '21:00', 'men-14', 'male', 18, 'active', 1

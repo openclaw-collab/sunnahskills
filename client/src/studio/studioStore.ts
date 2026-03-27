@@ -2,6 +2,7 @@ import type { StudioCustomTheme, StudioState, StudioThemePreset, StudioThemePres
 
 const STORAGE_KEY = "sunnahskills:studio:v2";
 const LOCAL_STUDIO_QUERY_VALUE = "1";
+const ADMIN_STUDIO_QUERY_VALUE = "admin";
 
 export const DEFAULT_CUSTOM_THEME: StudioCustomTheme = {
   pageBackground: "#F2F0E9",
@@ -168,6 +169,10 @@ export function canUseLocalStudio() {
 
 export function isLocalStudioQueryValue(value: string | null) {
   return value === LOCAL_STUDIO_QUERY_VALUE;
+}
+
+export function isAdminStudioQueryValue(value: string | null) {
+  return value === ADMIN_STUDIO_QUERY_VALUE;
 }
 
 export function loadStudioState(): StudioState {

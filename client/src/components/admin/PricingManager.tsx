@@ -36,6 +36,19 @@ function money(cents: number) {
   );
 }
 
+function centsToDollarsInput(cents: number | null | undefined) {
+  if (typeof cents !== "number") return "";
+  const dollars = cents / 100;
+  return Number.isInteger(dollars) ? String(dollars) : dollars.toFixed(2);
+}
+
+function dollarsInputToCents(value: string) {
+  const normalized = value.trim();
+  if (!normalized) return 0;
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) ? Math.round(parsed * 100) : 0;
+}
+
 export function PricingManager() {
   const [programs, setPrograms] = useState<Program[]>([]);
   const [prices, setPrices] = useState<Price[]>([]);
@@ -87,7 +100,7 @@ export function PricingManager() {
         <div>
           <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-moss">Pricing</div>
           <div className="font-body text-sm text-charcoal/70 mt-1">
-            Edit price tiers (cents) and toggle active. Changes apply to new registrations.
+            Edit price tiers in dollars and toggle active. Changes apply to new registrations.
           </div>
         </div>
         <OutlineButton
@@ -237,8 +250,8 @@ export function PricingManager() {
 
 function SemesterEditor({ semester, onSaved }: { semester: SemesterRow; onSaved: () => Promise<void> }) {
   const [classesN, setClassesN] = useState(String(semester.classes_in_semester));
-  const [ppc, setPpc] = useState(String(semester.price_per_class_cents ?? ""));
-  const [regFee, setRegFee] = useState(String(semester.registration_fee_cents ?? 0));
+  const [ppc, setPpc] = useState(centsToDollarsInput(semester.price_per_class_cents));
+  const [regFee, setRegFee] = useState(centsToDollarsInput(semester.registration_fee_cents ?? 0));
   const [later, setLater] = useState(semester.later_payment_date ?? "");
   const [start, setStart] = useState(semester.start_date ?? "");
   const [end, setEnd] = useState(semester.end_date ?? "");
@@ -260,12 +273,12 @@ function SemesterEditor({ semester, onSaved }: { semester: SemesterRow; onSaved:
           <Input value={classesN} onChange={(e) => setClassesN(e.target.value)} type="number" className="mt-1 bg-white" />
         </label>
         <label className="text-xs text-charcoal/70">
-          Price / class (¢)
-          <Input value={ppc} onChange={(e) => setPpc(e.target.value)} type="number" className="mt-1 bg-white" />
+          Price / class ($)
+          <Input value={ppc} onChange={(e) => setPpc(e.target.value)} type="number" step="0.01" className="mt-1 bg-white" />
         </label>
         <label className="text-xs text-charcoal/70">
-          Registration fee (¢)
-          <Input value={regFee} onChange={(e) => setRegFee(e.target.value)} type="number" className="mt-1 bg-white" />
+          Registration fee ($)
+          <Input value={regFee} onChange={(e) => setRegFee(e.target.value)} type="number" step="0.01" className="mt-1 bg-white" />
         </label>
         <label className="text-xs text-charcoal/70">
           Later payment date
@@ -293,8 +306,8 @@ function SemesterEditor({ semester, onSaved }: { semester: SemesterRow; onSaved:
                 body: JSON.stringify({
                   id: semester.id,
                   classesInSemester: Number(classesN || 12),
-                  pricePerClassCents: ppc === "" ? null : Number(ppc),
-                  registrationFeeCents: Number(regFee || 0),
+                  pricePerClassCents: ppc === "" ? null : dollarsInputToCents(ppc),
+                  registrationFeeCents: dollarsInputToCents(regFee),
                   laterPaymentDate: later.trim() || null,
                   startDate: start.trim() || null,
                   endDate: end.trim() || null,
@@ -320,8 +333,8 @@ function PriceRow({
   tier: Price;
   onSave: (next: Price & { stripe_price_id?: string | null }) => Promise<void>;
 }) {
-  const [amount, setAmount] = useState(String(tier.amount));
-  const [fee, setFee] = useState(String(tier.registration_fee ?? 0));
+  const [amount, setAmount] = useState(centsToDollarsInput(tier.amount));
+  const [fee, setFee] = useState(centsToDollarsInput(tier.registration_fee ?? 0));
   const [stripePriceId, setStripePriceId] = useState(() => {
     try {
       return String(JSON.parse(tier.metadata ?? "{}")?.stripe_price_id ?? "");
@@ -344,9 +357,10 @@ function PriceRow({
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
             type="number"
+            step="0.01"
             className="w-32 bg-white border-charcoal/10"
           />
-          <div className="text-xs text-charcoal/60">{money(Number(amount || 0))}</div>
+          <div className="text-xs text-charcoal/60">{money(dollarsInputToCents(amount))}</div>
         </div>
       </td>
       <td className="py-2 pr-4">
@@ -355,9 +369,10 @@ function PriceRow({
             value={fee}
             onChange={(e) => setFee(e.target.value)}
             type="number"
+            step="0.01"
             className="w-32 bg-white border-charcoal/10"
           />
-          <div className="text-xs text-charcoal/60">{money(Number(fee || 0))}</div>
+          <div className="text-xs text-charcoal/60">{money(dollarsInputToCents(fee))}</div>
         </div>
       </td>
       <td className="py-2 pr-4">
@@ -378,8 +393,8 @@ function PriceRow({
               try {
                 await onSave({
                   ...tier,
-                  amount: Number(amount || 0),
-                  registration_fee: Number(fee || 0),
+                  amount: dollarsInputToCents(amount),
+                  registration_fee: dollarsInputToCents(fee),
                   stripe_price_id: stripePriceId.trim() || null,
                   active: tier.active ? 0 : 1,
                 });
@@ -398,8 +413,8 @@ function PriceRow({
               try {
                 await onSave({
                   ...tier,
-                  amount: Number(amount || 0),
-                  registration_fee: Number(fee || 0),
+                  amount: dollarsInputToCents(amount),
+                  registration_fee: dollarsInputToCents(fee),
                   stripe_price_id: stripePriceId.trim() || null,
                 });
               } finally {

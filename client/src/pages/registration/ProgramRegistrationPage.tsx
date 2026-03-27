@@ -21,6 +21,8 @@ import { blockingMessageThroughDetails } from "@/hooks/useStepValidation";
 import { addLineToFamilyCart, loadFamilyCart } from "@/lib/familyCart";
 import { queryClient } from "@/lib/queryClient";
 import { useGuardianSession, useGuardianStudents } from "@/hooks/useGuardianSession";
+import { StudioBlock } from "@/studio/StudioBlock";
+import { StudioText } from "@/studio/StudioText";
 
 export function ProgramRegistrationPage({ slug }: { slug: ProgramSlug }) {
   const program = getProgramConfig(slug);
@@ -65,24 +67,33 @@ export function ProgramRegistrationPage({ slug }: { slug: ProgramSlug }) {
         <div className="bg-cream min-h-screen pb-24">
           <div className="noise-overlay" />
           <main className="mx-auto max-w-2xl px-6 pt-28">
-            <SectionHeader eyebrow="Registration" title={`${program.name}`} className="mb-8" />
-            <PremiumCard className="space-y-6 border border-charcoal/10 bg-white p-8">
-              <p className="font-body text-sm leading-relaxed text-charcoal/75">
-                Online registration for this program isn&apos;t open yet. Join the waitlist and we&apos;ll reach out when a cohort is scheduled.
-              </p>
-              <div className="flex flex-col gap-3 sm:flex-row">
-                <OutlineButton
-                  type="button"
-                  className="px-6 py-3 text-[11px] uppercase tracking-[0.18em]"
-                  onClick={() => setWaitlistOpen(true)}
-                >
-                  Join waitlist
-                </OutlineButton>
-                <OutlineButton asChild className="px-6 py-3 text-[11px] uppercase tracking-[0.18em]">
-                  <Link href={program.detailPath}>Back to program</Link>
-                </OutlineButton>
-              </div>
-            </PremiumCard>
+            <StudioBlock id={`registration.${slug}.waitlist`} label={`${program.name} waitlist`}>
+              <SectionHeader
+                eyebrow={<StudioText k={`registration.${slug}.eyebrow`} defaultText="Registration" />}
+                title={<StudioText k={`registration.${slug}.title`} defaultText={program.name} />}
+                className="mb-8"
+              />
+              <PremiumCard className="space-y-6 border border-charcoal/10 bg-white p-8">
+                <StudioText
+                  k={`registration.${slug}.waitlistCopy`}
+                  defaultText="Online registration for this program isn't open yet. Join the waitlist and we'll reach out when a cohort is scheduled."
+                  as="p"
+                  className="font-body text-sm leading-relaxed text-charcoal/75"
+                />
+                <div className="flex flex-col gap-3 sm:flex-row">
+                  <OutlineButton
+                    type="button"
+                    className="px-6 py-3 text-[11px] uppercase tracking-[0.18em]"
+                    onClick={() => setWaitlistOpen(true)}
+                  >
+                    Join waitlist
+                  </OutlineButton>
+                  <OutlineButton asChild className="px-6 py-3 text-[11px] uppercase tracking-[0.18em]">
+                    <Link href={program.detailPath}>Back to program</Link>
+                  </OutlineButton>
+                </div>
+              </PremiumCard>
+            </StudioBlock>
           </main>
         </div>
 
@@ -101,10 +112,17 @@ export function ProgramRegistrationPage({ slug }: { slug: ProgramSlug }) {
       <div className="bg-cream min-h-screen pb-24">
         <div className="noise-overlay" />
         <main className="mx-auto max-w-2xl px-6 pt-28">
-          <PremiumCard className="space-y-4 border border-charcoal/10 bg-white p-8">
-            <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-moss">Guardian account</div>
-            <p className="font-body text-sm text-charcoal/70">Loading your guardian session…</p>
-          </PremiumCard>
+          <StudioBlock id="registration.bjj.loading" label="BJJ loading state">
+            <PremiumCard className="space-y-4 border border-charcoal/10 bg-white p-8">
+              <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-moss">Guardian account</div>
+              <StudioText
+                k="registration.bjj.loadingCopy"
+                defaultText="Loading your guardian session…"
+                as="p"
+                className="font-body text-sm text-charcoal/70"
+              />
+            </PremiumCard>
+          </StudioBlock>
         </main>
       </div>
     );
@@ -115,21 +133,29 @@ export function ProgramRegistrationPage({ slug }: { slug: ProgramSlug }) {
       <div className="bg-cream min-h-screen pb-24">
         <div className="noise-overlay" />
         <main className="mx-auto max-w-2xl px-6 pt-28">
-          <SectionHeader eyebrow="Registration" title="Sign in before you register" className="mb-8" />
-          <PremiumCard className="space-y-6 border border-charcoal/10 bg-white p-8">
-            <p className="font-body text-sm leading-relaxed text-charcoal/75">
-              BJJ enrollment now runs through a guardian account so saved students, payment plans, and later charges stay
-              attached to the right household.
-            </p>
-            <div className="flex flex-col gap-3 sm:flex-row">
-              <ClayButton asChild className="px-6 py-3 text-[11px] uppercase tracking-[0.18em]">
-                <Link href={`/register?next=${encodeURIComponent(`/programs/${program.slug}/register`)}`}>Sign in to continue</Link>
-              </ClayButton>
-              <OutlineButton asChild className="px-6 py-3 text-[11px] uppercase tracking-[0.18em]">
-                <Link href={program.detailPath}>Back to program</Link>
-              </OutlineButton>
-            </div>
-          </PremiumCard>
+          <StudioBlock id="registration.bjj.signin" label="BJJ guardian sign-in gate">
+            <SectionHeader
+              eyebrow={<StudioText k="registration.bjj.signinEyebrow" defaultText="Registration" />}
+              title={<StudioText k="registration.bjj.signinTitle" defaultText="Sign in before you register" />}
+              className="mb-8"
+            />
+            <PremiumCard className="space-y-6 border border-charcoal/10 bg-white p-8">
+              <StudioText
+                k="registration.bjj.signinCopy"
+                defaultText="BJJ enrollment now runs through a guardian account so saved students, payment plans, and later charges stay attached to the right household."
+                as="p"
+                className="font-body text-sm leading-relaxed text-charcoal/75"
+              />
+              <div className="flex flex-col gap-3 sm:flex-row">
+                <ClayButton asChild className="px-6 py-3 text-[11px] uppercase tracking-[0.18em]">
+                  <Link href={`/register?next=${encodeURIComponent(`/programs/${program.slug}/register`)}`}>Sign in to continue</Link>
+                </ClayButton>
+                <OutlineButton asChild className="px-6 py-3 text-[11px] uppercase tracking-[0.18em]">
+                  <Link href={program.detailPath}>Back to program</Link>
+                </OutlineButton>
+              </div>
+            </PremiumCard>
+          </StudioBlock>
         </main>
       </div>
     );

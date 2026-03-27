@@ -15,6 +15,7 @@ import {
   outdoorGearOptions,
   outdoorWorkshopDateOptions,
 } from "@shared/registration-options";
+import { StudioBlock } from "@/studio/StudioBlock";
 
 function BjjFields({ draft, updateDraft }: RegistrationStepProps) {
   const { data, isLoading } = useProgramsCatalog();
@@ -267,68 +268,70 @@ export function StepProgramDetails(props: RegistrationStepProps) {
   const slug = draft.programSlug;
 
   return (
-    <div className="space-y-8">
-      {slug === "bjj" && <BjjFields {...props} />}
-      {slug === "archery" && <ArcheryFields {...props} />}
-      {slug === "outdoor" && <OutdoorFields {...props} />}
-      {slug === "bullyproofing" && <BullyproofingFields {...props} />}
+    <StudioBlock id={`registration.${slug}.details-step`} label={`${slug} program details step`}>
+      <div className="space-y-8">
+        {slug === "bjj" && <BjjFields {...props} />}
+        {slug === "archery" && <ArcheryFields {...props} />}
+        {slug === "outdoor" && <OutdoorFields {...props} />}
+        {slug === "bullyproofing" && <BullyproofingFields {...props} />}
 
-      {/* Sibling discount — shown for all programs */}
-      <div className="border-t border-charcoal/10 pt-6">
-        {slug === "bjj" ? (
-          <div className="mb-6">
-            <RadioGroup
-              label="Tuition payment"
-              name="bjj-payment-choice"
-              value={draft.programDetails.paymentChoice}
-              onChange={(v) =>
-                updateDraft((prev) => ({
-                  ...prev,
-                  programDetails: {
-                    ...prev.programDetails,
-                    paymentChoice: v as "full" | "plan",
+        {/* Sibling discount — shown for all programs */}
+        <div className="border-t border-charcoal/10 pt-6">
+          {slug === "bjj" ? (
+            <div className="mb-6">
+              <RadioGroup
+                label="Tuition payment"
+                name="bjj-payment-choice"
+                value={draft.programDetails.paymentChoice}
+                onChange={(v) =>
+                  updateDraft((prev) => ({
+                    ...prev,
+                    programDetails: {
+                      ...prev.programDetails,
+                      paymentChoice: v as "full" | "plan",
+                    },
+                  }))
+                }
+                options={[
+                  { value: "full", label: "Pay in full today", sublabel: "Single payment for this enrollment" },
+                  {
+                    value: "plan",
+                    label: "Pay part today",
+                    sublabel:
+                      "Half of tuition after discounts is due today; the rest is due on the semester’s second-payment date. In family cart checkout you’ll see the exact dollar amount and date and must agree before paying.",
                   },
-                }))
-              }
-              options={[
-                { value: "full", label: "Pay in full today", sublabel: "Single payment for this enrollment" },
-                {
-                  value: "plan",
-                  label: "Pay part today",
-                  sublabel:
-                    "Half of tuition after discounts is due today; the rest is due on the semester’s second-payment date. In family cart checkout you’ll see the exact dollar amount and date and must agree before paying.",
+                ]}
+              />
+            </div>
+          ) : null}
+          <RadioGroup
+            label="Registering siblings at the same time?"
+            name="sibling-count"
+            value={String(draft.programDetails.siblingCount)}
+            onChange={(v) =>
+              updateDraft((prev) => ({
+                ...prev,
+                programDetails: {
+                  ...prev.programDetails,
+                  siblingCount: Number(v) as 0 | 1 | 2,
                 },
-              ]}
-            />
-          </div>
-        ) : null}
-        <RadioGroup
-          label="Registering siblings at the same time?"
-          name="sibling-count"
-          value={String(draft.programDetails.siblingCount)}
-          onChange={(v) =>
-            updateDraft((prev) => ({
-              ...prev,
-              programDetails: {
-                ...prev.programDetails,
-                siblingCount: Number(v) as 0 | 1 | 2,
-              },
-            }))
-          }
-          options={[
-            { value: "0", label: "No siblings", sublabel: "No discount" },
-            { value: "1", label: "1 sibling", sublabel: "Second child line gets −10%" },
-            { value: "2", label: "2+ siblings", sublabel: "Each additional child line gets −10%" },
-          ]}
-        />
-        {draft.programDetails.siblingCount > 0 && (
-          <p className="mt-2 font-body text-xs text-moss">
-            {slug === "bjj"
-              ? "Sibling discount applies only to child participant lines: first child at standard tuition, second and later child lines at 10% off."
-              : "A 10% sibling discount will be applied at checkout."}
-          </p>
-        )}
+              }))
+            }
+            options={[
+              { value: "0", label: "No siblings", sublabel: "No discount" },
+              { value: "1", label: "1 sibling", sublabel: "Second child line gets −10%" },
+              { value: "2", label: "2+ siblings", sublabel: "Each additional child line gets −10%" },
+            ]}
+          />
+          {draft.programDetails.siblingCount > 0 && (
+            <p className="mt-2 font-body text-xs text-moss">
+              {slug === "bjj"
+                ? "Sibling discount applies only to child participant lines: first child at standard tuition, second and later child lines at 10% off."
+                : "A 10% sibling discount will be applied at checkout."}
+            </p>
+          )}
+        </div>
       </div>
-    </div>
+    </StudioBlock>
   );
 }

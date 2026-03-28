@@ -7,21 +7,20 @@ test.describe('Visual regression', () => {
     await navigateTo.home(mobilePage);
     await waitFor.pageLoad(mobilePage);
 
-    await mobilePage.getByTestId('academy-explorer-trigger-snapshot').click();
     const snapshotCard = mobilePage.getByTestId('academy-snapshot-card');
     await snapshotCard.scrollIntoViewIfNeeded();
     await expect(snapshotCard).toHaveScreenshot('home-snapshot-mobile.png');
   });
 
-  test('homepage academy explorer holds together on desktop', async ({ page }) => {
+  test('homepage snapshot and mini-schedule hold together on desktop', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 1100 });
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await navigateTo.home(page);
     await waitFor.pageLoad(page);
 
-    const explorer = page.getByTestId('home-academy-explorer');
-    await explorer.scrollIntoViewIfNeeded();
-    await expect(explorer).toHaveScreenshot('home-overview-desktop.png', {
+    const overview = page.getByTestId('home-overview');
+    await overview.scrollIntoViewIfNeeded();
+    await expect(overview).toHaveScreenshot('home-overview-desktop.png', {
       mask: [page.locator('canvas').first()],
     });
   });

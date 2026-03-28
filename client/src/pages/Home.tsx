@@ -14,7 +14,10 @@ import { StudioText } from "@/studio/StudioText";
 import { MotionPage } from "@/components/motion/PageMotion";
 import { PROGRAMS } from "@/lib/programConfig";
 import { motionTime } from "@/lib/motion";
+import { useProgramsCatalog } from "@/hooks/useProgramsCatalog";
 import { BJJ_MARKETING_GROUPS } from "@shared/bjjCatalog";
+import { formatMoneyFromCents } from "@shared/money";
+import { resolveClassesInSemester } from "@shared/orderPricing";
 
 const curriculum = [
   {
@@ -104,31 +107,27 @@ const snapshotCards = [
 
 const enrollmentCardMeta: Record<
   (typeof BJJ_MARKETING_GROUPS)[number]["key"],
-  { eyebrow: string; price: string; accent: string; summary: string }
+  { eyebrow: string; accent: string; summary: string }
 > = {
   girls: {
-    eyebrow: "Youth Track",
-    price: "$12 per class",
+    eyebrow: "Available now",
     accent: "from-moss/18 via-white to-transparent",
-    summary: "Technique-first training for younger girls with two weekly class opportunities.",
+    summary: "A live girls cohort with a clear Tuesday and Friday rhythm across the current semester.",
   },
   boys: {
-    eyebrow: "Youth Track",
-    price: "$12 per class",
+    eyebrow: "Available now",
     accent: "from-clay/16 via-white to-transparent",
-    summary: "A focused boys track with shared training windows and age-appropriate coaching.",
+    summary: "A focused boys cohort built around the same steady twice-weekly semester structure.",
   },
   women: {
-    eyebrow: "Women 11+",
-    price: "$80 per month per day",
+    eyebrow: "Separate enrollments",
     accent: "from-charcoal/10 via-white to-transparent",
-    summary: "Tuesday and Thursday stay as separate enrollments so each training day can stand on its own.",
+    summary: "Tuesday and Thursday remain separate enrollments so each training day carries its own semester tuition.",
   },
   men: {
-    eyebrow: "Teen & Adult",
-    price: "$14 per class",
+    eyebrow: "Teen & adult",
     accent: "from-moss/14 via-white to-transparent",
-    summary: "Friday and Saturday evening training for older teens and men building consistency.",
+    summary: "One evening track for older teens and men, paced across the full semester calendar.",
   },
 };
 
@@ -345,9 +344,37 @@ function MiniScheduleCalendar() {
   );
 }
 
+function formatEnrollmentSemesterPrice(amountCents: number | null) {
+  if (!amountCents || amountCents <= 0) return "Loading semester tuition";
+  return `${formatMoneyFromCents(amountCents)} semester`;
+}
+
 const Home = () => {
   const reduceMotion = useReducedMotion();
   const prefersReducedMotion = Boolean(reduceMotion);
+  const { data: catalogData } = useProgramsCatalog();
+  const bjjProgram = catalogData?.programs.find((program) => program.id === "bjj");
+  const activeSemester = bjjProgram?.active_semester ?? null;
+  const activeSemesterLabel = activeSemester?.name?.trim() || "Current semester";
+
+  const enrollmentPricingByTrack = new Map(
+    (bjjProgram?.prices ?? []).map((price) => {
+      const semesterClassCount = resolveClassesInSemester(
+        price.metadata ?? null,
+        activeSemester,
+        price.age_group,
+        activeSemester?.start_date ?? undefined,
+      );
+      const semesterTuitionCents = Math.max(0, Number(price.amount ?? 0)) * Math.max(0, semesterClassCount);
+      return [
+        price.age_group,
+        {
+          semesterTuitionCents,
+        },
+      ] as const;
+    }),
+  );
+
   return (
     <MotionPage className="bg-cream text-charcoal">
       <div className="noise-overlay" />
@@ -520,7 +547,7 @@ const Home = () => {
           <div className="text-center mb-20">
             <SectionHeader title="Enrollment Tracks" />
             <p className="mt-4 text-charcoal/60 font-body text-sm">
-              BJJ is live now, with every public surface aligned to the same household-ready cohort structure.
+              Live BJJ enrollments are shown exactly as families register them, with full semester tuition for the current term.
             </p>
           </div>
           <motion.div
@@ -549,14 +576,31 @@ const Home = () => {
                   </div>
                   <div className="mt-5 rounded-2xl border border-charcoal/8 bg-cream/45 px-4 py-3">
                     <div className="font-mono-label text-[9px] uppercase tracking-[0.18em] text-charcoal/45">{group.ageLabel}</div>
-                    <div className="mt-2 font-heading text-lg text-clay">{enrollmentCardMeta[group.key].price}</div>
+                    <div className="mt-2 font-heading text-lg text-charcoal">{activeSemesterLabel}</div>
+                    <div className="mt-1 text-sm leading-relaxed text-charcoal/58">
+                      Full-term tuition shown below for each available enrollment.
+                    </div>
                   </div>
                   <div className="mt-4 flex-1 space-y-3">
                     {group.sessions.map((session) => (
                       <div key={session.trackKey} className="rounded-2xl border border-charcoal/8 bg-white px-4 py-3 shadow-[0_10px_30px_rgba(26,26,26,0.05)] lg:px-5">
-                        <div className="font-body text-sm text-charcoal">{session.label}</div>
-                        <div className="mt-1 text-[10px] uppercase tracking-[0.14em] text-charcoal/50">
-                          {session.scheduleLabel}
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <div className="font-body text-sm text-charcoal">{session.label}</div>
+                            <div className="mt-1 text-[10px] uppercase tracking-[0.14em] text-charcoal/50">
+                              {session.scheduleLabel}
+                            </div>
+                          </div>
+                          <div className="shrink-0 rounded-full border border-clay/12 bg-clay/8 px-3 py-1.5 text-right">
+                            <div className="font-mono-label text-[8px] uppercase tracking-[0.16em] text-charcoal/40">
+                              Semester tuition
+                            </div>
+                            <div className="mt-1 font-heading text-[0.95rem] leading-none text-clay">
+                              {formatEnrollmentSemesterPrice(
+                                enrollmentPricingByTrack.get(session.trackKey)?.semesterTuitionCents ?? null,
+                              )}
+                            </div>
+                          </div>
                         </div>
                       </div>
                     ))}

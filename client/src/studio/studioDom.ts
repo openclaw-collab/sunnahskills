@@ -2,6 +2,8 @@ export type StudioSurfaceCandidate = {
   key: string;
   label: string;
   element: HTMLElement;
+  kind: "section" | "card" | "button" | "link" | "media" | "item";
+  groupLabel: string;
 };
 
 export type StudioTextFieldCandidate = {
@@ -12,6 +14,7 @@ export type StudioTextFieldCandidate = {
   edited: boolean;
   componentId?: string;
   autoId?: string;
+  kind?: "text" | "placeholder" | "control";
 };
 
 export type StudioSelectionTextCandidate = StudioTextFieldCandidate & {
@@ -101,6 +104,17 @@ function normalizeDisplayText(value: string) {
   return value.replace(/\s+/g, " ").trim();
 }
 
+function getControlLabel(element: HTMLElement) {
+  const explicit =
+    element.getAttribute("aria-label") ||
+    element.getAttribute("name") ||
+    element.getAttribute("title") ||
+    (element instanceof HTMLInputElement ? element.type : "") ||
+    element.id ||
+    element.tagName.toLowerCase();
+  return explicit.replace(/[-_]+/g, " ").trim();
+}
+
 function getNodeOwnerElement(node: Node | null): HTMLElement | null {
   if (!node) return null;
   if (node instanceof HTMLElement) return node;
@@ -143,6 +157,20 @@ function getTextNodeOrdinal(node: Text) {
 
 function getElementPathWithinComponent(componentRoot: HTMLElement, element: HTMLElement) {
   return getStudioNodeKey(componentRoot, element);
+}
+
+function getElementPath(element: HTMLElement) {
+  const componentRoot = element.closest<HTMLElement>("[data-studio-component]");
+  if (componentRoot) return getElementPathWithinComponent(componentRoot, element);
+  return `page/${element.tagName.toLowerCase()}:${getOrdinalAmongSimilarSiblings(element)}`;
+}
+
+function getAutoAttributeId(element: HTMLElement, attr: string, suffix?: string) {
+  const componentRoot = element.closest<HTMLElement>("[data-studio-component]");
+  const componentId = componentRoot?.dataset.studioComponent ?? "page";
+  const routeKey = getRouteKey();
+  const base = `${routeKey}::${componentId}.__attr.${getElementPath(element)}.${attr}`;
+  return suffix ? `${base}.${suffix}` : base;
 }
 
 function getAutoTextNodeId(node: Text) {
@@ -230,7 +258,106 @@ function buildAutoTextNodeCandidate(
     edited: autoId in edits,
     componentId,
     autoId,
+    kind: "text",
   };
+}
+
+function buildPlaceholderCandidate(
+  element: HTMLInputElement | HTMLTextAreaElement,
+  edits: Record<string, string>,
+): StudioTextFieldCandidate | null {
+  const placeholder = element.getAttribute("placeholder") ?? "";
+  if (!placeholder || !isVisible(element) || element.value.trim().length > 0) return null;
+  const key = getAutoAttributeId(element, "placeholder");
+  const componentId = element.closest<HTMLElement>("[data-studio-component]")?.dataset.studioComponent;
+
+  return {
+    key,
+    label: `${clampText(getControlLabel(element), 28)} placeholder`,
+    currentValue: edits[key] ?? placeholder,
+    defaultValue: placeholder,
+    edited: key in edits,
+    componentId,
+    kind: "placeholder",
+  };
+}
+
+function buildControlValueCandidate(
+  element: HTMLInputElement,
+  edits: Record<string, string>,
+): StudioTextFieldCandidate | null {
+  const type = (element.type || "").toLowerCase();
+  if (!["submit", "button", "reset"].includes(type) || !isVisible(element)) return null;
+  const value = element.getAttribute("value") ?? "";
+  if (!value) return null;
+  const key = getAutoAttributeId(element, "value");
+  const componentId = element.closest<HTMLElement>("[data-studio-component]")?.dataset.studioComponent;
+
+  return {
+    key,
+    label: `${clampText(getControlLabel(element), 28)} label`,
+    currentValue: edits[key] ?? value,
+    defaultValue: value,
+    edited: key in edits,
+    componentId,
+    kind: "control",
+  };
+}
+
+function buildSelectPromptCandidate(
+  element: HTMLSelectElement,
+  edits: Record<string, string>,
+): StudioTextFieldCandidate | null {
+  if (!isVisible(element) || element.value !== "") return null;
+  const option = Array.from(element.options).find((item) => item.selected) ?? element.options[0];
+  if (!option) return null;
+  const value = normalizeDisplayText(option.textContent ?? "");
+  if (!value) return null;
+  const key = getAutoAttributeId(element, "prompt", `option_${option.index}`);
+  const componentId = element.closest<HTMLElement>("[data-studio-component]")?.dataset.studioComponent;
+
+  return {
+    key,
+    label: `${clampText(getControlLabel(element), 28)} prompt`,
+    currentValue: edits[key] ?? value,
+    defaultValue: value,
+    edited: key in edits,
+    componentId,
+    kind: "placeholder",
+  };
+}
+
+function collectVisibleAttributeCandidates(
+  edits: Record<string, string>,
+  root: ParentNode,
+  componentId?: string,
+) {
+  const items: StudioTextFieldCandidate[] = [];
+  const seen = new Set<string>();
+  const controls = Array.from(
+    root.querySelectorAll<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>("input, textarea, select"),
+  );
+
+  for (const control of controls) {
+    if (control.closest("[data-studio-ui='1']")) continue;
+    const candidates = [
+      control instanceof HTMLInputElement || control instanceof HTMLTextAreaElement
+        ? buildPlaceholderCandidate(control, edits)
+        : null,
+      control instanceof HTMLInputElement ? buildControlValueCandidate(control, edits) : null,
+      control instanceof HTMLSelectElement ? buildSelectPromptCandidate(control, edits) : null,
+    ];
+
+    for (const candidate of candidates) {
+      if (!candidate) continue;
+      if (componentId && candidate.componentId !== componentId) continue;
+      if (seen.has(candidate.key)) continue;
+      seen.add(candidate.key);
+      items.push(candidate);
+    }
+  }
+
+  return items;
 }
 
 function collectAutoTextNodeCandidates(
@@ -270,6 +397,40 @@ function hasVisualSignal(element: HTMLElement) {
   return classSignal || styleSignal;
 }
 
+function classifySurfaceKind(componentRoot: HTMLElement, element: HTMLElement): StudioSurfaceCandidate["kind"] {
+  if (element === componentRoot) return "section";
+  const tag = element.tagName.toLowerCase();
+  const className = typeof element.className === "string" ? element.className : "";
+  const rect = element.getBoundingClientRect();
+
+  if (tag === "button" || element.getAttribute("role") === "button") return "button";
+  if (tag === "a") return "link";
+  if (tag === "img" || tag === "figure") return "media";
+  if (tag === "li") return "item";
+  if (/button|chip|badge|pill|tag/i.test(className) || rect.height < 64) return "button";
+  if (/card|panel|tile|slot|item/i.test(className)) return "card";
+  return "card";
+}
+
+function getSurfaceGroupLabel(kind: StudioSurfaceCandidate["kind"]) {
+  switch (kind) {
+    case "section":
+      return "Background";
+    case "card":
+      return "Cards & panels";
+    case "button":
+      return "Buttons & controls";
+    case "link":
+      return "Links";
+    case "media":
+      return "Media";
+    case "item":
+      return "Items";
+    default:
+      return "Surfaces";
+  }
+}
+
 export function getStudioNodeKey(componentRoot: HTMLElement, element: HTMLElement) {
   if (element === componentRoot) return "__root";
 
@@ -284,17 +445,20 @@ export function getStudioNodeKey(componentRoot: HTMLElement, element: HTMLElemen
 }
 
 function getSurfaceLabel(componentRoot: HTMLElement, element: HTMLElement) {
-  if (element === componentRoot) return "Whole section";
+  if (element === componentRoot) return "Section background";
   const tag = element.tagName.toLowerCase();
   const text = getElementTextPreview(element);
   const className = typeof element.className === "string" ? element.className : "";
-  const kind =
+  const label =
     /hero/i.test(className) ? "Hero panel" :
     /timeline/i.test(className) ? "Timeline item" :
     /card/i.test(className) ? "Card" :
     /cta/i.test(className) ? "Call to action" :
+    classifySurfaceKind(componentRoot, element) === "button" ? "Button" :
+    classifySurfaceKind(componentRoot, element) === "link" ? "Link" :
+    classifySurfaceKind(componentRoot, element) === "media" ? "Media" :
     SURFACE_KIND_LABELS[tag] ?? "Surface";
-  return text ? `${kind}: ${clampText(text)}` : kind;
+  return text ? `${label}: ${clampText(text)}` : label;
 }
 
 export function getStudioComponentElement(componentId: string) {
@@ -383,6 +547,12 @@ export function discoverTextFields(componentId: string, edits: Record<string, st
     items.push(candidate);
   }
 
+  for (const candidate of collectVisibleAttributeCandidates(edits, component, componentId)) {
+    if (seen.has(candidate.key)) continue;
+    seen.add(candidate.key);
+    items.push(candidate);
+  }
+
   return items;
 }
 
@@ -407,6 +577,12 @@ export function listPageTextFields(edits: Record<string, string>): StudioTextFie
   }
 
   for (const candidate of collectAutoTextNodeCandidates(edits, document.body)) {
+    if (seen.has(candidate.key)) continue;
+    seen.add(candidate.key);
+    items.push(candidate);
+  }
+
+  for (const candidate of collectVisibleAttributeCandidates(edits, document.body)) {
     if (seen.has(candidate.key)) continue;
     seen.add(candidate.key);
     items.push(candidate);
@@ -482,6 +658,40 @@ export function applyAutoTextNodeEdits(edits: Record<string, string>, root: Pare
   }
 }
 
+export function applyAutoAttributeEdits(edits: Record<string, string>, root: ParentNode = document.body) {
+  const controls = Array.from(
+    root.querySelectorAll<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>("input, textarea, select"),
+  );
+
+  for (const control of controls) {
+    if (control instanceof HTMLInputElement || control instanceof HTMLTextAreaElement) {
+      const placeholderCandidate = buildPlaceholderCandidate(control, edits);
+      if (placeholderCandidate && control.getAttribute("placeholder") !== placeholderCandidate.currentValue) {
+        control.setAttribute("placeholder", placeholderCandidate.currentValue);
+      }
+    }
+
+    if (control instanceof HTMLInputElement) {
+      const valueCandidate = buildControlValueCandidate(control, edits);
+      if (valueCandidate && control.getAttribute("value") !== valueCandidate.currentValue) {
+        control.setAttribute("value", valueCandidate.currentValue);
+        control.value = valueCandidate.currentValue;
+      }
+    }
+
+    if (control instanceof HTMLSelectElement) {
+      const promptCandidate = buildSelectPromptCandidate(control, edits);
+      if (!promptCandidate) continue;
+      const option = Array.from(control.options).find((item) =>
+        promptCandidate.key.endsWith(`option_${item.index}`),
+      );
+      if (option && option.text !== promptCandidate.currentValue) {
+        option.text = promptCandidate.currentValue;
+      }
+    }
+  }
+}
+
 export function discoverImageSlots(componentId: string): StudioImageSlotCandidate[] {
   const componentPrefix = `${componentId}.`;
   const seen = new Map<string, StudioImageSlotCandidate>();
@@ -541,14 +751,34 @@ export function discoverSurfaceCandidates(componentId: string): StudioSurfaceCan
     const key = getStudioNodeKey(root, element);
     if (seen.has(key)) continue;
     seen.add(key);
+    const kind = classifySurfaceKind(root, element);
     candidates.push({
       key,
       label: getSurfaceLabel(root, element),
       element,
+      kind,
+      groupLabel: getSurfaceGroupLabel(kind),
     });
   }
 
   return candidates.slice(0, 14);
+}
+
+export function resolveSurfaceCandidateFromElement(componentId: string, source: Element | null) {
+  const root = getStudioComponentElement(componentId);
+  if (!root || !source || !root.contains(source)) return null;
+  const candidates = discoverSurfaceCandidates(componentId);
+  const map = new Map(candidates.map((candidate) => [candidate.key, candidate]));
+
+  let current: HTMLElement | null = source instanceof HTMLElement ? source : source.parentElement;
+  while (current && current !== root) {
+    const key = getStudioNodeKey(root, current);
+    const candidate = map.get(key);
+    if (candidate) return candidate;
+    current = current.parentElement;
+  }
+
+  return map.get("__root") ?? null;
 }
 
 export function listVisibleStudioComponents(): VisibleStudioComponent[] {

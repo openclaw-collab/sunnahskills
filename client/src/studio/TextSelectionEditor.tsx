@@ -6,13 +6,6 @@ function clamp(value: number, min: number, max: number) {
   return Math.max(min, Math.min(max, value));
 }
 
-function buildUpdatedValue(target: StudioSelectionTextCandidate, replacement: string) {
-  const source = target.currentValue;
-  const start = clamp(target.selectionStart, 0, source.length);
-  const end = clamp(target.selectionEnd, start, source.length);
-  return `${source.slice(0, start)}${replacement}${source.slice(end)}`;
-}
-
 export function TextSelectionEditor() {
   const { state, edits, setEdit, clearEdit, setPinnedComponentId } = useStudio();
   const [target, setTarget] = useState<StudioSelectionTextCandidate | null>(null);
@@ -42,7 +35,7 @@ export function TextSelectionEditor() {
 
     setPinnedComponentId(nextTarget.componentId ?? null);
     setTarget(nextTarget);
-    setDraft(nextTarget.selectedText);
+    setDraft(nextTarget.currentValue);
   }, [edits, setPinnedComponentId, state.enabled]);
 
   useEffect(() => {
@@ -76,7 +69,7 @@ export function TextSelectionEditor() {
 
   useEffect(() => {
     if (!target) return;
-    setDraft(target.selectedText);
+    setDraft(target.currentValue);
   }, [target]);
 
   useEffect(() => {
@@ -146,7 +139,7 @@ export function TextSelectionEditor() {
         <button
           type="button"
           onClick={() => {
-            setEdit(target.key, buildUpdatedValue(target, draft), { oldValue: target.defaultValue });
+            setEdit(target.key, draft, { oldValue: target.defaultValue });
             closeEditor();
             window.getSelection()?.removeAllRanges();
           }}

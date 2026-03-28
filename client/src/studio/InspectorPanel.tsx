@@ -32,6 +32,19 @@ export function InspectorPanel({ selectedSurfaceKey, onSelectSurface }: PanelPro
     () => (pinnedComponentId ? discoverSurfaceCandidates(pinnedComponentId) : []),
     [pinnedComponentId],
   );
+  const selectedSurface = useMemo(
+    () => surfaceCandidates.find((candidate) => candidate.key === selectedSurfaceKey) ?? surfaceCandidates[0] ?? null,
+    [selectedSurfaceKey, surfaceCandidates],
+  );
+  const groupedSurfaceCandidates = useMemo(() => {
+    const groups = new Map<string, typeof surfaceCandidates>();
+    for (const candidate of surfaceCandidates.filter((item) => item.key !== "__root")) {
+      const existing = groups.get(candidate.groupLabel) ?? [];
+      existing.push(candidate);
+      groups.set(candidate.groupLabel, existing);
+    }
+    return Array.from(groups.entries());
+  }, [surfaceCandidates]);
 
   const uploadedSlots = useMemo(() => {
     const uploads = state.session?.uploads ?? [];
@@ -70,26 +83,39 @@ export function InspectorPanel({ selectedSurfaceKey, onSelectSurface }: PanelPro
         <div className="p-4 space-y-4">
           <div className="rounded-xl border border-charcoal/10 bg-cream/30 p-3">
             <div className="font-mono-label text-[9px] uppercase tracking-widest text-charcoal/40 mb-2">
-              Style target
+              Pick what to style
             </div>
-            <div className="space-y-2">
+            <div className="rounded-2xl border border-charcoal/10 bg-white px-3 py-3 text-sm text-charcoal/60 mb-3">
+              Click the background, card, or button directly on the page. Studio will target that surface here behind the scenes.
+            </div>
+            {selectedSurface ? (
+              <div className="mb-3 rounded-2xl border border-clay/20 bg-white px-3 py-3">
+                <div className="font-mono-label text-[9px] uppercase tracking-widest text-clay">Current target</div>
+                <div className="mt-1 text-sm text-charcoal">{selectedSurface.label}</div>
+                <div className="mt-1 text-xs text-charcoal/45">{selectedSurface.groupLabel}</div>
+              </div>
+            ) : null}
+            <div className="space-y-3">
               <TargetButton
                 active={selectedSurfaceKey === "__root"}
-                title="Whole section"
-                subtitle="Use this for the overall background, text tone, and section-level treatment."
+                title="Section background"
+                subtitle="Use this when you want to restyle the whole section rather than one inner card or control."
                 onClick={() => onSelectSurface("__root")}
               />
-              {surfaceCandidates
-                .filter((candidate) => candidate.key !== "__root")
-                .map((candidate) => (
-                  <TargetButton
-                    key={candidate.key}
-                    active={selectedSurfaceKey === candidate.key}
-                    title={candidate.label}
-                    subtitle={candidate.key}
-                    onClick={() => onSelectSurface(candidate.key)}
-                  />
-                ))}
+              {groupedSurfaceCandidates.map(([group, candidates]) => (
+                <div key={group} className="space-y-2">
+                  <div className="font-mono-label text-[9px] uppercase tracking-widest text-charcoal/35">{group}</div>
+                  {candidates.map((candidate) => (
+                    <TargetButton
+                      key={candidate.key}
+                      active={selectedSurfaceKey === candidate.key}
+                      title={candidate.label}
+                      subtitle="Click on page or choose here"
+                      onClick={() => onSelectSurface(candidate.key)}
+                    />
+                  ))}
+                </div>
+              ))}
             </div>
           </div>
 
@@ -187,7 +213,7 @@ export function PageTextLibrary() {
       <div>
         <div className="font-mono-label text-[9px] uppercase tracking-widest text-clay">Page copy</div>
         <div className="mt-1 text-sm text-charcoal/55">
-          Highlight text directly on the page to edit it fast, or use this library for every visible copy target behind the scenes.
+          Highlight text directly on the page to edit it fast, or use this library for every visible copy target behind the scenes, including visible placeholders and control labels.
         </div>
       </div>
       <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
@@ -259,7 +285,7 @@ export function StudioTextPanel() {
       <PanelHeader
         eyebrow="Text editor"
         title={pinnedBlock?.label ?? pinnedComponentId}
-        subtitle="Edit only the copy that belongs to the currently selected block."
+        subtitle="Edit the visible copy that belongs to the currently selected block, including placeholders when they are what the visitor sees."
       />
       <div className="rounded-2xl border border-charcoal/10 bg-white p-4 space-y-3">
         {fields.length === 0 ? (
@@ -326,13 +352,26 @@ export function StudioThemePanel({ selectedSurfaceKey, onSelectSurface }: PanelP
     );
   }
 
-  const targetPrefix =
-    selectedSurface && selectedSurface.key !== "__root"
-      ? `${pinnedComponentId}.__node.${selectedSurface.key}`
-      : pinnedComponentId;
-  const backgroundToneKey = `${targetPrefix}.__backgroundTone`;
-  const borderToneKey = `${targetPrefix}.__borderTone`;
-  const textToneKey = `${targetPrefix}.__textTone`;
+  const groupedSurfaceCandidates = useMemo(() => {
+    const groups = new Map<string, typeof surfaceCandidates>();
+    for (const candidate of surfaceCandidates.filter((item) => item.key !== "__root")) {
+      const existing = groups.get(candidate.groupLabel) ?? [];
+      existing.push(candidate);
+      groups.set(candidate.groupLabel, existing);
+    }
+    return Array.from(groups.entries());
+  }, [surfaceCandidates]);
+
+  const isRootTarget = !selectedSurface || selectedSurface.key === "__root";
+  const backgroundToneKey = isRootTarget
+    ? `${pinnedComponentId}.__backgroundTone`
+    : `${pinnedComponentId}.__node.${selectedSurface.key}.backgroundTone`;
+  const borderToneKey = isRootTarget
+    ? `${pinnedComponentId}.__borderTone`
+    : `${pinnedComponentId}.__node.${selectedSurface.key}.borderTone`;
+  const textToneKey = isRootTarget
+    ? `${pinnedComponentId}.__textTone`
+    : `${pinnedComponentId}.__node.${selectedSurface.key}.textTone`;
 
   const selectedBackgroundTone = edits[backgroundToneKey] ?? "inherit";
   const selectedBorderTone = edits[borderToneKey] ?? "inherit";
@@ -349,24 +388,47 @@ export function StudioThemePanel({ selectedSurfaceKey, onSelectSurface }: PanelP
       <div className="rounded-2xl border border-charcoal/10 bg-white p-4 space-y-4">
         <div className="rounded-xl border border-charcoal/10 bg-cream/20 p-3">
           <div className="font-mono-label text-[9px] uppercase tracking-widest text-charcoal/40 mb-2">
-            Current style target
+            Style target
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="rounded-2xl border border-charcoal/10 bg-white px-3 py-3 text-sm text-charcoal/60 mb-3">
+            Click a background, card, button, or link on the page to style that exact surface. Use section background for whole-section colour changes.
+          </div>
+          <div className="space-y-3">
             <TargetChip
               active={selectedSurfaceKey === "__root"}
-              label="Whole section"
+              label="Section background"
               onClick={() => onSelectSurface("__root")}
             />
-            {surfaceCandidates
-              .filter((candidate) => candidate.key !== "__root")
-              .map((candidate) => (
-                <TargetChip
-                  key={candidate.key}
-                  active={selectedSurfaceKey === candidate.key}
-                  label={candidate.label}
-                  onClick={() => onSelectSurface(candidate.key)}
-                />
-              ))}
+            {groupedSurfaceCandidates.map(([group, candidates]) => (
+              <div key={group} className="space-y-2">
+                <div className="font-mono-label text-[9px] uppercase tracking-widest text-charcoal/35">{group}</div>
+                <div className="flex flex-wrap gap-2">
+                  {candidates.map((candidate) => (
+                    <TargetChip
+                      key={candidate.key}
+                      active={selectedSurfaceKey === candidate.key}
+                      label={candidate.label}
+                      onClick={() => onSelectSurface(candidate.key)}
+                    />
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+          {selectedSurface ? (
+            <div className="mt-3 rounded-2xl border border-clay/20 bg-white px-3 py-3">
+              <div className="font-mono-label text-[9px] uppercase tracking-widest text-clay">Current target</div>
+              <div className="mt-1 text-sm text-charcoal">{selectedSurface.label}</div>
+            </div>
+          ) : null}
+        </div>
+
+        <div className="rounded-xl border border-charcoal/10 bg-cream/20 p-3">
+          <div className="font-mono-label text-[9px] uppercase tracking-widest text-charcoal/40 mb-2">
+            Position
+          </div>
+          <div className="text-sm text-charcoal/60">
+            Drag the orange section handle on the page when you want to move the whole section. Inner cards and buttons use this panel for styling rather than free-positioning.
           </div>
         </div>
 

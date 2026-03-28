@@ -8,6 +8,7 @@ import { InspectorPanel, PageImageLibrary, PageTextLibrary, StudioTextPanel, Stu
 import { ChangesExport } from "./ChangesExport";
 import { listVisibleStudioComponents } from "./studioDom";
 import { TextSelectionEditor } from "./TextSelectionEditor";
+import { SurfacePickerOverlay } from "./SurfacePickerOverlay";
 
 type PanelTab = "inspect" | "theme" | "text" | "export";
 
@@ -124,6 +125,11 @@ export default function StudioShell() {
     <>
       <PasswordGate />
       <ComponentHighlighter disabled={navigateMode} />
+      <SurfacePickerOverlay
+        active={!navigateMode && Boolean(pinnedComponentId) && (tab === "inspect" || tab === "theme")}
+        selectedSurfaceKey={selectedSurfaceKey}
+        onSelectSurface={setSelectedSurfaceKey}
+      />
       <TextSelectionEditor />
 
       {/* Floating toggle button */}

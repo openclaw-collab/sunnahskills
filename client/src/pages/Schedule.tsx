@@ -50,10 +50,10 @@ const TRACK_STYLES: Record<ScheduleTrack, { block: string; chip: string; accent:
 };
 
 const SUMMARY_META: Record<SummaryGroupKey, { title: string; audience: string; track: ScheduleTrack }> = {
-  women: { title: "Women's BJJ", audience: "Women 11+", track: "women" },
-  girls: { title: "Kids BJJ", audience: "Girls 5–10", track: "kids" },
-  boys: { title: "Kids BJJ", audience: "Boys 7–13", track: "kids" },
-  men: { title: "Teens / Adults BJJ", audience: "Men 14+", track: "men" },
+  women: { title: "Women’s BJJ", audience: "Women 11+", track: "women" },
+  girls: { title: "Girls BJJ", audience: "Girls 5–10", track: "kids" },
+  boys: { title: "Boys BJJ", audience: "Boys 7–13", track: "kids" },
+  men: { title: "Men’s BJJ", audience: "Men 14+", track: "men" },
 };
 
 type SessionSlot = {
@@ -137,7 +137,7 @@ function getSummaryGroupKey(session: NormalizedSession): SummaryGroupKey {
 }
 
 function buildSummaryCards(sessions: NormalizedSession[]): SummaryCard[] {
-  const order: SummaryGroupKey[] = ["women", "boys", "girls", "men"];
+  const order: SummaryGroupKey[] = ["girls", "boys", "women", "men"];
 
   return order
     .map((key) => {
@@ -453,7 +453,7 @@ const Schedule = () => {
               <p className="mx-auto mt-4 max-w-2xl text-sm leading-relaxed text-cream/74 md:text-base">
                 <StudioText
                   k="schedule.header.description"
-                  defaultText="A clearer weekly view of the academy rhythm. Review the live class windows, compare tracks, then move into a free trial or registration when you're ready."
+                  defaultText="A clearer view of the live BJJ rhythm across the current 13-week semester. Review each weekly training window, compare tracks, and move into trial or registration when you're ready."
                   as="span"
                   className="inline"
                   multiline
@@ -490,17 +490,17 @@ const Schedule = () => {
                   <div className="rounded-full border border-clay/18 bg-white/70 p-2 text-clay">
                     <AlertCircle size={16} />
                   </div>
-                  <div>
-                    <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-clay">
-                      Shared training windows
-                    </div>
+                    <div>
+                      <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-clay">
+                      13-week semester cadence
+                      </div>
                     <p className="mt-1 max-w-2xl text-sm leading-relaxed text-charcoal/72">
-                      Women 11+ train Tuesday 12:30 to 2:00 PM and Thursday 8:00 to 9:30 PM. Tuesday and Friday youth sessions run in parallel blocks, so they appear as one shared slot instead of fragmented cards.
+                      Women 11+ train Tuesday 12:30 to 2:00 PM and Thursday 8:00 to 9:30 PM. Tuesday and Friday youth classes run at the same time, so they stay grouped into one shared training window instead of splitting into disconnected cards.
                     </p>
                   </div>
                 </div>
                 <div className="rounded-full border border-clay/18 bg-white/75 px-4 py-2 font-mono-label text-[10px] uppercase tracking-[0.18em] text-charcoal/62">
-                  BJJ registration live
+                  Spring semester live
                 </div>
               </div>
             </section>
@@ -551,10 +551,10 @@ const Schedule = () => {
                   <div className="mt-4 flex items-center justify-between border-t border-charcoal/8 pt-4">
                     <div className="flex items-center gap-2 text-xs text-charcoal/52">
                       <Users2 size={13} />
-                      <span>Structured weekly track</span>
+                      <span>13-week semester track</span>
                     </div>
                     <span className="font-mono-label text-[8px] uppercase tracking-[0.16em] text-clay">
-                      Open track
+                      Registration open
                     </span>
                   </div>
                 </a>
@@ -572,8 +572,8 @@ const Schedule = () => {
                 <h2 className="mt-2 font-heading text-3xl text-charcoal">{view === "weekly" ? weekTitle : monthTitle}</h2>
                 <p className="mt-2 max-w-2xl text-sm leading-relaxed text-charcoal/62">
                   {view === "weekly"
-                    ? "Each day now reads as one coherent column. If multiple classes happen at the same time, they stay grouped in a single shared slot."
-                    : "Switch to month view for the recurring cadence across the full semester rhythm."}
+                    ? "Each day reads as one coherent column. If multiple classes happen at the same time, they stay grouped inside one shared training window."
+                    : "Switch to month view to see the same weekly cadence carried across the full 13-week semester."}
                 </p>
               </div>
 
@@ -640,7 +640,7 @@ const Schedule = () => {
                   <p className="text-sm leading-relaxed text-charcoal/68">
                     <StudioText
                       k="schedule.alert.weather"
-                      defaultText="Classes may be adjusted for weather. Indoor alternatives are available when needed."
+                      defaultText="This page reflects the recurring semester schedule. If a holiday, closure, or special event changes a class, enrolled families are notified directly."
                       as="span"
                       className="inline"
                       multiline

@@ -356,6 +356,13 @@ const Home = () => {
   const bjjProgram = catalogData?.programs.find((program) => program.id === "bjj");
   const activeSemester = bjjProgram?.active_semester ?? null;
   const activeSemesterLabel = activeSemester?.name?.trim() || "Current semester";
+  const activeSemesterWeeks =
+    Number.isFinite(Number(activeSemester?.classes_in_semester)) && Number(activeSemester?.classes_in_semester) > 0
+      ? Number(activeSemester?.classes_in_semester)
+      : null;
+  const activeSemesterDescriptor = activeSemesterWeeks
+    ? `${activeSemesterWeeks}-week semester`
+    : "Full-term semester";
 
   const enrollmentPricingByTrack = new Map(
     (bjjProgram?.prices ?? []).map((price) => {
@@ -547,7 +554,7 @@ const Home = () => {
           <div className="text-center mb-20">
             <SectionHeader title="Enrollment Tracks" />
             <p className="mt-4 text-charcoal/60 font-body text-sm">
-              Live BJJ enrollments are shown exactly as families register them, with full semester tuition for the current term.
+              Live BJJ enrollments are shown exactly as families register them, with full tuition for the current 13-week semester.
             </p>
           </div>
           <motion.div
@@ -578,7 +585,7 @@ const Home = () => {
                     <div className="font-mono-label text-[9px] uppercase tracking-[0.18em] text-charcoal/45">{group.ageLabel}</div>
                     <div className="mt-2 font-heading text-lg text-charcoal">{activeSemesterLabel}</div>
                     <div className="mt-1 text-sm leading-relaxed text-charcoal/58">
-                      Full-term tuition shown below for each available enrollment.
+                      {activeSemesterDescriptor} tuition shown below for each available enrollment.
                     </div>
                   </div>
                   <div className="mt-4 flex-1 space-y-3">

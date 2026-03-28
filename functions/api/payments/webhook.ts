@@ -19,6 +19,26 @@ function json(data: unknown, init?: ResponseInit) {
   });
 }
 
+function errorSummary(error: unknown) {
+  if (error instanceof Error) {
+    return {
+      name: error.name,
+      message: error.message,
+      stack: error.stack ?? null,
+    };
+  }
+  return {
+    name: "UnknownError",
+    message: String(error),
+    stack: null,
+  };
+}
+
+function eventObjectId(event: Stripe.Event) {
+  const object = event.data?.object as { id?: string } | undefined;
+  return object?.id ?? null;
+}
+
 async function loadPaymentByIntent(env: Env, paymentIntentId: string) {
   return env.DB.prepare(
     `
@@ -202,18 +222,32 @@ async function incrementSessionEnrollment(env: Env, sessionId: number | null | u
 export async function onRequestPost({ request, env }: { request: Request; env: Env }) {
   if (!env.DB) return json({ error: "DB not configured" }, { status: 500 });
   if (!env.STRIPE_SECRET_KEY || !env.STRIPE_WEBHOOK_SECRET) {
+    console.error("[stripe webhook] missing configuration", {
+      hasStripeSecretKey: Boolean(env.STRIPE_SECRET_KEY),
+      hasStripeWebhookSecret: Boolean(env.STRIPE_WEBHOOK_SECRET),
+      url: request.url,
+    });
     return json({ error: "Stripe webhook not configured" }, { status: 500 });
   }
 
   const stripe = new Stripe(env.STRIPE_SECRET_KEY, { apiVersion: "2024-06-20" });
   const sig = request.headers.get("stripe-signature");
-  if (!sig) return json({ error: "Missing stripe-signature header" }, { status: 400 });
+  if (!sig) {
+    console.warn("[stripe webhook] missing signature header", { url: request.url });
+    return json({ error: "Missing stripe-signature header" }, { status: 400 });
+  }
 
   const raw = await request.text();
   let event: Stripe.Event;
   try {
     event = stripe.webhooks.constructEvent(raw, sig, env.STRIPE_WEBHOOK_SECRET);
-  } catch {
+  } catch (error) {
+    console.error("[stripe webhook] invalid signature", {
+      url: request.url,
+      signaturePrefix: sig.slice(0, 24),
+      bodyLength: raw.length,
+      error: errorSummary(error),
+    });
     return json({ error: "Invalid signature" }, { status: 400 });
   }
 
@@ -221,6 +255,14 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
     if (event.type === "payment_intent.succeeded") {
       const pi = event.data.object as Stripe.PaymentIntent;
       const payment = await loadPaymentByIntent(env, pi.id);
+      if (!payment) {
+        console.warn("[stripe webhook] payment intent missing local payment row", {
+          eventId: event.id,
+          paymentIntentId: pi.id,
+          orderIdFromMetadata: pi.metadata?.enrollment_order_id ?? null,
+          registrationIdsFromMetadata: pi.metadata?.registration_ids ?? null,
+        });
+      }
       const receiptUrl = (pi.charges?.data?.[0]?.receipt_url as string) ?? null;
 
       if (payment?.status === "paid") {
@@ -558,7 +600,13 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
     }
 
     return json({ ok: true });
-  } catch {
+  } catch (error) {
+    console.error("[stripe webhook] handler failed", {
+      eventId: event.id,
+      eventType: event.type,
+      objectId: eventObjectId(event),
+      error: errorSummary(error),
+    });
     return json({ error: "Webhook handler failed" }, { status: 500 });
   }
 }

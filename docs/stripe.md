@@ -70,20 +70,32 @@ Sibling and promo discounts are applied before the PaymentIntent is created and 
 
 ## Webhook setup
 
-The webhook endpoint is: `https://your-domain/api/payments/webhook`
+The production webhook endpoint is:
+
+- `https://sunnahskills.com/api/payments/webhook`
+
+Use the custom domain as the canonical live endpoint. Do not treat the Pages preview URL as the primary live webhook target.
 
 Register it in Stripe:
 
 1. Go to **Developers → Webhooks → Add endpoint**
-2. URL: `https://sunnahskills.pages.dev/api/payments/webhook`
+2. URL: `https://sunnahskills.com/api/payments/webhook`
 3. Events to listen for:
    - `payment_intent.succeeded`
    - `payment_intent.payment_failed`
+   - `invoice.paid`
+   - `invoice.payment_failed`
 4. Copy the **Signing secret** and add it as a Cloudflare secret:
 
 ```bash
 npx wrangler pages secret put STRIPE_WEBHOOK_SECRET
 ```
+
+After rotating the signing secret:
+
+1. Redeploy production so the Pages function picks up the new secret
+2. In Stripe, use **Send test webhook** against the live endpoint
+3. Confirm the delivery returns `200`
 
 For local webhook testing:
 

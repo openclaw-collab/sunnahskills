@@ -1,5 +1,5 @@
 import type { StudioCustomTheme, StudioState } from "./studioTypes";
-import { discoverSurfaceCandidates, getStudioRenderableElements } from "./studioDom";
+import { applyAutoTextNodeEdits, discoverSurfaceCandidates, getStudioRenderableElements } from "./studioDom";
 
 type TagOptions = {
   root?: HTMLElement;
@@ -159,6 +159,7 @@ export function applyAutoEdits(state: StudioState, opts: TagOptions = {}) {
       if (el.textContent !== override) el.textContent = override;
     }
   }
+  applyAutoTextNodeEdits(state.localEdits, root);
 }
 
 /**

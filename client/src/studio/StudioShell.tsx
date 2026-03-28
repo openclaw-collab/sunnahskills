@@ -7,6 +7,7 @@ import { PasswordGate } from "./PasswordGate";
 import { InspectorPanel, PageImageLibrary, PageTextLibrary, StudioTextPanel, StudioThemePanel } from "./InspectorPanel";
 import { ChangesExport } from "./ChangesExport";
 import { listVisibleStudioComponents } from "./studioDom";
+import { TextSelectionEditor } from "./TextSelectionEditor";
 
 type PanelTab = "inspect" | "theme" | "text" | "export";
 
@@ -123,6 +124,7 @@ export default function StudioShell() {
     <>
       <PasswordGate />
       <ComponentHighlighter disabled={navigateMode} />
+      <TextSelectionEditor />
 
       {/* Floating toggle button */}
       <div data-studio-ui="1" className="fixed bottom-6 right-6 z-[80]">

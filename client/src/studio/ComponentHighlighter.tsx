@@ -73,6 +73,8 @@ export function ComponentHighlighter({ disabled }: { disabled?: boolean }) {
     const onClick = (e: MouseEvent) => {
       if (isDragging.current) return;
       if ((e.target as Element | null)?.closest?.("[data-studio-ui='1']")) return;
+      const selection = window.getSelection();
+      if (selection && !selection.isCollapsed && selection.toString().trim()) return;
       const comp = (e.target as Element | null)?.closest<HTMLElement>("[data-studio-component]");
       if (!comp) {
         setPinnedComponentId(null);

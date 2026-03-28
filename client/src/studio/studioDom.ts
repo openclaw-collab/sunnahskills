@@ -14,6 +14,18 @@ export type StudioTextFieldCandidate = {
   autoId?: string;
 };
 
+export type StudioSelectionTextCandidate = StudioTextFieldCandidate & {
+  rect: {
+    top: number;
+    left: number;
+    width: number;
+    height: number;
+  };
+  selectedText: string;
+  selectionStart: number;
+  selectionEnd: number;
+};
+
 export type StudioImageSlotCandidate = {
   slotKey: string;
   currentSrc?: string;
@@ -75,6 +87,174 @@ function isVisible(element: HTMLElement) {
   const rect = element.getBoundingClientRect();
   const style = window.getComputedStyle(element);
   return rect.width >= 24 && rect.height >= 24 && style.display !== "none" && style.visibility !== "hidden";
+}
+
+function getRouteKey() {
+  try {
+    return window.location.pathname;
+  } catch {
+    return "/";
+  }
+}
+
+function normalizeDisplayText(value: string) {
+  return value.replace(/\s+/g, " ").trim();
+}
+
+function getNodeOwnerElement(node: Node | null): HTMLElement | null {
+  if (!node) return null;
+  if (node instanceof HTMLElement) return node;
+  return node.parentElement;
+}
+
+function getSelectionOffsetsWithinElement(range: Range, element: HTMLElement) {
+  const probe = document.createRange();
+  probe.selectNodeContents(element);
+  probe.setEnd(range.startContainer, range.startOffset);
+  const selectionStart = probe.toString().length;
+  const selectedLength = range.toString().length;
+  return {
+    selectionStart,
+    selectionEnd: selectionStart + selectedLength,
+  };
+}
+
+function isIgnoredStudioTextNode(node: Text) {
+  const parent = node.parentElement;
+  if (!parent) return true;
+  if (parent.closest("[data-studio-ui='1']")) return true;
+  if (parent.closest("script, style, textarea, input, select, option, svg")) return true;
+  if (parent.closest("[aria-hidden='true'], [data-studio-skip]")) return true;
+  if (!normalizeDisplayText(node.nodeValue ?? "")) return true;
+  return !isVisible(parent);
+}
+
+function getTextNodeOrdinal(node: Text) {
+  const parent = node.parentNode;
+  if (!parent) return 0;
+  let ordinal = 0;
+  for (const sibling of Array.from(parent.childNodes)) {
+    if (sibling.nodeType !== Node.TEXT_NODE) continue;
+    if (sibling === node) return ordinal;
+    ordinal += 1;
+  }
+  return ordinal;
+}
+
+function getElementPathWithinComponent(componentRoot: HTMLElement, element: HTMLElement) {
+  return getStudioNodeKey(componentRoot, element);
+}
+
+function getAutoTextNodeId(node: Text) {
+  const owner = node.parentElement;
+  if (!owner) return null;
+  if (owner.closest("[data-studio-field], [data-studio-auto-id]")) return null;
+
+  const componentRoot = owner.closest<HTMLElement>("[data-studio-component]");
+  const componentId = componentRoot?.dataset.studioComponent ?? "page";
+  const routeKey = getRouteKey();
+  const elementPath = componentRoot
+    ? getElementPathWithinComponent(componentRoot, owner)
+    : `page/${owner.tagName.toLowerCase()}:${getOrdinalAmongSimilarSiblings(owner)}`;
+  return `${routeKey}::${componentId}.__text.${elementPath}.text_${getTextNodeOrdinal(node)}`;
+}
+
+function buildManualFieldCandidate(
+  element: HTMLElement,
+  edits: Record<string, string>,
+): StudioTextFieldCandidate | null {
+  const fieldKey = element.dataset.studioField;
+  if (!fieldKey) return null;
+
+  const componentId = element.closest<HTMLElement>("[data-studio-component]")?.dataset.studioComponent ?? "page";
+  const key = `${componentId}.${fieldKey}`;
+  const text = normalizeDisplayText(element.textContent ?? "");
+  if (!text && !edits[key]) return null;
+
+  return {
+    key,
+    label: fieldKey.replace(/[-_]+/g, " "),
+    currentValue: edits[key] ?? text,
+    defaultValue: text,
+    edited: key in edits,
+    componentId,
+  };
+}
+
+function buildAutoElementCandidate(
+  element: HTMLElement,
+  edits: Record<string, string>,
+): StudioTextFieldCandidate | null {
+  const autoId = element.dataset.studioAutoId;
+  if (!autoId) return null;
+  if (element.closest("[data-studio-field]") && element.closest("[data-studio-field]") !== element) return null;
+  if (element.parentElement?.closest("[data-studio-auto-id]")) return null;
+
+  const rawText = element.textContent ?? "";
+  const displayText = normalizeDisplayText(rawText);
+  if (!displayText && !edits[autoId]) return null;
+
+  return {
+    key: autoId,
+    label: clampText(displayText || element.tagName.toLowerCase()),
+    currentValue: edits[autoId] ?? rawText,
+    defaultValue: rawText,
+    edited: autoId in edits,
+    componentId: element.closest<HTMLElement>("[data-studio-component]")?.dataset.studioComponent,
+    autoId,
+  };
+}
+
+function buildAutoTextNodeCandidate(
+  node: Text,
+  edits: Record<string, string>,
+): StudioTextFieldCandidate | null {
+  if (isIgnoredStudioTextNode(node)) return null;
+  const owner = node.parentElement;
+  if (!owner) return null;
+  const autoId = getAutoTextNodeId(node);
+  if (!autoId) return null;
+
+  const rawText = node.nodeValue ?? "";
+  const displayText = normalizeDisplayText(rawText);
+  if (!displayText && !edits[autoId]) return null;
+
+  const componentId = owner.closest<HTMLElement>("[data-studio-component]")?.dataset.studioComponent;
+  const ownerTag = owner.tagName.toLowerCase();
+
+  return {
+    key: autoId,
+    label: clampText(displayText || ownerTag),
+    currentValue: edits[autoId] ?? rawText,
+    defaultValue: rawText,
+    edited: autoId in edits,
+    componentId,
+    autoId,
+  };
+}
+
+function collectAutoTextNodeCandidates(
+  edits: Record<string, string>,
+  root: ParentNode,
+  componentId?: string,
+) {
+  const items: StudioTextFieldCandidate[] = [];
+  const seen = new Set<string>();
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+
+  let current: Node | null = walker.nextNode();
+  while (current) {
+    if (current instanceof Text) {
+      const candidate = buildAutoTextNodeCandidate(current, edits);
+      if (candidate && (!componentId || candidate.componentId === componentId) && !seen.has(candidate.key)) {
+        seen.add(candidate.key);
+        items.push(candidate);
+      }
+    }
+    current = walker.nextNode();
+  }
+
+  return items;
 }
 
 function hasVisualSignal(element: HTMLElement) {
@@ -174,34 +354,33 @@ export function discoverTextFields(componentId: string, edits: Record<string, st
 
   const seen = new Set<string>();
   const items: StudioTextFieldCandidate[] = [];
-  const candidates = [
-    ...(component.matches("[data-studio-field], [data-studio-auto-id]") ? [component] : []),
-    ...Array.from(component.querySelectorAll<HTMLElement>("[data-studio-field], [data-studio-auto-id]")),
+  const manualCandidates = [
+    ...(component.matches("[data-studio-field]") ? [component] : []),
+    ...Array.from(component.querySelectorAll<HTMLElement>("[data-studio-field]")),
+  ];
+  const autoElementCandidates = [
+    ...(component.matches("[data-studio-auto-id]") ? [component] : []),
+    ...Array.from(component.querySelectorAll<HTMLElement>("[data-studio-auto-id]")),
   ];
 
-  for (const element of candidates) {
-    const fieldKey = element.dataset.studioField;
-    const autoId = element.dataset.studioAutoId;
-    if (!fieldKey && autoId && element.closest("[data-studio-field]") !== element) continue;
+  for (const element of manualCandidates) {
+    const candidate = buildManualFieldCandidate(element, edits);
+    if (!candidate || seen.has(candidate.key)) continue;
+    seen.add(candidate.key);
+    items.push(candidate);
+  }
 
-    const key = fieldKey ? `${componentId}.${fieldKey}` : autoId;
-    if (!key || seen.has(key)) continue;
+  for (const element of autoElementCandidates) {
+    const candidate = buildAutoElementCandidate(element, edits);
+    if (!candidate || seen.has(candidate.key)) continue;
+    seen.add(candidate.key);
+    items.push(candidate);
+  }
 
-    const text = (element.textContent ?? "").replace(/\s+/g, " ").trim();
-    if (!text && !edits[key]) continue;
-
-    seen.add(key);
-    items.push({
-      key,
-      label: fieldKey
-        ? fieldKey.replace(/[-_]+/g, " ")
-        : (autoId?.split(".").pop() ?? autoId ?? "text").replace(/[-_]+/g, " "),
-      currentValue: edits[key] ?? text,
-      defaultValue: text,
-      edited: key in edits,
-      componentId,
-      autoId,
-    });
+  for (const candidate of collectAutoTextNodeCandidates(edits, component, componentId)) {
+    if (seen.has(candidate.key)) continue;
+    seen.add(candidate.key);
+    items.push(candidate);
   }
 
   return items;
@@ -211,35 +390,96 @@ export function listPageTextFields(edits: Record<string, string>): StudioTextFie
   const seen = new Set<string>();
   const items: StudioTextFieldCandidate[] = [];
 
-  const candidates = Array.from(document.querySelectorAll<HTMLElement>("[data-studio-field], [data-studio-auto-id]"));
-  for (const element of candidates) {
-    const fieldKey = element.dataset.studioField;
-    const autoId = element.dataset.studioAutoId;
-    if (!fieldKey && autoId && element.closest("[data-studio-field]") !== element) continue;
+  const manualCandidates = Array.from(document.querySelectorAll<HTMLElement>("[data-studio-field]"));
+  const autoElementCandidates = Array.from(document.querySelectorAll<HTMLElement>("[data-studio-auto-id]"));
+  for (const element of manualCandidates) {
+    const candidate = buildManualFieldCandidate(element, edits);
+    if (!candidate || seen.has(candidate.key)) continue;
+    seen.add(candidate.key);
+    items.push(candidate);
+  }
 
-    const key = fieldKey
-      ? `${element.closest<HTMLElement>("[data-studio-component]")?.dataset.studioComponent ?? "page"}.${fieldKey}`
-      : autoId;
-    if (!key || seen.has(key)) continue;
+  for (const element of autoElementCandidates) {
+    const candidate = buildAutoElementCandidate(element, edits);
+    if (!candidate || seen.has(candidate.key)) continue;
+    seen.add(candidate.key);
+    items.push(candidate);
+  }
 
-    const text = (element.textContent ?? "").replace(/\s+/g, " ").trim();
-    if (!text && !edits[key]) continue;
-
-    seen.add(key);
-    items.push({
-      key,
-      label: fieldKey
-        ? fieldKey.replace(/[-_]+/g, " ")
-        : (autoId?.split(".").pop() ?? autoId ?? "text").replace(/[-_]+/g, " "),
-      currentValue: edits[key] ?? text,
-      defaultValue: text,
-      edited: key in edits,
-      componentId: element.closest<HTMLElement>("[data-studio-component]")?.dataset.studioComponent,
-      autoId,
-    });
+  for (const candidate of collectAutoTextNodeCandidates(edits, document.body)) {
+    if (seen.has(candidate.key)) continue;
+    seen.add(candidate.key);
+    items.push(candidate);
   }
 
   return items;
+}
+
+export function resolveSelectionTextField(edits: Record<string, string>): StudioSelectionTextCandidate | null {
+  const selection = window.getSelection();
+  if (!selection || selection.rangeCount === 0 || selection.isCollapsed) return null;
+  const selectedText = selection.toString();
+  if (!normalizeDisplayText(selectedText)) return null;
+
+  const range = selection.getRangeAt(0);
+  const owner = getNodeOwnerElement(range.commonAncestorContainer);
+  if (!owner || owner.closest("[data-studio-ui='1']")) return null;
+
+  const manualField = owner.closest<HTMLElement>("[data-studio-field]");
+  const autoElement = owner.closest<HTMLElement>("[data-studio-auto-id]");
+  let candidate: StudioTextFieldCandidate | null = null;
+  let selectionStart = 0;
+  let selectionEnd = selectedText.length;
+
+  if (manualField) {
+    candidate = buildManualFieldCandidate(manualField, edits);
+    ({ selectionStart, selectionEnd } = getSelectionOffsetsWithinElement(range, manualField));
+  } else if (autoElement) {
+    candidate = buildAutoElementCandidate(autoElement, edits);
+    ({ selectionStart, selectionEnd } = getSelectionOffsetsWithinElement(range, autoElement));
+  } else {
+    const startNode = range.startContainer instanceof Text ? range.startContainer : null;
+    const endNode = range.endContainer instanceof Text ? range.endContainer : null;
+    if (startNode && endNode && startNode === endNode) {
+      candidate = buildAutoTextNodeCandidate(startNode, edits);
+      selectionStart = range.startOffset;
+      selectionEnd = range.endOffset;
+    } else if (startNode) {
+      candidate = buildAutoTextNodeCandidate(startNode, edits);
+      selectionStart = range.startOffset;
+      selectionEnd = startNode.nodeValue?.length ?? range.startOffset;
+    }
+  }
+
+  if (!candidate) return null;
+
+  const rect = range.getBoundingClientRect();
+  return {
+    ...candidate,
+    rect: {
+      top: rect.top,
+      left: rect.left,
+      width: rect.width,
+      height: rect.height,
+    },
+    selectedText: selectedText,
+    selectionStart,
+    selectionEnd,
+  };
+}
+
+export function applyAutoTextNodeEdits(edits: Record<string, string>, root: ParentNode = document.body) {
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  let current: Node | null = walker.nextNode();
+  while (current) {
+    if (current instanceof Text) {
+      const candidate = buildAutoTextNodeCandidate(current, edits);
+      if (candidate && current.nodeValue !== candidate.currentValue) {
+        current.nodeValue = candidate.currentValue;
+      }
+    }
+    current = walker.nextNode();
+  }
 }
 
 export function discoverImageSlots(componentId: string): StudioImageSlotCandidate[] {
@@ -331,10 +571,7 @@ export function listVisibleStudioComponents(): VisibleStudioComponent[] {
         if (slotKey) imageKeys.add(slotKey);
       }
       const textNodes = [
-        ...Array.from(element.querySelectorAll<HTMLElement>("[data-studio-field]")),
-        ...Array.from(element.querySelectorAll<HTMLElement>("[data-studio-auto-id]")).filter(
-          (node) => node.closest("[data-studio-field]") !== node,
-        ),
+        ...discoverTextFields(id, {}),
       ];
       return {
         id,

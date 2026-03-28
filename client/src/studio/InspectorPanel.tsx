@@ -187,7 +187,7 @@ export function PageTextLibrary() {
       <div>
         <div className="font-mono-label text-[9px] uppercase tracking-widest text-clay">Page copy</div>
         <div className="mt-1 text-sm text-charcoal/55">
-          Every visible text node on this page is editable here, even when it is not wrapped in a manual Studio field.
+          Highlight text directly on the page to edit it fast, or use this library for every visible copy target behind the scenes.
         </div>
       </div>
       <div className="space-y-2 max-h-80 overflow-y-auto pr-1">

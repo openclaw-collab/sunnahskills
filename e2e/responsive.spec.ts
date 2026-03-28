@@ -45,6 +45,7 @@ test.describe('Responsive hotspots', () => {
     await navigateTo.home(mobilePage);
     await waitFor.pageLoad(mobilePage);
 
+    await mobilePage.getByTestId('academy-explorer-trigger-snapshot').click();
     const snapshotCard = mobilePage.getByTestId('academy-snapshot-card');
     await snapshotCard.scrollIntoViewIfNeeded();
     await expect(snapshotCard).toBeVisible();

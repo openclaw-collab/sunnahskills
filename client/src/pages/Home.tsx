@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { Link } from "wouter";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { ClayButton } from "@/components/brand/ClayButton";
-import { InfoCard } from "@/components/brand/TelemetryCard";
 import { DarkCard } from "@/components/brand/DarkCard";
 import { TechniqueViewer } from "@/components/grapplemap/TechniqueViewer";
 import { PremiumCard } from "@/components/brand/PremiumCard";
@@ -344,6 +343,214 @@ function MiniScheduleCalendar() {
   );
 }
 
+function PhilosophyPreview() {
+  return (
+    <div className="relative overflow-hidden rounded-[1.5rem] border border-charcoal/10 bg-charcoal px-5 py-6 text-cream shadow-[0_24px_70px_rgba(26,26,26,0.16)]">
+      <div
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(206,88,51,0.18),transparent_42%),radial-gradient(circle_at_bottom_left,rgba(110,160,122,0.16),transparent_34%)]"
+        aria-hidden
+      />
+      <div className="relative">
+        <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-moss">The Philosophy</div>
+        <div className="mt-4 text-xl text-cream/58 md:text-2xl">
+          <StudioText
+            k="home.philosophy.subheading"
+            defaultText="Most programs keep children busy."
+            as="span"
+            className="inline"
+          />
+        </div>
+        <div className="mt-2 font-serif-accent text-4xl italic leading-none text-cream md:text-5xl">
+          <StudioText k="home.philosophy.heading" defaultText="We build discipline." as="span" className="inline" />
+        </div>
+        <p className="mt-5 max-w-2xl text-sm leading-relaxed text-cream/72 md:text-base">
+          <StudioText
+            k="home.philosophy.body"
+            defaultText="Strength without character is incomplete. Character without training is fragile. Sunnah Skills develops confidence, restraint, and capability through serious, structured training."
+            as="span"
+            className="inline"
+            multiline
+          />
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function AcademyExplorer({ prefersReducedMotion }: { prefersReducedMotion: boolean }) {
+  const [openId, setOpenId] = useState<"snapshot" | "technique" | "schedule" | "philosophy">("technique");
+
+  const items = [
+    {
+      id: "snapshot" as const,
+      label: "Academy snapshot",
+      eyebrow: "Live now",
+      summary: "Current tracks, participation rhythm, and the academy pulse in one compact view.",
+      content: (
+        <div className="grid gap-5 xl:grid-cols-[0.92fr_1.08fr]">
+          <div className="space-y-3">
+            {academyStatusRows.map((row) => (
+              <div key={row.label} className="flex items-center justify-between rounded-2xl border border-charcoal/8 bg-cream/40 px-4 py-3">
+                <span className="text-[10px] uppercase tracking-[0.16em] text-charcoal/50">{row.label}</span>
+                <span className="font-heading text-right text-sm text-charcoal">{row.value}</span>
+              </div>
+            ))}
+          </div>
+          <div data-testid="academy-snapshot-card">
+            <SnapshotDeck />
+          </div>
+        </div>
+      ),
+    },
+    {
+      id: "technique" as const,
+      label: "Technique viewer",
+      eyebrow: "Inside training",
+      summary: "A direct look at how the technique library feels before someone opens the full page.",
+      content: (
+        <div className="grid gap-5 xl:grid-cols-[1.04fr_0.96fr]">
+          <DarkCard className="flex min-h-[24rem] flex-col">
+            <div className="mb-5 flex items-center gap-3">
+              <StatusDot ariaLabel="Technique preview" />
+              <span className="font-mono-label text-[11px] text-cream/70 uppercase tracking-[0.2em]">Inside Training</span>
+            </div>
+            <div className="relative h-72 w-full overflow-hidden rounded-2xl border border-moss/20 bg-charcoal md:h-[22rem]">
+              <TechniqueViewer className="h-full w-full" controlsMode="none" autoplay />
+              <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-charcoal via-charcoal/18 to-transparent" />
+            </div>
+            <p className="mt-5 text-sm leading-relaxed text-cream/68">
+              A quiet look at how technique is taught at Sunnah Skills. The full interactive library lives on the techniques page.
+            </p>
+            <div className="mt-4">
+              <Link href="/techniques" className="font-mono-label text-[11px] uppercase tracking-[0.18em] text-moss hover:text-cream">
+                View technique library
+              </Link>
+            </div>
+          </DarkCard>
+          <div className="rounded-[1.75rem] border border-charcoal/10 bg-white p-5 shadow-[0_24px_70px_rgba(26,26,26,0.08)]">
+            <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-charcoal/48">Why families open this</div>
+            <h3 className="mt-3 font-heading text-2xl text-charcoal">The training looks real before the trial starts.</h3>
+            <p className="mt-3 text-sm leading-relaxed text-charcoal/64">
+              Parents do not have to imagine what “structured BJJ” means. They can see the tone, pacing, and seriousness before they commit.
+            </p>
+            <div className="mt-5 grid gap-3 sm:grid-cols-2">
+              <div className="rounded-2xl border border-charcoal/8 bg-cream/45 px-4 py-4">
+                <div className="font-mono-label text-[9px] uppercase tracking-[0.16em] text-charcoal/45">View style</div>
+                <div className="mt-2 font-heading text-lg text-charcoal">Quiet autoplay</div>
+                <div className="mt-2 text-sm leading-relaxed text-charcoal/62">No clutter, no editing chrome, just the motion and mat space.</div>
+              </div>
+              <div className="rounded-2xl border border-charcoal/8 bg-cream/45 px-4 py-4">
+                <div className="font-mono-label text-[9px] uppercase tracking-[0.16em] text-charcoal/45">Why it matters</div>
+                <div className="mt-2 font-heading text-lg text-charcoal">Trust through clarity</div>
+                <div className="mt-2 text-sm leading-relaxed text-charcoal/62">The preview reassures families that the academy is organized and technically serious.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      ),
+    },
+    {
+      id: "schedule" as const,
+      label: "Weekly schedule",
+      eyebrow: "Current sessions",
+      summary: "Open the live rhythm quickly without forcing everyone to scroll through the full schedule page.",
+      content: (
+        <div className="space-y-4">
+          <div data-testid="home-mini-schedule">
+            <MiniScheduleCalendar />
+          </div>
+          <div className="rounded-2xl border border-moss/15 bg-moss/5 px-4 py-3 text-[11px] leading-relaxed text-charcoal/70">
+            Women Tuesday and Thursday are separate enrollments. Friday youth classes share the same training window but stay in distinct tracks.
+          </div>
+        </div>
+      ),
+    },
+    {
+      id: "philosophy" as const,
+      label: "Philosophy",
+      eyebrow: "Why it exists",
+      summary: "The short version of what Sunnah Skills is trying to shape beyond attendance and activity.",
+      content: <PhilosophyPreview />,
+    },
+  ];
+
+  return (
+    <StudioBlock id="home.explorer" label="Academy explorer" page="Home">
+      <section id="academy-explorer" className="relative z-20 overflow-hidden bg-cream py-18 md:py-22">
+        <div className="pointer-events-none absolute inset-x-0 top-8 h-80 bg-[radial-gradient(circle_at_center,rgba(170,95,72,0.08),transparent_64%)]" aria-hidden />
+        <div className="relative mx-auto max-w-7xl px-6">
+          <SectionHeader eyebrow="Explore the Academy" title="Choose what to preview first" />
+          <p className="mt-4 max-w-2xl text-sm leading-relaxed text-charcoal/62">
+            Open only the parts you want to inspect, then jump straight into the core curriculum below.
+          </p>
+
+          <motion.div
+            initial={prefersReducedMotion ? false : { opacity: 0, y: 16 }}
+            whileInView={prefersReducedMotion ? undefined : { opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-10% 0px" }}
+            transition={prefersReducedMotion ? undefined : { duration: motionTime(0.38) }}
+            className="mt-10 space-y-4"
+            data-testid="home-academy-explorer"
+          >
+            {items.map((item) => {
+              const isOpen = openId === item.id;
+              return (
+                <div
+                  key={item.id}
+                  data-testid={`academy-explorer-${item.id}`}
+                  className={`overflow-hidden rounded-[1.75rem] border transition-all ${
+                    isOpen
+                      ? "border-charcoal/14 bg-white shadow-[0_30px_90px_rgba(26,26,26,0.08)]"
+                      : "border-charcoal/8 bg-white/70 shadow-[0_12px_40px_rgba(26,26,26,0.04)]"
+                  }`}
+                >
+                  <button
+                    type="button"
+                    onClick={() => setOpenId((current) => (current === item.id ? item.id : item.id))}
+                    data-testid={`academy-explorer-trigger-${item.id}`}
+                    className="flex w-full items-start justify-between gap-6 px-5 py-5 text-left md:px-6 md:py-6"
+                    aria-expanded={isOpen}
+                  >
+                    <div className="max-w-3xl">
+                      <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-charcoal/46">{item.eyebrow}</div>
+                      <div className="mt-2 font-heading text-2xl tracking-tight text-charcoal">{item.label}</div>
+                      <div className="mt-2 text-sm leading-relaxed text-charcoal/60">{item.summary}</div>
+                    </div>
+                    <div
+                      className={`mt-1 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border text-lg transition-transform ${
+                        isOpen
+                          ? "border-charcoal/14 bg-charcoal text-cream rotate-45"
+                          : "border-charcoal/10 bg-cream/45 text-charcoal/65"
+                      }`}
+                      aria-hidden
+                    >
+                      +
+                    </div>
+                  </button>
+
+                  <AnimatePresence initial={false}>
+                    {isOpen ? (
+                      <motion.div
+                        initial={prefersReducedMotion ? false : { height: 0, opacity: 0 }}
+                        animate={prefersReducedMotion ? undefined : { height: "auto", opacity: 1 }}
+                        exit={prefersReducedMotion ? undefined : { height: 0, opacity: 0 }}
+                        transition={prefersReducedMotion ? undefined : { duration: motionTime(0.28), ease: [0.22, 1, 0.36, 1] }}
+                        className="overflow-hidden border-t border-charcoal/8"
+                      >
+                        <div className="px-5 py-5 md:px-6 md:py-6">{item.content}</div>
+                      </motion.div>
+                    ) : null}
+                  </AnimatePresence>
+                </div>
+              );
+            })}
+          </motion.div>
+        </div>
+      </section>
+    </StudioBlock>
+  );
+}
+
 function formatEnrollmentSemesterPrice(amountCents: number | null) {
   if (!amountCents || amountCents <= 0) return "Loading semester tuition";
   return `${formatMoneyFromCents(amountCents)} semester`;
@@ -444,101 +651,7 @@ const Home = () => {
         </div>
       </header>
 
-      <section id="overview" className="relative z-20 overflow-hidden bg-cream py-24 xl:py-28">
-        <div className="pointer-events-none absolute inset-x-0 top-10 h-72 bg-[radial-gradient(circle_at_center,rgba(170,95,72,0.08),transparent_64%)]" aria-hidden />
-        <div className="relative mx-auto max-w-[92rem] px-6">
-          <SectionHeader eyebrow="Current Sessions" title="This Week at Sunnah Skills" />
-          <motion.div
-            initial={prefersReducedMotion ? false : { opacity: 0, y: 20 }}
-            whileInView={prefersReducedMotion ? undefined : { opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "-10% 0px" }}
-            transition={prefersReducedMotion ? undefined : { duration: motionTime(0.42) }}
-            className="mt-12 grid grid-cols-1 gap-6 lg:grid-cols-2 xl:grid-cols-[minmax(18rem,0.95fr)_minmax(18rem,0.95fr)_minmax(25rem,1.2fr)] xl:items-stretch xl:gap-5 2xl:grid-cols-[minmax(18rem,0.92fr)_minmax(19rem,0.96fr)_minmax(27rem,1.22fr)]"
-            data-testid="home-overview"
-          >
-            <InfoCard title="Academy Snapshot" label="Snapshot" className="overflow-hidden lg:order-1 xl:min-h-[31rem]">
-              <div className="flex h-full flex-col space-y-3">
-                {academyStatusRows.map((row) => (
-                  <div key={row.label} className="flex items-center justify-between rounded-2xl border border-charcoal/8 bg-cream/40 px-4 py-3">
-                    <span className="text-[10px] uppercase tracking-[0.16em] text-charcoal/50">{row.label}</span>
-                    <span className="font-heading text-right text-sm text-charcoal">{row.value}</span>
-                  </div>
-                ))}
-                <div data-testid="academy-snapshot-card">
-                  <SnapshotDeck />
-                </div>
-              </div>
-            </InfoCard>
-
-            <DarkCard className="order-2 flex flex-col lg:order-2 xl:min-h-[31rem]">
-              <div className="mb-5 flex items-center gap-3">
-                <StatusDot ariaLabel="Technique preview" />
-                <span className="font-mono-label text-[11px] text-cream/70 uppercase tracking-[0.2em]">
-                  Inside Training
-                </span>
-              </div>
-              <div className="relative w-full h-72 bg-charcoal rounded-2xl overflow-hidden border border-moss/20">
-                <TechniqueViewer className="w-full h-full" controlsMode="none" autoplay />
-                <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-charcoal via-charcoal/18 to-transparent" />
-              </div>
-              <p className="mt-5 text-sm leading-relaxed text-cream/68">
-                A quiet look at how technique is taught at Sunnah Skills. The full interactive library lives on the techniques page.
-              </p>
-              <div className="mt-4">
-                <Link href="/techniques" className="font-mono-label text-[11px] uppercase tracking-[0.18em] text-moss hover:text-cream">
-                  View technique library
-                </Link>
-              </div>
-            </DarkCard>
-
-            <InfoCard title="Weekly Schedule" label="Current sessions" className="order-3 lg:col-span-2 xl:col-span-1 xl:min-h-[31rem]">
-              <div className="flex h-full flex-col space-y-3">
-                <div data-testid="home-mini-schedule">
-                  <MiniScheduleCalendar />
-                </div>
-                <div className="mt-auto rounded-2xl border border-moss/15 bg-moss/5 px-4 py-3 text-[11px] leading-relaxed text-charcoal/70">
-                  Women Tuesday and Thursday are separate enrollments. Friday youth classes share the same training window but stay in distinct tracks.
-                </div>
-              </div>
-            </InfoCard>
-          </motion.div>
-        </div>
-      </section>
-
-      <StudioBlock id="home.philosophy" label="Philosophy" page="Home">
-        <motion.section
-          id="manifesto"
-          initial={{ opacity: 0, y: 24 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-10% 0px" }}
-          transition={{ duration: 0.55 }}
-          className="py-40 bg-charcoal text-cream relative overflow-hidden rounded-[3rem] mx-2 md:mx-6 my-10"
-        >
-          <div className="absolute inset-0 z-0">
-            <div className="absolute inset-0 bg-charcoal/80 mix-blend-multiply" />
-          </div>
-          <div className="max-w-5xl mx-auto px-6 relative z-10 flex flex-col items-center text-center">
-            <p className="font-mono-label text-sm text-moss mb-12 uppercase tracking-[0.2em]">
-              <StudioText k="home.philosophy.label" defaultText="The Philosophy" as="span" className="inline" />
-            </p>
-            <h3 className="font-body text-xl md:text-3xl text-cream/60 mb-8 font-light tracking-tight">
-              <StudioText k="home.philosophy.subheading" defaultText="Most programs keep children busy." as="span" className="inline" />
-            </h3>
-            <h2 className="font-serif-accent italic text-4xl md:text-6xl lg:text-[5.5rem] tracking-tight leading-[1.1] text-cream mt-4">
-              <StudioText k="home.philosophy.heading" defaultText="We build discipline." as="span" className="inline" />
-            </h2>
-            <p className="mt-10 font-body font-light text-cream/70 max-w-xl mx-auto text-sm md:text-base leading-relaxed">
-              <StudioText
-                k="home.philosophy.body"
-                defaultText="Strength without character is incomplete. Character without training is fragile. Sunnah Skills develops confidence, restraint, and capability through serious, structured training."
-                as="span"
-                className="inline"
-                multiline
-              />
-            </p>
-          </div>
-        </motion.section>
-      </StudioBlock>
+      <AcademyExplorer prefersReducedMotion={prefersReducedMotion} />
 
       <section id="programs" className="relative bg-cream pb-32">
         <div className="max-w-6xl mx-auto px-6 pt-20 pb-10">

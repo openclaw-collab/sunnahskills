@@ -13,11 +13,11 @@ type Detail = Record<string, any>;
 
 function row(label: string, value: React.ReactNode) {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-2 py-2 border-b border-charcoal/5 last:border-b-0">
+    <div className="grid grid-cols-1 gap-2 border-b border-charcoal/5 py-2.5 last:border-b-0 sm:grid-cols-[10rem_minmax(0,1fr)] sm:gap-3">
       <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-charcoal/60">
         {label}
       </div>
-      <div className="md:col-span-2 text-sm text-charcoal">{value}</div>
+      <div className="min-w-0 text-sm leading-relaxed text-charcoal">{value}</div>
     </div>
   );
 }
@@ -149,27 +149,35 @@ export function RegistrationDetail({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl border border-charcoal/10 bg-cream">
-        <DialogHeader>
-          <DialogTitle className="font-display text-xl text-charcoal">{title}</DialogTitle>
+      <DialogContent className="flex h-[min(96vh,58rem)] w-[calc(100vw-1rem)] max-w-[72rem] flex-col gap-0 overflow-hidden rounded-[1.8rem] border border-charcoal/10 bg-cream p-0 shadow-[0_30px_90px_rgba(26,26,26,0.18)] sm:h-[min(94vh,60rem)] sm:w-[min(96vw,72rem)] sm:rounded-[2rem]">
+        <DialogHeader className="shrink-0 border-b border-charcoal/10 bg-cream/95 px-4 py-4 text-left backdrop-blur-sm sm:px-6 sm:py-5">
+          <DialogTitle className="pr-8 font-display text-lg leading-tight text-charcoal sm:text-[1.45rem]">
+            {title}
+          </DialogTitle>
           <DialogDescription className="text-sm text-charcoal/65">
             Review the payment state, family details, waivers, and internal notes for this registration.
           </DialogDescription>
         </DialogHeader>
 
         {loading ? (
-          <PremiumCard className="bg-white border border-charcoal/10">
-            <div className="text-sm text-charcoal/70">Loading…</div>
-          </PremiumCard>
+          <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-6">
+            <PremiumCard className="bg-white border border-charcoal/10">
+              <div className="text-sm text-charcoal/70">Loading…</div>
+            </PremiumCard>
+          </div>
         ) : !detail ? (
-          <PremiumCard className="bg-white border border-charcoal/10">
-            <div className="text-sm text-charcoal/70">No detail available.</div>
-          </PremiumCard>
+          <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-6">
+            <PremiumCard className="bg-white border border-charcoal/10">
+              <div className="text-sm text-charcoal/70">No detail available.</div>
+            </PremiumCard>
+          </div>
         ) : (
-          <div className="space-y-4">
-            <PremiumCard className={cn("border", detailCardTone(paymentLifecycle?.statusVariant))}>
+          <>
+            <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-6">
+              <div className="space-y-4">
+            <PremiumCard className={cn("border p-4 sm:p-6", detailCardTone(paymentLifecycle?.statusVariant))}>
               <div className="flex flex-wrap items-start justify-between gap-4">
-                <div>
+                <div className="min-w-0 flex-1">
                   <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-moss">
                     Registration overview
                   </div>
@@ -187,7 +195,7 @@ export function RegistrationDetail({
                   </p>
                 </div>
 
-                <div className="min-w-[15rem] rounded-[1.6rem] border border-charcoal/10 bg-white px-4 py-4">
+                <div className="w-full rounded-[1.6rem] border border-charcoal/10 bg-white px-4 py-4 sm:w-[18rem] sm:flex-none">
                   <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-charcoal/45">
                     Internal actions
                   </div>
@@ -211,7 +219,7 @@ export function RegistrationDetail({
                 </div>
               </div>
 
-              <div className="mt-4 grid grid-cols-2 gap-3 xl:grid-cols-4">
+              <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
                 {summaryMetric("Order total", orderTotal)}
                 {summaryMetric("Due today", dueToday)}
                 {summaryMetric(
@@ -223,8 +231,8 @@ export function RegistrationDetail({
               </div>
             </PremiumCard>
 
-            <div className="grid gap-4 xl:grid-cols-[minmax(0,1.12fr)_minmax(0,0.88fr)]">
-              <PremiumCard className="border border-charcoal/10 bg-white">
+            <div className="grid gap-4 lg:grid-cols-[minmax(0,1.08fr)_minmax(18rem,0.92fr)]">
+              <PremiumCard className="border border-charcoal/10 bg-white p-4 sm:p-6">
                 <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-moss mb-2">
                   Family & student
                 </div>
@@ -242,7 +250,7 @@ export function RegistrationDetail({
               </PremiumCard>
 
               <div className="space-y-4">
-                <PremiumCard className="border border-charcoal/10 bg-white">
+                <PremiumCard className="border border-charcoal/10 bg-white p-4 sm:p-6">
                   <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-moss mb-2">
                     Payment detail
                   </div>
@@ -254,7 +262,7 @@ export function RegistrationDetail({
                   {row("Review reason", paymentLifecycle?.reviewDetail ?? detail.order_manual_review_reason ?? detail.order_last_payment_error ?? "—")}
                 </PremiumCard>
 
-                <PremiumCard className="border border-charcoal/10 bg-white">
+                <PremiumCard className="border border-charcoal/10 bg-white p-4 sm:p-6">
                   <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-moss mb-2">
                     Waivers
                   </div>
@@ -266,7 +274,7 @@ export function RegistrationDetail({
                   {row("Signed at", detail.waiver_signed_at ?? "—")}
                 </PremiumCard>
 
-                <PremiumCard className="border border-charcoal/10 bg-white">
+                <PremiumCard className="border border-charcoal/10 bg-white p-4 sm:p-6">
                   <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-moss mb-2">
                     Admin notes
                   </div>
@@ -279,23 +287,25 @@ export function RegistrationDetail({
                 </PremiumCard>
               </div>
             </div>
+              </div>
+            </div>
 
-            <div className="flex items-center justify-end gap-2">
+            <div className="flex shrink-0 flex-col-reverse gap-2 border-t border-charcoal/10 bg-cream/92 px-4 py-4 sm:flex-row sm:items-center sm:justify-end sm:px-6">
               <OutlineButton
-                className="px-5 py-2.5 text-[11px] uppercase tracking-[0.18em]"
+                className="w-full px-5 py-2.5 text-[11px] uppercase tracking-[0.18em] sm:w-auto"
                 onClick={() => onOpenChange(false)}
               >
                 Close
               </OutlineButton>
               <ClayButton
-                className="px-6 py-2.5 text-[11px] uppercase tracking-[0.18em]"
+                className="w-full px-6 py-2.5 text-[11px] uppercase tracking-[0.18em] sm:w-auto"
                 onClick={save}
                 disabled={saving}
               >
                 {saving ? "Saving…" : "Save changes"}
               </ClayButton>
             </div>
-          </div>
+          </>
         )}
       </DialogContent>
     </Dialog>

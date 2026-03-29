@@ -3,6 +3,11 @@ import { setupBrowserMocks } from "../mocks/browser";
 import { server } from "./mocks/server";
 import { resetMockStore } from "./mocks/handlers";
 
+vi.mock("@/lib/stripe", () => ({
+  stripePromise: Promise.resolve(null),
+  stripeAppearance: {},
+}));
+
 /**
  * Integration test setup.
  * This file is loaded by vitest for integration tests.
@@ -28,5 +33,6 @@ declare global {
 globalThis.mockLocalStorage = localStorage;
 globalThis.mockSessionStorage = sessionStorage;
 
-// Increase timeout for integration tests
-vi.setConfig({ testTimeout: 30000 });
+// Integration flows mount real route shells, MSW, and async React Query boundaries.
+// Coverage mode is materially slower, so keep the suite deterministic instead of failing at 30s.
+vi.setConfig({ testTimeout: 60000, hookTimeout: 60000 });

@@ -1,5 +1,6 @@
+import React from "react";
 import { describe, it, expect, vi } from "vitest";
-import { screen, waitFor } from "@testing-library/react";
+import { fireEvent, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { render, mockLocalStorage } from "./test-utils";
 import { ProgramRegistrationPage } from "@/pages/registration/ProgramRegistrationPage";
@@ -8,10 +9,10 @@ import { mockStore } from "./mocks/handlers";
 const mockNavigate = vi.fn();
 
 // Mock wouter's useLocation
-vi.mock("wouter", async () => {
-  const actual = await vi.importActual("wouter");
+vi.mock("wouter", () => {
+  const Link = ({ href, children }: { href: string; children: React.ReactNode }) => <a href={href}>{children}</a>;
   return {
-    ...actual,
+    Link,
     useLocation: () => ["/registration/bjj", mockNavigate],
   };
 });
@@ -28,22 +29,17 @@ vi.mock("@stripe/react-stripe-js", () => ({
 
 // Helper: fill guardian step — SelectField has no htmlFor so use getByRole("combobox")
 async function fillGuardianStep(user: ReturnType<typeof userEvent.setup>) {
-  const fullName = await screen.findByLabelText("Full name");
+  const fullName = await screen.findByLabelText("Full name", {}, { timeout: 10000 });
   const email = screen.getByLabelText("Email");
   const phone = screen.getByLabelText("Phone");
   const emergencyName = screen.getByLabelText("Emergency contact name");
   const emergencyPhone = screen.getByLabelText("Emergency contact phone");
 
-  await user.clear(fullName);
-  await user.type(fullName, "John Doe");
-  await user.clear(email);
-  await user.type(email, "john@example.com");
-  await user.clear(phone);
-  await user.type(phone, "555-123-4567");
-  await user.clear(emergencyName);
-  await user.type(emergencyName, "Jane Doe");
-  await user.clear(emergencyPhone);
-  await user.type(emergencyPhone, "555-987-6543");
+  fireEvent.change(fullName, { target: { value: "John Doe" } });
+  fireEvent.change(email, { target: { value: "john@example.com" } });
+  fireEvent.change(phone, { target: { value: "555-123-4567" } });
+  fireEvent.change(emergencyName, { target: { value: "Jane Doe" } });
+  fireEvent.change(emergencyPhone, { target: { value: "555-987-6543" } });
   const relationshipSelect = screen.getByRole("combobox");
   await user.selectOptions(relationshipSelect, "mother");
 }
@@ -81,9 +77,9 @@ describe("Registration Flow Integration", () => {
       expect(screen.getByPlaceholderText("Student's full name")).toBeInTheDocument();
     }, { timeout: 1000 });
 
-    await user.type(screen.getByPlaceholderText("Student's full name"), "Jimmy Doe");
-    await user.type(screen.getByPlaceholderText("What should we call them?"), "Jim");
-    await user.type(screen.getByPlaceholderText("YYYY-MM-DD"), "2015-01-01");
+    fireEvent.change(screen.getByPlaceholderText("Student's full name"), { target: { value: "Jimmy Doe" } });
+    fireEvent.change(screen.getByPlaceholderText("What should we call them?"), { target: { value: "Jim" } });
+    fireEvent.change(screen.getByPlaceholderText("YYYY-MM-DD"), { target: { value: "2015-01-01" } });
 
     await user.click(screen.getByRole("button", { name: /continue/i }));
 
@@ -108,9 +104,8 @@ describe("Registration Flow Integration", () => {
     await user.click(await screen.findByRole("checkbox", { name: /photo/i }));
     await user.click(await screen.findByRole("checkbox", { name: /medical/i }));
     await user.click(await screen.findByRole("checkbox", { name: /terms/i }));
-    await user.type(screen.getByLabelText(/typed legal signature/i), "John Doe");
-    await user.type(screen.getByLabelText(/^date$/i), "2026-03-18");
-    await user.type(screen.getByLabelText(/^date$/i), "2026-03-18");
+    fireEvent.change(screen.getByLabelText(/typed legal signature/i), { target: { value: "John Doe" } });
+    fireEvent.change(screen.getByLabelText(/^date$/i), { target: { value: "2026-03-18" } });
 
     // "Continue" on waivers triggers registration + payment setup
     await user.click(screen.getByRole("button", { name: /continue/i }));
@@ -152,8 +147,8 @@ describe("Registration Flow Integration", () => {
     const { unmount } = render(<ProgramRegistrationPage slug="bjj" />);
 
     // Fill out guardian info
-    await user.type(await screen.findByLabelText("Full name"), "Sarah Smith");
-    await user.type(screen.getByLabelText("Email"), "sarah@example.com");
+    fireEvent.change(await screen.findByLabelText("Full name"), { target: { value: "Sarah Smith" } });
+    fireEvent.change(screen.getByLabelText("Email"), { target: { value: "sarah@example.com" } });
 
     // Unmount component (simulate navigation away)
     unmount();

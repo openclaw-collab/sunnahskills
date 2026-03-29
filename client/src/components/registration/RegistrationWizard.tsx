@@ -76,7 +76,7 @@ export function RegistrationWizard({
     <MotionPage className="bg-cream min-h-screen pb-24">
       <div className="noise-overlay" />
 
-      <main className="max-w-6xl mx-auto px-6 pt-28">
+      <main className="max-w-6xl mx-auto px-6 pt-28" data-testid="registration-wizard">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
           <div className="lg:col-span-2 space-y-6">
             <StudioBlock id={`registration.${program.slug}.hero`} label={`${program.name} hero`}>
@@ -93,7 +93,7 @@ export function RegistrationWizard({
             </StudioBlock>
 
             <StudioBlock id={`registration.${program.slug}.wizard`} label={`${program.name} wizard`}>
-              <PremiumCard className="bg-white border border-charcoal/10">
+              <PremiumCard className="bg-white border border-charcoal/10" data-testid="registration-wizard-card">
                 <ProgressIndicator steps={steps} currentStepIndex={currentStepIndex} className="mb-6" />
 
                 <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-moss">
@@ -104,6 +104,7 @@ export function RegistrationWizard({
                   <motion.div
                     key={step?.id ?? currentStepIndex}
                     className="mt-6"
+                    data-testid={step?.id ? `registration-step-${step.id}` : "registration-step"}
                     variants={stepVariants}
                     initial="initial"
                     animate="animate"

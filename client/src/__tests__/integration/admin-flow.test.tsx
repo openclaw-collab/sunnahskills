@@ -339,9 +339,11 @@ describe("Admin Flow Integration", () => {
       // Navigate to payments tab
       await user.click(screen.getByRole("tab", { name: /payments/i }));
 
-      // Should show payment information (formatted as $100 with no decimals)
+      // Should show payment information in the current CAD summary layout.
       await waitFor(() => {
-        expect(screen.getByText(/\$100/)).toBeInTheDocument();
+        expect(screen.getByText(/today:\s*\$100\.00/i)).toBeInTheDocument();
+        expect(screen.getAllByText(/later:\s*no later balance/i).length).toBeGreaterThan(0);
+        expect(screen.getByText(/order:\s*paid\s*·\s*payment:\s*paid/i)).toBeInTheDocument();
       });
     });
   });

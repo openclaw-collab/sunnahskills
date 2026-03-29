@@ -442,7 +442,7 @@ export default function CartPage() {
   return (
     <MotionPage className="min-h-screen bg-cream pb-24">
       <div className="noise-overlay" />
-      <main className="mx-auto max-w-5xl px-6 pt-28">
+      <main className="mx-auto max-w-5xl px-6 pt-28" data-testid="registration-cart-page">
         <StudioBlock id="registration.cart.page" label="Cart page">
           <SectionHeader
             eyebrow={<StudioText k="registration.cart.eyebrow" defaultText="Checkout" />}
@@ -454,7 +454,7 @@ export default function CartPage() {
         {phase === "review" ? (
           <StudioBlock id="registration.cart.review" label="Cart review">
             <div className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
-              <PremiumCard className="border border-charcoal/10 bg-white p-6">
+              <PremiumCard className="border border-charcoal/10 bg-white p-6" data-testid="registration-cart-line-items">
                 <StudioText
                   k="registration.cart.linesHeading"
                   defaultText="Registration lines"
@@ -589,7 +589,7 @@ export default function CartPage() {
               </div>
               </PremiumCard>
 
-              <PremiumCard className="border border-charcoal/10 bg-white p-6">
+              <PremiumCard className="border border-charcoal/10 bg-white p-6" data-testid="registration-cart-summary">
                 <StudioText
                   k="registration.cart.waiverHeading"
                   defaultText="Waiver and payment consent"
@@ -752,7 +752,7 @@ export default function CartPage() {
         ) : clientSecret ? (
           <StudioBlock id="registration.cart.payment" label="Cart payment">
             <div className="grid gap-6 lg:grid-cols-[1fr_0.95fr]">
-              <PremiumCard className="border border-charcoal/10 bg-white p-6">
+              <PremiumCard className="border border-charcoal/10 bg-white p-6" data-testid="registration-payment-form">
                 <StudioText
                   k="registration.cart.paymentHeading"
                   defaultText="Payment"
@@ -773,7 +773,7 @@ export default function CartPage() {
               </PaymentProvider>
               </PremiumCard>
 
-              <PremiumCard className="border border-charcoal/10 bg-white p-6">
+              <PremiumCard className="border border-charcoal/10 bg-white p-6" data-testid="registration-order-summary">
                 <StudioText
                   k="registration.cart.summaryHeading"
                   defaultText="Order summary"

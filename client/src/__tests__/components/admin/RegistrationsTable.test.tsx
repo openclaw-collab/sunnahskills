@@ -1,5 +1,6 @@
 import React from "react";
 import { describe, expect, it, vi, beforeEach } from "vitest";
+import userEvent from "@testing-library/user-event";
 import { render, screen, fireEvent } from "@/__tests__/test-utils";
 import { RegistrationsTable } from "@/components/admin/RegistrationsTable";
 
@@ -48,5 +49,46 @@ describe("RegistrationsTable", () => {
     expect(screen.getByText(/Replaced by a newer checkout/i)).toBeInTheDocument();
     fireEvent.click(screen.getByText("Student One"));
     expect(onOpen).toHaveBeenCalledWith(123);
+  });
+
+  it("builds the refresh query from filters and superseded toggle", async () => {
+    const user = userEvent.setup();
+    const fetchMock = vi
+      .fn()
+      .mockImplementationOnce(async () => ({
+        ok: true,
+        json: async () => ({ programs: [{ id: "bjj", slug: "bjj", name: "Brazilian Jiu-Jitsu" }] }),
+      }))
+      .mockImplementationOnce(async () => ({
+        ok: true,
+        json: async () => ({ registrations: [] }),
+      }));
+
+    (globalThis as any).fetch = fetchMock;
+
+    function Harness() {
+      const [showSuperseded, setShowSuperseded] = React.useState(false);
+      return (
+        <RegistrationsTable
+          initial={[]}
+          showSuperseded={showSuperseded}
+          onShowSupersededChange={setShowSuperseded}
+          onOpen={vi.fn()}
+        />
+      );
+    }
+
+    render(<Harness />);
+
+    expect(await screen.findByText("Registrations")).toBeInTheDocument();
+
+    await user.type(screen.getByPlaceholderText(/parent, student, or email/i), "student one");
+    await user.click(screen.getByLabelText(/show superseded registrations/i));
+    await user.click(screen.getByRole("button", { name: /refresh/i }));
+
+    const lastCall = fetchMock.mock.calls.at(-1)?.[0];
+    expect(lastCall).toContain("/api/admin/registrations?");
+    expect(lastCall).toContain("q=student+one");
+    expect(lastCall).toContain("includeSuperseded=1");
   });
 });

@@ -424,6 +424,12 @@ export const handlers = [
     });
   }),
 
+  http.get("/api/payments/public-config", () => {
+    return HttpResponse.json({
+      publishableKey: "pk_test_mock_publishable_key",
+    });
+  }),
+
   // Admin endpoints
   http.get("/api/admin/dashboard", () => {
     if (!mockStore.currentUser) {
@@ -592,8 +598,16 @@ export const handlers = [
     return HttpResponse.json({ discounts: [] });
   }),
 
+  http.get("/api/admin/proration-codes", () => {
+    return HttpResponse.json({ codes: [] });
+  }),
+
   http.post("/api/admin/discounts", async ({ request }) => {
     return HttpResponse.json({ ok: true, discount: { id: 1 } });
+  }),
+
+  http.get("/api/admin/trials", () => {
+    return HttpResponse.json({ trials: [] });
   }),
 
   http.get("/api/admin/sessions", () => {

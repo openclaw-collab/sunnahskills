@@ -62,6 +62,8 @@ export default defineConfig({
     ],
     coverage: {
       provider: "v8",
+      clean: false,
+      cleanOnRerun: false,
       reporter: ["text", "json", "html", "lcov"],
       exclude: [
         "node_modules/",
@@ -72,6 +74,8 @@ export default defineConfig({
         "**/fixture*.ts",
         "storybook-static/",
         "stories/",
+        "**/__stories__/**",
+        "**/*.stories.{ts,tsx}",
         "e2e/"
       ],
       include: ["client/src/**/*.{ts,tsx}", "shared/**/*.ts"],

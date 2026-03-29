@@ -359,7 +359,7 @@ export default function AdminDashboard() {
           </TabsList>
         </div>
 
-        <TabsContent value="overview" className="space-y-6">
+        <TabsContent value="overview" className="space-y-6" data-testid="admin-overview-panel">
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             <TelemetryCard title="Registrations" label="live total" icon={<Users size={18} />}>
               <div className="text-3xl font-heading text-charcoal">{registrationsTotal}</div>
@@ -504,7 +504,7 @@ export default function AdminDashboard() {
           </div>
         </TabsContent>
 
-        <TabsContent value="registrations">
+        <TabsContent value="registrations" data-testid="admin-registrations-panel">
           <RegistrationsTable
             initial={registrations}
             showSuperseded={showSupersededRegistrations}
@@ -516,11 +516,11 @@ export default function AdminDashboard() {
           />
         </TabsContent>
 
-        <TabsContent value="trials">
+        <TabsContent value="trials" data-testid="admin-trials-panel">
           <TrialsManager />
         </TabsContent>
 
-        <TabsContent value="payments">
+        <TabsContent value="payments" data-testid="admin-payments-panel">
           <PaymentsSummary
             payments={payments}
             showSuperseded={showSupersededPayments}
@@ -528,23 +528,23 @@ export default function AdminDashboard() {
           />
         </TabsContent>
 
-        <TabsContent value="discounts">
+        <TabsContent value="discounts" data-testid="admin-discounts-panel">
           <DiscountsManager />
         </TabsContent>
 
-        <TabsContent value="pricing">
+        <TabsContent value="pricing" data-testid="admin-pricing-panel">
           <PricingManager />
         </TabsContent>
 
-        <TabsContent value="sessions">
+        <TabsContent value="sessions" data-testid="admin-sessions-panel">
           <SessionManager />
         </TabsContent>
 
-        <TabsContent value="contacts">
+        <TabsContent value="contacts" data-testid="admin-contacts-panel">
           <ContactsTable />
         </TabsContent>
 
-        <TabsContent value="export">
+        <TabsContent value="export" data-testid="admin-export-panel">
           <PremiumCard className="bg-white border border-charcoal/10">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>

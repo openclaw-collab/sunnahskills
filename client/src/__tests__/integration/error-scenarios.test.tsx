@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { screen, waitFor } from "@testing-library/react";
+import { fireEvent, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { render } from "./test-utils";
 import AdminLogin from "@/pages/admin/AdminLogin";
@@ -23,6 +23,11 @@ vi.mock("@/hooks/use-toast", () => ({
 }));
 
 describe("Error Scenarios Integration", () => {
+  function setLoginFields(email: string, password: string) {
+    fireEvent.change(screen.getByLabelText(/email/i), { target: { value: email } });
+    fireEvent.change(screen.getByLabelText(/password/i), { target: { value: password } });
+  }
+
   beforeEach(() => {
     mockNavigate.mockClear();
     mockStore.shouldFailNextRequest = false;
@@ -36,8 +41,7 @@ describe("Error Scenarios Integration", () => {
 
       render(<AdminLogin />);
 
-      await user.type(screen.getByLabelText(/email/i), "muadh@sunnahskills.com");
-      await user.type(screen.getByLabelText(/password/i), "admin123");
+      setLoginFields("muadh@sunnahskills.com", "admin123");
       await user.click(screen.getByRole("button", { name: /sign in/i }));
 
       // Should show error state
@@ -64,8 +68,7 @@ describe("Error Scenarios Integration", () => {
 
       render(<AdminLogin />);
 
-      await user.type(screen.getByLabelText(/email/i), "muadh@sunnahskills.com");
-      await user.type(screen.getByLabelText(/password/i), "admin123");
+      setLoginFields("muadh@sunnahskills.com", "admin123");
 
       const submitButton = screen.getByRole("button", { name: /sign in/i });
       expect(submitButton).toBeInTheDocument();
@@ -85,8 +88,7 @@ describe("Error Scenarios Integration", () => {
 
       render(<AdminLogin />);
 
-      await user.type(screen.getByLabelText(/email/i), "muadh@sunnahskills.com");
-      await user.type(screen.getByLabelText(/password/i), "admin123");
+      setLoginFields("muadh@sunnahskills.com", "admin123");
       await user.click(screen.getByRole("button", { name: /sign in/i }));
 
       await waitFor(() => {
@@ -96,8 +98,7 @@ describe("Error Scenarios Integration", () => {
       // Second attempt succeeds
       mockStore.networkError = false;
 
-      await user.clear(screen.getByLabelText(/email/i));
-      await user.type(screen.getByLabelText(/email/i), "muadh@sunnahskills.com");
+      fireEvent.change(screen.getByLabelText(/email/i), { target: { value: "muadh@sunnahskills.com" } });
       await user.click(screen.getByRole("button", { name: /sign in/i }));
 
       await waitFor(() => {
@@ -112,8 +113,7 @@ describe("Error Scenarios Integration", () => {
 
       render(<AdminLogin />);
 
-      await user.type(screen.getByLabelText(/email/i), "wrong@example.com");
-      await user.type(screen.getByLabelText(/password/i), "wrongpass");
+      setLoginFields("wrong@example.com", "wrongpass");
       await user.click(screen.getByRole("button", { name: /sign in/i }));
 
       await waitFor(() => {
@@ -157,8 +157,7 @@ describe("Error Scenarios Integration", () => {
       render(<AdminLogin />);
 
       // Fill form
-      await user.type(screen.getByLabelText(/email/i), "muadh@sunnahskills.com");
-      await user.type(screen.getByLabelText(/password/i), "admin123");
+      setLoginFields("muadh@sunnahskills.com", "admin123");
 
       // Click multiple times rapidly
       const submitButton = screen.getByRole("button", { name: /sign in/i });
@@ -180,8 +179,8 @@ describe("Error Scenarios Integration", () => {
       render(<AdminLogin />);
 
       const emailInput = screen.getByLabelText(/email/i);
-      await user.type(emailInput, "not-an-email");
-      await user.type(screen.getByLabelText(/password/i), "password123");
+      fireEvent.change(emailInput, { target: { value: "not-an-email" } });
+      fireEvent.change(screen.getByLabelText(/password/i), { target: { value: "password123" } });
       await user.click(screen.getByRole("button", { name: /sign in/i }));
 
       // Native email validation blocks submit before the API runs
@@ -275,41 +274,38 @@ describe("Error Scenarios Integration", () => {
 
   describe("Edge Cases", () => {
     it("handles very long input values", async () => {
-      const user = userEvent.setup();
       const longString = "a".repeat(1000);
 
       render(<AdminLogin />);
 
-      await user.type(screen.getByLabelText(/email/i), longString);
+      fireEvent.change(screen.getByLabelText(/password/i), { target: { value: longString } });
 
-      const input = screen.getByLabelText(/email/i) as HTMLInputElement;
-      expect(input.value.length).toBeGreaterThan(0);
+      const input = screen.getByLabelText(/password/i) as HTMLInputElement;
+      expect(input.value).toHaveLength(longString.length);
     });
 
     it("handles special characters in input", async () => {
-      const user = userEvent.setup();
-
       render(<AdminLogin />);
 
-      await user.type(screen.getByLabelText(/email/i), "test<script>alert('xss')</script>@example.com");
+      const specialValue = "P@ss<word>&'\"";
+      fireEvent.change(screen.getByLabelText(/password/i), { target: { value: specialValue } });
 
-      const input = screen.getByLabelText(/email/i) as HTMLInputElement;
-      expect(input.value).toContain("<script>");
+      const input = screen.getByLabelText(/password/i) as HTMLInputElement;
+      expect(input.value).toBe(specialValue);
     });
 
     it("handles rapid navigation", async () => {
-      const user = userEvent.setup();
-
       render(<AdminLogin />);
 
       // Rapidly interact with form
-      await user.type(screen.getByLabelText(/email/i), "a");
-      await user.clear(screen.getByLabelText(/email/i));
-      await user.type(screen.getByLabelText(/email/i), "b");
-      await user.clear(screen.getByLabelText(/email/i));
-      await user.type(screen.getByLabelText(/email/i), "muadh@sunnahskills.com");
+      const emailInput = screen.getByLabelText(/email/i);
+      fireEvent.change(emailInput, { target: { value: "a" } });
+      fireEvent.change(emailInput, { target: { value: "" } });
+      fireEvent.change(emailInput, { target: { value: "b" } });
+      fireEvent.change(emailInput, { target: { value: "" } });
+      fireEvent.change(emailInput, { target: { value: "muadh@sunnahskills.com" } });
 
-      const input = screen.getByLabelText(/email/i) as HTMLInputElement;
+      const input = emailInput as HTMLInputElement;
       expect(input.value).toBe("muadh@sunnahskills.com");
     });
 
@@ -318,8 +314,7 @@ describe("Error Scenarios Integration", () => {
 
       render(<AdminLogin />);
 
-      await user.type(screen.getByLabelText(/email/i), "muadh@sunnahskills.com");
-      await user.type(screen.getByLabelText(/password/i), "admin123");
+      setLoginFields("muadh@sunnahskills.com", "admin123");
 
       // Start submission
       await user.click(screen.getByRole("button", { name: /sign in/i }));

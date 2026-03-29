@@ -181,7 +181,7 @@ export default function RegistrationHub() {
   return (
     <MotionPage className="min-h-screen bg-cream pb-24">
       <div className="noise-overlay" />
-      <main className="mx-auto max-w-6xl px-6 pt-28">
+      <main className="mx-auto max-w-6xl px-6 pt-28" data-testid="registration-hub">
         <SectionHeader
           eyebrow="Family & Member Account"
           title={authenticated ? "Account & participant profiles" : "Open your account before you register"}

@@ -33,6 +33,7 @@ export default function AdminLogin() {
         <MotionDiv delay={0.04}>
           <PremiumCard className="bg-white border border-charcoal/10">
           <form
+            data-testid="admin-login-form"
             className="grid grid-cols-1 gap-4"
             onSubmit={async (event) => {
               event.preventDefault();
@@ -99,7 +100,7 @@ export default function AdminLogin() {
             </div>
 
             {error && (
-              <p role="alert" className="font-body text-sm text-red-600">
+              <p role="alert" data-testid="admin-login-error" className="font-body text-sm text-red-600">
                 {error}
               </p>
             )}

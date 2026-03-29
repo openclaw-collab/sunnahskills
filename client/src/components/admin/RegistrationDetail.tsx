@@ -164,7 +164,10 @@ export function RegistrationDetail({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex h-[min(96vh,58rem)] w-[calc(100vw-1rem)] max-w-[72rem] flex-col gap-0 overflow-hidden rounded-[1.8rem] border border-charcoal/10 bg-cream p-0 shadow-[0_30px_90px_rgba(26,26,26,0.18)] sm:h-[min(94vh,60rem)] sm:w-[min(96vw,72rem)] sm:rounded-[2rem]">
+      <DialogContent
+        data-testid="admin-registration-detail-dialog"
+        className="flex h-[min(96vh,58rem)] w-[calc(100vw-1rem)] max-w-[72rem] flex-col gap-0 overflow-hidden rounded-[1.8rem] border border-charcoal/10 bg-cream p-0 shadow-[0_30px_90px_rgba(26,26,26,0.18)] sm:h-[min(94vh,60rem)] sm:w-[min(96vw,72rem)] sm:rounded-[2rem]"
+      >
         <DialogHeader className="shrink-0 border-b border-charcoal/10 bg-cream/95 px-4 py-4 text-left backdrop-blur-sm sm:px-6 sm:py-5">
           <DialogTitle className="pr-8 font-display text-lg leading-tight text-charcoal sm:text-[1.45rem]">
             {title}
@@ -190,7 +193,10 @@ export function RegistrationDetail({
           <>
             <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-6">
               <div className="space-y-4">
-            <PremiumCard className={cn("border p-4 sm:p-6", detailCardTone(paymentLifecycle?.statusVariant))}>
+            <PremiumCard
+              className={cn("border p-4 sm:p-6", detailCardTone(paymentLifecycle?.statusVariant))}
+              data-testid="admin-registration-summary"
+            >
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div className="min-w-0 flex-1">
                   <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-moss">
@@ -253,7 +259,7 @@ export function RegistrationDetail({
             </PremiumCard>
 
             <div className="grid gap-4 lg:grid-cols-[minmax(0,1.08fr)_minmax(18rem,0.92fr)]">
-              <PremiumCard className="border border-charcoal/10 bg-white p-4 sm:p-6">
+              <PremiumCard className="border border-charcoal/10 bg-white p-4 sm:p-6" data-testid="admin-registration-family">
                 <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-moss mb-2">
                   Family & student
                 </div>
@@ -271,7 +277,7 @@ export function RegistrationDetail({
               </PremiumCard>
 
               <div className="space-y-4">
-                <PremiumCard className="border border-charcoal/10 bg-white p-4 sm:p-6">
+                <PremiumCard className="border border-charcoal/10 bg-white p-4 sm:p-6" data-testid="admin-registration-payment">
                   <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-moss mb-2">
                     Payment detail
                   </div>
@@ -283,7 +289,7 @@ export function RegistrationDetail({
                   {row("Review reason", paymentLifecycle?.reviewDetail ?? detail.order_manual_review_reason ?? detail.order_last_payment_error ?? "—")}
                 </PremiumCard>
 
-                <PremiumCard className="border border-charcoal/10 bg-white p-4 sm:p-6">
+                <PremiumCard className="border border-charcoal/10 bg-white p-4 sm:p-6" data-testid="admin-registration-waivers">
                   <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-moss mb-2">
                     Waivers
                   </div>
@@ -295,7 +301,7 @@ export function RegistrationDetail({
                   {row("Signed at", detail.waiver_signed_at ?? "—")}
                 </PremiumCard>
 
-                <PremiumCard className="border border-charcoal/10 bg-white p-4 sm:p-6">
+                <PremiumCard className="border border-charcoal/10 bg-white p-4 sm:p-6" data-testid="admin-registration-notes">
                   <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-moss mb-2">
                     Admin notes
                   </div>

@@ -8,7 +8,17 @@ import { OutlineButton } from "@/components/brand/OutlineButton";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
-import { loadFamilyCart, removeCartLine, clearFamilyCart, updateCartLine, type FamilyCart } from "@/lib/familyCart";
+import {
+  buildFamilyCartFingerprint,
+  clearFamilyCart,
+  clearPendingFamilyCheckout,
+  loadFamilyCart,
+  loadPendingFamilyCheckout,
+  removeCartLine,
+  savePendingFamilyCheckout,
+  updateCartLine,
+  type FamilyCart,
+} from "@/lib/familyCart";
 import { useGuardianSession } from "@/hooks/useGuardianSession";
 import { PaymentProvider } from "@/components/payment/PaymentProvider";
 import { PaymentForm } from "@/components/payment/PaymentForm";
@@ -53,15 +63,47 @@ function discountReasonCopy(reason: string | undefined) {
   }
 }
 
+function getInitialCheckoutState() {
+  const cart = loadFamilyCart();
+  const pending = loadPendingFamilyCheckout();
+  if (!cart || !pending) {
+    return {
+      cart,
+      orderId: null,
+      firstRegistrationId: null,
+      prorationCode: "",
+    };
+  }
+
+  const expectedFingerprint = buildFamilyCartFingerprint(cart, pending.prorationCode);
+  if (pending.cartFingerprint !== expectedFingerprint) {
+    clearPendingFamilyCheckout();
+    return {
+      cart,
+      orderId: null,
+      firstRegistrationId: null,
+      prorationCode: "",
+    };
+  }
+
+  return {
+    cart,
+    orderId: pending.orderId,
+    firstRegistrationId: pending.firstRegistrationId,
+    prorationCode: pending.prorationCode,
+  };
+}
+
 export default function CartPage() {
   const [, navigate] = useLocation();
-  const [cart, setCart] = React.useState<FamilyCart | null>(() => loadFamilyCart());
+  const initialCheckoutState = React.useMemo(() => getInitialCheckoutState(), []);
+  const [cart, setCart] = React.useState<FamilyCart | null>(initialCheckoutState.cart);
   const sessionQuery = useGuardianSession();
   const [waiver, setWaiver] = React.useState<WaiverRecord | null>(null);
   const [phase, setPhase] = React.useState<"review" | "pay">("review");
   const [clientSecret, setClientSecret] = React.useState<string | null>(null);
-  const [orderId, setOrderId] = React.useState<number | null>(null);
-  const [firstRegistrationId, setFirstRegistrationId] = React.useState<number | null>(null);
+  const [orderId, setOrderId] = React.useState<number | null>(initialCheckoutState.orderId);
+  const [firstRegistrationId, setFirstRegistrationId] = React.useState<number | null>(initialCheckoutState.firstRegistrationId);
   const [summary, setSummary] = React.useState<{
     dueTodayCents: number;
     dueLaterCents: number;
@@ -71,7 +113,7 @@ export default function CartPage() {
     promoDiscountCents: number;
   } | null>(null);
   const [laterChargeAuthorized, setLaterChargeAuthorized] = React.useState(false);
-  const [prorationCode, setProrationCode] = React.useState("");
+  const [prorationCode, setProrationCode] = React.useState(initialCheckoutState.prorationCode);
   const [lineDiscountDrafts, setLineDiscountDrafts] = React.useState<Record<string, string>>({});
   const [lineDiscountOpen, setLineDiscountOpen] = React.useState<Record<string, boolean>>({});
   const [lineDiscountFeedback, setLineDiscountFeedback] = React.useState<
@@ -94,6 +136,20 @@ export default function CartPage() {
     [cartLines],
   );
   const requiresPhotoConsent = !womenOnlyOrder;
+  const checkoutFingerprint = React.useMemo(
+    () => (cart ? buildFamilyCartFingerprint(cart, prorationCode) : null),
+    [cart, prorationCode],
+  );
+
+  function resetPendingCheckout(options?: { preserveError?: boolean }) {
+    clearPendingFamilyCheckout();
+    setOrderId(null);
+    setFirstRegistrationId(null);
+    setClientSecret(null);
+    setSummary(null);
+    setPhase("review");
+    if (!options?.preserveError) setError(null);
+  }
 
   React.useEffect(() => {
     const nextDrafts = Object.fromEntries(cartLines.map((line) => [line.id, line.discountCode ?? ""]));
@@ -117,6 +173,15 @@ export default function CartPage() {
       setLaterChargeAuthorized(false);
     }
   }, [summary]);
+
+  React.useEffect(() => {
+    const pending = loadPendingFamilyCheckout();
+    if (!pending) return;
+
+    if (!cart || !checkoutFingerprint || pending.cartFingerprint !== checkoutFingerprint) {
+      resetPendingCheckout();
+    }
+  }, [cart, checkoutFingerprint]);
 
   React.useEffect(() => {
     (async () => {
@@ -239,13 +304,16 @@ export default function CartPage() {
   }
 
   async function submitCheckout() {
-    if (!waiver?.id) {
-      setError("The live waiver could not be loaded.");
-      return;
-    }
-    if (!validateWaiverInputs()) {
-      setError("Please complete every required waiver field before checkout.");
-      return;
+    const hasExistingOrder = Boolean(orderId);
+    if (!hasExistingOrder) {
+      if (!waiver?.id) {
+        setError("The live waiver could not be loaded.");
+        return;
+      }
+      if (!validateWaiverInputs()) {
+        setError("Please complete every required waiver field before checkout.");
+        return;
+      }
     }
     setSubmitting(true);
     setError(null);
@@ -254,7 +322,9 @@ export default function CartPage() {
 
       if (!nextOrderId) {
         if (!cart) throw new Error("Your cart is empty.");
+        if (!waiver?.id) throw new Error("The live waiver could not be loaded.");
         const currentCart = cart;
+        const normalizedProrationCode = prorationCode.trim().toUpperCase();
         const regRes = await fetch("/api/register/cart", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -264,7 +334,7 @@ export default function CartPage() {
               email: sessionQuery.data?.email ?? currentCart.account.email,
             },
             lines: currentCart.lines,
-            prorationCode: prorationCode.trim() || undefined,
+            prorationCode: normalizedProrationCode || undefined,
             waivers: {
               waiverId: waiver.id,
               ...waivers,
@@ -283,6 +353,12 @@ export default function CartPage() {
         const registrationIds = Array.isArray(regJson?.registrationIds) ? (regJson.registrationIds as number[]) : [];
         setOrderId(nextOrderId);
         setFirstRegistrationId(registrationIds[0] ?? null);
+        savePendingFamilyCheckout({
+          orderId: nextOrderId,
+          firstRegistrationId: registrationIds[0] ?? null,
+          prorationCode: normalizedProrationCode,
+          cartFingerprint: buildFamilyCartFingerprint(currentCart, normalizedProrationCode),
+        });
       }
       if (!nextOrderId || !Number.isInteger(nextOrderId) || nextOrderId <= 0) {
         throw new Error("Could not start checkout for this order.");
@@ -295,6 +371,10 @@ export default function CartPage() {
       });
       const payJson = (await payRes.json().catch(() => null)) as any;
       if (!payRes.ok || !payJson?.clientSecret) {
+        if (hasExistingOrder) {
+          resetPendingCheckout({ preserveError: true });
+          throw new Error(payJson?.error ?? "Your saved checkout expired. Please continue again to refresh the order.");
+        }
         throw new Error(payJson?.error ?? "Could not start payment.");
       }
 
@@ -690,6 +770,7 @@ export default function CartPage() {
                   returnUrl={returnUrl}
                   submitDisabled={(summary?.dueLaterCents ?? 0) > 0 && !laterChargeAuthorized}
                   onSuccess={() => {
+                    clearPendingFamilyCheckout();
                     clearFamilyCart();
                     setCart(null);
                     navigate(returnUrl);

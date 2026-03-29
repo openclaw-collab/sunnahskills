@@ -11,6 +11,7 @@ import {
   splitPaymentPlan,
   type SemesterRow,
 } from "../../../shared/orderPricing";
+import { siblingDiscountForLineCents } from "../../../shared/pricing";
 
 interface Env {
   DB: D1Database;
@@ -523,6 +524,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
     });
     let promoCode: string | null = null;
     let promoDiscountCents = 0;
+    let siblingDiscountCents = pricing.siblingDiscountCents;
     if (line.discountCode?.trim()) {
       const discount = await resolveDiscountCode(env.DB, line.discountCode, { programId: "bjj" });
       if (!discount.valid || !discount.row) {
@@ -541,10 +543,12 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
         return json({ error: message, line: index }, { status: 400 });
       }
       promoCode = discount.row.code;
-      promoDiscountCents = promoDiscountForSubtotal(pricing.afterSiblingCents, discount.row);
+      promoDiscountCents = promoDiscountForSubtotal(pricing.lineSubtotalCents, discount.row);
     }
-    const afterPromoCents = Math.max(0, pricing.afterSiblingCents - promoDiscountCents);
-    const split = splitPaymentPlan(afterPromoCents, line.paymentChoice);
+    const afterPromoBeforeSiblingCents = Math.max(0, pricing.lineSubtotalCents - promoDiscountCents);
+    siblingDiscountCents = siblingDiscountForLineCents(afterPromoBeforeSiblingCents, siblingDiscountEligible);
+    const finalLineTotalCents = Math.max(0, afterPromoBeforeSiblingCents - siblingDiscountCents);
+    const split = splitPaymentPlan(finalLineTotalCents, line.paymentChoice);
 
     lineMeta.push({
       waitlisted,
@@ -555,11 +559,13 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
       trialBookingId: trialMatch.id,
       promoCode,
       promoDiscountCents,
-      afterPromoCents,
+      afterPromoCents: finalLineTotalCents,
       manualReviewReason: trialMatch.ambiguous ? "trial_match_ambiguous" : null,
       pricing: {
         ...pricing,
-        afterPromoCents,
+        siblingDiscountCents,
+        afterSiblingCents: finalLineTotalCents,
+        afterPromoCents: finalLineTotalCents,
         dueTodayCents: split.dueToday,
         dueLaterCents: split.dueLater,
       },

@@ -1,5 +1,6 @@
 import { computeLineTuitionCents, type SemesterRow } from "../../../shared/orderPricing";
 import { DEFAULT_CURRENCY } from "../../../shared/money";
+import { siblingDiscountForLineCents } from "../../../shared/pricing";
 import { discountInvalidReasonMessage, promoDiscountForSubtotal, resolveDiscountCode } from "../../_utils/discounts";
 
 interface Env {
@@ -96,8 +97,6 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
   });
 
   const subtotal = linePricing.lineSubtotalCents;
-  const siblingDiscount = linePricing.siblingDiscountCents;
-  const afterSibling = linePricing.afterSiblingCents;
   let promoDiscount = 0;
 
   if (body.discountCode) {
@@ -105,10 +104,12 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
     if (!discount.valid || !discount.row) {
       return json({ error: discountInvalidReasonMessage(discount.reason) }, { status: 400 });
     }
-    promoDiscount = promoDiscountForSubtotal(afterSibling, discount.row);
+    promoDiscount = promoDiscountForSubtotal(subtotal, discount.row);
   }
+  const afterPromo = Math.max(0, subtotal - promoDiscount);
+  const siblingDiscount = siblingDiscountForLineCents(afterPromo, siblingCount > 0);
   const discountAmount = siblingDiscount + promoDiscount;
-  const total = Math.max(0, afterSibling - promoDiscount);
+  const total = Math.max(0, afterPromo - siblingDiscount);
   if (total <= 0) {
     return json({ error: "Payment total must be greater than zero" }, { status: 400 });
   }

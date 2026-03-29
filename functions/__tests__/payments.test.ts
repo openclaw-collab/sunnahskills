@@ -247,8 +247,51 @@ describe("Payment Endpoints", () => {
       const amount = body.get("amount");
 
       // 13 default scheduled classes * 10000 per class + 5000 reg fee = 135000.
-      // 20% promo applies after sibling math, so total becomes 108000.
+      // 20% promo applies before sibling math. With no sibling discount here, total is 108000.
       expect(amount).toBe("108000");
+    });
+
+    it("should apply fixed discount code before sibling discount", async () => {
+      const mockDb = env.DB as any;
+      mockDb.setMockData("registrations", [
+        baseRegRow({ program_specific_data: JSON.stringify({ bjjTrack: "boys-7-13" }) }),
+      ]);
+      mockDb.setMockData("discounts", [
+        {
+          code: "ONCEAWEEK",
+          type: "fixed",
+          value: 10000,
+          program_id: null,
+          max_uses: 100,
+          current_uses: 0,
+          valid_from: null,
+          valid_until: null,
+          active: 1,
+        },
+      ]);
+
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: vi.fn().mockResolvedValue({
+          id: "pi_test123",
+          client_secret: "pi_test123_secret",
+        }),
+      });
+
+      const request = createMockRequest("POST", "https://example.com/api/payments/create-intent", {
+        body: { registrationId: 1, siblingCount: 1, discountCode: "ONCEAWEEK" },
+      });
+
+      await createIntentHandler({ request, env });
+
+      const fetchCall = vi.mocked(global.fetch).mock.calls[0];
+      const body = new URLSearchParams(fetchCall[1]?.body as string);
+      const amount = body.get("amount");
+
+      // 13 default scheduled classes * 10000 per class + 5000 reg fee = 135000.
+      // Fixed promo first: 135000 - 10000 = 125000.
+      // Sibling then applies to the reduced amount: 125000 - 12500 = 112500.
+      expect(amount).toBe("112500");
     });
 
     it("should handle Stripe API error", async () => {

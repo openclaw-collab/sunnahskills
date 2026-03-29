@@ -24,30 +24,30 @@ function row(label: string, value: React.ReactNode) {
 
 function registrationBadgeClass(value?: string | null) {
   const base =
-    "inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] uppercase tracking-[0.14em] font-mono-label";
-  if (value === "active") return `${base} border-moss/20 bg-moss/10 text-moss`;
-  if (value === "pending_payment") return `${base} border-gold/40 bg-gold/18 text-charcoal`;
-  if (value === "waitlisted") return `${base} border-clay/25 bg-clay/10 text-clay`;
+    "inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-[11px] uppercase tracking-[0.14em] font-mono-label shadow-sm";
+  if (value === "active") return `${base} border-moss bg-moss text-cream`;
+  if (value === "pending_payment") return `${base} border-gold bg-gold/85 text-charcoal`;
+  if (value === "waitlisted") return `${base} border-clay bg-clay/85 text-cream`;
   if (value === "cancelled") return `${base} border-charcoal/10 bg-charcoal/5 text-charcoal/55`;
   return `${base} border-charcoal/10 bg-charcoal/5 text-charcoal/70`;
 }
 
 function paymentBadgeClass(variant?: string | null) {
   const base =
-    "inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] uppercase tracking-[0.14em] font-mono-label";
+    "inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-[11px] uppercase tracking-[0.14em] font-mono-label shadow-sm";
   if (variant === "paid_full") return `${base} border-moss bg-moss text-cream`;
-  if (variant === "paid_partial") return `${base} border-gold/55 border-[1.5px] bg-moss/12 text-moss`;
+  if (variant === "paid_partial") return `${base} border-[1.5px] border-gold bg-moss text-cream ring-2 ring-gold/35 ring-offset-1 ring-offset-cream`;
   if (variant === "failed") return `${base} border-clay bg-clay text-cream`;
-  if (variant === "pending") return `${base} border-gold/40 bg-gold/18 text-charcoal`;
+  if (variant === "pending") return `${base} border-gold bg-gold/85 text-charcoal`;
   if (variant === "superseded" || variant === "cancelled") return `${base} border-charcoal/10 bg-charcoal/5 text-charcoal/55`;
   return `${base} border-charcoal/10 bg-charcoal/5 text-charcoal/70`;
 }
 
 function detailCardTone(variant?: string | null) {
-  if (variant === "paid_full") return "border-moss/15 bg-moss/[0.05]";
-  if (variant === "paid_partial") return "border-gold/30 bg-cream/55";
-  if (variant === "failed") return "border-clay/18 bg-clay/[0.05]";
-  if (variant === "pending") return "border-gold/25 bg-gold/[0.08]";
+  if (variant === "paid_full") return "border-moss/30 bg-moss/[0.08]";
+  if (variant === "paid_partial") return "border-gold/45 bg-[linear-gradient(180deg,rgba(92,118,90,0.08),rgba(214,176,98,0.12))]";
+  if (variant === "failed") return "border-clay/28 bg-clay/[0.08]";
+  if (variant === "pending") return "border-gold/40 bg-gold/[0.13]";
   return "border-charcoal/10 bg-white";
 }
 
@@ -58,6 +58,21 @@ function summaryMetric(label: string, value: React.ReactNode, tone?: string) {
       <div className="mt-1 text-base font-medium text-charcoal">{value}</div>
     </div>
   );
+}
+
+function metricTone(variant?: string | null, key?: "total" | "today" | "later" | "latest") {
+  if (variant === "paid_full") return "border-moss/25 bg-moss/[0.08]";
+  if (variant === "failed") return "border-clay/25 bg-clay/[0.09]";
+  if (variant === "pending") {
+    if (key === "today" || key === "latest") return "border-gold/40 bg-gold/[0.14]";
+    return "border-gold/25 bg-cream/55";
+  }
+  if (variant === "paid_partial") {
+    if (key === "today" || key === "latest") return "border-moss/25 bg-moss/[0.09]";
+    if (key === "later") return "border-gold/45 bg-gold/[0.12]";
+    return "border-charcoal/10 bg-white";
+  }
+  return undefined;
 }
 
 export function RegistrationDetail({
@@ -182,8 +197,14 @@ export function RegistrationDetail({
                     Registration overview
                   </div>
                   <div className="mt-2 flex flex-wrap gap-2">
-                    <span className={registrationBadgeClass(detail.status)}>{detail.status ?? "unknown"}</span>
-                    <span className={paymentBadgeClass(paymentLifecycle?.statusVariant)}>{paymentLifecycle?.compactLabel ?? "—"}</span>
+                    <span className={registrationBadgeClass(detail.status)}>
+                      <span className="h-1.5 w-1.5 rounded-full bg-current opacity-80" />
+                      {detail.status ?? "unknown"}
+                    </span>
+                    <span className={paymentBadgeClass(paymentLifecycle?.statusVariant)}>
+                      <span className="h-1.5 w-1.5 rounded-full bg-current opacity-80" />
+                      {paymentLifecycle?.compactLabel ?? "—"}
+                    </span>
                     {detail.order_id ? (
                       <span className="inline-flex items-center rounded-full border border-charcoal/10 bg-white px-2.5 py-1 text-[11px] uppercase tracking-[0.14em] font-mono-label text-charcoal/60">
                         Order #{detail.order_id}
@@ -220,14 +241,14 @@ export function RegistrationDetail({
               </div>
 
               <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                {summaryMetric("Order total", orderTotal)}
-                {summaryMetric("Due today", dueToday)}
+                {summaryMetric("Order total", orderTotal, metricTone(paymentLifecycle?.statusVariant, "total"))}
+                {summaryMetric("Due today", dueToday, metricTone(paymentLifecycle?.statusVariant, "today"))}
                 {summaryMetric(
                   "Later balance",
                   laterBalance ? `${laterBalance} · ${detail.order_later_payment_date ?? "TBD"}` : "No later balance",
-                  paymentLifecycle?.statusVariant === "paid_partial" ? "border-gold/30 bg-white" : undefined,
+                  metricTone(paymentLifecycle?.statusVariant, "later"),
                 )}
-                {summaryMetric("Latest payment", latestPaymentAmount)}
+                {summaryMetric("Latest payment", latestPaymentAmount, metricTone(paymentLifecycle?.statusVariant, "latest"))}
               </div>
             </PremiumCard>
 

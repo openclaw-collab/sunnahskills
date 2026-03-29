@@ -34,17 +34,12 @@ function money(amountCents: number, currency = "CAD") {
   return formatMoneyFromCents(amountCents, { currency });
 }
 
-function statusToneClasses(tone: "success" | "warning" | "danger" | "muted") {
-  switch (tone) {
-    case "success":
-      return "bg-moss/10 text-moss border-moss/20";
-    case "danger":
-      return "bg-clay/10 text-clay border-clay/20";
-    case "muted":
-      return "bg-charcoal/5 text-charcoal/65 border-charcoal/10";
-    default:
-      return "bg-gold/15 text-charcoal border-gold/25";
-  }
+function statusVariantClasses(variant: "paid_full" | "paid_partial" | "pending" | "failed" | "superseded" | "cancelled") {
+  if (variant === "paid_full") return "bg-moss text-cream border-moss";
+  if (variant === "paid_partial") return "bg-moss/12 text-moss border-gold/55 border-[1.5px]";
+  if (variant === "failed") return "bg-clay text-cream border-clay";
+  if (variant === "pending") return "bg-gold/18 text-charcoal border-gold/40";
+  return "bg-charcoal/5 text-charcoal/65 border-charcoal/10";
 }
 
 export function PaymentsSummary({
@@ -109,7 +104,10 @@ export function PaymentsSummary({
                 : "No later balance";
 
               return (
-                <tr key={p.order_id ?? p.payment_id ?? p.registration_id ?? p.created_at} className="border-b border-charcoal/5">
+                <tr
+                  key={p.order_id ?? p.payment_id ?? p.registration_id ?? p.created_at}
+                  className="border-b border-charcoal/5"
+                >
                   <td className="py-2 pr-4 align-top">
                     <div className="text-charcoal">#{p.order_id ?? p.payment_id ?? "—"}</div>
                     <div className="text-xs text-charcoal/55">
@@ -125,11 +123,11 @@ export function PaymentsSummary({
                   <td className="py-2 pr-4 align-top">
                     <div
                       className={cn(
-                        "inline-flex rounded-full border px-2.5 py-1 text-[11px] font-medium",
-                        statusToneClasses(lifecycle.statusTone),
+                        "inline-flex rounded-full border px-2.5 py-1 text-[11px] uppercase tracking-[0.14em] font-mono-label",
+                        statusVariantClasses(lifecycle.statusVariant),
                       )}
                     >
-                      {lifecycle.headline}
+                      {lifecycle.compactLabel}
                     </div>
                     <div className="mt-2 text-xs text-charcoal/70">{lifecycle.detail}</div>
                     <div className="mt-1 text-[11px] text-charcoal/45">

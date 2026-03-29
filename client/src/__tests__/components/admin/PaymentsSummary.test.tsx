@@ -53,7 +53,7 @@ describe("PaymentsSummary", () => {
     expect(screen.getByText("Reg: 101")).toBeInTheDocument();
     expect(screen.getByText("John Doe")).toBeInTheDocument();
     expect(screen.getByText("Jimmy Doe")).toBeInTheDocument();
-    expect(screen.getByText("First payment received")).toBeInTheDocument();
+    expect(screen.getByText("Half paid")).toBeInTheDocument();
     expect(screen.getAllByText(/\$100\.00/).length).toBeGreaterThanOrEqual(2);
   });
 
@@ -74,7 +74,7 @@ describe("PaymentsSummary", () => {
     render(<PaymentsSummary payments={mockPayments} showSuperseded={false} onShowSupersededChange={() => {}} />);
 
     expect(screen.getByText(/Collected \$100\.00 today\. Remaining \$100\.00 will be charged on May 12, 2026\./i)).toBeInTheDocument();
-    expect(screen.getByText("Superseded stale attempt")).toBeInTheDocument();
+    expect(screen.getByText("Superseded")).toBeInTheDocument();
     expect(screen.getByText(/A newer unpaid checkout replaced this one/i)).toBeInTheDocument();
   });
 

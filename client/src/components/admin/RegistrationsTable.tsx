@@ -39,38 +39,35 @@ function badgeClass(kind: "status" | "payment", value: string) {
   const base =
     "inline-flex items-center rounded-full px-2.5 py-1 text-[11px] uppercase tracking-[0.14em] font-mono-label border whitespace-nowrap";
   if (kind === "payment") {
-    if (value === "paid") return `${base} bg-moss/10 border-moss/20 text-moss`;
-    if (value === "failed") return `${base} bg-clay/10 border-clay/20 text-clay`;
-    if (value === "pending") return `${base} bg-charcoal/5 border-charcoal/10 text-charcoal/70`;
+    if (value === "paid") return `${base} bg-moss text-cream border-moss`;
+    if (value === "failed") return `${base} bg-clay text-cream border-clay`;
+    if (value === "pending") return `${base} bg-gold/18 border-gold/45 text-charcoal`;
     return `${base} bg-charcoal/5 border-charcoal/10 text-charcoal/70`;
   }
   if (value === "active") return `${base} bg-moss/10 border-moss/20 text-moss`;
-  if (value === "pending_payment") return `${base} bg-charcoal/5 border-charcoal/10 text-charcoal/70`;
+  if (value === "pending_payment") return `${base} bg-gold/18 border-gold/45 text-charcoal`;
   if (value === "waitlisted") return `${base} bg-clay/10 border-clay/20 text-clay`;
   if (value === "cancelled") return `${base} bg-charcoal/5 border-charcoal/10 text-charcoal/55`;
   return `${base} bg-charcoal/5 border-charcoal/10 text-charcoal/70`;
 }
 
-function paymentBadgeClass(tone: "success" | "warning" | "danger" | "muted") {
+function paymentBadgeClass(variant: "paid_full" | "paid_partial" | "pending" | "failed" | "superseded" | "cancelled") {
   const base =
     "inline-flex items-center rounded-full px-2.5 py-1 text-[11px] uppercase tracking-[0.14em] font-mono-label border whitespace-nowrap";
-  if (tone === "success") return `${base} bg-moss/10 border-moss/20 text-moss`;
-  if (tone === "danger") return `${base} bg-clay/10 border-clay/20 text-clay`;
-  if (tone === "muted") return `${base} bg-charcoal/5 border-charcoal/10 text-charcoal/55`;
+  if (variant === "paid_full") return `${base} bg-moss text-cream border-moss`;
+  if (variant === "paid_partial") return `${base} bg-moss/12 text-moss border-gold/55 border-[1.5px]`;
+  if (variant === "failed") return `${base} bg-clay text-cream border-clay`;
+  if (variant === "pending") return `${base} bg-gold/18 border-gold/45 text-charcoal`;
+  if (variant === "superseded" || variant === "cancelled") return `${base} bg-charcoal/5 border-charcoal/10 text-charcoal/55`;
   return `${base} bg-charcoal/5 border-charcoal/10 text-charcoal/70`;
 }
 
-function rowToneClasses(tone: "success" | "warning" | "danger" | "muted") {
-  if (tone === "success") {
-    return "border-l-[3px] border-l-moss/60 bg-[linear-gradient(90deg,rgba(92,118,90,0.06),rgba(255,255,255,0))]";
-  }
-  if (tone === "danger") {
-    return "border-l-[3px] border-l-clay/65 bg-[linear-gradient(90deg,rgba(197,121,97,0.08),rgba(255,255,255,0))]";
-  }
-  if (tone === "muted") {
-    return "border-l-[3px] border-l-charcoal/18 bg-[linear-gradient(90deg,rgba(26,26,26,0.04),rgba(255,255,255,0))] opacity-80";
-  }
-  return "border-l-[3px] border-l-gold/55 bg-[linear-gradient(90deg,rgba(214,176,98,0.09),rgba(255,255,255,0))]";
+function rowToneClasses(variant: "paid_full" | "paid_partial" | "pending" | "failed" | "superseded" | "cancelled") {
+  if (variant === "paid_full") return "border-l-[3px] border-l-moss/70";
+  if (variant === "paid_partial") return "border-l-[3px] border-l-gold/65";
+  if (variant === "failed") return "border-l-[3px] border-l-clay/70";
+  if (variant === "superseded" || variant === "cancelled") return "border-l-[3px] border-l-charcoal/18 opacity-80";
+  return "border-l-[3px] border-l-gold/55";
 }
 
 export function RegistrationsTable({
@@ -123,9 +120,10 @@ export function RegistrationsTable({
   const counts = useMemo(() => {
     const summary = {
       total: rows.length,
-      active: 0,
-      pending: 0,
-      depositPaid: 0,
+      paidFull: 0,
+      halfPaid: 0,
+      unpaid: 0,
+      failed: 0,
       superseded: 0,
     };
 
@@ -141,10 +139,11 @@ export function RegistrationsTable({
         latestPaymentAmountCents: row.payment_amount,
       });
 
-      if (lifecycle.compactLabel === "Paid" || lifecycle.compactLabel === "Deposit paid") summary.active += 1;
-      if (lifecycle.compactLabel === "Pending") summary.pending += 1;
-      if (lifecycle.compactLabel === "Deposit paid") summary.depositPaid += 1;
-      if (lifecycle.compactLabel === "Superseded") summary.superseded += 1;
+      if (lifecycle.statusVariant === "paid_full") summary.paidFull += 1;
+      if (lifecycle.statusVariant === "paid_partial") summary.halfPaid += 1;
+      if (lifecycle.statusVariant === "pending") summary.unpaid += 1;
+      if (lifecycle.statusVariant === "failed") summary.failed += 1;
+      if (lifecycle.statusVariant === "superseded") summary.superseded += 1;
     });
 
     return summary;
@@ -244,45 +243,56 @@ export function RegistrationsTable({
         </div>
       </div>
 
-      <div className="mb-5 grid gap-3 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
-        <div className="rounded-[1.75rem] border border-charcoal/10 bg-[radial-gradient(circle_at_top_left,rgba(214,176,98,0.14),transparent_42%),linear-gradient(180deg,rgba(255,255,255,0.98),rgba(245,240,232,0.78))] px-4 py-3">
+      <div className="mb-5 grid gap-3 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
+        <div className="rounded-[1.75rem] border border-charcoal/10 bg-cream/45 px-4 py-3">
           <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-charcoal/45">
             Reading this table
           </div>
           <div className="mt-2 flex flex-wrap gap-2">
-            <span className={paymentBadgeClass("success")}>Deposit paid</span>
-            <span className={paymentBadgeClass("warning")}>Pending</span>
-            <span className={paymentBadgeClass("muted")}>Superseded</span>
-            <span className={paymentBadgeClass("danger")}>Failed</span>
+            <span className={paymentBadgeClass("paid_full")}>Paid in full</span>
+            <span className={paymentBadgeClass("paid_partial")}>Half paid</span>
+            <span className={paymentBadgeClass("pending")}>Unpaid</span>
+            <span className={paymentBadgeClass("failed")}>Failed</span>
+            {showSuperseded ? <span className={paymentBadgeClass("superseded")}>Superseded</span> : null}
           </div>
           <p className="mt-3 text-sm leading-relaxed text-charcoal/68">
-            Superseded rows are older abandoned checkouts that were intentionally retired when a newer attempt was created.
+            Paid in full is fully collected, half paid means the first charge went through, and unpaid means checkout started but card confirmation did not finish.
           </p>
         </div>
 
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-2 xl:grid-cols-4">
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-2 xl:grid-cols-5">
           <div className="rounded-[1.5rem] border border-charcoal/10 bg-cream/45 px-4 py-3">
             <div className="font-mono-label text-[9px] uppercase tracking-[0.18em] text-charcoal/40">Total</div>
             <div className="mt-1 font-display text-2xl text-charcoal">{counts.total}</div>
           </div>
-          <div className="rounded-[1.5rem] border border-moss/15 bg-moss/5 px-4 py-3">
-            <div className="font-mono-label text-[9px] uppercase tracking-[0.18em] text-moss">Paid states</div>
-            <div className="mt-1 font-display text-2xl text-charcoal">{counts.active}</div>
+          <div className="rounded-[1.5rem] border border-moss/20 bg-moss/6 px-4 py-3">
+            <div className="font-mono-label text-[9px] uppercase tracking-[0.18em] text-moss">Paid in full</div>
+            <div className="mt-1 font-display text-2xl text-charcoal">{counts.paidFull}</div>
+          </div>
+          <div className="rounded-[1.5rem] border border-gold/30 bg-white px-4 py-3">
+            <div className="font-mono-label text-[9px] uppercase tracking-[0.18em] text-moss">Half paid</div>
+            <div className="mt-1 font-display text-2xl text-charcoal">{counts.halfPaid}</div>
           </div>
           <div className="rounded-[1.5rem] border border-gold/25 bg-gold/10 px-4 py-3">
-            <div className="font-mono-label text-[9px] uppercase tracking-[0.18em] text-charcoal/55">Pending</div>
-            <div className="mt-1 font-display text-2xl text-charcoal">{counts.pending}</div>
+            <div className="font-mono-label text-[9px] uppercase tracking-[0.18em] text-charcoal/55">Unpaid</div>
+            <div className="mt-1 font-display text-2xl text-charcoal">{counts.unpaid}</div>
           </div>
-          <div className="rounded-[1.5rem] border border-charcoal/10 bg-charcoal/[0.03] px-4 py-3">
-            <div className="font-mono-label text-[9px] uppercase tracking-[0.18em] text-charcoal/40">Superseded</div>
-            <div className="mt-1 font-display text-2xl text-charcoal">{counts.superseded}</div>
+          <div className="rounded-[1.5rem] border border-clay/20 bg-clay/8 px-4 py-3">
+            <div className="font-mono-label text-[9px] uppercase tracking-[0.18em] text-clay">Failed</div>
+            <div className="mt-1 font-display text-2xl text-charcoal">{counts.failed}</div>
           </div>
+          {showSuperseded ? (
+            <div className="rounded-[1.5rem] border border-charcoal/10 bg-charcoal/[0.03] px-4 py-3">
+              <div className="font-mono-label text-[9px] uppercase tracking-[0.18em] text-charcoal/40">Superseded</div>
+              <div className="mt-1 font-display text-2xl text-charcoal">{counts.superseded}</div>
+            </div>
+          ) : null}
         </div>
       </div>
 
-      <div className="overflow-x-auto rounded-[1.8rem] border border-charcoal/8 bg-white/70 shadow-[0_20px_60px_rgba(26,26,26,0.06)]">
+      <div className="overflow-x-auto rounded-[1.8rem] border border-charcoal/8 bg-white shadow-[0_20px_50px_rgba(26,26,26,0.04)]">
         <table className="w-full text-sm">
-          <thead className="text-charcoal/60 bg-cream/55 backdrop-blur-sm">
+          <thead className="text-charcoal/60 bg-cream/55">
             <tr className="border-b border-charcoal/10">
               <th className="text-left py-3 pl-4 pr-4">Student</th>
               <th className="text-left py-3 pr-4">Program</th>
@@ -310,7 +320,7 @@ export function RegistrationsTable({
                   key={r.registration_id}
                   className={cn(
                     "border-b border-charcoal/5 hover:bg-cream/35 cursor-pointer transition-colors",
-                    rowToneClasses(paymentLifecycle.statusTone),
+                    rowToneClasses(paymentLifecycle.statusVariant),
                   )}
                   onClick={() => onOpen(r.registration_id)}
                 >
@@ -328,7 +338,7 @@ export function RegistrationsTable({
                     </span>
                   </td>
                   <td className="py-3 pr-4 min-w-[14rem]">
-                    <div className={cn(paymentBadgeClass(paymentLifecycle.statusTone), "w-fit")}>
+                    <div className={cn(paymentBadgeClass(paymentLifecycle.statusVariant), "w-fit")}>
                       {paymentLifecycle.compactLabel}
                     </div>
                     <div className="mt-1 text-xs leading-relaxed text-charcoal/58">

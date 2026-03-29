@@ -21,6 +21,7 @@ export type PaymentLifecycleSummary = {
   compactLabel: string;
   compactDetail: string;
   statusTone: "success" | "warning" | "danger" | "muted";
+  statusVariant: "paid_full" | "paid_partial" | "pending" | "failed" | "superseded" | "cancelled";
   reviewHeadline: string;
   reviewDetail: string;
 };
@@ -77,23 +78,28 @@ export function summarizePaymentLifecycle(input: PaymentLifecycleInput): Payment
   let headline = "Unpaid checkout";
   let detail = `Due today ${money(amountDueTodayCents, currency)}.`;
   let statusTone: PaymentLifecycleSummary["statusTone"] = "warning";
+  let statusVariant: PaymentLifecycleSummary["statusVariant"] = "pending";
 
   if (orderStatus === "superseded") {
     headline = "Superseded stale attempt";
     detail = "A newer unpaid checkout replaced this one. Ignore this attempt.";
     statusTone = "muted";
+    statusVariant = "superseded";
   } else if (orderStatus === "cancelled") {
     headline = "Cancelled";
     detail = "This checkout is no longer active.";
     statusTone = "muted";
+    statusVariant = "cancelled";
   } else if (latestPaymentStatus === "failed" || latestPaymentStatus === "canceled") {
-    headline = "Payment failed";
+    headline = "Failed";
     detail = lastPaymentError || "The payment attempt did not complete.";
     statusTone = "danger";
+    statusVariant = "failed";
   } else if (orderStatus === "partially_paid" || ((latestPaymentStatus === "paid" || latestPaymentStatus === "succeeded") && laterAmountCents > 0)) {
-    headline = "First payment received";
+    headline = "Half paid";
     detail = `Collected ${money(collectedCents, currency)} today. Remaining ${money(laterAmountCents, currency)} will be charged on ${laterDate}.`;
     statusTone = "success";
+    statusVariant = "paid_partial";
   } else if (
     orderStatus === "paid" ||
     ((latestPaymentStatus === "paid" || latestPaymentStatus === "succeeded") && laterAmountCents <= 0)
@@ -101,16 +107,19 @@ export function summarizePaymentLifecycle(input: PaymentLifecycleInput): Payment
     headline = "Paid in full";
     detail = `Collected ${money(collectedCents || totalCents, currency)}. No later balance remains.`;
     statusTone = "success";
+    statusVariant = "paid_full";
   } else if (latestPaymentStatus === "requires_payment_method") {
-    headline = "Awaiting card details";
+    headline = "Unpaid";
     detail = laterAmountCents > 0
       ? `First charge is ${money(amountDueTodayCents, currency)} today, then ${money(laterAmountCents, currency)} on ${laterDate}.`
       : `Ready to charge ${money(amountDueTodayCents || totalCents, currency)} once card details are entered.`;
     statusTone = "warning";
+    statusVariant = "pending";
   } else if (latestPaymentStatus === "requires_confirmation" || latestPaymentStatus === "requires_action") {
-    headline = "Awaiting payment confirmation";
+    headline = "Unpaid";
     detail = "The checkout was started, but the payment was not fully confirmed yet.";
     statusTone = "warning";
+    statusVariant = "pending";
   }
 
   let reviewHeadline = "No review flag";
@@ -132,27 +141,27 @@ export function summarizePaymentLifecycle(input: PaymentLifecycleInput): Payment
   let compactLabel = headline;
   let compactDetail = detail;
 
-  if (headline === "First payment received") {
-    compactLabel = "Deposit paid";
+  if (headline === "Half paid") {
+    compactLabel = "Half paid";
     compactDetail = laterAmountCents > 0
       ? `Later ${money(laterAmountCents, currency)} on ${laterDate}.`
       : "No later balance.";
   } else if (headline === "Paid in full") {
-    compactLabel = "Paid";
+    compactLabel = "Paid in full";
     compactDetail = "Fully collected.";
   } else if (headline === "Superseded stale attempt") {
     compactLabel = "Superseded";
     compactDetail = "Replaced by a newer checkout.";
-  } else if (headline === "Awaiting card details") {
-    compactLabel = "Pending";
+  } else if (headline === "Unpaid") {
+    compactLabel = "Unpaid";
     compactDetail = "Card details were not completed yet.";
-  } else if (headline === "Awaiting payment confirmation") {
-    compactLabel = "Pending";
-    compactDetail = "Checkout started but not finished.";
-  } else if (headline === "Payment failed") {
+    if (latestPaymentStatus === "requires_confirmation" || latestPaymentStatus === "requires_action") {
+      compactDetail = "Checkout started but not finished.";
+    }
+  } else if (headline === "Failed") {
     compactLabel = "Failed";
     compactDetail = lastPaymentError || "The payment did not complete.";
   }
 
-  return { headline, detail, compactLabel, compactDetail, statusTone, reviewHeadline, reviewDetail };
+  return { headline, detail, compactLabel, compactDetail, statusTone, statusVariant, reviewHeadline, reviewDetail };
 }

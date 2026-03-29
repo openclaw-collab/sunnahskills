@@ -53,7 +53,7 @@ describe("RegistrationDetail", () => {
     expect(
       await screen.findByRole("heading", { name: /Student A • Archery • #55/i }),
     ).toBeInTheDocument();
-    expect(await screen.findByText(/First payment received/i)).toBeInTheDocument();
+    expect(await screen.findByText(/Half paid/i)).toBeInTheDocument();
     expect(screen.getByText(/Remaining \$156\.00 will be charged on May 12, 2026\./i)).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: /save changes/i }));

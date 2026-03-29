@@ -56,6 +56,8 @@ export async function onRequestGet({ request, env }: { request: Request; env: En
       o.manual_review_status as order_manual_review_status,
       o.manual_review_reason as order_manual_review_reason,
       o.last_payment_error as order_last_payment_error,
+      o.total_cents as order_total_cents,
+      o.amount_due_today_cents as order_amount_due_today_cents,
       o.later_amount_cents as order_later_amount_cents,
       o.later_payment_date as order_later_payment_date
     FROM registrations r

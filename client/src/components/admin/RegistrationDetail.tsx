@@ -6,6 +6,7 @@ import { OutlineButton } from "@/components/brand/OutlineButton";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DEFAULT_CURRENCY_DISPLAY, formatMoneyFromCents } from "@shared/money";
+import { summarizePaymentLifecycle } from "@/components/admin/paymentLifecycle";
 
 type Detail = Record<string, any>;
 
@@ -57,6 +58,23 @@ export function RegistrationDetail({
   const title = useMemo(() => {
     if (!detail) return "Registration";
     return `${detail.student_full_name ?? "Student"} • ${detail.program_name ?? "Program"} • #${detail.id}`;
+  }, [detail]);
+
+  const paymentLifecycle = useMemo(() => {
+    if (!detail) return null;
+    return summarizePaymentLifecycle({
+      orderStatus: detail.order_status,
+      latestPaymentStatus: detail.payment_status,
+      manualReviewStatus: detail.order_manual_review_status,
+      manualReviewReason: detail.order_manual_review_reason,
+      lastPaymentError: detail.order_last_payment_error,
+      totalCents: detail.order_total_cents,
+      amountDueTodayCents: detail.order_amount_due_today_cents ?? detail.payment_amount,
+      laterAmountCents: detail.order_later_amount_cents,
+      laterPaymentDate: detail.order_later_payment_date,
+      latestPaymentAmountCents: detail.payment_amount,
+      currency: detail.payment_currency,
+    });
   }, [detail]);
 
   async function save() {
@@ -132,22 +150,36 @@ export function RegistrationDetail({
                     Payment
                   </div>
                   {row("Order", detail.order_id ? `#${detail.order_id} · ${detail.order_status ?? "—"}` : "—")}
+                  {row("Payment phase", paymentLifecycle?.headline ?? "—")}
+                  {row("Payment summary", paymentLifecycle?.detail ?? "—")}
                   {row("Payment status", detail.payment_status ?? "unpaid")}
                   {row(
-                    "Amount",
+                    "Latest payment",
                     detail.payment_amount != null
                       ? formatMoneyFromCents(Number(detail.payment_amount), { currency: detail.payment_currency })
                       : "—",
                   )}
+                  {row(
+                    "Order total",
+                    detail.order_total_cents != null
+                      ? formatMoneyFromCents(Number(detail.order_total_cents), { currency: detail.payment_currency })
+                      : "—",
+                  )}
+                  {row(
+                    "Due today",
+                    detail.order_amount_due_today_cents != null
+                      ? formatMoneyFromCents(Number(detail.order_amount_due_today_cents), { currency: detail.payment_currency })
+                      : "—",
+                  )}
                   {row("Currency", detail.payment_currency ? String(detail.payment_currency).toUpperCase() : DEFAULT_CURRENCY_DISPLAY)}
                   {row("Stripe PI", detail.stripe_payment_intent_id ?? "—")}
-                  {row("Manual review", detail.order_manual_review_status ?? "none")}
-                  {row("Review reason", detail.order_manual_review_reason ?? detail.order_last_payment_error ?? "—")}
+                  {row("Manual review", paymentLifecycle?.reviewHeadline ?? detail.order_manual_review_status ?? "none")}
+                  {row("Review reason", paymentLifecycle?.reviewDetail ?? detail.order_manual_review_reason ?? detail.order_last_payment_error ?? "—")}
                   {row(
                     "Later balance",
                     detail.order_later_amount_cents
                       ? `${formatMoneyFromCents(Number(detail.order_later_amount_cents), { currency: detail.payment_currency })} · ${detail.order_later_payment_date ?? "TBD"}`
-                      : "—",
+                      : "No later balance",
                   )}
                 </div>
               </div>

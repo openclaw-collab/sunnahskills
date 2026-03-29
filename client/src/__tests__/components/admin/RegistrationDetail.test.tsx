@@ -23,9 +23,15 @@ describe("RegistrationDetail", () => {
             guardian_full_name: "Parent A",
             guardian_email: "a@example.com",
             guardian_phone: "555",
-            payment_status: "unpaid",
-            payment_amount: null,
-            payment_currency: "usd",
+            payment_status: "paid",
+            payment_amount: 15600,
+            payment_currency: "cad",
+            order_id: 21,
+            order_status: "partially_paid",
+            order_total_cents: 31200,
+            order_amount_due_today_cents: 15600,
+            order_later_amount_cents: 15600,
+            order_later_payment_date: "2026-05-12",
           },
         }),
       }))
@@ -47,10 +53,11 @@ describe("RegistrationDetail", () => {
     expect(
       await screen.findByRole("heading", { name: /Student A • Archery • #55/i }),
     ).toBeInTheDocument();
+    expect(await screen.findByText(/First payment received/i)).toBeInTheDocument();
+    expect(screen.getByText(/Remaining \$156\.00 will be charged on May 12, 2026\./i)).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: /save changes/i }));
 
     expect(fetchMock).toHaveBeenLastCalledWith("/api/admin/registrations/55", expect.objectContaining({ method: "PATCH" }));
   });
 });
-

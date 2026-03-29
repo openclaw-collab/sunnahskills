@@ -25,6 +25,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
   const order = await env.DB.prepare(
     `SELECT
       o.id,
+      o.guardian_account_id,
       o.guardian_id,
       o.status,
       o.total_cents,
@@ -46,6 +47,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
     .bind(orderId)
     .first<{
       id: number;
+      guardian_account_id: number | null;
       guardian_id: number | null;
       status: string;
       total_cents: number;
@@ -63,6 +65,12 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
 
   if (!order) return json({ error: "Order not found" }, { status: 404 });
   if (order.status === "waitlisted") return json({ error: "This order is waitlisted." }, { status: 400 });
+  if (order.status === "superseded") {
+    return json({ error: "This checkout was replaced by a newer one." }, { status: 409 });
+  }
+  if (order.status === "abandoned") {
+    return json({ error: "This checkout expired. Please start a fresh one." }, { status: 409 });
+  }
   if (order.status !== "pending_payment") return json({ error: "This order is not awaiting payment." }, { status: 400 });
 
   const dueToday = Math.max(0, Math.round(Number(order.amount_due_today_cents ?? 0)));
@@ -139,6 +147,24 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
 
   let customerId = order.stripe_customer_id?.trim() ?? "";
   if (!customerId) {
+    if (order.guardian_account_id) {
+      const priorOrder = await env.DB.prepare(
+        `SELECT stripe_customer_id
+         FROM enrollment_orders
+         WHERE guardian_account_id = ?
+           AND id != ?
+           AND stripe_customer_id IS NOT NULL
+           AND trim(stripe_customer_id) != ''
+         ORDER BY id DESC
+         LIMIT 1`,
+      )
+        .bind(order.guardian_account_id, orderId)
+        .first<{ stripe_customer_id: string | null }>();
+      customerId = priorOrder?.stripe_customer_id?.trim() ?? "";
+    }
+  }
+
+  if (!customerId) {
     const customerParams = new URLSearchParams();
     customerParams.set("email", order.guardian_email.trim().toLowerCase());
     customerParams.set("name", order.guardian_name.trim());
@@ -157,8 +183,8 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
       return json({ error: "Stripe error creating customer" }, { status: 502 });
     }
     customerId = customerJson.id;
-    await env.DB.prepare(`UPDATE enrollment_orders SET stripe_customer_id = ? WHERE id = ?`).bind(customerId, orderId).run();
   }
+  await env.DB.prepare(`UPDATE enrollment_orders SET stripe_customer_id = ? WHERE id = ?`).bind(customerId, orderId).run();
 
   const intentParams = new URLSearchParams();
   intentParams.set("amount", String(dueToday));

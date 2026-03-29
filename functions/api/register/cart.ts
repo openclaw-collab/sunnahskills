@@ -24,6 +24,7 @@ interface Env {
   EMAIL_FROM?: string;
   EMAIL_TO?: string;
   SITE_URL?: string;
+  STRIPE_SECRET_KEY?: string;
 }
 
 function json(data: unknown, init?: ResponseInit) {
@@ -256,6 +257,107 @@ async function insertStudentRecord(env: Env, guardianId: number, participant: z.
     )
     .run();
   return Number(result.meta?.last_row_id ?? 0);
+}
+
+async function fetchStripeIntentStatus(env: Env, paymentIntentId: string) {
+  if (!env.STRIPE_SECRET_KEY) return null;
+  const res = await fetch(`https://api.stripe.com/v1/payment_intents/${encodeURIComponent(paymentIntentId)}`, {
+    method: "GET",
+    headers: { Authorization: `Bearer ${env.STRIPE_SECRET_KEY}` },
+  });
+  if (!res.ok) return null;
+  const json = (await res.json().catch(() => null)) as { status?: string } | null;
+  return json?.status ?? null;
+}
+
+async function cancelStripeIntent(env: Env, paymentIntentId: string) {
+  if (!env.STRIPE_SECRET_KEY) return false;
+  const params = new URLSearchParams();
+  params.set("cancellation_reason", "abandoned");
+  const res = await fetch(
+    `https://api.stripe.com/v1/payment_intents/${encodeURIComponent(paymentIntentId)}/cancel`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${env.STRIPE_SECRET_KEY}`,
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: params,
+    },
+  );
+  return res.ok;
+}
+
+async function supersedeOlderPendingOrders(env: Env, guardianAccountId: number, replacementOrderId: number) {
+  const { results } = await env.DB.prepare(
+    `SELECT id, stripe_payment_intent_id
+     FROM enrollment_orders
+     WHERE guardian_account_id = ?
+       AND status = 'pending_payment'
+       AND id != ?
+     ORDER BY id ASC`,
+  )
+    .bind(guardianAccountId, replacementOrderId)
+    .all<{ id: number; stripe_payment_intent_id: string | null }>();
+
+  const supersededOrderIds: number[] = [];
+  const skippedOrderIds: number[] = [];
+
+  for (const row of results ?? []) {
+    const existingIntentId = row.stripe_payment_intent_id?.trim() || null;
+    let canSupersede = true;
+
+    if (existingIntentId) {
+      const status = await fetchStripeIntentStatus(env, existingIntentId);
+      if (!status || status === "succeeded") {
+        canSupersede = false;
+      } else if (status && status !== "canceled") {
+        const cancelled = await cancelStripeIntent(env, existingIntentId);
+        if (!cancelled) canSupersede = false;
+      }
+    }
+
+    if (!canSupersede) {
+      skippedOrderIds.push(row.id);
+      continue;
+    }
+
+    await env.DB.prepare(
+      `UPDATE enrollment_orders
+       SET status = 'superseded',
+           manual_review_status = 'none',
+           manual_review_reason = ?,
+           last_payment_error = NULL,
+           last_payment_attempt_at = datetime('now')
+       WHERE id = ?`,
+    )
+      .bind(`superseded_by_order:${replacementOrderId}`, row.id)
+      .run();
+
+    await env.DB.prepare(
+      `UPDATE registrations
+       SET status = 'cancelled',
+           updated_at = datetime('now')
+       WHERE enrollment_order_id = ?
+         AND status IN ('submitted', 'pending_payment')`,
+    )
+      .bind(row.id)
+      .run();
+
+    await env.DB.prepare(
+      `UPDATE payments
+       SET status = 'failed',
+           updated_at = datetime('now')
+       WHERE enrollment_order_id = ?
+         AND status = 'pending'`,
+    )
+      .bind(row.id)
+      .run();
+
+    supersededOrderIds.push(row.id);
+  }
+
+  return { supersededOrderIds, skippedOrderIds };
 }
 
 async function insertRegistrationRecord(
@@ -728,6 +830,8 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
     }
   }
 
+  const superseded = await supersedeOlderPendingOrders(env, guardianSession.guardianAccountId, orderId);
+
   return json({
     ok: true,
     enrollmentOrderId: orderId,
@@ -743,6 +847,8 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
       promoDiscountCents,
       prorationApplied: Boolean(prorationCode),
       waiverVersion: waiver.version_label,
+      supersededOrderIds: superseded.supersededOrderIds,
+      skippedSupersedeOrderIds: superseded.skippedOrderIds,
     },
   });
 }

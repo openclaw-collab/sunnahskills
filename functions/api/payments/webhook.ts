@@ -91,6 +91,22 @@ async function loadPaymentBySubscription(env: Env, subscriptionId: string) {
     }>();
 }
 
+async function loadOrderStatus(env: Env, orderId: number) {
+  return env.DB.prepare(
+    `SELECT id, status, manual_review_status, manual_review_reason
+     FROM enrollment_orders
+     WHERE id = ?
+     LIMIT 1`,
+  )
+    .bind(orderId)
+    .first<{
+      id: number;
+      status: string;
+      manual_review_status: string | null;
+      manual_review_reason: string | null;
+    }>();
+}
+
 async function incrementDiscountUse(env: Env, metadataJson: string | null | undefined) {
   if (!metadataJson) return;
   let codes: string[] = [];
@@ -274,6 +290,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
       const paymentMetadata = readPaymentMetadata(payment?.metadata);
 
       if (Number.isInteger(orderIdFromMeta) && orderIdFromMeta! > 0) {
+        const order = await loadOrderStatus(env, orderIdFromMeta);
         await env.DB.prepare(
           `UPDATE payments SET status='paid', receipt_url=COALESCE(?, receipt_url), updated_at=datetime('now')
            WHERE stripe_payment_intent_id = ?`,
@@ -281,6 +298,20 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
           .bind(receiptUrl, pi.id)
           .run();
         await incrementDiscountUse(env, payment?.metadata ?? null);
+
+        if (order?.status === "superseded" || order?.status === "abandoned") {
+          await env.DB.prepare(
+            `UPDATE enrollment_orders
+             SET manual_review_status = 'required',
+                 manual_review_reason = ?,
+                 last_payment_error = NULL,
+                 last_payment_attempt_at = datetime('now')
+             WHERE id = ?`,
+          )
+            .bind("superseded_payment_succeeded", orderIdFromMeta)
+            .run();
+          return json({ ok: true, manualReview: true });
+        }
 
         const regIdsStr = String(pi.metadata?.registration_ids ?? "");
         const regIds = regIdsStr
@@ -512,6 +543,10 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
       const orderIdFromMeta = pi.metadata?.enrollment_order_id ? Number(pi.metadata.enrollment_order_id) : null;
       if (Number.isInteger(orderIdFromMeta) && orderIdFromMeta! > 0) {
         const payPhase = String(pi.metadata?.pay_phase ?? "first");
+        const order = await loadOrderStatus(env, orderIdFromMeta);
+        if (order?.status === "superseded" || order?.status === "abandoned") {
+          return json({ ok: true });
+        }
         await env.DB.prepare(
           `UPDATE enrollment_orders
            SET manual_review_status = 'required',

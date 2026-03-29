@@ -22,7 +22,7 @@ import {
 import { useGuardianSession } from "@/hooks/useGuardianSession";
 import { PaymentProvider } from "@/components/payment/PaymentProvider";
 import { PaymentForm } from "@/components/payment/PaymentForm";
-import { BJJ_TRACK_BY_KEY } from "../../../../shared/bjjCatalog";
+import { BJJ_TRACK_BY_KEY, isMediaWaiverExemptBjjTrack } from "../../../../shared/bjjCatalog";
 import { formatMoneyFromCents } from "@shared/money";
 import { StudioBlock } from "@/studio/StudioBlock";
 import { StudioText } from "@/studio/StudioText";
@@ -33,12 +33,6 @@ type WaiverRecord = {
   body_html: string;
   version_label: string;
 };
-
-const WOMEN_TRACK_KEYS = new Set(["women-11-tue", "women-11-thu"]);
-
-function isWomenTrackKey(track: string) {
-  return WOMEN_TRACK_KEYS.has(track);
-}
 
 function money(cents: number) {
   return formatMoneyFromCents(cents);
@@ -131,11 +125,11 @@ export default function CartPage() {
   const [submitting, setSubmitting] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const cartLines = cart?.lines ?? [];
-  const womenOnlyOrder = React.useMemo(
-    () => Boolean(cartLines.length) && cartLines.every((line) => isWomenTrackKey(line.programDetails.programSpecific.bjjTrack)),
+  const mediaWaiverExemptOrder = React.useMemo(
+    () => Boolean(cartLines.length) && cartLines.every((line) => isMediaWaiverExemptBjjTrack(line.programDetails.programSpecific.bjjTrack)),
     [cartLines],
   );
-  const requiresPhotoConsent = !womenOnlyOrder;
+  const requiresPhotoConsent = !mediaWaiverExemptOrder;
   const checkoutFingerprint = React.useMemo(
     () => (cart ? buildFamilyCartFingerprint(cart, prorationCode) : null),
     [cart, prorationCode],
@@ -684,7 +678,7 @@ export default function CartPage() {
                     ) : (
                       <StudioText
                         k="registration.cart.mediaNotRequired"
-                        defaultText="Media waiver is not required for women-only registrations."
+                        defaultText="Media waiver does not apply to women's or girls' programs."
                         as="div"
                         className="rounded-xl border border-charcoal/10 bg-cream/35 px-3 py-3 text-sm text-charcoal/70"
                       />

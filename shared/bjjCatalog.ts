@@ -123,6 +123,10 @@ export function isKidsBjjTrackKey(value: string) {
   return isBjjTrackKey(value) && BJJ_TRACK_BY_KEY[value].isKids;
 }
 
+export function isMediaWaiverExemptBjjTrack(value: string) {
+  return isBjjTrackKey(value) && ["women", "girls"].includes(BJJ_TRACK_BY_KEY[value].marketingGroup);
+}
+
 export function normalizeGenderLabel(value: string) {
   const normalized = value.trim().toLowerCase();
   if (["female", "girl", "woman"].includes(normalized)) return "female";

@@ -3,6 +3,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import type { RegistrationStepProps } from "@/components/registration/steps";
 import { StudioBlock } from "@/studio/StudioBlock";
+import { isMediaWaiverExemptBjjTrack } from "../../../../shared/bjjCatalog";
 
 function WaiverRow({
   label,
@@ -30,7 +31,7 @@ export function StepWaivers({ draft, updateDraft }: RegistrationStepProps) {
   const selectedBjjTrack = draft.programSlug === "bjj"
     ? String((draft.programDetails.programSpecific as { bjjTrack?: string })?.bjjTrack ?? "")
     : "";
-  const requiresPhotoConsent = !(draft.programSlug === "bjj" && selectedBjjTrack.startsWith("women-11-"));
+  const requiresPhotoConsent = !(draft.programSlug === "bjj" && isMediaWaiverExemptBjjTrack(selectedBjjTrack));
 
   return (
     <StudioBlock id={`registration.${draft.programSlug}.waivers-step`} label="Waivers step">
@@ -58,7 +59,7 @@ export function StepWaivers({ draft, updateDraft }: RegistrationStepProps) {
           />
         ) : (
           <div className="rounded-2xl border border-charcoal/10 bg-cream p-4 font-body text-sm text-charcoal/70">
-            Media waiver is not required for women-only registrations.
+            Media waiver does not apply to women&apos;s or girls&apos; programs.
           </div>
         )}
         <WaiverRow

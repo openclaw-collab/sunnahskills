@@ -14,6 +14,7 @@ import {
   studentGenderOptions,
   studentSkillLevelOptions,
 } from "@shared/registration-options";
+import { isMediaWaiverExemptBjjTrack } from "@shared/bjjCatalog";
 
 export type ValidationErrors = Record<string, string>;
 
@@ -117,7 +118,7 @@ const waiversValidator: ValidatorFn = (draft) => {
   const selectedBjjTrack = draft.programSlug === "bjj"
     ? String((draft.programDetails.programSpecific as { bjjTrack?: string })?.bjjTrack ?? "")
     : "";
-  const requiresPhotoConsent = !(draft.programSlug === "bjj" && selectedBjjTrack.startsWith("women-11-"));
+  const requiresPhotoConsent = !(draft.programSlug === "bjj" && isMediaWaiverExemptBjjTrack(selectedBjjTrack));
   if (!draft.waivers.liabilityWaiver) errors["waivers.liabilityWaiver"] = "Please agree to the liability waiver";
   if (requiresPhotoConsent && !draft.waivers.photoConsent) {
     errors["waivers.photoConsent"] = "Please agree to the media waiver";

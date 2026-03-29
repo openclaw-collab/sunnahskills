@@ -3,7 +3,13 @@ import { sendMailChannelsEmail } from "../../_utils/email";
 import { adminNewRegistrationEmail, registrationConfirmationEmail, waitlistConfirmationEmail } from "../../_utils/emailTemplates";
 import { promoDiscountForSubtotal, resolveDiscountCode } from "../../_utils/discounts";
 import { getGuardianFromRequest } from "../../_utils/guardianAuth";
-import { BJJ_TRACK_BY_KEY, isBjjTrackKey, isEligibleForBjjTrack, normalizeGenderLabel } from "../../../shared/bjjCatalog";
+import {
+  BJJ_TRACK_BY_KEY,
+  isBjjTrackKey,
+  isEligibleForBjjTrack,
+  isMediaWaiverExemptBjjTrack,
+  normalizeGenderLabel,
+} from "../../../shared/bjjCatalog";
 import {
   computeLaterPaymentDateIso,
   computeLineTuitionCents,
@@ -91,10 +97,6 @@ function sanitizeText(value: string, maxLength = 1500) {
 function isValidPastDate(value: string) {
   const time = Date.parse(value);
   return Number.isFinite(time) && time <= Date.now();
-}
-
-function isWomenTrack(track: string) {
-  return isBjjTrackKey(track) && BJJ_TRACK_BY_KEY[track].marketingGroup === "women";
 }
 
 function todayIso() {
@@ -572,8 +574,8 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
     });
   }
 
-  const womenOnlyOrder = lineMeta.length > 0 && lineMeta.every((line) => isWomenTrack(line.track));
-  if (!womenOnlyOrder && !body.waivers.photoConsent) {
+  const mediaWaiverExemptOrder = lineMeta.length > 0 && lineMeta.every((line) => isMediaWaiverExemptBjjTrack(line.track));
+  if (!mediaWaiverExemptOrder && !body.waivers.photoConsent) {
     return json({ error: "You must accept the media waiver requirement." }, { status: 400 });
   }
 

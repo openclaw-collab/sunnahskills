@@ -48,12 +48,19 @@ export async function onRequestGet({ request, env }: { request: Request; env: En
       g.email as guardian_email,
       s.full_name as student_name,
       pay.status as payment_status,
-      pay.amount as payment_amount
+      pay.amount as payment_amount,
+      o.status as order_status,
+      o.manual_review_reason as order_manual_review_reason,
+      o.total_cents as order_total_cents,
+      o.amount_due_today_cents as order_amount_due_today_cents,
+      o.later_amount_cents as order_later_amount_cents,
+      o.later_payment_date as order_later_payment_date
     FROM registrations r
     JOIN programs p ON p.id = r.program_id
     JOIN guardians g ON g.id = r.guardian_id
     JOIN students s ON s.id = r.student_id
     LEFT JOIN payments pay ON pay.registration_id = r.id
+    LEFT JOIN enrollment_orders o ON o.id = r.enrollment_order_id
     ${where.length ? `WHERE ${where.join(" AND ")}` : ""}
     ORDER BY r.created_at DESC
     LIMIT 250

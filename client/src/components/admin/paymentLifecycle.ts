@@ -18,6 +18,8 @@ type PaymentLifecycleInput = {
 export type PaymentLifecycleSummary = {
   headline: string;
   detail: string;
+  compactLabel: string;
+  compactDetail: string;
   statusTone: "success" | "warning" | "danger" | "muted";
   reviewHeadline: string;
   reviewDetail: string;
@@ -127,5 +129,30 @@ export function summarizePaymentLifecycle(input: PaymentLifecycleInput): Payment
     reviewDetail = manualReviewReason || lastPaymentError;
   }
 
-  return { headline, detail, statusTone, reviewHeadline, reviewDetail };
+  let compactLabel = headline;
+  let compactDetail = detail;
+
+  if (headline === "First payment received") {
+    compactLabel = "Deposit paid";
+    compactDetail = laterAmountCents > 0
+      ? `Later ${money(laterAmountCents, currency)} on ${laterDate}.`
+      : "No later balance.";
+  } else if (headline === "Paid in full") {
+    compactLabel = "Paid";
+    compactDetail = "Fully collected.";
+  } else if (headline === "Superseded stale attempt") {
+    compactLabel = "Superseded";
+    compactDetail = "Replaced by a newer checkout.";
+  } else if (headline === "Awaiting card details") {
+    compactLabel = "Pending";
+    compactDetail = "Card details were not completed yet.";
+  } else if (headline === "Awaiting payment confirmation") {
+    compactLabel = "Pending";
+    compactDetail = "Checkout started but not finished.";
+  } else if (headline === "Payment failed") {
+    compactLabel = "Failed";
+    compactDetail = lastPaymentError || "The payment did not complete.";
+  }
+
+  return { headline, detail, compactLabel, compactDetail, statusTone, reviewHeadline, reviewDetail };
 }

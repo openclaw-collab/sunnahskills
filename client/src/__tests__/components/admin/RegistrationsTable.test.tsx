@@ -27,8 +27,14 @@ describe("RegistrationsTable", () => {
             guardian_name: "Parent One",
             guardian_email: "p@example.com",
             student_name: "Student One",
-            payment_status: "unpaid",
-            payment_amount: null,
+            payment_status: "failed",
+            payment_amount: 10000,
+            order_status: "superseded",
+            order_manual_review_reason: "stale_cleanup_kept_order:33",
+            order_total_cents: 10000,
+            order_amount_due_today_cents: 10000,
+            order_later_amount_cents: 0,
+            order_later_payment_date: null,
           },
         ]}
         onOpen={onOpen}
@@ -36,8 +42,9 @@ describe("RegistrationsTable", () => {
     );
 
     expect(await screen.findByText("Registrations")).toBeInTheDocument();
+    expect(screen.getByText("Superseded")).toBeInTheDocument();
+    expect(screen.getByText(/Replaced by a newer checkout/i)).toBeInTheDocument();
     fireEvent.click(screen.getByText("Student One"));
     expect(onOpen).toHaveBeenCalledWith(123);
   });
 });
-

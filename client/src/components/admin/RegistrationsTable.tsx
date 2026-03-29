@@ -4,6 +4,8 @@ import { ClayButton } from "@/components/brand/ClayButton";
 import { OutlineButton } from "@/components/brand/OutlineButton";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { cn } from "@/lib/utils";
+import { summarizePaymentLifecycle } from "@/components/admin/paymentLifecycle";
 
 type RegistrationRow = {
   registration_id: number;
@@ -16,6 +18,12 @@ type RegistrationRow = {
   student_name: string;
   payment_status: string | null;
   payment_amount: number | null;
+  order_status?: string | null;
+  order_manual_review_reason?: string | null;
+  order_total_cents?: number | null;
+  order_amount_due_today_cents?: number | null;
+  order_later_amount_cents?: number | null;
+  order_later_payment_date?: string | null;
 };
 
 type Program = { id: string; name: string; slug: string };
@@ -32,6 +40,16 @@ function badgeClass(kind: "status" | "payment", value: string) {
   if (value === "active") return `${base} bg-moss/10 border-moss/20 text-moss`;
   if (value === "pending_payment") return `${base} bg-charcoal/5 border-charcoal/10 text-charcoal/70`;
   if (value === "waitlisted") return `${base} bg-clay/10 border-clay/20 text-clay`;
+  if (value === "cancelled") return `${base} bg-charcoal/5 border-charcoal/10 text-charcoal/55`;
+  return `${base} bg-charcoal/5 border-charcoal/10 text-charcoal/70`;
+}
+
+function paymentBadgeClass(tone: "success" | "warning" | "danger" | "muted") {
+  const base =
+    "inline-flex items-center rounded-full px-2.5 py-1 text-[11px] uppercase tracking-[0.14em] font-mono-label border";
+  if (tone === "success") return `${base} bg-moss/10 border-moss/20 text-moss`;
+  if (tone === "danger") return `${base} bg-clay/10 border-clay/20 text-clay`;
+  if (tone === "muted") return `${base} bg-charcoal/5 border-charcoal/10 text-charcoal/55`;
   return `${base} bg-charcoal/5 border-charcoal/10 text-charcoal/70`;
 }
 
@@ -176,31 +194,47 @@ export function RegistrationsTable({
             </tr>
           </thead>
           <tbody>
-            {rows.map((r) => (
-              <tr
-                key={r.registration_id}
-                className="border-b border-charcoal/5 hover:bg-cream/40 cursor-pointer"
-                onClick={() => onOpen(r.registration_id)}
-              >
-                <td className="py-2 pr-4">{r.student_name}</td>
-                <td className="py-2 pr-4">{r.program_name}</td>
-                <td className="py-2 pr-4">
-                  <span className={badgeClass("status", r.registration_status)}>
-                    {r.registration_status}
-                  </span>
-                </td>
-                <td className="py-2 pr-4">
-                  <span className={badgeClass("payment", r.payment_status ?? "unpaid")}>
-                    {r.payment_status ?? "unpaid"}
-                  </span>
-                </td>
-                <td className="py-2 pr-4">
-                  <div className="text-charcoal">{r.guardian_name}</div>
-                  <div className="text-charcoal/60 text-xs">{r.guardian_email}</div>
-                </td>
-                <td className="py-2">{r.created_at}</td>
-              </tr>
-            ))}
+            {rows.map((r) => {
+              const paymentLifecycle = summarizePaymentLifecycle({
+                orderStatus: r.order_status,
+                latestPaymentStatus: r.payment_status,
+                manualReviewReason: r.order_manual_review_reason,
+                totalCents: r.order_total_cents,
+                amountDueTodayCents: r.order_amount_due_today_cents ?? r.payment_amount,
+                laterAmountCents: r.order_later_amount_cents,
+                laterPaymentDate: r.order_later_payment_date,
+                latestPaymentAmountCents: r.payment_amount,
+              });
+
+              return (
+                <tr
+                  key={r.registration_id}
+                  className="border-b border-charcoal/5 hover:bg-cream/40 cursor-pointer"
+                  onClick={() => onOpen(r.registration_id)}
+                >
+                  <td className="py-2 pr-4">{r.student_name}</td>
+                  <td className="py-2 pr-4">{r.program_name}</td>
+                  <td className="py-2 pr-4">
+                    <span className={badgeClass("status", r.registration_status)}>
+                      {r.registration_status}
+                    </span>
+                  </td>
+                  <td className="py-2 pr-4">
+                    <div className={cn(paymentBadgeClass(paymentLifecycle.statusTone), "w-fit")}>
+                      {paymentLifecycle.compactLabel}
+                    </div>
+                    <div className="mt-1 text-xs text-charcoal/55">
+                      {paymentLifecycle.compactDetail}
+                    </div>
+                  </td>
+                  <td className="py-2 pr-4">
+                    <div className="text-charcoal">{r.guardian_name}</div>
+                    <div className="text-charcoal/60 text-xs">{r.guardian_email}</div>
+                  </td>
+                  <td className="py-2">{r.created_at}</td>
+                </tr>
+              );
+            })}
             {rows.length === 0 ? (
               <tr>
                 <td colSpan={6} className="py-8 text-center text-charcoal/60">
@@ -214,4 +248,3 @@ export function RegistrationsTable({
     </PremiumCard>
   );
 }
-

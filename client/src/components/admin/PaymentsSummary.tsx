@@ -3,6 +3,7 @@ import { PremiumCard } from "@/components/brand/PremiumCard";
 import { formatMoneyFromCents } from "@shared/money";
 import { cn } from "@/lib/utils";
 import { summarizePaymentLifecycle } from "@/components/admin/paymentLifecycle";
+import { formatAdminDateTime } from "@/components/admin/adminDateTime";
 
 type PaymentRow = {
   order_id?: number;
@@ -125,7 +126,10 @@ export function PaymentsSummary({ payments }: { payments: PaymentRow[] }) {
                     <div className="text-xs text-charcoal/55">Later: {laterText}</div>
                     <div className="text-xs text-charcoal/55">Total: {totalText} · Paid: {paidText}</div>
                   </td>
-                  <td className="py-2">{p.created_at}</td>
+                  <td className="py-2">
+                    <div>{formatAdminDateTime(p.created_at)}</div>
+                    <div className="text-xs text-charcoal/45">Toronto time</div>
+                  </td>
                 </tr>
               );
             })}

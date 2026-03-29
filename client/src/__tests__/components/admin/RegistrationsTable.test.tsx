@@ -42,7 +42,7 @@ describe("RegistrationsTable", () => {
     );
 
     expect(await screen.findByText("Registrations")).toBeInTheDocument();
-    expect(screen.getByText("Superseded")).toBeInTheDocument();
+    expect(screen.getAllByText("Superseded").length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText(/Replaced by a newer checkout/i)).toBeInTheDocument();
     fireEvent.click(screen.getByText("Student One"));
     expect(onOpen).toHaveBeenCalledWith(123);

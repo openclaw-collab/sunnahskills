@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { summarizePaymentLifecycle } from "@/components/admin/paymentLifecycle";
+import { formatAdminDateTime } from "@/components/admin/adminDateTime";
 
 type RegistrationRow = {
   registration_id: number;
@@ -28,9 +29,14 @@ type RegistrationRow = {
 
 type Program = { id: string; name: string; slug: string };
 
+function humanize(value: string | null | undefined) {
+  if (!value) return "Unknown";
+  return value.replace(/_/g, " ");
+}
+
 function badgeClass(kind: "status" | "payment", value: string) {
   const base =
-    "inline-flex items-center rounded-full px-2.5 py-1 text-[11px] uppercase tracking-[0.14em] font-mono-label border";
+    "inline-flex items-center rounded-full px-2.5 py-1 text-[11px] uppercase tracking-[0.14em] font-mono-label border whitespace-nowrap";
   if (kind === "payment") {
     if (value === "paid") return `${base} bg-moss/10 border-moss/20 text-moss`;
     if (value === "failed") return `${base} bg-clay/10 border-clay/20 text-clay`;
@@ -46,11 +52,24 @@ function badgeClass(kind: "status" | "payment", value: string) {
 
 function paymentBadgeClass(tone: "success" | "warning" | "danger" | "muted") {
   const base =
-    "inline-flex items-center rounded-full px-2.5 py-1 text-[11px] uppercase tracking-[0.14em] font-mono-label border";
+    "inline-flex items-center rounded-full px-2.5 py-1 text-[11px] uppercase tracking-[0.14em] font-mono-label border whitespace-nowrap";
   if (tone === "success") return `${base} bg-moss/10 border-moss/20 text-moss`;
   if (tone === "danger") return `${base} bg-clay/10 border-clay/20 text-clay`;
   if (tone === "muted") return `${base} bg-charcoal/5 border-charcoal/10 text-charcoal/55`;
   return `${base} bg-charcoal/5 border-charcoal/10 text-charcoal/70`;
+}
+
+function rowToneClasses(tone: "success" | "warning" | "danger" | "muted") {
+  if (tone === "success") {
+    return "border-l-[3px] border-l-moss/60 bg-[linear-gradient(90deg,rgba(92,118,90,0.06),rgba(255,255,255,0))]";
+  }
+  if (tone === "danger") {
+    return "border-l-[3px] border-l-clay/65 bg-[linear-gradient(90deg,rgba(197,121,97,0.08),rgba(255,255,255,0))]";
+  }
+  if (tone === "muted") {
+    return "border-l-[3px] border-l-charcoal/18 bg-[linear-gradient(90deg,rgba(26,26,26,0.04),rgba(255,255,255,0))] opacity-80";
+  }
+  return "border-l-[3px] border-l-gold/55 bg-[linear-gradient(90deg,rgba(214,176,98,0.09),rgba(255,255,255,0))]";
 }
 
 export function RegistrationsTable({
@@ -94,6 +113,36 @@ export function RegistrationsTable({
       setLoading(false);
     }
   }
+
+  const counts = useMemo(() => {
+    const summary = {
+      total: rows.length,
+      active: 0,
+      pending: 0,
+      depositPaid: 0,
+      superseded: 0,
+    };
+
+    rows.forEach((row) => {
+      const lifecycle = summarizePaymentLifecycle({
+        orderStatus: row.order_status,
+        latestPaymentStatus: row.payment_status,
+        manualReviewReason: row.order_manual_review_reason,
+        totalCents: row.order_total_cents,
+        amountDueTodayCents: row.order_amount_due_today_cents ?? row.payment_amount,
+        laterAmountCents: row.order_later_amount_cents,
+        laterPaymentDate: row.order_later_payment_date,
+        latestPaymentAmountCents: row.payment_amount,
+      });
+
+      if (lifecycle.compactLabel === "Paid" || lifecycle.compactLabel === "Deposit paid") summary.active += 1;
+      if (lifecycle.compactLabel === "Pending") summary.pending += 1;
+      if (lifecycle.compactLabel === "Deposit paid") summary.depositPaid += 1;
+      if (lifecycle.compactLabel === "Superseded") summary.superseded += 1;
+    });
+
+    return summary;
+  }, [rows]);
 
   return (
     <PremiumCard className="bg-white border border-charcoal/10">
@@ -181,16 +230,52 @@ export function RegistrationsTable({
         </div>
       </div>
 
-      <div className="overflow-x-auto">
+      <div className="mb-5 grid gap-3 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
+        <div className="rounded-[1.75rem] border border-charcoal/10 bg-[radial-gradient(circle_at_top_left,rgba(214,176,98,0.14),transparent_42%),linear-gradient(180deg,rgba(255,255,255,0.98),rgba(245,240,232,0.78))] px-4 py-3">
+          <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-charcoal/45">
+            Reading this table
+          </div>
+          <div className="mt-2 flex flex-wrap gap-2">
+            <span className={paymentBadgeClass("success")}>Deposit paid</span>
+            <span className={paymentBadgeClass("warning")}>Pending</span>
+            <span className={paymentBadgeClass("muted")}>Superseded</span>
+            <span className={paymentBadgeClass("danger")}>Failed</span>
+          </div>
+          <p className="mt-3 text-sm leading-relaxed text-charcoal/68">
+            Superseded rows are older abandoned checkouts that were intentionally retired when a newer attempt was created.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-2 xl:grid-cols-4">
+          <div className="rounded-[1.5rem] border border-charcoal/10 bg-cream/45 px-4 py-3">
+            <div className="font-mono-label text-[9px] uppercase tracking-[0.18em] text-charcoal/40">Total</div>
+            <div className="mt-1 font-display text-2xl text-charcoal">{counts.total}</div>
+          </div>
+          <div className="rounded-[1.5rem] border border-moss/15 bg-moss/5 px-4 py-3">
+            <div className="font-mono-label text-[9px] uppercase tracking-[0.18em] text-moss">Paid states</div>
+            <div className="mt-1 font-display text-2xl text-charcoal">{counts.active}</div>
+          </div>
+          <div className="rounded-[1.5rem] border border-gold/25 bg-gold/10 px-4 py-3">
+            <div className="font-mono-label text-[9px] uppercase tracking-[0.18em] text-charcoal/55">Pending</div>
+            <div className="mt-1 font-display text-2xl text-charcoal">{counts.pending}</div>
+          </div>
+          <div className="rounded-[1.5rem] border border-charcoal/10 bg-charcoal/[0.03] px-4 py-3">
+            <div className="font-mono-label text-[9px] uppercase tracking-[0.18em] text-charcoal/40">Superseded</div>
+            <div className="mt-1 font-display text-2xl text-charcoal">{counts.superseded}</div>
+          </div>
+        </div>
+      </div>
+
+      <div className="overflow-x-auto rounded-[1.8rem] border border-charcoal/8 bg-white/70 shadow-[0_20px_60px_rgba(26,26,26,0.06)]">
         <table className="w-full text-sm">
-          <thead className="text-charcoal/60">
+          <thead className="text-charcoal/60 bg-cream/55 backdrop-blur-sm">
             <tr className="border-b border-charcoal/10">
-              <th className="text-left py-2 pr-4">Student</th>
-              <th className="text-left py-2 pr-4">Program</th>
-              <th className="text-left py-2 pr-4">Reg status</th>
-              <th className="text-left py-2 pr-4">Payment</th>
-              <th className="text-left py-2 pr-4">Guardian</th>
-              <th className="text-left py-2">Created</th>
+              <th className="text-left py-3 pl-4 pr-4">Student</th>
+              <th className="text-left py-3 pr-4">Program</th>
+              <th className="text-left py-3 pr-4">Registration</th>
+              <th className="text-left py-3 pr-4">Payment</th>
+              <th className="text-left py-3 pr-4">Guardian</th>
+              <th className="text-left py-3 pr-4">Created</th>
             </tr>
           </thead>
           <tbody>
@@ -209,29 +294,41 @@ export function RegistrationsTable({
               return (
                 <tr
                   key={r.registration_id}
-                  className="border-b border-charcoal/5 hover:bg-cream/40 cursor-pointer"
+                  className={cn(
+                    "border-b border-charcoal/5 hover:bg-cream/35 cursor-pointer transition-colors",
+                    rowToneClasses(paymentLifecycle.statusTone),
+                  )}
                   onClick={() => onOpen(r.registration_id)}
                 >
-                  <td className="py-2 pr-4">{r.student_name}</td>
-                  <td className="py-2 pr-4">{r.program_name}</td>
-                  <td className="py-2 pr-4">
+                  <td className="py-3 pl-4 pr-4">
+                    <div className="font-medium text-charcoal">{r.student_name}</div>
+                    <div className="mt-1 text-xs text-charcoal/45">Registration #{r.registration_id}</div>
+                  </td>
+                  <td className="py-3 pr-4">
+                    <div className="text-charcoal">{r.program_name}</div>
+                    <div className="mt-1 text-xs text-charcoal/45">{humanize(r.program_slug)}</div>
+                  </td>
+                  <td className="py-3 pr-4">
                     <span className={badgeClass("status", r.registration_status)}>
-                      {r.registration_status}
+                      {humanize(r.registration_status)}
                     </span>
                   </td>
-                  <td className="py-2 pr-4">
+                  <td className="py-3 pr-4 min-w-[14rem]">
                     <div className={cn(paymentBadgeClass(paymentLifecycle.statusTone), "w-fit")}>
                       {paymentLifecycle.compactLabel}
                     </div>
-                    <div className="mt-1 text-xs text-charcoal/55">
+                    <div className="mt-1 text-xs leading-relaxed text-charcoal/58">
                       {paymentLifecycle.compactDetail}
                     </div>
                   </td>
-                  <td className="py-2 pr-4">
+                  <td className="py-3 pr-4">
                     <div className="text-charcoal">{r.guardian_name}</div>
-                    <div className="text-charcoal/60 text-xs">{r.guardian_email}</div>
+                    <div className="mt-1 text-xs text-charcoal/52">{r.guardian_email}</div>
                   </td>
-                  <td className="py-2">{r.created_at}</td>
+                  <td className="py-3 pr-4">
+                    <div className="text-charcoal/75">{formatAdminDateTime(r.created_at)}</div>
+                    <div className="mt-1 text-xs text-charcoal/40">Toronto time</div>
+                  </td>
                 </tr>
               );
             })}

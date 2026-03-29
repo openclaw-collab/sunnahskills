@@ -34,7 +34,8 @@ function participantLastName(fullName: string) {
 
 /**
  * Child participant lines that share a last name form a sibling group.
- * Every line in a sibling group of 2+ children is eligible for the 10% discount.
+ * The first child in that group stays full price; the second and later
+ * distinct child lines are eligible for the 10% discount.
  */
 export function siblingDiscountEligibleForLine(
   lines: { participantType: "self" | "child"; student: { fullName: string; dateOfBirth: string } }[],
@@ -46,14 +47,14 @@ export function siblingDiscountEligibleForLine(
   const lastName = participantLastName(target.student.fullName);
   if (!lastName) return false;
 
-  const matchingChildren = new Set<string>();
-  for (const line of lines) {
+  const priorMatchingChildren = new Set<string>();
+  for (const line of lines.slice(0, lineIndex)) {
     if (line.participantType !== "child") continue;
     if (participantLastName(line.student.fullName) !== lastName) continue;
-    matchingChildren.add(studentKey(line.student.fullName, line.student.dateOfBirth));
+    priorMatchingChildren.add(studentKey(line.student.fullName, line.student.dateOfBirth));
   }
 
-  return matchingChildren.size >= 2;
+  return priorMatchingChildren.size >= 1;
 }
 
 export function computeLaterPaymentDateIso(sem: SemesterRow | null): string | null {

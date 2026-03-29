@@ -30,6 +30,12 @@ type RegistrationRow = {
   student_name: string;
   payment_status: string | null;
   payment_amount: number | null;
+  order_status?: string | null;
+  order_manual_review_reason?: string | null;
+  order_total_cents?: number | null;
+  order_amount_due_today_cents?: number | null;
+  order_later_amount_cents?: number | null;
+  order_later_payment_date?: string | null;
 };
 
 type PaymentRow = {
@@ -199,6 +205,8 @@ export default function AdminDashboard() {
   const [payments, setPayments] = useState<PaymentRow[]>([]);
   const [detailId, setDetailId] = useState<number | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
+  const [showSupersededRegistrations, setShowSupersededRegistrations] = useState(false);
+  const [showSupersededPayments, setShowSupersededPayments] = useState(false);
 
   const activeTab = useMemo(() => getTabFromLocation(location), [location]);
 
@@ -219,14 +227,16 @@ export default function AdminDashboard() {
       }
 
       if (hasAdminAccess(activeUser, "registrations", "read")) {
-        requests.push(fetch("/api/admin/registrations"));
+        requests.push(
+          fetch(showSupersededRegistrations ? "/api/admin/registrations?includeSuperseded=1" : "/api/admin/registrations"),
+        );
         parsers.push((payload) =>
           setRegistrations(((payload as { registrations?: RegistrationRow[] } | null)?.registrations ?? []) as RegistrationRow[]),
         );
       }
 
       if (hasAdminAccess(activeUser, "payments", "read")) {
-        requests.push(fetch("/api/admin/orders"));
+        requests.push(fetch(showSupersededPayments ? "/api/admin/orders?includeSuperseded=1" : "/api/admin/orders"));
         parsers.push((payload) =>
           setPayments(((payload as { orders?: PaymentRow[] } | null)?.orders ?? []) as PaymentRow[]),
         );
@@ -242,7 +252,7 @@ export default function AdminDashboard() {
     } finally {
       setRefreshing(false);
     }
-  }, []);
+  }, [showSupersededPayments, showSupersededRegistrations]);
 
   const refreshAdminData = useCallback(async () => {
     if (!me) return;
@@ -497,6 +507,8 @@ export default function AdminDashboard() {
         <TabsContent value="registrations">
           <RegistrationsTable
             initial={registrations}
+            showSuperseded={showSupersededRegistrations}
+            onShowSupersededChange={setShowSupersededRegistrations}
             onOpen={(id) => {
               setDetailId(id);
               setDetailOpen(true);
@@ -509,7 +521,11 @@ export default function AdminDashboard() {
         </TabsContent>
 
         <TabsContent value="payments">
-          <PaymentsSummary payments={payments} />
+          <PaymentsSummary
+            payments={payments}
+            showSuperseded={showSupersededPayments}
+            onShowSupersededChange={setShowSupersededPayments}
+          />
         </TabsContent>
 
         <TabsContent value="discounts">

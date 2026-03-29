@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { PremiumCard } from "@/components/brand/PremiumCard";
 import { ClayButton } from "@/components/brand/ClayButton";
 import { OutlineButton } from "@/components/brand/OutlineButton";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
@@ -75,9 +76,13 @@ function rowToneClasses(tone: "success" | "warning" | "danger" | "muted") {
 export function RegistrationsTable({
   initial,
   onOpen,
+  showSuperseded,
+  onShowSupersededChange,
 }: {
   initial: RegistrationRow[];
   onOpen: (id: number) => void;
+  showSuperseded: boolean;
+  onShowSupersededChange: (value: boolean) => void;
 }) {
   const [rows, setRows] = useState<RegistrationRow[]>(initial);
   const [programs, setPrograms] = useState<Program[]>([]);
@@ -99,9 +104,10 @@ export function RegistrationsTable({
     if (programId !== "all") sp.set("programId", programId);
     if (status !== "all") sp.set("status", status);
     if (q.trim()) sp.set("q", q.trim());
+    if (showSuperseded) sp.set("includeSuperseded", "1");
     const qs = sp.toString();
     return `/api/admin/registrations${qs ? `?${qs}` : ""}`;
-  }, [programId, q, status]);
+  }, [programId, q, showSuperseded, status]);
 
   async function refresh() {
     setLoading(true);
@@ -156,6 +162,14 @@ export function RegistrationsTable({
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <label className="mr-2 flex items-center gap-2 rounded-full border border-charcoal/10 bg-cream/40 px-3 py-2 text-[11px] uppercase tracking-[0.14em] font-mono-label text-charcoal/65">
+            <Checkbox
+              checked={showSuperseded}
+              onCheckedChange={(checked) => onShowSupersededChange(checked === true)}
+              aria-label="Show superseded registrations"
+            />
+            Show superseded
+          </label>
           <OutlineButton
             className="px-4 py-2.5 text-[11px] uppercase tracking-[0.18em]"
             onClick={() => {

@@ -20,6 +20,7 @@ export async function onRequestGet({ request, env }: { request: Request; env: En
   const url = new URL(request.url);
   const review = url.searchParams.get("review");
   const status = url.searchParams.get("status");
+  const includeSuperseded = url.searchParams.get("includeSuperseded") === "1";
   const where: string[] = [];
   const binds: unknown[] = [];
 
@@ -30,6 +31,9 @@ export async function onRequestGet({ request, env }: { request: Request; env: En
   if (status) {
     where.push("o.status = ?");
     binds.push(status);
+  }
+  if (!includeSuperseded) {
+    where.push("o.status != 'superseded'");
   }
 
   const sql = `

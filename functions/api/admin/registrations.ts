@@ -21,6 +21,7 @@ export async function onRequestGet({ request, env }: { request: Request; env: En
   const programId = url.searchParams.get("programId");
   const status = url.searchParams.get("status");
   const q = url.searchParams.get("q");
+  const includeSuperseded = url.searchParams.get("includeSuperseded") === "1";
 
   const where: string[] = [];
   const binds: any[] = [];
@@ -35,6 +36,9 @@ export async function onRequestGet({ request, env }: { request: Request; env: En
   if (q) {
     where.push("(g.full_name LIKE ? OR g.email LIKE ? OR s.full_name LIKE ?)");
     binds.push(`%${q}%`, `%${q}%`, `%${q}%`);
+  }
+  if (!includeSuperseded) {
+    where.push("(o.status IS NULL OR o.status != 'superseded')");
   }
 
   const sql = `

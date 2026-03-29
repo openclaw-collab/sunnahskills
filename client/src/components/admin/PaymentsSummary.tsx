@@ -1,5 +1,6 @@
 import React from "react";
 import { PremiumCard } from "@/components/brand/PremiumCard";
+import { Checkbox } from "@/components/ui/checkbox";
 import { formatMoneyFromCents } from "@shared/money";
 import { cn } from "@/lib/utils";
 import { summarizePaymentLifecycle } from "@/components/admin/paymentLifecycle";
@@ -46,11 +47,29 @@ function statusToneClasses(tone: "success" | "warning" | "danger" | "muted") {
   }
 }
 
-export function PaymentsSummary({ payments }: { payments: PaymentRow[] }) {
+export function PaymentsSummary({
+  payments,
+  showSuperseded,
+  onShowSupersededChange,
+}: {
+  payments: PaymentRow[];
+  showSuperseded: boolean;
+  onShowSupersededChange: (value: boolean) => void;
+}) {
   return (
     <PremiumCard className="bg-white border border-charcoal/10">
-      <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-moss mb-4">
-        Orders & Payments
+      <div className="mb-4 flex items-start justify-between gap-3">
+        <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-moss">
+          Orders & Payments
+        </div>
+        <label className="flex items-center gap-2 rounded-full border border-charcoal/10 bg-cream/40 px-3 py-2 text-[11px] uppercase tracking-[0.14em] font-mono-label text-charcoal/65">
+          <Checkbox
+            checked={showSuperseded}
+            onCheckedChange={(checked) => onShowSupersededChange(checked === true)}
+            aria-label="Show superseded payments"
+          />
+          Show superseded
+        </label>
       </div>
       <div className="overflow-x-auto">
         <table className="w-full text-sm">

@@ -37,6 +37,8 @@ describe("RegistrationsTable", () => {
             order_later_payment_date: null,
           },
         ]}
+        showSuperseded={false}
+        onShowSupersededChange={vi.fn()}
         onOpen={onOpen}
       />,
     );

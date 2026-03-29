@@ -120,7 +120,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
         enrollmentOrderId: orderId,
         dueTodayCents: dueToday,
         dueLaterCents: dueLater,
-        laterPaymentDate: order.later_payment_date ?? null,
+        laterPaymentDate: dueLater > 0 ? order.later_payment_date ?? null : null,
         trialCreditCents,
         siblingDiscountCents,
         promoDiscountCents,
@@ -164,12 +164,14 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
   intentParams.set("amount", String(dueToday));
   intentParams.set("currency", DEFAULT_CURRENCY);
   intentParams.set("customer", customerId);
-  intentParams.set("setup_future_usage", "off_session");
   intentParams.set("automatic_payment_methods[enabled]", "true");
   intentParams.set("metadata[enrollment_order_id]", String(orderId));
   intentParams.set("metadata[registration_ids]", registrationIds.join(","));
   intentParams.set("metadata[pay_phase]", "first");
   intentParams.set("metadata[program_id]", "bjj");
+  if (dueLater > 0) {
+    intentParams.set("setup_future_usage", "off_session");
+  }
 
   const intentRes = await fetch("https://api.stripe.com/v1/payment_intents", {
     method: "POST",
@@ -245,7 +247,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
     enrollmentOrderId: orderId,
     dueTodayCents: dueToday,
     dueLaterCents: dueLater,
-    laterPaymentDate: order.later_payment_date ?? null,
+    laterPaymentDate: dueLater > 0 ? order.later_payment_date ?? null : null,
     trialCreditCents,
     siblingDiscountCents,
     promoDiscountCents,

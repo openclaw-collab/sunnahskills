@@ -807,10 +807,12 @@ export default function CartPage() {
                   <StudioText k="registration.cart.summaryLaterBalance" defaultText="Later balance:" as="span" />{" "}
                   <strong className="text-charcoal">{money(summary?.dueLaterCents ?? 0)}</strong>
                 </div>
-                <div>
-                  <StudioText k="registration.cart.summaryLaterDate" defaultText="Later charge date:" as="span" />{" "}
-                  <strong className="text-charcoal">{summary?.laterPaymentDate ?? "None"}</strong>
-                </div>
+                {summary && summary.dueLaterCents > 0 ? (
+                  <div>
+                    <StudioText k="registration.cart.summaryLaterDate" defaultText="Later charge date:" as="span" />{" "}
+                    <strong className="text-charcoal">{summary.laterPaymentDate ?? "None"}</strong>
+                  </div>
+                ) : null}
                 {summary && summary.dueLaterCents > 0 ? (
                   <div className="space-y-3 rounded-2xl border border-clay/15 bg-clay/5 p-4 text-sm text-charcoal/75">
                     <StudioText

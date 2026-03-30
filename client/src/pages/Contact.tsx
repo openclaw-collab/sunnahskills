@@ -39,7 +39,7 @@ const Contact = () => {
         return new Promise((resolve) => {
           setTimeout(() => {
             resolve({
-              message: "Message sent successfully."
+              message: "Message sent! We'll get back to you within 24 hours."
             });
           }, 1000);
         });
@@ -70,7 +70,7 @@ const Contact = () => {
     onError: (error: any) => {
       toast({
         title: "Failed to Send Message",
-        description: error.message || "There was an error sending your message. Please try again.",
+        description: error.message || "Something went wrong sending your message. Try again?",
         variant: "destructive",
       });
       setIsSubmitting(false);
@@ -255,9 +255,9 @@ const Contact = () => {
                     name="name"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Your Name *</FormLabel>
+                        <FormLabel>Name</FormLabel>
                         <FormControl>
-                          <Input placeholder="Enter your name" {...field} />
+                          <Input placeholder="Your name" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -269,7 +269,7 @@ const Contact = () => {
                     name="email"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Your Email *</FormLabel>
+                        <FormLabel>Email</FormLabel>
                         <FormControl>
                           <Input type="email" placeholder="your@email.com" {...field} />
                         </FormControl>
@@ -287,7 +287,7 @@ const Contact = () => {
                         <Select onValueChange={field.onChange} defaultValue={field.value}>
                           <FormControl>
                             <SelectTrigger>
-                              <SelectValue placeholder="Select a subject" />
+                              <SelectValue placeholder="Choose a topic" />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
@@ -308,10 +308,10 @@ const Contact = () => {
                     name="message"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Message *</FormLabel>
+                        <FormLabel>Message</FormLabel>
                         <FormControl>
-                          <Textarea 
-                            placeholder="How can we help you?"
+                          <Textarea
+                            placeholder="Tell us what you need"
                             rows={4}
                             {...field} 
                           />

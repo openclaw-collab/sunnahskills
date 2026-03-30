@@ -173,7 +173,7 @@ export function ProgramRegistrationPage({ slug }: { slug: ProgramSlug }) {
       });
       const intentJson = (await intentRes.json().catch(() => null)) as any;
       if (!intentRes.ok || !intentJson?.clientSecret) {
-        throw new Error(intentJson?.error ?? "Failed to create payment intent");
+        throw new Error(intentJson?.error ?? "Couldn't start payment. Try again in a moment.");
       }
       return intentJson.clientSecret as string;
     }

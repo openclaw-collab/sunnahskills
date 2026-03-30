@@ -37,8 +37,8 @@ function nextPath() {
 function errorMessage() {
   if (typeof window === "undefined") return "";
   const raw = new URLSearchParams(window.location.search).get("error") ?? "";
-  if (raw === "invalid_link") return "The sign-in link was invalid.";
-  if (raw === "link_used_or_expired") return "That sign-in link was already used or has expired.";
+  if (raw === "invalid_link") return "That sign-in link didn't work. It may have expired or been used already.";
+  if (raw === "link_used_or_expired") return "That sign-in link was already used or expired.";
   return "";
 }
 
@@ -97,7 +97,7 @@ export default function RegistrationHub() {
       body: JSON.stringify(body),
     });
     const json = (await res.json().catch(() => null)) as { error?: string; message?: string } | null;
-    if (!res.ok) throw new Error(json?.error ?? "Request failed");
+    if (!res.ok) throw new Error(json?.error ?? "Something went wrong. Try again?");
     return json;
   }
 
@@ -144,8 +144,8 @@ export default function RegistrationHub() {
 
   function validateSignup() {
     const nextErrors: SignupErrors = {};
-    if (signupFullName.trim().length < 2) nextErrors.signupFullName = "Full name is required.";
-    if (!isValidEmail(signupEmail.trim())) nextErrors.signupEmail = "Enter a valid email address.";
+    if (signupFullName.trim().length < 2) nextErrors.signupFullName = "Enter your full name.";
+    if (!isValidEmail(signupEmail.trim())) nextErrors.signupEmail = "Enter a valid email.";
     setSignupErrors(nextErrors);
     return Object.keys(nextErrors).length === 0;
   }
@@ -183,13 +183,12 @@ export default function RegistrationHub() {
       <div className="noise-overlay" />
       <main className="mx-auto max-w-6xl px-6 pt-28" data-testid="registration-hub">
         <SectionHeader
-          eyebrow="Family & Member Account"
+          eyebrow="Your Account"
           title={authenticated ? "Account & participant profiles" : "Open your account before you register"}
           className="mb-8"
         />
         <p className="mb-6 max-w-3xl text-sm leading-relaxed text-charcoal/70">
-          Adults and families use the same account system here. We start with a secure sign-in link, complete the
-          required contact details, add one or more participant profiles, and only then open live BJJ registration.
+          One account keeps all your registrations organized. Sign in with your email, add your details and student profiles, then you're ready to register.
         </p>
 
         {message ? (
@@ -233,7 +232,7 @@ export default function RegistrationHub() {
             <PremiumCard className="space-y-4 border border-charcoal/10 bg-white p-6">
               <div>
                 <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-moss mb-2">Create account</div>
-                <h2 className="font-heading text-2xl text-charcoal">Start your Family &amp; Member Account</h2>
+                <h2 className="font-heading text-2xl text-charcoal">Create Your Account</h2>
               </div>
               <Input
                 value={signupFullName}
@@ -280,7 +279,7 @@ export default function RegistrationHub() {
                     setLocalPreview(response?.localPreview ?? null);
                   } catch (caught) {
                     setMessageTone("error");
-                    setMessage(caught instanceof Error ? caught.message : "Could not create the account.");
+                    setMessage(caught instanceof Error ? caught.message : "Couldn't create your account. Try again or contact support.");
                     setLocalPreview(null);
                   } finally {
                     setBusy(null);

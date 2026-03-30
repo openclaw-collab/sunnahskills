@@ -83,7 +83,7 @@ export function AdminOverview({
           </div>
           <div className="rounded-2xl border border-charcoal/10 bg-cream/60 px-4 py-3">
             <div className="text-charcoal/60">Quick reminder</div>
-            <div className="mt-1 text-charcoal">Statuses update from Stripe webhooks.</div>
+            <div className="mt-1 text-charcoal">Payment statuses update automatically.</div>
           </div>
         </div>
       </PremiumCard>

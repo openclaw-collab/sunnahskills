@@ -47,7 +47,7 @@ export default function AdminLogin() {
                 });
                 const json = await res.json().catch(() => null);
                 if (!res.ok) {
-                  const msg = json?.error ?? "Login failed";
+                  const msg = json?.error ?? "Couldn't sign you in. Check your email and password.";
                   setError(msg);
                   toast({
                     title: "Login failed",
@@ -79,7 +79,7 @@ export default function AdminLogin() {
                 id="admin-email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="muadh@sunnahskills.com"
+                placeholder="admin@example.com"
                 type="email"
                 autoComplete="email"
               />

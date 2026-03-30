@@ -482,7 +482,7 @@ const Home = () => {
                 <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-charcoal via-charcoal/18 to-transparent" />
               </div>
               <p className="mt-5 text-sm leading-relaxed text-cream/68">
-                A quiet look at how technique is taught at Sunnah Skills. The full interactive library lives on the techniques page.
+                Review techniques after class with our animated 3D breakdowns. Full library available anytime.
               </p>
               <div className="mt-4">
                 <Link href="/techniques" className="font-mono-label text-[11px] uppercase tracking-[0.18em] text-moss hover:text-cream">

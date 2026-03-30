@@ -32,7 +32,7 @@ export function PaymentForm({
         });
 
         if (result.error) {
-          setError(result.error.message ?? "Payment failed. Please try again.");
+          setError(result.error.message ?? "Payment didn't go through. Check your details and try again.");
           setSubmitting(false);
           return;
         }

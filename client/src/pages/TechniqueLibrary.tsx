@@ -476,7 +476,7 @@ const TechniqueLibrary = () => {
           <p className="font-body text-sm text-charcoal/70 max-w-2xl mb-10 leading-relaxed">
             <StudioText
               k="techniques.header.intro"
-              defaultText="Browse the launch technique set with filters for stage, position, and finish. The viewer stays live, and new public chains can be published from admin as the curriculum expands."
+              defaultText="Browse techniques by stage, position, or finish. New sequences are added as the curriculum grows."
               as="span"
               className="inline"
               multiline

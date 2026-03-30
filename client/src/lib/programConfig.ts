@@ -34,7 +34,7 @@ export const PROGRAMS: Record<ProgramSlug, ProgramConfig> = {
     type: "recurring",
     enrollmentStatus: "open",
     ageRangeLabel: "Girls 5–10 · Boys 7–13 · Women 11+ · Men 14+",
-    shortPitch: "Technique-first grappling that builds calm confidence, patience, and resilient character.",
+    shortPitch: "Ground-based training that teaches leverage and timing. Students learn to stay composed under pressure.",
     heroLead:
       "Ground-based training that teaches leverage, timing, and composure while helping students grow through steady progression.",
     highlights: ["Age-group tracks", "Technique over strength", "Belt progression", "Confidence under pressure"],
@@ -65,7 +65,7 @@ export const PROGRAMS: Record<ProgramSlug, ProgramConfig> = {
     type: "seasonal",
     enrollmentStatus: "coming_soon",
     ageRangeLabel: "Youth + Teen (Seasonal)",
-    shortPitch: "A Sunnah-rooted discipline for focus, patience, and precise form.",
+    shortPitch: "Traditional archery emphasizing stance, anchor, and release. Students learn to slow down and shoot consistently.",
     heroLead:
       "Seasonal sessions centered on breath, stance, safety, and the quiet repetition that builds skill and attention.",
     highlights: ["Seasonal sessions", "Safety-first range rules", "Traditional form", "Focus through repetition"],
@@ -96,7 +96,7 @@ export const PROGRAMS: Record<ProgramSlug, ProgramConfig> = {
     type: "workshop",
     enrollmentStatus: "coming_soon",
     ageRangeLabel: "Workshop Ages Vary",
-    shortPitch: "Practical readiness training built around stewardship, problem-solving, and disciplined decision making.",
+    shortPitch: "Learn fire building, shelter construction, and navigation in real outdoor settings. Students leave with practical skills they can use on family camping trips.",
     heroLead:
       "Hands-on fieldcraft that teaches students to read conditions, work with tools, and move through the outdoors with confidence.",
     highlights: ["Workshop-based dates", "Stewardship mindset", "Navigation and shelter skills", "Real-world readiness"],
@@ -127,7 +127,7 @@ export const PROGRAMS: Record<ProgramSlug, ProgramConfig> = {
     type: "series",
     enrollmentStatus: "coming_soon",
     ageRangeLabel: "Ages 8–14 (Typical)",
-    shortPitch: "Boundaries, awareness, and practical self-protection without aggression.",
+    shortPitch: "Verbal boundary-setting first, then escape skills if needed. No aggressive techniques—just practical responses to real situations.",
     heroLead:
       "A short-series program that helps students respond with clarity, confidence, and calm when social pressure rises.",
     highlights: ["Verbal boundary setting", "Situational awareness", "Basic escape skills", "Confidence building"],

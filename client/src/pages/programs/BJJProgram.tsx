@@ -79,7 +79,7 @@ const BJJProgram = () => {
             <MotionDiv delay={0.04} className="space-y-6">
               <SectionHeader eyebrow="Overview" title="Technique Over Strength" />
               <p className="font-body text-pretty text-charcoal/70 leading-relaxed">
-                {program.shortPitch} Students learn to stay calm, move with purpose, and solve problems one position
+                We teach technique so smaller students can control larger partners. Students learn to stay calm when pinned and work toward an escape systematically. Students learn to stay calm, move with purpose, and solve problems one position
                 at a time.
               </p>
               <p className="font-body text-pretty text-charcoal/70 leading-relaxed">
@@ -183,10 +183,10 @@ const BJJProgram = () => {
                     Next step
                   </div>
                   <h2 className="mt-2 font-heading text-3xl md:text-4xl tracking-tight text-charcoal">
-                    Start with a free trial, then open your Family &amp; Member Account when you&apos;re ready.
+                    Start with a free trial, then create your account when you&apos;re ready.
                   </h2>
                   <p className="mt-4 font-body text-charcoal/70 max-w-2xl text-pretty">
-                    The live BJJ flow keeps things simple: explore the schedule, take a first class, then sign in, choose the right track, and finish registration in one account.
+                    Start with a free trial, then create your account when you&apos;re ready. The live BJJ flow keeps things simple: explore the schedule, take a first class, then sign in, choose the right track, and finish registration in one account.
                   </p>
                 </div>
                 <div className="flex w-full flex-col gap-3 md:w-auto sm:flex-row">

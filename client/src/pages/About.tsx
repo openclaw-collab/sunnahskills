@@ -14,37 +14,37 @@ const milestones = [
     key: "founding",
     label: "01 · Founding",
     title: "The Founding Vision",
-    body: "Muadh and Mustafaa came together with a shared vision: to create a martial arts school that would do more than teach self-defense. They wanted to build a place where young Muslims could develop character, confidence, and community, rooted in the Sunnah.",
+    body: "Muadh and Mustafaa opened Sunnah Skills in May 2024 with a simple goal: teach BJJ to Muslim youth in a space that respects their values. Started with 5 kids in a rented community room.",
   },
   {
     key: "bjj",
     label: "02 · May 2024",
     title: "First BJJ Classes Begin",
-    body: "What began as a small BJJ class in a community center started to grow. Students began learning ground-based grappling techniques while developing patience, persistence, and problem-solving skills.",
+    body: "Started with weekend boys' classes. By August, we had 15 regular students and added weekday sessions. Focus was on fundamentals: positions, escapes, and controlled sparring.",
   },
   {
     key: "archery",
     label: "03 · Summer 2024",
     title: "Traditional Archery Program",
-    body: "Following the Sunnah of Prophet Muhammad ﷺ, we introduced traditional archery instruction. Students learn proper form, safety protocols, and mental focus while connecting with this ancient skill.",
+    body: "Added archery at E.T. Seaton Park range. Small groups of 6-8 students per session. Learned stance, draw, and safety protocols with traditional recurve bows.",
   },
   {
     key: "women",
     label: "04 · Feb 2025",
     title: "First women's classes started",
-    body: "Our first women's classes started in February 2025. The program was built to be the first hijabi-friendly BJJ program in the west end, with a calm space for women to train and grow.",
+    body: "Launched women-only BJJ in February 2025. Tuesday daytime and Thursday evening slots. Now runs 6-10 women per class with dedicated female-only mat space.",
   },
   {
     key: "girls",
     label: "05 · Oct 2025",
     title: "Girls classes began offering structured training",
-    body: "By October 2025, our girls classes began offering structured training to young girls, with clear instruction, steady progress, and age-appropriate coaching.",
+    body: "Added girls' BJJ (ages 5-10) in October 2025. Runs parallel to women's classes so mothers and daughters can train at the same time. Currently 12 regular students.",
   },
   {
     key: "community",
     label: "06 · Today",
-    title: "Thriving Community",
-    body: "Our success isn't measured in trophies or belts. It is measured in the confident smiles of our students, the grateful feedback from parents, and the strong community we've built together.",
+    title: "Where We Are Now",
+    body: "30+ active students across 8 weekly classes. Four programs running: BJJ (kids, women, men), archery, and outdoor workshops in development. All at 918 Dundas St West, Mississauga.",
   },
 ];
 
@@ -52,26 +52,26 @@ const values = [
   {
     key: "character",
     num: "01",
-    title: "Character First",
-    desc: "We prioritize character development, teaching respect, discipline, and integrity in everything we do.",
+    title: "Show Up Consistently",
+    desc: "Progress comes from regular attendance and effort. We track attendance and celebrate milestones like stripe promotions and belt advancements.",
   },
   {
     key: "safe",
     num: "02",
-    title: "Safe Environment",
-    desc: "Every child deserves to learn in a safe, supportive environment where they can grow without fear.",
+    title: "Safety First",
+    desc: "Every class starts with warm-ups and safety rules. No unsupervised sparring. All coaches are first aid certified. Parents receive emergency contact info.",
   },
   {
     key: "skill",
     num: "03",
-    title: "Skill Development",
-    desc: "We teach practical skills that build confidence and provide real-world applications.",
+    title: "Technique Over Strength",
+    desc: "We teach leverage and positioning rather than relying on size or power. Small students learn to control larger opponents through proper form.",
   },
   {
     key: "community",
     num: "04",
-    title: "Community Focus",
-    desc: "We build strong communities where children learn to support and encourage each other.",
+    title: "Train Together",
+    desc: "Classes are grouped by age and experience so students drill with appropriate partners. Women train with women, kids with kids of similar size.",
   },
 ];
 
@@ -117,33 +117,33 @@ const coaches = [
 const reasons = [
   {
     key: "results",
-    title: "Proven Results",
-    desc: "Parents consistently report improved confidence, discipline, and academic performance after just a few months.",
+    title: "Clear Progression",
+    desc: "Students earn stripes every 8-12 weeks and belts every 1-2 years. Parents receive progress updates and know exactly what their child is working on.",
   },
   {
     key: "islamic",
-    title: "Islamic Values Integration",
-    desc: "We seamlessly integrate Islamic principles of respect, discipline, and community service into every class.",
+    title: "Prayer Times Built In",
+    desc: "Asr prayer is scheduled into longer classes. Separate women's classes with hijabi-friendly uniforms. No music during training.",
   },
   {
     key: "character",
-    title: "Character Over Competition",
-    desc: "Our focus is on building character, not just winning trophies.",
+    title: "No Competition Pressure",
+    desc: "We don't push tournaments. Students can compete if they want, but most train for fitness, self-defense, and personal growth without competitive stress.",
   },
   {
     key: "community",
-    title: "Strong Muslim Community",
-    desc: "Your child will train alongside other Muslim youth, building friendships and community bonds that last.",
+    title: "Same Faces Every Week",
+    desc: "Small class sizes (8-15 students) mean consistent training partners. Students build actual friendships, not just gym acquaintances.",
   },
   {
     key: "scheduling",
-    title: "Convenient Scheduling",
-    desc: "Multiple class times and flexible programs designed to work with busy family schedules.",
+    title: "Family-Friendly Times",
+    desc: "Women's and girls' classes run simultaneously so mothers and daughters can train together. Evening and weekend options for working parents.",
   },
   {
     key: "comprehensive",
-    title: "Comprehensive Development",
-    desc: "From BJJ to archery to outdoor skills, we offer a complete program for physical, mental, and spiritual growth.",
+    title: "Multiple Disciplines",
+    desc: "Students can train BJJ year-round, add archery in summer, and outdoor skills workshops when offered. One account manages all programs.",
   },
 ];
 
@@ -355,7 +355,7 @@ export default function About() {
           <p className="font-body text-sm text-charcoal/70 max-w-2xl leading-relaxed">
             <StudioText
               k="about.header.intro"
-              defaultText="We're not just teaching martial arts. We're building character, confidence, and community. Since May 2024, Sunnah Skills has been helping young Muslims develop the physical skills, mental discipline, and spiritual grounding they need to thrive."
+              defaultText="We teach martial arts as a way to build practical skills and character. Since May 2024, we've helped students show up consistently, train with discipline, and apply what they learn at home."
               as="span"
               className="inline"
               multiline
@@ -400,7 +400,7 @@ export default function About() {
             <blockquote className="font-serif-accent italic text-3xl md:text-5xl text-cream leading-tight max-w-3xl mx-auto">
               <StudioText
                 k="about.promise.quote"
-                defaultText="We don't just teach martial arts. We build character, confidence, and community."
+                defaultText="Our students learn technique. But they also learn to show up, work with others, and stay calm under pressure."
                 as="span"
                 className="inline"
                 multiline
@@ -430,7 +430,7 @@ export default function About() {
           <p className="font-body text-sm text-charcoal/60 max-w-2xl mb-10">
             <StudioText
               k="about.values.intro"
-              defaultText="We're committed to developing well-rounded individuals who are confident, capable, and compassionate."
+              defaultText="We want students to leave class with better technique than when they arrived—and better habits too."
               as="span"
               className="inline"
               multiline
@@ -473,7 +473,7 @@ export default function About() {
           <p className="font-body text-sm text-charcoal/60 max-w-2xl mb-10">
             <StudioText
               k="about.coaches.intro"
-              defaultText="Our dedicated team brings years of experience, passion, and care to every class."
+              defaultText="Mustafaa and Muadh are purple and blue belt practitioners who have coached together since 2024."
               as="span"
               className="inline"
               multiline
@@ -533,7 +533,7 @@ export default function About() {
             <blockquote className="font-serif-accent italic text-xl md:text-2xl text-cream/90">
                 <StudioText
                   k="about.why.testimonial.quote"
-                  defaultText={`"Sunnah Skills has transformed my son's confidence and discipline. The Islamic values integration makes all the difference."`}
+                  defaultText={`"My son listens better at home now. The coaches reference Islamic adab naturally, not forced."`}
                   as="span"
                   className="inline"
                   multiline

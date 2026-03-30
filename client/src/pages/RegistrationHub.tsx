@@ -183,13 +183,12 @@ export default function RegistrationHub() {
       <div className="noise-overlay" />
       <main className="mx-auto max-w-6xl px-6 pt-28" data-testid="registration-hub">
         <SectionHeader
-          eyebrow="Family & Member Account"
+          eyebrow="Your Account"
           title={authenticated ? "Account & participant profiles" : "Open your account before you register"}
           className="mb-8"
         />
         <p className="mb-6 max-w-3xl text-sm leading-relaxed text-charcoal/70">
-          Adults and families use the same account system here. We start with a secure sign-in link, complete the
-          required contact details, add one or more participant profiles, and only then open live BJJ registration.
+          One account keeps all your registrations organized. Sign in with your email, add your details and student profiles, then you're ready to register.
         </p>
 
         {message ? (
@@ -233,7 +232,7 @@ export default function RegistrationHub() {
             <PremiumCard className="space-y-4 border border-charcoal/10 bg-white p-6">
               <div>
                 <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-moss mb-2">Create account</div>
-                <h2 className="font-heading text-2xl text-charcoal">Start your Family &amp; Member Account</h2>
+                <h2 className="font-heading text-2xl text-charcoal">Create Your Account</h2>
               </div>
               <Input
                 value={signupFullName}

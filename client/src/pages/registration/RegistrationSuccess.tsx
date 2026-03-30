@@ -30,6 +30,7 @@ export default function RegistrationSuccess() {
   const rid = params.get("rid");
   const orderId = Number(params.get("order") ?? 0);
   const paymentIntentId = params.get("payment_intent");
+  const reconcileToken = params.get("reconcile_token");
   const [reconcileState, setReconcileState] = React.useState<"idle" | "loading" | "done" | "pending" | "failed">(
     Number.isInteger(orderId) && orderId > 0 ? "loading" : "idle",
   );
@@ -51,6 +52,7 @@ export default function RegistrationSuccess() {
           body: JSON.stringify({
             enrollmentOrderId: orderId,
             paymentIntentId: paymentIntentId ?? undefined,
+            reconcileToken: reconcileToken ?? undefined,
           }),
         });
         const json = (await res.json().catch(() => null)) as
@@ -81,7 +83,7 @@ export default function RegistrationSuccess() {
     return () => {
       active = false;
     };
-  }, [orderId, paymentIntentId]);
+  }, [orderId, paymentIntentId, reconcileToken]);
 
   const eyebrow =
     reconcileState === "loading"

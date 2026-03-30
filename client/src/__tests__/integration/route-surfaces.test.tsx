@@ -16,6 +16,8 @@ import ArcheryRegistration from "@/pages/registration/ArcheryRegistration";
 import OutdoorRegistration from "@/pages/registration/OutdoorRegistration";
 import BullyproofingRegistration from "@/pages/registration/BullyproofingRegistration";
 import BJJRegistration from "@/pages/registration/BJJRegistration";
+import SwimmingProgram from "@/pages/programs/SwimmingProgram";
+import HorsebackProgram from "@/pages/programs/HorsebackProgram";
 import NotFound from "@/pages/not-found";
 import { mockStore } from "./mocks/handlers";
 
@@ -64,7 +66,7 @@ describe("Additional route surface coverage", () => {
     expect(await screen.findByText("Built Through")).toBeInTheDocument();
     expect(screen.getByText("Discipline.")).toBeInTheDocument();
     expect(screen.getByText("This Week at Sunnah Skills")).toBeInTheDocument();
-    expect(screen.getByText("Enrollment Tracks")).toBeInTheDocument();
+    expect(screen.getByText("Programs at a glance")).toBeInTheDocument();
     expect(screen.getByTestId("mock-technique-viewer")).toBeInTheDocument();
   });
 
@@ -92,7 +94,7 @@ describe("Additional route surface coverage", () => {
     expect(await screen.findByRole("heading", { name: /start with one calm first class/i })).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: /reserve free trial/i }));
 
-    expect(await screen.findByText(/please fill every required field/i)).toBeInTheDocument();
+    expect(await screen.findByText(/fill out all required fields to book your trial/i)).toBeInTheDocument();
     expect(screen.getAllByText(/enter a valid email address/i).length).toBeGreaterThan(0);
   });
 
@@ -138,6 +140,17 @@ describe("Additional route surface coverage", () => {
 
     expect(await screen.findByRole("heading", { name: /sign in before you register/i })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /open your account/i })).toBeInTheDocument();
+  });
+
+  it("renders the coming soon program pages for swimming and horseback", async () => {
+    const swimming = renderAt("/programs/swimming/register", <SwimmingProgram />);
+    expect(await screen.findByRole("heading", { name: /swimming/i })).toBeInTheDocument();
+    expect(screen.getAllByText(/coming soon/i).length).toBeGreaterThan(0);
+    swimming.unmount();
+
+    renderAt("/programs/horseback/register", <HorsebackProgram />);
+    expect(await screen.findByRole("heading", { name: /horseback riding/i })).toBeInTheDocument();
+    expect(screen.getAllByText(/coming soon/i).length).toBeGreaterThan(0);
   });
 
   it("renders the BJJ account-setup gate when no participant profiles exist yet", async () => {

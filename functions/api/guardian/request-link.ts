@@ -32,7 +32,10 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
     .first<{ id: number; full_name: string | null; account_number: string | null }>();
 
   if (!account?.id) {
-    return json({ error: "We couldn't find an account with that email yet. Create your account first." }, { status: 404 });
+    return json({
+      ok: true,
+      message: "If an account exists for that email, we’ll send a sign-in link shortly.",
+    });
   }
 
   const rawToken = crypto.randomUUID() + crypto.randomUUID().replace(/-/g, "");
@@ -82,5 +85,5 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
     });
   }
 
-  return json({ ok: true, message: "We sent your sign-in link to that email address." });
+  return json({ ok: true, message: "If an account exists for that email, we’ll send a sign-in link shortly." });
 }

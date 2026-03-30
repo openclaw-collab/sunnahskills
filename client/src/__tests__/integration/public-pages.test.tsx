@@ -9,6 +9,8 @@ import Programs from "@/pages/Programs";
 import Schedule from "@/pages/Schedule";
 import RegistrationHub from "@/pages/RegistrationHub";
 import BJJProgram from "@/pages/programs/BJJProgram";
+import SwimmingProgram from "@/pages/programs/SwimmingProgram";
+import HorsebackProgram from "@/pages/programs/HorsebackProgram";
 import ArcheryProgram from "@/pages/programs/ArcheryProgram";
 import OutdoorWorkshopsProgram from "@/pages/programs/OutdoorWorkshopsProgram";
 import BullyproofingProgram from "@/pages/programs/BullyproofingProgram";
@@ -37,8 +39,8 @@ describe("Public page integration surfaces", () => {
     renderAt("/about", <About />);
 
     expect(await screen.findByText("The Founding Vision")).toBeInTheDocument();
-    expect(screen.getByText("Character First")).toBeInTheDocument();
-    expect(screen.getByText("Thriving Community")).toBeInTheDocument();
+    expect(screen.getByText("Show Up Consistently")).toBeInTheDocument();
+    expect(screen.getByText("Safety First")).toBeInTheDocument();
   });
 
   it("renders the programs index with live enrollment messaging", async () => {
@@ -46,6 +48,8 @@ describe("Public page integration surfaces", () => {
 
     expect(await screen.findByText("Choose the Right Fit")).toBeInTheDocument();
     expect(screen.getByTestId("program-card-bjj")).toBeInTheDocument();
+    expect(screen.getByTestId("program-card-swimming")).toBeInTheDocument();
+    expect(screen.getByTestId("program-card-horseback")).toBeInTheDocument();
     expect(screen.getByTestId("program-card-archery")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /open your family & member account/i })).toBeInTheDocument();
   });
@@ -53,8 +57,8 @@ describe("Public page integration surfaces", () => {
   it("renders the schedule page with summary tracks and weekly calendar", async () => {
     renderAt("/schedule", <Schedule />);
 
-    expect(await screen.findByText(/women’s bjj/i)).toBeInTheDocument();
-    expect(screen.getByText(/girls bjj/i)).toBeInTheDocument();
+    expect((await screen.findAllByText(/women 11\+/i)).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/girls 5–10/i).length).toBeGreaterThan(0);
     expect(screen.getByTestId("schedule-weekly-view")).toBeInTheDocument();
   });
 
@@ -62,15 +66,16 @@ describe("Public page integration surfaces", () => {
     renderAt("/register", <RegistrationHub />);
 
     expect(await screen.findByText(/open your account before you register/i)).toBeInTheDocument();
-    expect(screen.getByText(/start your family & member account/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /email me the sign-in link/i })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /create your account/i })).toBeInTheDocument();
   });
 
   it("renders the bjj program page with live cohort details", async () => {
     renderAt("/programs/bjj", <BJJProgram />);
 
     expect(await screen.findByText("Brazilian Jiu-Jitsu")).toBeInTheDocument();
-    expect(screen.getByText(/current live bjj cohorts/i)).toBeInTheDocument();
-    expect(screen.getByText(/women 11\+ tuesday/i)).toBeInTheDocument();
+    expect(screen.getByText(/weekly classes at 918 dundas st west/i)).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Technique Over Strength" })).toBeInTheDocument();
   });
 
   it("renders the archery program page with session windows", async () => {
@@ -81,11 +86,24 @@ describe("Public page integration surfaces", () => {
     expect(screen.getByText(/safety comes first/i)).toBeInTheDocument();
   });
 
+  it("renders the swimming and horseback coming soon pages", async () => {
+    const swimming = renderAt("/programs/swimming", <SwimmingProgram />);
+    expect(await screen.findByRole("heading", { name: /swimming/i })).toBeInTheDocument();
+    expect(screen.getAllByText(/coming soon/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole("button", { name: /join waitlist/i }).length).toBeGreaterThan(0);
+    swimming.unmount();
+
+    renderAt("/programs/horseback", <HorsebackProgram />);
+    expect(await screen.findByRole("heading", { name: /horseback riding/i })).toBeInTheDocument();
+    expect(screen.getAllByText(/coming soon/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole("button", { name: /join waitlist/i }).length).toBeGreaterThan(0);
+  });
+
   it("renders the outdoor program page with expedition structure", async () => {
     renderAt("/programs/outdoor", <OutdoorWorkshopsProgram />);
 
     expect(await screen.findByRole("heading", { name: "Outdoor Workshops" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Readiness Through Stewardship" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Practical Outdoor Skills" })).toBeInTheDocument();
     expect(screen.getByText(/Field Notes/i)).toBeInTheDocument();
   });
 

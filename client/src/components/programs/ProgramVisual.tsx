@@ -50,6 +50,22 @@ const overlayBySlug: Record<ProgramSlug, OverlayCopy> = {
     rightChip: () => "Short Series",
     centerClassName: "border-cream/20 bg-white/10 text-cream",
   },
+  swimming: {
+    label: "Water Confidence",
+    subtitle: "Breath / balance / comfort",
+    footer: "Safety-first progression in the water",
+    leftChip: "Coming Soon",
+    rightChip: () => "Seasonal",
+    centerClassName: "border-cream/20 bg-white/10 text-cream",
+  },
+  horseback: {
+    label: "Ride Calm",
+    subtitle: "Posture / care / balance",
+    footer: "Supervised horseback instruction",
+    leftChip: "Coming Soon",
+    rightChip: () => "Seasonal",
+    centerClassName: "border-cream/20 bg-white/10 text-cream",
+  },
 };
 
 export function ProgramVisual({ slug, variant = "card", className }: ProgramVisualProps) {

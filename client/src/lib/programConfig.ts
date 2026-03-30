@@ -1,4 +1,4 @@
-export type ProgramSlug = "bjj" | "archery" | "outdoor" | "bullyproofing";
+export type ProgramSlug = "bjj" | "archery" | "outdoor" | "bullyproofing" | "swimming" | "horseback";
 
 export type ProgramType = "recurring" | "seasonal" | "workshop" | "series";
 
@@ -152,10 +152,72 @@ export const PROGRAMS: Record<ProgramSlug, ProgramConfig> = {
       "We’ll send schedule details and what to expect.",
     ],
   },
+  swimming: {
+    slug: "swimming",
+    name: "Swimming",
+    type: "seasonal",
+    enrollmentStatus: "coming_soon",
+    ageRangeLabel: "Youth + Family",
+    shortPitch: "Water confidence, safety, and stroke fundamentals taught in a patient, structured environment.",
+    heroLead:
+      "Coming soon: a calm, safety-first swimming program focused on comfort in the water, strong habits, and steady progression.",
+    highlights: ["Water confidence", "Safety-first instruction", "Fundamental strokes", "Patient coaching"],
+    overviewBullets: [
+      "Coming soon for youth and family swimmers",
+      "Safety-first instruction and water comfort",
+      "Fundamental strokes and breath control",
+      "Progress built through patient, structured coaching",
+    ],
+    heroImage: {
+      src: "/programs/swimming.jpg",
+      alt: "Swimmers in a pool training session",
+      objectPosition: "center 35%",
+    },
+    registerPath: "/programs/swimming/register",
+    detailPath: "/programs/swimming",
+    pricingBlurb: "Swimming pricing will be announced when enrollment opens.",
+    scheduleBlurb: "Coming soon.",
+    nextSteps: [
+      "Join the waitlist to hear when swimming opens.",
+      "We’ll share age groups, session times, and pricing first.",
+      "Follow along for launch updates and safety details.",
+    ],
+  },
+  horseback: {
+    slug: "horseback",
+    name: "Horseback Riding",
+    type: "seasonal",
+    enrollmentStatus: "coming_soon",
+    ageRangeLabel: "Youth + Family",
+    shortPitch: "Balance, calm, and confidence with horses through supervised, beginner-friendly instruction.",
+    heroLead:
+      "Coming soon: horseback sessions focused on posture, care, and confidence around horses in a supervised setting.",
+    highlights: ["Balance and posture", "Calm horse handling", "Beginner friendly", "Supervised instruction"],
+    overviewBullets: [
+      "Coming soon for youth and family riders",
+      "Introductory horse handling and stable safety",
+      "Balance, posture, and calm confidence",
+      "Care-focused instruction in a supervised environment",
+    ],
+    heroImage: {
+      src: "/programs/horseback.jpg",
+      alt: "Horseback riding training",
+      objectPosition: "center 30%",
+    },
+    registerPath: "/programs/horseback/register",
+    detailPath: "/programs/horseback",
+    pricingBlurb: "Horseback pricing will be announced when enrollment opens.",
+    scheduleBlurb: "Coming soon.",
+    nextSteps: [
+      "Join the waitlist to hear when horseback opens.",
+      "We’ll share age groups, session times, and pricing first.",
+      "Follow along for launch updates and safety details.",
+    ],
+  },
 };
 
 export function getProgramConfig(slug: string): ProgramConfig | null {
-  if (slug === "bjj" || slug === "archery" || slug === "outdoor" || slug === "bullyproofing") {
+  if (slug === "bjj" || slug === "archery" || slug === "outdoor" || slug === "bullyproofing" || slug === "swimming" || slug === "horseback") {
     return PROGRAMS[slug];
   }
   return null;

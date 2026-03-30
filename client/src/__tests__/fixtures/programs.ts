@@ -331,6 +331,8 @@ export const SCHEDULE_OPTIONS = {
     { value: "saturday-morning", label: "Saturday Morning", time: "9:00 AM - 11:00 AM" },
     { value: "sunday-afternoon", label: "Sunday Afternoon", time: "2:00 PM - 4:00 PM" },
   ],
+  swimming: [],
+  horseback: [],
   outdoor: [
     { value: "weekend-workshop", label: "Weekend Workshop", time: "Saturday 9:00 AM - Sunday 3:00 PM" },
     { value: "summer-camp", label: "Summer Camp", time: "Monday-Friday 8:00 AM - 5:00 PM" },

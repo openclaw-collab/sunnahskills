@@ -4,6 +4,7 @@
  * POST  /api/studio/sessions/:id — authenticate (set cookie) if session is protected
  */
 import bcrypt from "bcryptjs";
+import { parseCookieHeader, serializeCookie } from "../../../_utils/cookies";
 
 interface Env {
   DB: D1Database;
@@ -47,8 +48,19 @@ function parseSession(row: Record<string, unknown>) {
 }
 
 function isAuthed(request: Request, sessionId: string): boolean {
-  const cookie = request.headers.get("Cookie") ?? "";
-  return cookie.includes(`studio_auth_${sessionId}=1`);
+  const cookies = parseCookieHeader(request.headers.get("Cookie") ?? request.headers.get("cookie") ?? "");
+  return cookies[`studio_auth_${sessionId}`] === "1";
+}
+
+function authCookie(request: Request, sessionId: string) {
+  const isSecure = new URL(request.url).protocol === "https:";
+  return serializeCookie(`studio_auth_${sessionId}`, "1", {
+    path: "/",
+    httpOnly: true,
+    sameSite: "Lax",
+    secure: isSecure,
+    maxAge: 60 * 60 * 24,
+  });
 }
 
 export async function onRequestGet({ request, params, env }: { request: Request; params: { id: string }; env: Env }) {
@@ -150,7 +162,7 @@ export async function onRequestPost({
 
   if (!row.protected) {
     // Not protected — auto-auth
-    const cookie = `studio_auth_${params.id}=1; Path=/; HttpOnly; SameSite=Lax; Max-Age=86400`;
+    const cookie = authCookie(request, params.id);
     return json({ ok: true }, { headers: { "Set-Cookie": cookie } });
   }
 
@@ -160,7 +172,7 @@ export async function onRequestPost({
   const ok = await bcrypt.compare(body.password, String(row.password_hash));
   if (!ok) return json({ error: "Incorrect password" }, { status: 401 });
 
-  const cookie = `studio_auth_${params.id}=1; Path=/; HttpOnly; SameSite=Lax; Max-Age=86400`;
+  const cookie = authCookie(request, params.id);
   return json({ ok: true }, { headers: { "Set-Cookie": cookie } });
 }
 

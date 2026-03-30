@@ -12,6 +12,8 @@ import BJJProgram from "@/pages/programs/BJJProgram";
 import ArcheryProgram from "@/pages/programs/ArcheryProgram";
 import OutdoorWorkshopsProgram from "@/pages/programs/OutdoorWorkshopsProgram";
 import BullyproofingProgram from "@/pages/programs/BullyproofingProgram";
+import SwimmingProgram from "@/pages/programs/SwimmingProgram";
+import HorsebackProgram from "@/pages/programs/HorsebackProgram";
 import Schedule from "@/pages/Schedule";
 
 import Testimonials from "@/pages/Testimonials";
@@ -58,10 +60,14 @@ function Router() {
           <Route path="/register" component={RegistrationHub} />
           <Route path="/registration/cart" component={CartPage} />
           <Route path="/programs/bjj" component={BJJProgram} />
+          <Route path="/programs/swimming" component={SwimmingProgram} />
+          <Route path="/programs/horseback" component={HorsebackProgram} />
           <Route path="/programs/archery" component={ArcheryProgram} />
           <Route path="/programs/outdoor" component={OutdoorWorkshopsProgram} />
           <Route path="/programs/bullyproofing" component={BullyproofingProgram} />
           <Route path="/programs/bjj/register" component={BJJRegistration} />
+          <Route path="/programs/swimming/register" component={SwimmingProgram} />
+          <Route path="/programs/horseback/register" component={HorsebackProgram} />
           <Route path="/programs/archery/register" component={ArcheryRegistration} />
           <Route path="/programs/outdoor/register" component={OutdoorRegistration} />
           <Route path="/programs/bullyproofing/register" component={BullyproofingRegistration} />

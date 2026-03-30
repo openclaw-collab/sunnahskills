@@ -106,6 +106,7 @@ export default function CartPage() {
     trialCreditCents: number;
     promoDiscountCents: number;
   } | null>(null);
+  const [reconcileToken, setReconcileToken] = React.useState<string | null>(null);
   const [laterChargeAuthorized, setLaterChargeAuthorized] = React.useState(false);
   const [prorationCode, setProrationCode] = React.useState(initialCheckoutState.prorationCode);
   const [lineDiscountDrafts, setLineDiscountDrafts] = React.useState<Record<string, string>>({});
@@ -141,6 +142,7 @@ export default function CartPage() {
     setFirstRegistrationId(null);
     setClientSecret(null);
     setSummary(null);
+    setReconcileToken(null);
     setPhase("review");
     if (!options?.preserveError) setError(null);
   }
@@ -270,7 +272,7 @@ export default function CartPage() {
 
   const returnUrl =
     typeof window !== "undefined"
-      ? `${window.location.origin}/registration/success?rid=${firstRegistrationId ?? ""}&order=${orderId ?? ""}`
+      ? `${window.location.origin}/registration/success?rid=${firstRegistrationId ?? ""}&order=${orderId ?? ""}${reconcileToken ? `&reconcile_token=${encodeURIComponent(reconcileToken)}` : ""}`
       : "/registration/success";
 
   function clearWaiverError(field: string) {
@@ -373,6 +375,7 @@ export default function CartPage() {
       }
 
       setClientSecret(payJson.clientSecret as string);
+      setReconcileToken(typeof payJson.reconcileToken === "string" ? payJson.reconcileToken : null);
       setSummary({
         dueTodayCents: Number(payJson.dueTodayCents ?? 0),
         dueLaterCents: Number(payJson.dueLaterCents ?? 0),

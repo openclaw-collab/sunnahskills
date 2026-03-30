@@ -235,7 +235,7 @@ describe("Studio Endpoints", () => {
       ]);
 
       const request = createMockRequest("GET", "https://example.com/api/studio/sessions/test-id", {
-        cookies: { studio_auth_test_id: "1" },
+        cookies: { "studio_auth_test-id": "1" },
       });
       const response = await getSessionHandler({
         request,
@@ -441,7 +441,8 @@ describe("Studio Endpoints", () => {
       expect(data.ok).toBe(true);
 
       const setCookie = response.headers.get("Set-Cookie");
-      expect(setCookie).toContain("studio_auth_test_id=1");
+      expect(setCookie).toContain("studio_auth_test-id=1");
+      expect(setCookie).toContain("SameSite=Lax");
     });
 
     it("should return 400 for protected session without password", async () => {
@@ -508,7 +509,8 @@ describe("Studio Endpoints", () => {
       expect(data.ok).toBe(true);
 
       const setCookie = response.headers.get("Set-Cookie");
-      expect(setCookie).toContain("studio_auth_test_id=1");
+      expect(setCookie).toContain("studio_auth_test-id=1");
+      expect(setCookie).toContain("SameSite=Lax");
     });
   });
 

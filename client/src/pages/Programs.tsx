@@ -13,6 +13,8 @@ import { PROGRAMS } from "@/lib/programConfig";
 
 const PROGRAM_ORDER = [
   PROGRAMS.bjj,
+  PROGRAMS.swimming,
+  PROGRAMS.horseback,
   PROGRAMS.archery,
   PROGRAMS.outdoor,
   PROGRAMS.bullyproofing,
@@ -34,7 +36,7 @@ const Programs = () => {
             <p className="font-body text-pretty text-sm text-charcoal/70 max-w-2xl mb-12">
                 <StudioText
                   k="programs.intro"
-                  defaultText="Brazilian Jiu-Jitsu is the only live enrollment track right now. Open your Family & Member Account when you're ready, then complete registration in one flow."
+                  defaultText="Brazilian Jiu-Jitsu is live right now, while Swimming and Horseback are coming soon. Open your Family & Member Account when you're ready, then complete registration in one flow."
                   as="span"
                   className="inline"
                   multiline

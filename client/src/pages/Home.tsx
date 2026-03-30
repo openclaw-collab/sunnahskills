@@ -79,6 +79,34 @@ const curriculum = [
     visual: <ProgramVisual slug="bullyproofing" variant="card" className="h-full" />,
     link: "/programs/bullyproofing",
   },
+  {
+    id: "swimming",
+    number: "Discipline 05",
+    title: PROGRAMS.swimming.name,
+    body: PROGRAMS.swimming.heroLead,
+    bullets: PROGRAMS.swimming.highlights,
+    cardClassName: "bg-white border border-charcoal/10",
+    numberClassName: "text-moss",
+    titleClassName: "text-charcoal",
+    bodyClassName: "text-charcoal/70",
+    listClassName: "text-charcoal/60",
+    visual: <ProgramVisual slug="swimming" variant="card" className="h-full" />,
+    link: "/programs/swimming",
+  },
+  {
+    id: "horseback",
+    number: "Discipline 06",
+    title: PROGRAMS.horseback.name,
+    body: PROGRAMS.horseback.heroLead,
+    bullets: PROGRAMS.horseback.highlights,
+    cardClassName: "bg-moss text-cream border border-charcoal/20",
+    numberClassName: "text-clay",
+    titleClassName: "text-cream",
+    bodyClassName: "text-cream/75",
+    listClassName: "text-cream/65",
+    visual: <ProgramVisual slug="horseback" variant="card" className="h-full" />,
+    link: "/programs/horseback",
+  },
 ];
 
 const testimonials = [
@@ -184,14 +212,14 @@ function heroVariant(index: number, reduceMotion: boolean) {
 function StickyCurriculumCard({ item }: { item: (typeof curriculum)[number] }) {
   const reduceMotion = useReducedMotion();
   return (
-    <div className="protocol-card relative flex min-h-[40rem] items-center justify-center px-4 py-8 md:px-6 md:py-10 lg:sticky lg:top-0 lg:h-screen lg:p-6 lg:pt-24">
+    <div className="protocol-card relative flex min-h-[40rem] items-center justify-center px-4 py-8 md:px-6 md:py-10 lg:sticky lg:top-0 lg:h-screen lg:p-6 lg:pt-24" data-testid={`curriculum-card-${item.id}`}>
       <Link href={item.link} className="w-full flex justify-center">
         <motion.div
           initial={reduceMotion ? false : { opacity: 0.94, y: 12 }}
           whileInView={reduceMotion ? undefined : { opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-5% 0px -5% 0px" }}
           transition={reduceMotion ? undefined : { duration: motionTime(0.32), ease: [0.16, 1, 0.3, 1] }}
-          className={`protocol-content h-full min-h-[36rem] w-[95%] mx-auto overflow-hidden rounded-[3rem] shadow-2xl lg:h-[80vh] ${item.cardClassName}`}
+          className={`protocol-content h-full min-h-[36rem] w-[94%] md:w-[88%] lg:w-[80%] xl:w-[75%] mx-auto overflow-hidden rounded-[3rem] shadow-2xl lg:h-[80vh] ${item.cardClassName}`}
         >
           <div className="flex h-full flex-col lg:flex-row">
             <div className="flex flex-1 items-center p-8 md:p-10 lg:p-12 xl:p-14">
@@ -462,10 +490,10 @@ const Home = () => {
                   </Link>
                 </ClayButton>
                 <Link
-                  href="/register"
+                  href="/trial"
                   className="inline-flex items-center justify-center px-8 py-3.5 rounded-full border border-cream/20 text-cream text-[11px] font-normal uppercase tracking-[0.18em] hover:bg-cream/10 transition-colors"
                 >
-                  <StudioText k="home.hero.ctaSecondary" defaultText="Create Your Account" as="span" className="inline" />
+                  <StudioText k="home.hero.ctaSecondary" defaultText="Start Free Trial" as="span" className="inline" />
                 </Link>
               </motion.div>
             </div>
@@ -679,7 +707,7 @@ const Home = () => {
                 <StudioText k="home.testimonials.heading" defaultText="Book your FREE trial now!" as="span" className="inline" />
               </h3>
               <p className="font-body text-sm md:text-base text-charcoal/60">
-                <StudioText k="home.testimonials.subheading" defaultText="Join hundreds of families who have experienced the Sunnah Skills difference. Schedule your first class today." as="span" className="inline" multiline />
+                <StudioText k="home.testimonials.subheading" defaultText="Join dozens of families who have experienced the Sunnah Skills difference. Schedule your first class today." as="span" className="inline" multiline />
               </p>
             </div>
 

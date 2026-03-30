@@ -1,4 +1,5 @@
 import { DEFAULT_CURRENCY } from "../../../shared/money";
+import { issuePaymentReconcileToken } from "../../_utils/paymentReconcileToken";
 
 interface Env {
   DB: D1Database;
@@ -125,6 +126,10 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
       return json({
         clientSecret: existingIntentJson.client_secret,
         paymentIntentId: existingIntentJson.id,
+        reconcileToken: await issuePaymentReconcileToken(env, {
+          enrollmentOrderId: orderId,
+          paymentIntentId: existingIntentJson.id,
+        }),
         enrollmentOrderId: orderId,
         dueTodayCents: dueToday,
         dueLaterCents: dueLater,
@@ -270,6 +275,10 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
   return json({
     clientSecret: intentJson.client_secret,
     paymentIntentId: intentJson.id,
+    reconcileToken: await issuePaymentReconcileToken(env, {
+      enrollmentOrderId: orderId,
+      paymentIntentId: intentJson.id,
+    }),
     enrollmentOrderId: orderId,
     dueTodayCents: dueToday,
     dueLaterCents: dueLater,

@@ -20,13 +20,6 @@ function json(data: unknown, init?: ResponseInit) {
   });
 }
 
-function uuidv4() {
-  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
-    const r = (Math.random() * 16) | 0;
-    return (c === "x" ? r : (r & 0x3) | 0x8).toString(16);
-  });
-}
-
 export async function onRequestPost({ request, env }: { request: Request; env: Env }) {
   if (!env.DB) return json({ error: "DB not configured" }, { status: 500 });
   const origin = new URL(request.url).origin;
@@ -41,7 +34,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
     password?: string;
   } | null;
 
-  const id = uuidv4();
+  const id = crypto.randomUUID();
   const name = body?.name?.trim() || null;
   const password = body?.password?.trim() || null;
   const isProtected = password ? 1 : 0;

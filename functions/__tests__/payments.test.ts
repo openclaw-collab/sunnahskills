@@ -16,6 +16,7 @@ import { onRequestPost as createIntentHandler } from "../api/payments/create-int
 import { onRequestPost as createSubscriptionHandler } from "../api/payments/create-subscription";
 import { onRequestPost as webhookHandler } from "../api/payments/webhook";
 import { onRequestPost as reconcileOrderHandler } from "../api/payments/reconcile-order";
+import { issuePaymentReconcileToken } from "../_utils/paymentReconcileToken";
 import { createMockEnv, createMockRequest, parseJsonResponse } from "./setup";
 import Stripe from "stripe";
 vi.mock("../_utils/email", () => ({
@@ -802,6 +803,18 @@ describe("Payment Endpoints", () => {
       expect(data.error).toBe("enrollmentOrderId is required");
     });
 
+    it("returns 401 when reconcileToken is missing", async () => {
+      const request = createMockRequest("POST", "https://example.com/api/payments/reconcile-order", {
+        body: { enrollmentOrderId: 34 },
+      });
+
+      const response = await reconcileOrderHandler({ request, env });
+      const data = await parseJsonResponse(response);
+
+      expect(response.status).toBe(401);
+      expect(data.error).toBe("reconcileToken is required");
+    });
+
     it("returns order state when the PaymentIntent has not succeeded", async () => {
       const mockDb = env.DB as any;
       mockDb.setMockData("enrollment_orders", [
@@ -813,8 +826,12 @@ describe("Payment Endpoints", () => {
         metadata: { enrollment_order_id: "34" },
       });
 
+      const reconcileToken = await issuePaymentReconcileToken(env, {
+        enrollmentOrderId: 34,
+        paymentIntentId: "pi_pending",
+      });
       const request = createMockRequest("POST", "https://example.com/api/payments/reconcile-order", {
-        body: { enrollmentOrderId: 34 },
+        body: { enrollmentOrderId: 34, reconcileToken },
       });
 
       const response = await reconcileOrderHandler({ request, env });
@@ -868,8 +885,12 @@ describe("Payment Endpoints", () => {
         payment_method: "pm_test123",
       });
 
+      const reconcileToken = await issuePaymentReconcileToken(env, {
+        enrollmentOrderId: 34,
+        paymentIntentId: "pi_paid",
+      });
       const request = createMockRequest("POST", "https://example.com/api/payments/reconcile-order", {
-        body: { enrollmentOrderId: 34 },
+        body: { enrollmentOrderId: 34, reconcileToken },
       });
 
       const response = await reconcileOrderHandler({ request, env });

@@ -61,7 +61,7 @@ const Admin = () => {
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to connect to server",
+        description: "Having trouble connecting. Check your internet and try again.",
         variant: "destructive",
       });
     }

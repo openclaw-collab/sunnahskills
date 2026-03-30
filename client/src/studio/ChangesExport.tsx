@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@/hooks/useToast";
 import { useStudio } from "./useStudio";
 
 function downloadText(filename: string, text: string) {

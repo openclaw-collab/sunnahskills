@@ -4,7 +4,7 @@ import { SectionHeader } from "@/components/brand/SectionHeader";
 import { PremiumCard } from "@/components/brand/PremiumCard";
 import { ClayButton } from "@/components/brand/ClayButton";
 import { Input } from "@/components/ui/input";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@/hooks/useToast";
 import { MotionDiv, MotionPage } from "@/components/motion/PageMotion";
 
 export default function AdminLogin() {

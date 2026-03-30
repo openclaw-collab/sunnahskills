@@ -1,5 +1,5 @@
 import React from "react";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@/hooks/useToast";
 import { ClayButton } from "@/components/brand/ClayButton";
 import { OutlineButton } from "@/components/brand/OutlineButton";
 import { Input } from "@/components/ui/input";

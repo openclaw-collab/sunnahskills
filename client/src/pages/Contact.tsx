@@ -6,7 +6,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@/hooks/useToast";
 import { insertContactSchema, type InsertContact } from "@shared/schema.frontend";
 import { Mail, Instagram, Clock, MapPin } from "lucide-react";
 import { SectionHeader } from "@/components/brand/SectionHeader";

@@ -16,7 +16,7 @@ import { MotionPage } from "@/components/motion/PageMotion";
 import { PROGRAMS } from "@/lib/programConfig";
 import { motionTime } from "@/lib/motion";
 import { useProgramsCatalog } from "@/hooks/useProgramsCatalog";
-import { BJJ_MARKETING_GROUPS } from "@shared/bjjCatalog";
+import { BJJ_MARKETING_GROUPS, BJJ_TRACK_BY_KEY, isBjjTrackKey } from "@shared/bjjCatalog";
 import { formatMoneyFromCents } from "@shared/money";
 import { resolveClassesInSemester } from "@shared/orderPricing";
 
@@ -358,6 +358,24 @@ function formatEnrollmentSemesterPrice(amountCents: number | null) {
   return `${formatMoneyFromCents(amountCents)} semester`;
 }
 
+function formatEnrollmentSessionPrice(amountCents: number | null) {
+  if (!amountCents || amountCents <= 0) return "Loading session rate";
+  return `${formatMoneyFromCents(amountCents)} per session`;
+}
+
+function parseWeeklySessions(metadata: string | null, trackKey: string) {
+  try {
+    const parsed = metadata ? JSON.parse(metadata) as { weekly_sessions?: number } : null;
+    const weeklySessions = Number(parsed?.weekly_sessions);
+    if (Number.isFinite(weeklySessions) && weeklySessions > 0) return weeklySessions;
+  } catch {
+    /* ignore malformed metadata */
+  }
+
+  if (isBjjTrackKey(trackKey)) return BJJ_TRACK_BY_KEY[trackKey].meetingDays.length;
+  return null;
+}
+
 const Home = () => {
   const reduceMotion = useReducedMotion();
   const prefersReducedMotion = Boolean(reduceMotion);
@@ -386,6 +404,8 @@ const Home = () => {
         price.age_group,
         {
           semesterTuitionCents,
+          perSessionCents: Math.max(0, Number(price.amount ?? 0)) || null,
+          weeklySessions: parseWeeklySessions(price.metadata ?? null, price.age_group),
         },
       ] as const;
     }),
@@ -589,6 +609,11 @@ const Home = () => {
                       </span>
                       <h4 className="font-heading text-2xl text-charcoal xl:text-[1.85rem]">{group.label}</h4>
                       <p className="mt-2 text-sm leading-relaxed text-charcoal/62">{enrollmentCardMeta[group.key].summary}</p>
+                      <p className="mt-2 text-[11px] uppercase tracking-[0.16em] text-charcoal/42">
+                        {group.sessions.length > 1
+                          ? `${activeSemesterDescriptor}. Choose one session or register for both.`
+                          : `${activeSemesterDescriptor}. ${enrollmentPricingByTrack.get(group.sessions[0]?.trackKey)?.weeklySessions ?? 1} class${(enrollmentPricingByTrack.get(group.sessions[0]?.trackKey)?.weeklySessions ?? 1) === 1 ? "" : "es"} per week.`}
+                      </p>
                     </div>
                     <Link href="/register/bjj">
                       <ClayButton className="text-[10px] uppercase tracking-[0.16em] px-4 py-2">
@@ -611,6 +636,11 @@ const Home = () => {
                             <div className="font-body text-sm text-charcoal">{session.label}</div>
                             <div className="mt-1 text-[10px] uppercase tracking-[0.14em] text-charcoal/50">
                               {session.scheduleLabel}
+                            </div>
+                            <div className="mt-2 text-[12px] leading-relaxed text-charcoal/58">
+                              {formatEnrollmentSessionPrice(
+                                enrollmentPricingByTrack.get(session.trackKey)?.perSessionCents ?? null,
+                              )}
                             </div>
                           </div>
                           <div className="shrink-0 rounded-full border border-clay/12 bg-clay/8 px-3 py-1.5 text-right">

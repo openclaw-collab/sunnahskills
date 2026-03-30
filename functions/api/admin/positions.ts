@@ -1,3 +1,5 @@
+import { getAdminFromRequest, hasAdminPermission } from "../../_utils/adminAuth";
+
 interface Position {
   id: string;
   name: string;
@@ -31,7 +33,15 @@ function summarizePositionName(name: string) {
   return lines.slice(-3).join(" / ") || name;
 }
 
-export async function onRequestGet({ request }: { request: Request }) {
+interface Env {
+  DB: D1Database;
+}
+
+export async function onRequestGet({ request, env }: { request: Request; env: Env }) {
+  const admin = await getAdminFromRequest(env, request);
+  if (!admin) return json({ error: "Unauthorized" }, { status: 401 });
+  if (!hasAdminPermission(admin, "sequences", "read")) return json({ error: "Forbidden" }, { status: 403 });
+
   const url = new URL(request.url);
   const q = url.searchParams.get("q")?.toLowerCase() || "";
   const tag = url.searchParams.get("tag") || "";

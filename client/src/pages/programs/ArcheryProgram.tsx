@@ -52,8 +52,9 @@ const ArcheryProgram = () => {
               <h1 className="font-heading text-5xl md:text-7xl tracking-tight text-cream leading-none text-balance">
                 {program.name}
               </h1>
-              <p className="mt-8 text-cream/75 font-body text-sm md:text-base max-w-2xl leading-relaxed text-pretty">
-                {program.heroLead}
+              <p className="mt-4 text-cream/65 font-body text-sm max-w-2xl leading-relaxed text-pretty">
+                Seasonal sessions at E.T. Seaton Park range. Small groups of 6-8 students.
+                Equipment provided. Safety briefing every session.
               </p>
 
               <div className="mt-8 flex flex-wrap gap-2">
@@ -90,12 +91,11 @@ const ArcheryProgram = () => {
             <MotionDiv delay={0.04} className="space-y-6">
               <SectionHeader eyebrow="Overview" title="Focus, Form, and Patience" />
               <p className="font-body text-pretty text-charcoal/70 leading-relaxed">
-                {program.shortPitch} The pace is calm and deliberate so students can build confidence through
-                repetition, posture, and attention.
+                {program.shortPitch} Small groups with individualized coaching on stance, anchor, and release.
               </p>
               <p className="font-body text-pretty text-charcoal/70 leading-relaxed">
-                Every session reinforces safety, etiquette, and a steady training rhythm. Families get a seasonal
-                program that feels intentional, grounded, and easy to follow.
+                Equipment provided. Safety rules reviewed every session. Students progress at their own pace
+                with clear feedback on form and consistency.
               </p>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">

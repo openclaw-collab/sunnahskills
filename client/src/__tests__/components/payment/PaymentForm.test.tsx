@@ -57,7 +57,7 @@ describe("PaymentForm", () => {
   });
 
   it("calls confirmPayment with correct parameters on submit", async () => {
-    mockConfirmPayment.mockResolvedValue({ error: null });
+    mockConfirmPayment.mockResolvedValue({ error: null, paymentIntent: { id: "pi_test123" } });
 
     render(<PaymentForm returnUrl="/success" />);
 
@@ -90,7 +90,7 @@ describe("PaymentForm", () => {
 
   it("calls onSuccess when payment succeeds", async () => {
     const onSuccess = vi.fn();
-    mockConfirmPayment.mockResolvedValue({ error: null });
+    mockConfirmPayment.mockResolvedValue({ error: null, paymentIntent: { id: "pi_test123" } });
 
     render(<PaymentForm returnUrl="/success" onSuccess={onSuccess} />);
 
@@ -99,6 +99,7 @@ describe("PaymentForm", () => {
 
     await waitFor(() => {
       expect(onSuccess).toHaveBeenCalledTimes(1);
+      expect(onSuccess).toHaveBeenCalledWith({ paymentIntentId: "pi_test123" });
     });
   });
 
@@ -113,7 +114,7 @@ describe("PaymentForm", () => {
     fireEvent.submit(form!);
 
     await waitFor(() => {
-      expect(screen.getByText(/payment failed/i)).toBeInTheDocument();
+      expect(screen.getByText(/payment didn't go through/i)).toBeInTheDocument();
     });
   });
 });

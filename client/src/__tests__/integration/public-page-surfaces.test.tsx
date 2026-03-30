@@ -83,8 +83,8 @@ function installPublicFetchMock() {
       return jsonResponse({ techniques: [] });
     }
 
-    if (url.startsWith("/data/techniques/")) {
-      const slug = url.split("/").pop()?.replace(/\.json$/, "") ?? "technique";
+    if (url.startsWith("/api/techniques?id=")) {
+      const slug = new URL(url, "http://localhost").searchParams.get("id") ?? "technique";
       const metaBySlug: Record<string, { name: string; stage: "standing" | "guard" | "escapes"; tags: string[] }> = {
         "double-leg-to-mount-escape-full-chain": {
           name: "Double Leg to Mount Escape Sweep",

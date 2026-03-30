@@ -9,7 +9,7 @@ export function PaymentForm({
   submitDisabled = false,
 }: {
   returnUrl: string;
-  onSuccess?: () => void;
+  onSuccess?: (params?: { paymentIntentId?: string | null }) => void;
   submitDisabled?: boolean;
 }) {
   const stripe = useStripe();
@@ -37,7 +37,9 @@ export function PaymentForm({
           return;
         }
 
-        onSuccess?.();
+        onSuccess?.({
+          paymentIntentId: "paymentIntent" in result ? result.paymentIntent?.id ?? null : null,
+        });
         setSubmitting(false);
       }}
       className="space-y-4"

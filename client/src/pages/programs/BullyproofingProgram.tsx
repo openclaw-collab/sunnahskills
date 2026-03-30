@@ -67,8 +67,9 @@ const BullyproofingProgram = () => {
               <h1 className="font-heading text-5xl md:text-7xl tracking-tight text-cream leading-none text-balance">
                 {program.name}
               </h1>
-              <p className="mt-8 text-cream/75 font-body text-sm md:text-base max-w-2xl leading-relaxed text-pretty">
-                {program.heroLead}
+              <p className="mt-4 text-cream/65 font-body text-sm max-w-2xl leading-relaxed text-pretty">
+                Four-session series covering verbal defense, situational awareness, and basic escape skills.
+                Ages 8-14. Parent notes field available at registration.
               </p>
 
               <div className="mt-8 flex flex-wrap gap-2">
@@ -105,12 +106,11 @@ const BullyproofingProgram = () => {
             <MotionDiv delay={0.04} className="space-y-6">
               <SectionHeader eyebrow="Overview" title="Confidence Without Aggression" />
               <p className="font-body text-pretty text-charcoal/70 leading-relaxed">
-                {program.shortPitch} The workshops are practical, calm, and age-appropriate, with clear language that
-                helps students respond without escalating.
+                {program.shortPitch} Four practical workshops on boundaries, awareness, and escape skills.
               </p>
               <p className="font-body text-pretty text-charcoal/70 leading-relaxed">
-                Families can use the parent notes field in registration to share context so instructors can better
-                support the student before the series begins.
+                Students learn verbal boundary setting, recognizing risky situations, and basic grappling for
+                distance control. Parents can share context at registration so instructors can better support each student.
               </p>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">

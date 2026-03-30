@@ -7,6 +7,7 @@ import { DarkCard } from "@/components/brand/DarkCard";
 import { TechniqueViewer } from "@/components/grapplemap/TechniqueViewer";
 import { PremiumCard } from "@/components/brand/PremiumCard";
 import { SectionHeader } from "@/components/brand/SectionHeader";
+import { CollapsibleSection } from "@/components/CollapsibleSection";
 import { StatusDot } from "@/components/brand/StatusDot";
 import { ProgramVisual } from "@/components/programs/ProgramVisual";
 import { StudioBlock } from "@/studio/StudioBlock";
@@ -18,6 +19,8 @@ import { useProgramsCatalog } from "@/hooks/useProgramsCatalog";
 import { BJJ_MARKETING_GROUPS } from "@shared/bjjCatalog";
 import { formatMoneyFromCents } from "@shared/money";
 import { resolveClassesInSemester } from "@shared/orderPricing";
+
+const DEFAULT_HOME_TECHNIQUE_SEQUENCE_PATH = "/api/techniques?id=double-leg-to-mount-escape-full-chain";
 
 const curriculum = [
   {
@@ -32,6 +35,7 @@ const curriculum = [
     bodyClassName: "text-charcoal/70",
     listClassName: "text-charcoal/60",
     visual: <ProgramVisual slug="bjj" variant="card" className="h-full" />,
+    link: "/programs/bjj",
   },
   {
     id: "archery",
@@ -45,6 +49,7 @@ const curriculum = [
     bodyClassName: "text-cream/75",
     listClassName: "text-cream/65",
     visual: <ProgramVisual slug="archery" variant="card" className="h-full" />,
+    link: "/programs/archery",
   },
   {
     id: "outdoor",
@@ -58,6 +63,7 @@ const curriculum = [
     bodyClassName: "text-cream/70",
     listClassName: "text-cream/60",
     visual: <ProgramVisual slug="outdoor" variant="card" className="h-full" />,
+    link: "/programs/outdoor",
   },
   {
     id: "bullyproofing",
@@ -71,6 +77,7 @@ const curriculum = [
     bodyClassName: "text-cream/90",
     listClassName: "text-cream/75",
     visual: <ProgramVisual slug="bullyproofing" variant="card" className="h-full" />,
+    link: "/programs/bullyproofing",
   },
 ];
 
@@ -93,7 +100,7 @@ const testimonials = [
 ];
 
 const academyStatusRows = [
-  { label: "Live now", value: "Brazilian Jiu-Jitsu" },
+  { label: "Active Programs", value: "Brazilian Jiu-Jitsu" },
   { label: "Active tracks", value: "Girls, Boys, Women, Men" },
   { label: "Built for", value: "Families and adult students" },
 ];
@@ -110,24 +117,24 @@ const enrollmentCardMeta: Record<
   { eyebrow: string; accent: string; summary: string }
 > = {
   girls: {
-    eyebrow: "Available now",
+    eyebrow: "Ages 5–10",
     accent: "from-moss/18 via-white to-transparent",
-    summary: "A live girls cohort with a clear Tuesday and Friday rhythm across the current semester.",
+    summary: "Tuesday 2:30–3:30 PM, Friday 10:00–11:00 AM",
   },
   boys: {
-    eyebrow: "Available now",
+    eyebrow: "Ages 7–13",
     accent: "from-clay/16 via-white to-transparent",
-    summary: "A focused boys cohort built around the same steady twice-weekly semester structure.",
+    summary: "Tuesday 2:30–3:30 PM, Friday 10:00–11:00 AM",
   },
   women: {
-    eyebrow: "Separate enrollments",
+    eyebrow: "Ages 11+",
     accent: "from-charcoal/10 via-white to-transparent",
-    summary: "Tuesday and Thursday remain separate enrollments so each training day carries its own semester tuition.",
+    summary: "Tuesday 12:30–2:00 PM or Thursday 8:00–9:30 PM",
   },
   men: {
-    eyebrow: "Teen & adult",
+    eyebrow: "Ages 14+",
     accent: "from-moss/14 via-white to-transparent",
-    summary: "One evening track for older teens and men, paced across the full semester calendar.",
+    summary: "Friday 8:00–9:00 PM, Saturday 8:00–9:00 PM",
   },
 };
 
@@ -178,34 +185,36 @@ function StickyCurriculumCard({ item }: { item: (typeof curriculum)[number] }) {
   const reduceMotion = useReducedMotion();
   return (
     <div className="protocol-card relative flex min-h-[40rem] items-center justify-center px-4 py-8 md:px-6 md:py-10 lg:sticky lg:top-0 lg:h-screen lg:p-6 lg:pt-24">
-      <motion.div
-        initial={reduceMotion ? false : { opacity: 0.94, y: 12 }}
-        whileInView={reduceMotion ? undefined : { opacity: 1, y: 0 }}
-        viewport={{ once: true, margin: "-5% 0px -5% 0px" }}
-        transition={reduceMotion ? undefined : { duration: motionTime(0.32), ease: [0.16, 1, 0.3, 1] }}
-        className={`protocol-content h-full min-h-[36rem] w-full max-w-6xl overflow-hidden rounded-[3rem] shadow-2xl lg:h-[80vh] ${item.cardClassName}`}
-      >
-        <div className="flex h-full flex-col lg:flex-row">
-          <div className="flex flex-1 items-center p-8 md:p-10 lg:p-12 xl:p-14">
-            <div className="z-10">
-              <span className={`font-mono-label text-xs uppercase tracking-[0.18em] mb-4 block ${item.numberClassName}`}>
-                {item.number}
-              </span>
-              <h3 className={`font-heading text-4xl tracking-tight mb-6 ${item.titleClassName}`}>{item.title}</h3>
-              <p className={`font-body text-sm md:text-base max-w-md leading-relaxed mb-6 ${item.bodyClassName}`}>{item.body}</p>
-              <ul className={`text-xs font-mono-label space-y-2 uppercase tracking-wide ${item.listClassName}`}>
-                {item.bullets.map((bullet) => (
-                  <li key={bullet}>+ {bullet}</li>
-                ))}
-              </ul>
+      <Link href={item.link} className="w-full flex justify-center">
+        <motion.div
+          initial={reduceMotion ? false : { opacity: 0.94, y: 12 }}
+          whileInView={reduceMotion ? undefined : { opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-5% 0px -5% 0px" }}
+          transition={reduceMotion ? undefined : { duration: motionTime(0.32), ease: [0.16, 1, 0.3, 1] }}
+          className={`protocol-content h-full min-h-[36rem] w-[95%] mx-auto overflow-hidden rounded-[3rem] shadow-2xl lg:h-[80vh] ${item.cardClassName}`}
+        >
+          <div className="flex h-full flex-col lg:flex-row">
+            <div className="flex flex-1 items-center p-8 md:p-10 lg:p-12 xl:p-14">
+              <div className="z-10">
+                <span className={`font-mono-label text-xs uppercase tracking-[0.18em] mb-4 block ${item.numberClassName}`}>
+                  {item.number}
+                </span>
+                <h3 className={`font-heading text-4xl tracking-tight mb-6 ${item.titleClassName}`}>{item.title}</h3>
+                <p className={`font-body text-sm md:text-base max-w-md leading-relaxed mb-6 ${item.bodyClassName}`}>{item.body}</p>
+                <ul className={`text-xs font-mono-label space-y-2 uppercase tracking-wide ${item.listClassName}`}>
+                  {item.bullets.map((bullet) => (
+                    <li key={bullet}>+ {bullet}</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+            <div className="relative min-h-[280px] overflow-hidden border-t border-charcoal/10 lg:min-h-full lg:w-[48%] lg:border-l lg:border-t-0 lg:border-charcoal/10">
+              <div className="absolute inset-0">{item.visual}</div>
+              <div className="absolute inset-0 bg-gradient-to-t from-black/10 via-transparent to-transparent lg:bg-gradient-to-l lg:from-transparent lg:via-transparent lg:to-black/10" />
             </div>
           </div>
-          <div className="relative min-h-[280px] overflow-hidden border-t border-charcoal/10 lg:min-h-full lg:w-[48%] lg:border-l lg:border-t-0 lg:border-charcoal/10">
-            <div className="absolute inset-0">{item.visual}</div>
-            <div className="absolute inset-0 bg-gradient-to-t from-black/10 via-transparent to-transparent lg:bg-gradient-to-l lg:from-transparent lg:via-transparent lg:to-black/10" />
-          </div>
-        </div>
-      </motion.div>
+        </motion.div>
+      </Link>
     </div>
   );
 }
@@ -420,7 +429,7 @@ const Home = () => {
               <motion.p {...heroVariant(3, prefersReducedMotion)} className="mt-10 text-cream/70 font-body text-sm md:text-base max-w-lg leading-relaxed text-pretty">
                 <StudioText
                   k="home.hero.subcopy"
-                  defaultText="Train the body. Shape the character. Brazilian Jiu-Jitsu, archery, outdoor skills, and bullyproofing taught through a structured youth development system."
+                  defaultText="Train the body. Shape the character. Brazilian Jiu-Jitsu, Archery, Swimming, Outdoor skills, Self Defense/Bullyproofing all taught through a structured youth centered, sunnah inspired system."
                   as="span"
                   className="inline"
                   multiline
@@ -436,7 +445,7 @@ const Home = () => {
                   href="/register"
                   className="inline-flex items-center justify-center px-8 py-3.5 rounded-full border border-cream/20 text-cream text-[11px] font-normal uppercase tracking-[0.18em] hover:bg-cream/10 transition-colors"
                 >
-                  <StudioText k="home.hero.ctaSecondary" defaultText="Open Your Account" as="span" className="inline" />
+                  <StudioText k="home.hero.ctaSecondary" defaultText="Create Your Account" as="span" className="inline" />
                 </Link>
               </motion.div>
             </div>
@@ -456,7 +465,7 @@ const Home = () => {
             className="mt-12 grid grid-cols-1 gap-6 lg:grid-cols-2 xl:grid-cols-[minmax(18rem,0.95fr)_minmax(18rem,0.95fr)_minmax(25rem,1.2fr)] xl:items-stretch xl:gap-5 2xl:grid-cols-[minmax(18rem,0.92fr)_minmax(19rem,0.96fr)_minmax(27rem,1.22fr)]"
             data-testid="home-overview"
           >
-            <InfoCard title="Academy Snapshot" label="Snapshot" className="overflow-hidden lg:order-1 xl:min-h-[31rem]">
+            <CollapsibleSection title="Academy Snapshot" className="overflow-hidden lg:order-1 xl:min-h-[31rem] border-charcoal/8 bg-cream/55">
               <div className="flex h-full flex-col space-y-3">
                 {academyStatusRows.map((row) => (
                   <div key={row.label} className="flex items-center justify-between rounded-2xl border border-charcoal/8 bg-cream/40 px-4 py-3">
@@ -468,39 +477,43 @@ const Home = () => {
                   <SnapshotDeck />
                 </div>
               </div>
-            </InfoCard>
+            </CollapsibleSection>
 
-            <DarkCard className="order-2 flex flex-col lg:order-2 xl:min-h-[31rem]">
-              <div className="mb-5 flex items-center gap-3">
-                <StatusDot ariaLabel="Technique preview" />
-                <span className="font-mono-label text-[11px] text-cream/70 uppercase tracking-[0.2em]">
-                  Inside Training
-                </span>
-              </div>
-              <div className="relative w-full h-72 bg-charcoal rounded-2xl overflow-hidden border border-moss/20">
-                <TechniqueViewer className="w-full h-full" controlsMode="none" autoplay />
-                <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-charcoal via-charcoal/18 to-transparent" />
-              </div>
-              <p className="mt-5 text-sm leading-relaxed text-cream/68">
-                Review techniques after class with our animated 3D breakdowns. Full library available anytime.
-              </p>
-              <div className="mt-4">
-                <Link href="/techniques" className="font-mono-label text-[11px] uppercase tracking-[0.18em] text-moss hover:text-cream">
-                  View technique library
-                </Link>
-              </div>
-            </DarkCard>
-
-            <InfoCard title="Weekly Schedule" label="Current sessions" className="order-3 lg:col-span-2 xl:col-span-1 xl:min-h-[31rem]">
-              <div className="flex h-full flex-col space-y-3">
-                <div data-testid="home-mini-schedule">
-                  <MiniScheduleCalendar />
+            <CollapsibleSection title="Technique Preview" className="order-2 lg:order-2 xl:min-h-[31rem] bg-charcoal border-charcoal/20">
+              <DarkCard className="h-full flex flex-col !border-none !rounded-none !bg-transparent">
+                <div className="mb-5 flex items-center gap-3">
+                  <StatusDot ariaLabel="Technique preview" />
+                  <span className="font-mono-label text-[11px] text-cream/70 uppercase tracking-[0.2em]">
+                    Inside Training
+                  </span>
                 </div>
-                <div className="mt-auto rounded-2xl border border-moss/15 bg-moss/5 px-4 py-3 text-[11px] leading-relaxed text-charcoal/70">
-                  Women Tuesday and Thursday are separate enrollments. Friday youth classes share the same training window but stay in distinct tracks.
+                <div className="relative w-full h-72 bg-charcoal rounded-2xl overflow-hidden border border-moss/20">
+                  <TechniqueViewer
+                    className="w-full h-full"
+                    controlsMode="none"
+                    autoplay
+                    sequencePath={DEFAULT_HOME_TECHNIQUE_SEQUENCE_PATH}
+                  />
+                  <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-charcoal via-charcoal/18 to-transparent" />
                 </div>
+                <p className="mt-5 text-sm leading-relaxed text-cream/68">
+                  Review techniques after class with our animated 3D breakdowns. Full library available anytime.
+                </p>
+                <div className="mt-4">
+                  <Link href="/techniques" className="font-mono-label text-[11px] uppercase tracking-[0.18em] text-moss hover:text-cream">
+                    View technique library
+                  </Link>
+                </div>
+              </DarkCard>
+            </CollapsibleSection>
+            <CollapsibleSection title="Weekly Schedule" className="order-3 lg:col-span-2 xl:col-span-1 xl:min-h-[31rem]">
+              <div data-testid="home-mini-schedule">
+                <MiniScheduleCalendar />
               </div>
-            </InfoCard>
+              <div className="mt-4 rounded-2xl border border-moss/15 bg-moss/5 px-4 py-3 text-[11px] leading-relaxed text-charcoal/70">
+                Women's Tuesday and Thursday sessions are separate enrollments. Tuesday and Friday youth sessions occur at the same time but are segregated.
+              </div>
+            </CollapsibleSection>
           </motion.div>
         </div>
       </section>
@@ -542,7 +555,7 @@ const Home = () => {
 
       <section id="programs" className="relative bg-cream pb-32">
         <div className="max-w-6xl mx-auto px-6 pt-20 pb-10">
-          <SectionHeader title="Core Curriculum" />
+          <SectionHeader title="Programs at a glance" />
         </div>
         {curriculum.map((item) => (
           <StickyCurriculumCard key={item.id} item={item} />
@@ -552,9 +565,9 @@ const Home = () => {
       <section id="enrollment" className="py-32 bg-cream">
         <div className="max-w-6xl mx-auto px-6">
           <div className="text-center mb-20">
-            <SectionHeader title="Enrollment Tracks" />
+            <SectionHeader title="BJJ Sessions" />
             <p className="mt-4 text-charcoal/60 font-body text-sm">
-              Live BJJ enrollments are shown exactly as families register them, with full tuition for the current 13-week semester.
+              Weekly classes at 918 Dundas St. West, Mississauga. Register for the current semester.
             </p>
           </div>
           <motion.div
@@ -577,16 +590,18 @@ const Home = () => {
                       <h4 className="font-heading text-2xl text-charcoal xl:text-[1.85rem]">{group.label}</h4>
                       <p className="mt-2 text-sm leading-relaxed text-charcoal/62">{enrollmentCardMeta[group.key].summary}</p>
                     </div>
-                    <div className="rounded-full border border-charcoal/10 bg-white/85 px-3 py-1 text-[10px] font-mono-label uppercase tracking-[0.16em] text-charcoal/55 backdrop-blur">
-                      {group.sessions.length} session{group.sessions.length === 1 ? "" : "s"}
-                    </div>
+                    <Link href="/register/bjj">
+                      <ClayButton className="text-[10px] uppercase tracking-[0.16em] px-4 py-2">
+                        Register Now
+                      </ClayButton>
+                    </Link>
                   </div>
-                  <div className="mt-5 rounded-2xl border border-charcoal/8 bg-cream/45 px-4 py-3">
-                    <div className="font-mono-label text-[9px] uppercase tracking-[0.18em] text-charcoal/45">{group.ageLabel}</div>
-                    <div className="mt-2 font-heading text-lg text-charcoal">{activeSemesterLabel}</div>
-                    <div className="mt-1 text-sm leading-relaxed text-charcoal/58">
-                      {activeSemesterDescriptor} tuition shown below for each available enrollment.
-                    </div>
+                  <div className="mt-5 flex items-center gap-2 text-sm text-charcoal/70">
+                    <svg className="h-4 w-4 text-charcoal/50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    <span>918 Dundas St. West, Mississauga</span>
                   </div>
                   <div className="mt-4 flex-1 space-y-3">
                     {group.sessions.map((session) => (
@@ -612,6 +627,13 @@ const Home = () => {
                       </div>
                     ))}
                   </div>
+                  <div className="mt-5">
+                    <Link href="/register/bjj">
+                      <ClayButton className="w-full justify-center">
+                        Register Now
+                      </ClayButton>
+                    </Link>
+                  </div>
                 </div>
               </PremiumCard>
             ))}
@@ -624,10 +646,10 @@ const Home = () => {
           <div className="max-w-7xl mx-auto px-6">
             <div className="mb-16 flex flex-col items-center text-center gap-4">
               <h3 className="font-heading text-3xl md:text-5xl text-charcoal tracking-tight">
-                <StudioText k="home.testimonials.heading" defaultText="What Parents Say" as="span" className="inline" />
+                <StudioText k="home.testimonials.heading" defaultText="Book your FREE trial now!" as="span" className="inline" />
               </h3>
               <p className="font-body text-sm md:text-base text-charcoal/60">
-                <StudioText k="home.testimonials.subheading" defaultText="Hear from families who have experienced the Sunnah Skills difference." as="span" className="inline" multiline />
+                <StudioText k="home.testimonials.subheading" defaultText="Join hundreds of families who have experienced the Sunnah Skills difference. Schedule your first class today." as="span" className="inline" multiline />
               </p>
             </div>
 

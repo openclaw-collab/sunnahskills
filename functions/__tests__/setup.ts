@@ -32,6 +32,9 @@ vi.mock("stripe", () => ({
     subscriptions: {
       create: vi.fn(),
     },
+    paymentIntents: {
+      retrieve: vi.fn(),
+    },
   })),
 }));
 
@@ -46,6 +49,7 @@ export function createMockD1Database() {
     programs: [],
     program_sessions: [],
     program_prices: [],
+    enrollment_orders: [],
     payments: [],
     waivers: [],
     discounts: [],
@@ -53,6 +57,7 @@ export function createMockD1Database() {
     contacts: [],
     waitlist: [],
     studio_sessions: [],
+    proration_codes: [],
   };
 
   let lastRowId = 0;

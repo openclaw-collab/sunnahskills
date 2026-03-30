@@ -37,7 +37,8 @@ const BJJProgram = () => {
                 {program.heroLead}
               </p>
               <p className="mt-4 text-cream/65 font-body text-sm max-w-2xl leading-relaxed text-pretty">
-                Live enrollment is currently BJJ only. Women 11+ Tuesday and Thursday are separate enrollments; both can be added to the same household cart if needed.
+                Weekly classes at 918 Dundas St West. Girls and Boys train Tuesday 2:30-3:30 PM and Friday 10-11 AM.
+                Women train Tuesday 12:30-2:00 PM or Thursday 8:00-9:30 PM. Men train Friday and Saturday 8-9 PM.
               </p>
 
               <div className="mt-8 flex flex-wrap gap-2">
@@ -83,8 +84,8 @@ const BJJProgram = () => {
                 at a time.
               </p>
               <p className="font-body text-pretty text-charcoal/70 leading-relaxed">
-                The program is organized by age and experience so each student can train in the right room, at the
-                right pace, with coaching that reinforces respect, patience, and consistent effort.
+                Classes grouped by age and gender. Small groups (8-15 students) with consistent partners.
+                Stripe promotions every 8-12 weeks, belt promotions every 1-2 years.
               </p>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
@@ -136,7 +137,10 @@ const BJJProgram = () => {
       <MotionSection className="py-20 bg-white border-y border-charcoal/5">
         <div className="max-w-6xl mx-auto px-6">
           <div className="flex items-end justify-between gap-6 flex-wrap">
-            <SectionHeader eyebrow="Tracks" title="Current Live BJJ Cohorts" />
+            <SectionHeader eyebrow="Tracks" title="BJJ Class Schedule" />
+            <p className="mt-2 max-w-2xl text-sm text-charcoal/60">
+              All classes at 918 Dundas St West. Choose the track that matches age and gender.
+            </p>
             <Link href="/programs/bjj/register">
               <ClayButton className="text-[11px] uppercase tracking-[0.18em] px-6 py-3">
                 Start Registration

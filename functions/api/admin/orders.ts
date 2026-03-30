@@ -55,14 +55,17 @@ export async function onRequestGet({ request, env }: { request: Request; env: En
       g.email as guardian_email,
       COUNT(DISTINCT r.id) as registration_count,
       GROUP_CONCAT(DISTINCT s.full_name) as student_names,
-      SUM(CASE WHEN pay.status = 'paid' THEN pay.amount ELSE 0 END) as paid_cents,
-      MAX(pay.status) as latest_payment_status,
+      (SELECT SUM(CASE WHEN pay.status = 'paid' THEN pay.amount ELSE 0 END)
+       FROM payments pay
+       WHERE pay.enrollment_order_id = o.id) as paid_cents,
+      (SELECT MAX(pay.status)
+       FROM payments pay
+       WHERE pay.enrollment_order_id = o.id) as latest_payment_status,
       MIN(r.id) as first_registration_id
     FROM enrollment_orders o
     LEFT JOIN guardians g ON g.id = o.guardian_id
     LEFT JOIN registrations r ON r.enrollment_order_id = o.id
     LEFT JOIN students s ON s.id = r.student_id
-    LEFT JOIN payments pay ON pay.enrollment_order_id = o.id
     ${where.length ? `WHERE ${where.join(" AND ")}` : ""}
     GROUP BY o.id
     ORDER BY

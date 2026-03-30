@@ -126,6 +126,7 @@ export function RegistrationDetail({
       amountDueTodayCents: detail.order_amount_due_today_cents ?? detail.payment_amount,
       laterAmountCents: detail.order_later_amount_cents,
       laterPaymentDate: detail.order_later_payment_date,
+      paidCents: detail.order_paid_cents,
       latestPaymentAmountCents: detail.payment_amount,
       currency: detail.payment_currency,
     });

@@ -763,11 +763,14 @@ export default function CartPage() {
                 <PaymentForm
                   returnUrl={returnUrl}
                   submitDisabled={(summary?.dueLaterCents ?? 0) > 0 && !laterChargeAuthorized}
-                  onSuccess={() => {
+                  onSuccess={({ paymentIntentId } = {}) => {
                     clearPendingFamilyCheckout();
                     clearFamilyCart();
                     setCart(null);
-                    navigate(returnUrl);
+                    const successUrl = paymentIntentId
+                      ? `${returnUrl}${returnUrl.includes("?") ? "&" : "?"}payment_intent=${encodeURIComponent(paymentIntentId)}`
+                      : returnUrl;
+                    navigate(successUrl);
                   }}
                 />
               </PaymentProvider>

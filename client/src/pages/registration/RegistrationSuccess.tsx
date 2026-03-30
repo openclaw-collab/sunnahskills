@@ -26,8 +26,83 @@ const NEXT_STEPS = [
 
 export default function RegistrationSuccess() {
   const search = useSearch();
-  const params = new URLSearchParams(search);
+  const params = React.useMemo(() => new URLSearchParams(search), [search]);
   const rid = params.get("rid");
+  const orderId = Number(params.get("order") ?? 0);
+  const paymentIntentId = params.get("payment_intent");
+  const [reconcileState, setReconcileState] = React.useState<"idle" | "loading" | "done" | "pending" | "failed">(
+    Number.isInteger(orderId) && orderId > 0 ? "loading" : "idle",
+  );
+  const [reconcileMessage, setReconcileMessage] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    if (!Number.isInteger(orderId) || orderId <= 0) return;
+
+    let active = true;
+
+    (async () => {
+      try {
+        setReconcileState("loading");
+        setReconcileMessage(null);
+
+        const res = await fetch("/api/payments/reconcile-order", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            enrollmentOrderId: orderId,
+            paymentIntentId: paymentIntentId ?? undefined,
+          }),
+        });
+        const json = (await res.json().catch(() => null)) as
+          | { ok?: boolean; reconciled?: boolean; paymentStatus?: string; error?: string }
+          | null;
+
+        if (!active) return;
+        if (!res.ok) {
+          setReconcileState("failed");
+          setReconcileMessage(json?.error ?? "We received your registration, but we're still confirming payment status.");
+          return;
+        }
+
+        if (json?.ok === false || (json?.paymentStatus && json.paymentStatus !== "succeeded")) {
+          setReconcileState("pending");
+          setReconcileMessage("Your payment is still processing. If you were charged, we’ll confirm your enrollment shortly.");
+          return;
+        }
+
+        setReconcileState("done");
+      } catch {
+        if (!active) return;
+        setReconcileState("failed");
+        setReconcileMessage("We received your registration, but we're still confirming payment status.");
+      }
+    })();
+
+    return () => {
+      active = false;
+    };
+  }, [orderId, paymentIntentId]);
+
+  const eyebrow =
+    reconcileState === "loading"
+      ? "Finalizing Registration"
+      : reconcileState === "pending"
+        ? "Payment Processing"
+        : "Registration Complete";
+  const title =
+    reconcileState === "loading"
+      ? "We're confirming your enrollment."
+      : reconcileState === "pending"
+        ? "Your payment is still processing."
+        : "You're enrolled.";
+  const subtitle =
+    reconcileState === "loading"
+      ? "One moment while we finish syncing your payment and registration."
+      : reconcileState === "pending"
+        ? reconcileMessage ?? "Your payment is still processing. We'll confirm everything shortly."
+        : reconcileState === "failed"
+          ? reconcileMessage ?? "We received your registration and are checking payment status now."
+          : "Payment confirmed. We'll be in touch with everything you need to get started.";
 
   return (
     <MotionPage className="bg-cream min-h-screen pb-24">
@@ -51,13 +126,13 @@ export default function RegistrationSuccess() {
 
         <MotionDiv delay={0.06} className="text-center mb-10">
           <div className="font-mono-label text-[10px] uppercase tracking-[0.25em] text-moss mb-3">
-            Registration Complete
+            {eyebrow}
           </div>
           <h1 className="font-heading text-4xl text-charcoal mb-3">
-            You're enrolled.
+            {title}
           </h1>
           <p className="font-body text-sm text-charcoal/60 max-w-sm mx-auto">
-            Payment confirmed. We'll be in touch with everything you need to get started.
+            {subtitle}
           </p>
           {rid && (
             <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-charcoal/10 bg-white px-4 py-2">
@@ -68,24 +143,34 @@ export default function RegistrationSuccess() {
         </MotionDiv>
 
         {/* What happens next */}
-        <MotionDiv delay={0.1}>
-          <DarkCard className="rounded-3xl mb-6">
-          <div className="font-mono-label text-[10px] uppercase tracking-[0.25em] text-moss mb-6">
-            What happens next
-          </div>
-          <div className="space-y-6">
-            {NEXT_STEPS.map((step) => (
-              <div key={step.n} className="flex gap-4">
-                <div className="font-mono-label text-[11px] text-clay flex-none mt-0.5">{step.n}</div>
-                <div>
-                  <div className="font-body text-sm text-cream/90 font-medium mb-1">{step.title}</div>
-                  <p className="font-body text-xs text-cream/55 leading-relaxed">{step.body}</p>
+        {reconcileState !== "loading" && reconcileState !== "pending" ? (
+          <MotionDiv delay={0.1}>
+            <DarkCard className="rounded-3xl mb-6">
+            <div className="font-mono-label text-[10px] uppercase tracking-[0.25em] text-moss mb-6">
+              What happens next
+            </div>
+            <div className="space-y-6">
+              {NEXT_STEPS.map((step) => (
+                <div key={step.n} className="flex gap-4">
+                  <div className="font-mono-label text-[11px] text-clay flex-none mt-0.5">{step.n}</div>
+                  <div>
+                    <div className="font-body text-sm text-cream/90 font-medium mb-1">{step.title}</div>
+                    <p className="font-body text-xs text-cream/55 leading-relaxed">{step.body}</p>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
-          </DarkCard>
-        </MotionDiv>
+              ))}
+            </div>
+            </DarkCard>
+          </MotionDiv>
+        ) : (
+          <MotionDiv delay={0.1}>
+            <PremiumCard className="bg-white border border-charcoal/10 mb-6">
+              <p className="font-body text-sm text-charcoal/65">
+                If your card was charged and this page does not update within a minute, we’ll still be able to reconcile the payment from Stripe on our side.
+              </p>
+            </PremiumCard>
+          </MotionDiv>
+        )}
 
         <MotionDiv delay={0.14}>
           <PremiumCard className="bg-white border border-charcoal/10">

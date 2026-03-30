@@ -39,10 +39,10 @@ export const PROGRAMS: Record<ProgramSlug, ProgramConfig> = {
       "Ground-based training that teaches leverage, timing, and composure while helping students grow through steady progression.",
     highlights: ["Age-group tracks", "Technique over strength", "Belt progression", "Confidence under pressure"],
     overviewBullets: [
-      "Girls 5–10 and boys 7–13 train Tuesday and Friday",
-      "Women 11+ has separate Tuesday and Thursday enrollments",
-      "Men 14+ trains Friday and Saturday evenings",
-      "Prices and semester totals are controlled from the admin panel",
+      "Girls 5–10 and Boys 7–13 train Tuesday 2:30-3:30 PM and Friday 10:00-11:00 AM",
+      "Women 11+ choose Tuesday 12:30-2:00 PM OR Thursday 8:00-9:30 PM (or both)",
+      "Men 14+ train Friday 8:00-9:00 PM and Saturday 8:00-9:00 PM",
+      "All sessions at 918 Dundas St. West, Mississauga",
     ],
     heroImage: {
       src: "/programs/bjj.png",

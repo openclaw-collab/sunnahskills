@@ -32,6 +32,11 @@ playwright-report/
 
 # local agent state
 .agent/
+.claude/
+.mcp.json
+.cursor/mcp.json
+.playwright-mcp/
+sunnahskills-studio-*.json
 
 # local backups
 backups/

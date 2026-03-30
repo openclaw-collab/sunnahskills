@@ -4,15 +4,20 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
+let currentStripeMock: any;
+
+vi.mock("stripe", () => ({
+  default: vi.fn(function StripeMock() {
+    return currentStripeMock;
+  }),
+}));
+
 import { onRequestPost as createIntentHandler } from "../api/payments/create-intent";
 import { onRequestPost as createSubscriptionHandler } from "../api/payments/create-subscription";
 import { onRequestPost as webhookHandler } from "../api/payments/webhook";
+import { onRequestPost as reconcileOrderHandler } from "../api/payments/reconcile-order";
 import { createMockEnv, createMockRequest, parseJsonResponse } from "./setup";
 import Stripe from "stripe";
-
-vi.mock("stripe", () => ({
-  default: vi.fn(),
-}));
 vi.mock("../_utils/email", () => ({
   sendMailChannelsEmail: vi.fn().mockResolvedValue(true),
 }));
@@ -66,9 +71,15 @@ describe("Payment Endpoints", () => {
           },
         }),
       },
+      paymentIntents: {
+        retrieve: vi.fn(),
+      },
     };
+    currentStripeMock = mockStripe;
 
-    vi.mocked(Stripe).mockImplementation(() => mockStripe as any);
+    vi.mocked(Stripe).mockImplementation(function StripeMock() {
+      return mockStripe as any;
+    } as any);
   });
 
   describe("POST /api/payments/create-intent", () => {
@@ -774,6 +785,104 @@ describe("Payment Endpoints", () => {
 
       expect(mockDb.prepare).toHaveBeenCalledWith(
         expect.stringContaining("UPDATE program_sessions SET enrolled_count = enrolled_count + 1")
+      );
+    });
+  });
+
+  describe("POST /api/payments/reconcile-order", () => {
+    it("returns 400 when enrollmentOrderId is missing", async () => {
+      const request = createMockRequest("POST", "https://example.com/api/payments/reconcile-order", {
+        body: {},
+      });
+
+      const response = await reconcileOrderHandler({ request, env });
+      const data = await parseJsonResponse(response);
+
+      expect(response.status).toBe(400);
+      expect(data.error).toBe("enrollmentOrderId is required");
+    });
+
+    it("returns order state when the PaymentIntent has not succeeded", async () => {
+      const mockDb = env.DB as any;
+      mockDb.setMockData("enrollment_orders", [
+        { id: 34, status: "pending_payment", stripe_payment_intent_id: "pi_pending" },
+      ]);
+      mockStripe.paymentIntents.retrieve.mockResolvedValue({
+        id: "pi_pending",
+        status: "requires_payment_method",
+        metadata: { enrollment_order_id: "34" },
+      });
+
+      const request = createMockRequest("POST", "https://example.com/api/payments/reconcile-order", {
+        body: { enrollmentOrderId: 34 },
+      });
+
+      const response = await reconcileOrderHandler({ request, env });
+      const data = await parseJsonResponse(response);
+
+      expect(response.status).toBe(200);
+      expect(data.ok).toBe(false);
+      expect(data.paymentStatus).toBe("requires_payment_method");
+      expect(data.orderStatus).toBe("pending_payment");
+    });
+
+    it("reconciles a succeeded PaymentIntent into a paid order", async () => {
+      const mockDb = env.DB as any;
+      mockDb.setMockData("enrollment_orders", [
+        { id: 34, status: "pending_payment", stripe_payment_intent_id: "pi_paid", later_amount_cents: 0 },
+      ]);
+      mockDb.setMockData("payments", [
+        {
+          id: 34,
+          status: "pending",
+          registration_id: 81,
+          stripe_payment_intent_id: "pi_paid",
+          metadata: JSON.stringify({
+            enrollmentOrderId: 34,
+            registrationIds: [81, 82],
+            payPhase: "first",
+          }),
+          session_id: 5,
+        },
+      ]);
+      mockDb.setMockData("registrations", [
+        { id: 81, session_id: 5, enrollment_order_id: 34 },
+        { id: 82, session_id: 5, enrollment_order_id: 34 },
+      ]);
+      mockDb.setMockData("guardians", [{ id: 1, full_name: "Inas", email: "inas@example.com" }]);
+      mockDb.setMockData("students", [{ id: 1, full_name: "Student One" }]);
+      mockDb.setMockData("programs", [{ id: 1, name: "Brazilian Jiu-Jitsu" }]);
+
+      mockStripe.paymentIntents.retrieve.mockResolvedValue({
+        id: "pi_paid",
+        status: "succeeded",
+        metadata: {
+          enrollment_order_id: "34",
+          registration_ids: "81,82",
+          pay_phase: "first",
+        },
+        charges: { data: [{ receipt_url: "https://receipt.stripe.com/paid" }] },
+        amount_received: 59280,
+        currency: "cad",
+        customer: "cus_test123",
+        payment_method: "pm_test123",
+      });
+
+      const request = createMockRequest("POST", "https://example.com/api/payments/reconcile-order", {
+        body: { enrollmentOrderId: 34 },
+      });
+
+      const response = await reconcileOrderHandler({ request, env });
+      const data = await parseJsonResponse(response);
+
+      expect(response.status).toBe(200);
+      expect(data.ok).toBe(true);
+      expect(data.reconciled).toBe(true);
+      expect(mockStripe.paymentIntents.retrieve).toHaveBeenCalledWith("pi_paid", {
+        expand: ["charges.data", "payment_method"],
+      });
+      expect(mockDb.prepare).toHaveBeenCalledWith(
+        expect.stringContaining("UPDATE enrollment_orders")
       );
     });
   });

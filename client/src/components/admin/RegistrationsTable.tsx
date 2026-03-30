@@ -15,17 +15,26 @@ type RegistrationRow = {
   created_at: string;
   program_name: string;
   program_slug: string;
+  track?: string | null;
+  session_id?: number | null;
   guardian_name: string;
   guardian_email: string;
+  guardian_phone?: string | null;
   student_name: string;
+  student_dob?: string | null;
+  student_gender?: string | null;
   payment_status: string | null;
   payment_amount: number | null;
+  stripe_payment_intent_id?: string | null;
+  receipt_url?: string | null;
+  order_id?: number | null;
   order_status?: string | null;
   order_manual_review_reason?: string | null;
   order_total_cents?: number | null;
   order_amount_due_today_cents?: number | null;
   order_later_amount_cents?: number | null;
   order_later_payment_date?: string | null;
+  order_paid_cents?: number | null;
 };
 
 type Program = { id: string; name: string; slug: string };
@@ -83,7 +92,9 @@ export function RegistrationsTable({
 }) {
   const [rows, setRows] = useState<RegistrationRow[]>(initial);
   const [programs, setPrograms] = useState<Program[]>([]);
+  const [tracks, setTracks] = useState<string[]>([]);
   const [programId, setProgramId] = useState<string>("all");
+  const [track, setTrack] = useState<string>("all");
   const [status, setStatus] = useState<string>("all");
   const [q, setQ] = useState("");
   const [loading, setLoading] = useState(false);
@@ -96,15 +107,22 @@ export function RegistrationsTable({
     })();
   }, []);
 
+  useEffect(() => {
+    // Extract unique tracks from current rows
+    const uniqueTracks = Array.from(new Set(rows.map((r) => r.track).filter((t): t is string => Boolean(t))));
+    setTracks(uniqueTracks);
+  }, [rows]);
+
   const queryUrl = useMemo(() => {
     const sp = new URLSearchParams();
     if (programId !== "all") sp.set("programId", programId);
+    if (track !== "all") sp.set("track", track);
     if (status !== "all") sp.set("status", status);
     if (q.trim()) sp.set("q", q.trim());
     if (showSuperseded) sp.set("includeSuperseded", "1");
     const qs = sp.toString();
     return `/api/admin/registrations${qs ? `?${qs}` : ""}`;
-  }, [programId, q, showSuperseded, status]);
+  }, [programId, track, q, showSuperseded, status]);
 
   async function refresh() {
     setLoading(true);
@@ -136,7 +154,7 @@ export function RegistrationsTable({
         amountDueTodayCents: row.order_amount_due_today_cents ?? row.payment_amount,
         laterAmountCents: row.order_later_amount_cents,
         laterPaymentDate: row.order_later_payment_date,
-        latestPaymentAmountCents: row.payment_amount,
+        latestPaymentAmountCents: row.order_paid_cents ?? row.payment_amount,
       });
 
       if (lifecycle.statusVariant === "paid_full") summary.paidFull += 1;
@@ -149,6 +167,30 @@ export function RegistrationsTable({
     return summary;
   }, [rows]);
 
+  // Group rows by order_id for sibling visualization
+  const groupedRows = useMemo(() => {
+    const orderGroups = new Map<number | null, RegistrationRow[]>();
+    rows.forEach((row) => {
+      const key = row.order_id ?? null;
+      if (!orderGroups.has(key)) {
+        orderGroups.set(key, []);
+      }
+      orderGroups.get(key)!.push(row);
+    });
+    // Flatten with sibling markers
+    const result: Array<RegistrationRow & { isFirstSibling: boolean; siblingCount: number }> = [];
+    orderGroups.forEach((groupRows) => {
+      groupRows.forEach((row, index) => {
+        result.push({
+          ...row,
+          isFirstSibling: index === 0,
+          siblingCount: groupRows.length,
+        });
+      });
+    });
+    return result;
+  }, [rows]);
+
   return (
     <PremiumCard className="bg-white border border-charcoal/10">
       <div className="flex items-end justify-between gap-4 flex-wrap mb-4">
@@ -157,7 +199,7 @@ export function RegistrationsTable({
             Registrations
           </div>
           <div className="font-body text-sm text-charcoal/70 mt-1">
-            Filter, search, and open a registration to view details and update status/notes.
+            Filter by program, track, and status. Click a student to view full details.
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -173,6 +215,7 @@ export function RegistrationsTable({
             className="px-4 py-2.5 text-[11px] uppercase tracking-[0.18em]"
             onClick={() => {
               setProgramId("all");
+              setTrack("all");
               setStatus("all");
               setQ("");
               setRows(initial);
@@ -190,12 +233,12 @@ export function RegistrationsTable({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
         <div className="space-y-2">
           <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-charcoal/60">
             Program
           </div>
-          <Select value={programId} onValueChange={setProgramId}>
+          <Select value={programId} onValueChange={(val) => { setProgramId(val); setTrack("all"); }}>
             <SelectTrigger className="bg-cream/50 border-charcoal/10">
               <SelectValue placeholder="All programs" />
             </SelectTrigger>
@@ -204,6 +247,25 @@ export function RegistrationsTable({
               {programs.map((p) => (
                 <SelectItem key={p.id} value={p.id}>
                   {p.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-2">
+          <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-charcoal/60">
+            Track / Stream
+          </div>
+          <Select value={track} onValueChange={setTrack}>
+            <SelectTrigger className="bg-cream/50 border-charcoal/10">
+              <SelectValue placeholder="All tracks" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All tracks</SelectItem>
+              {tracks.map((t) => (
+                <SelectItem key={t} value={t}>
+                  {t.replace(/-/g, " ")}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -295,15 +357,15 @@ export function RegistrationsTable({
           <thead className="text-charcoal/60 bg-cream/55">
             <tr className="border-b border-charcoal/10">
               <th className="text-left py-3 pl-4 pr-4">Student</th>
-              <th className="text-left py-3 pr-4">Program</th>
-              <th className="text-left py-3 pr-4">Registration</th>
+              <th className="text-left py-3 pr-4">Program / Track</th>
+              <th className="text-left py-3 pr-4">Status</th>
               <th className="text-left py-3 pr-4">Payment</th>
               <th className="text-left py-3 pr-4">Guardian</th>
-              <th className="text-left py-3 pr-4">Created</th>
+              <th className="text-left py-3 pr-4">Registered</th>
             </tr>
           </thead>
           <tbody>
-            {rows.map((r) => {
+            {groupedRows.map((r) => {
               const paymentLifecycle = summarizePaymentLifecycle({
                 orderStatus: r.order_status,
                 latestPaymentStatus: r.payment_status,
@@ -312,7 +374,7 @@ export function RegistrationsTable({
                 amountDueTodayCents: r.order_amount_due_today_cents ?? r.payment_amount,
                 laterAmountCents: r.order_later_amount_cents,
                 laterPaymentDate: r.order_later_payment_date,
-                latestPaymentAmountCents: r.payment_amount,
+                latestPaymentAmountCents: r.order_paid_cents ?? r.payment_amount,
               });
 
               return (
@@ -321,16 +383,25 @@ export function RegistrationsTable({
                   className={cn(
                     "border-b border-charcoal/5 hover:bg-cream/35 cursor-pointer transition-colors",
                     rowToneClasses(paymentLifecycle.statusVariant),
+                    r.siblingCount > 1 && r.isFirstSibling ? "border-t-2 border-t-charcoal/10" : "",
+                    r.siblingCount > 1 && !r.isFirstSibling ? "bg-cream/20" : "",
                   )}
                   onClick={() => onOpen(r.registration_id)}
                 >
                   <td className="py-3 pl-4 pr-4">
                     <div className="font-medium text-charcoal">{r.student_name}</div>
-                    <div className="mt-1 text-xs text-charcoal/45">Registration #{r.registration_id}</div>
+                    <div className="mt-1 text-xs text-charcoal/45">
+                      Reg #{r.registration_id}
+                      {r.siblingCount > 1 && (
+                        <span className="ml-2 text-moss">• Sibling {r.isFirstSibling ? "1" : "2+"} of {r.siblingCount}</span>
+                      )}
+                    </div>
                   </td>
                   <td className="py-3 pr-4">
                     <div className="text-charcoal">{r.program_name}</div>
-                    <div className="mt-1 text-xs text-charcoal/45">{humanize(r.program_slug)}</div>
+                    <div className="mt-1 text-xs text-charcoal/55">
+                      {r.track ? r.track.replace(/-/g, " ") : humanize(r.program_slug)}
+                    </div>
                   </td>
                   <td className="py-3 pr-4">
                     <span className={badgeClass("status", r.registration_status)}>
@@ -356,7 +427,7 @@ export function RegistrationsTable({
                 </tr>
               );
             })}
-            {rows.length === 0 ? (
+            {groupedRows.length === 0 ? (
               <tr>
                 <td colSpan={6} className="py-8 text-center text-charcoal/60">
                   No registrations match your filters.

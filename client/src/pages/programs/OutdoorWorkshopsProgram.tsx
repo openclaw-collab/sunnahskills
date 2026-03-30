@@ -65,8 +65,9 @@ const OutdoorWorkshopsProgram = () => {
               <h1 className="font-heading text-5xl md:text-7xl tracking-tight text-cream leading-none text-balance">
                 {program.name}
               </h1>
-              <p className="mt-8 text-cream/75 font-body text-sm md:text-base max-w-2xl leading-relaxed text-pretty">
-                {program.heroLead}
+              <p className="mt-4 text-cream/65 font-body text-sm max-w-2xl leading-relaxed text-pretty">
+                Workshops at various outdoor locations. Registration includes gear list and location details.
+                Certified outdoor education instructors lead every session.
               </p>
 
               <div className="mt-8 flex flex-wrap gap-2">
@@ -101,14 +102,13 @@ const OutdoorWorkshopsProgram = () => {
         <div className="max-w-6xl mx-auto px-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-start">
             <MotionDiv delay={0.04} className="space-y-6">
-              <SectionHeader eyebrow="Overview" title="Readiness Through Stewardship" />
+              <SectionHeader eyebrow="Overview" title="Practical Outdoor Skills" />
               <p className="font-body text-pretty text-charcoal/70 leading-relaxed">
-                {program.shortPitch} The emphasis is on practical skill, calm decision making, and respect for the
-                land, the tools, and the people you are learning alongside.
+                {program.shortPitch} Learn fire building, shelter construction, navigation, and knot tying.
               </p>
               <p className="font-body text-pretty text-charcoal/70 leading-relaxed">
-                Students leave each workshop with a clear checklist of what they practiced, what they learned, and how
-                to keep building the same skills at home or in the field.
+                Each workshop is a half-day or full-day session. Students leave with a checklist of skills
+                practiced and how to continue building them at home or in the field.
               </p>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">

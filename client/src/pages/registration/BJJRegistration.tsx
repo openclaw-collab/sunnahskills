@@ -13,7 +13,7 @@ import { useProgramsCatalog } from "@/hooks/useProgramsCatalog";
 import { addLineToFamilyCart, loadFamilyCart, removeCartLine, type AccountCartSnapshot } from "@/lib/familyCart";
 import { BJJ_MARKETING_GROUPS, BJJ_TRACK_BY_KEY, isEligibleForBjjTrack, type BjjMarketingGroup } from "@shared/bjjCatalog";
 import { computeLaterPaymentDateIso, computeLineTuitionCents, splitPaymentPlan } from "@shared/orderPricing";
-import { formatMoneyFromCents } from "@shared/money";
+import { money } from "@/lib/money";
 import { StudioBlock } from "@/studio/StudioBlock";
 import { StudioText } from "@/studio/StudioText";
 
@@ -27,10 +27,6 @@ function computeAge(dateOfBirth: string | null | undefined) {
   const monthDelta = now.getUTCMonth() - dob.getUTCMonth();
   if (monthDelta < 0 || (monthDelta === 0 && now.getUTCDate() < dob.getUTCDate())) age -= 1;
   return Math.max(0, age);
-}
-
-function money(cents: number) {
-  return formatMoneyFromCents(cents);
 }
 
 function formatScheduleDate(iso: string | null) {

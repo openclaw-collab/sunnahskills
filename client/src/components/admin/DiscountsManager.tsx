@@ -4,7 +4,7 @@ import { ClayButton } from "@/components/brand/ClayButton";
 import { OutlineButton } from "@/components/brand/OutlineButton";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { formatMoneyFromCents } from "@shared/money";
+import { money } from "@/lib/money";
 
 type Discount = {
   id: number;
@@ -20,10 +20,6 @@ type Discount = {
 };
 
 type Program = { id: string; name: string; slug: string };
-
-function money(cents: number) {
-  return formatMoneyFromCents(cents);
-}
 
 function formatDiscountValueInput(type: Discount["type"], value: number) {
   if (type === "fixed") {

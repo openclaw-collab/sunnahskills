@@ -2,7 +2,7 @@ import React, { useMemo } from "react";
 import { DarkCard } from "@/components/brand/DarkCard";
 import type { ProgramConfig } from "@/lib/programConfig";
 import { useProgramsCatalog } from "@/hooks/useProgramsCatalog";
-import { formatMoneyFromCents } from "@shared/money";
+import { money } from "@/lib/money";
 import {
   getLinePriceBreakdown,
   type SemesterRow,
@@ -17,10 +17,6 @@ const PLACEHOLDER_PRICES: Record<string, { label: string; amount: string; monthl
 };
 
 const REG_FEE_PROGRAMS = ["bjj"];
-
-function money(cents: number) {
-  return formatMoneyFromCents(cents);
-}
 
 function formatScheduleDate(iso: string | null) {
   if (!iso) return null;

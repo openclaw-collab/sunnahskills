@@ -3,7 +3,7 @@ import { PremiumCard } from "@/components/brand/PremiumCard";
 import { ClayButton } from "@/components/brand/ClayButton";
 import { OutlineButton } from "@/components/brand/OutlineButton";
 import { Input } from "@/components/ui/input";
-import { formatMoneyFromCents } from "@shared/money";
+import { money } from "@/lib/money";
 
 type Program = { id: string; name: string; slug: string };
 type Price = {
@@ -30,10 +30,6 @@ type SemesterRow = {
   later_payment_date: string | null;
   active: number;
 };
-
-function money(cents: number) {
-  return formatMoneyFromCents(cents);
-}
 
 function centsToDollarsInput(cents: number | null | undefined) {
   if (typeof cents !== "number") return "";

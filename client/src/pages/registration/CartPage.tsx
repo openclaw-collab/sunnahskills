@@ -23,7 +23,7 @@ import { useGuardianSession } from "@/hooks/useGuardianSession";
 import { PaymentProvider } from "@/components/payment/PaymentProvider";
 import { PaymentForm } from "@/components/payment/PaymentForm";
 import { BJJ_TRACK_BY_KEY, isMediaWaiverExemptBjjTrack } from "@shared/bjjCatalog";
-import { formatMoneyFromCents } from "@shared/money";
+import { money } from "@/lib/money";
 import { StudioBlock } from "@/studio/StudioBlock";
 import { StudioText } from "@/studio/StudioText";
 
@@ -33,10 +33,6 @@ type WaiverRecord = {
   body_html: string;
   version_label: string;
 };
-
-function money(cents: number) {
-  return formatMoneyFromCents(cents);
-}
 
 function discountReasonCopy(reason: string | undefined) {
   switch (reason) {

@@ -48,7 +48,7 @@ export function WaitlistDialog({ open, onOpenChange, programId, programName }: W
       });
       const payload = (await response.json().catch(() => null)) as { error?: string } | null;
       if (!response.ok) {
-        throw new Error(payload?.error ?? "Could not join the waitlist.");
+        throw new Error(payload?.error ?? "Couldn't add you to the waitlist. Try again?");
       }
 
       toast({

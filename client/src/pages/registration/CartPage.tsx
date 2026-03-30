@@ -41,7 +41,7 @@ function money(cents: number) {
 function discountReasonCopy(reason: string | undefined) {
   switch (reason) {
     case "not_found":
-      return "That discount code wasn't found.";
+      return "That code doesn't exist. Double-check and try again.";
     case "program_mismatch":
       return "That code doesn't apply to this registration.";
     case "max_uses_reached":
@@ -301,11 +301,11 @@ export default function CartPage() {
     const hasExistingOrder = Boolean(orderId);
     if (!hasExistingOrder) {
       if (!waiver?.id) {
-        setError("The live waiver could not be loaded.");
+        setError("Couldn't load the waiver. Refresh the page or try again.");
         return;
       }
       if (!validateWaiverInputs()) {
-        setError("Please complete every required waiver field before checkout.");
+        setError("Fill out all required waiver fields to continue.");
         return;
       }
     }
@@ -367,7 +367,7 @@ export default function CartPage() {
       if (!payRes.ok || !payJson?.clientSecret) {
         if (hasExistingOrder) {
           resetPendingCheckout({ preserveError: true });
-          throw new Error(payJson?.error ?? "Your saved checkout expired. Please continue again to refresh the order.");
+          throw new Error(payJson?.error ?? "Your checkout session expired. Click Continue to refresh.");
         }
         throw new Error(payJson?.error ?? "Could not start payment.");
       }
@@ -383,7 +383,7 @@ export default function CartPage() {
       });
       setPhase("pay");
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Could not finish checkout.");
+      setError(caught instanceof Error ? caught.message : "Checkout didn't complete. Your cart is saved—try again in a moment.");
     } finally {
       setSubmitting(false);
     }
@@ -394,7 +394,7 @@ export default function CartPage() {
     if (!code) {
       setLineDiscountFeedback((prev) => ({
         ...prev,
-        [lineId]: { tone: "error", message: "Enter a discount code first." },
+        [lineId]: { tone: "error", message: "Type a code first, then click Apply." },
       }));
       return;
     }

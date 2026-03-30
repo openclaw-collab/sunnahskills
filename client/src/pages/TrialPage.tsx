@@ -62,7 +62,7 @@ export default function TrialPage() {
 
   async function submit() {
     if (!validate()) {
-      setError("Please fill every required field before reserving the trial.");
+      setError("Fill out all required fields to book your trial.");
       setMessage(null);
       return;
     }
@@ -96,7 +96,7 @@ export default function TrialPage() {
         notes: "",
       });
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Could not book the free trial.");
+      setError(caught instanceof Error ? caught.message : "Couldn't book your trial. Try again or contact us for help.");
     } finally {
       setSubmitting(false);
     }

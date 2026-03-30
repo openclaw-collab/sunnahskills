@@ -355,7 +355,7 @@ export default function About() {
           <p className="font-body text-sm text-charcoal/70 max-w-2xl leading-relaxed">
             <StudioText
               k="about.header.intro"
-              defaultText="We're not just teaching martial arts. We're building character, confidence, and community. Since May 2024, Sunnah Skills has been helping young Muslims develop the physical skills, mental discipline, and spiritual grounding they need to thrive."
+              defaultText="We teach martial arts as a way to build practical skills and character. Since May 2024, we've helped students show up consistently, train with discipline, and apply what they learn at home."
               as="span"
               className="inline"
               multiline
@@ -400,7 +400,7 @@ export default function About() {
             <blockquote className="font-serif-accent italic text-3xl md:text-5xl text-cream leading-tight max-w-3xl mx-auto">
               <StudioText
                 k="about.promise.quote"
-                defaultText="We don't just teach martial arts. We build character, confidence, and community."
+                defaultText="Our students learn technique. But they also learn to show up, work with others, and stay calm under pressure."
                 as="span"
                 className="inline"
                 multiline
@@ -430,7 +430,7 @@ export default function About() {
           <p className="font-body text-sm text-charcoal/60 max-w-2xl mb-10">
             <StudioText
               k="about.values.intro"
-              defaultText="We're committed to developing well-rounded individuals who are confident, capable, and compassionate."
+              defaultText="We want students to leave class with better technique than when they arrived—and better habits too."
               as="span"
               className="inline"
               multiline
@@ -473,7 +473,7 @@ export default function About() {
           <p className="font-body text-sm text-charcoal/60 max-w-2xl mb-10">
             <StudioText
               k="about.coaches.intro"
-              defaultText="Our dedicated team brings years of experience, passion, and care to every class."
+              defaultText="Mustafaa and Muadh are purple and blue belt practitioners who have coached together since 2024."
               as="span"
               className="inline"
               multiline
@@ -533,7 +533,7 @@ export default function About() {
             <blockquote className="font-serif-accent italic text-xl md:text-2xl text-cream/90">
                 <StudioText
                   k="about.why.testimonial.quote"
-                  defaultText={`"Sunnah Skills has transformed my son's confidence and discipline. The Islamic values integration makes all the difference."`}
+                  defaultText={`"My son listens better at home now. The coaches reference Islamic adab naturally, not forced."`}
                   as="span"
                   className="inline"
                   multiline

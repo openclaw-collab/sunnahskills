@@ -85,7 +85,7 @@ export function StepStudentInfo({
               Saved students
             </div>
             <p className="mb-3 text-xs text-charcoal/60">
-              Start from a saved profile to avoid typing household details again.
+              Pick a saved student to skip retyping details.
             </p>
             <div className="flex flex-wrap gap-2">
               {savedStudents.map((student) => (
@@ -168,7 +168,7 @@ export function StepStudentInfo({
 
         <div className="space-y-2">
           <label className="font-body text-sm text-charcoal font-medium">
-            Medical notes, allergies, or accessibility needs (optional)
+            Medical notes or allergies (optional)
           </label>
           <Textarea
             value={draft.student.medicalNotes}

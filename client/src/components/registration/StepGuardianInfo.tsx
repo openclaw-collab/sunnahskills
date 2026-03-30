@@ -75,7 +75,7 @@ export function StepGuardianInfo({ draft, updateDraft, errors = {}, touch }: Pro
           value={draft.guardian.fullName}
           onChange={(v) => set({ fullName: v })}
           onBlur={() => touch?.("guardian.fullName")}
-          placeholder="Parent or guardian full name"
+          placeholder="Full name"
           error={errors["guardian.fullName"]}
         />
         <FormInput
@@ -137,7 +137,7 @@ export function StepGuardianInfo({ draft, updateDraft, errors = {}, touch }: Pro
             Notes (optional)
           </div>
           <p className="text-xs text-charcoal/60 font-body mb-3">
-            Use a real email so we can confirm placement, share schedule updates, and send start details.
+            Use a real email so we can send confirmations and schedule updates.
           </p>
           <Textarea
             value={draft.guardian.notes ?? ""}

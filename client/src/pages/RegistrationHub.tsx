@@ -37,8 +37,8 @@ function nextPath() {
 function errorMessage() {
   if (typeof window === "undefined") return "";
   const raw = new URLSearchParams(window.location.search).get("error") ?? "";
-  if (raw === "invalid_link") return "The sign-in link was invalid.";
-  if (raw === "link_used_or_expired") return "That sign-in link was already used or has expired.";
+  if (raw === "invalid_link") return "That sign-in link didn't work. It may have expired or been used already.";
+  if (raw === "link_used_or_expired") return "That sign-in link was already used or expired.";
   return "";
 }
 
@@ -97,7 +97,7 @@ export default function RegistrationHub() {
       body: JSON.stringify(body),
     });
     const json = (await res.json().catch(() => null)) as { error?: string; message?: string } | null;
-    if (!res.ok) throw new Error(json?.error ?? "Request failed");
+    if (!res.ok) throw new Error(json?.error ?? "Something went wrong. Try again?");
     return json;
   }
 
@@ -144,8 +144,8 @@ export default function RegistrationHub() {
 
   function validateSignup() {
     const nextErrors: SignupErrors = {};
-    if (signupFullName.trim().length < 2) nextErrors.signupFullName = "Full name is required.";
-    if (!isValidEmail(signupEmail.trim())) nextErrors.signupEmail = "Enter a valid email address.";
+    if (signupFullName.trim().length < 2) nextErrors.signupFullName = "Enter your full name.";
+    if (!isValidEmail(signupEmail.trim())) nextErrors.signupEmail = "Enter a valid email.";
     setSignupErrors(nextErrors);
     return Object.keys(nextErrors).length === 0;
   }
@@ -280,7 +280,7 @@ export default function RegistrationHub() {
                     setLocalPreview(response?.localPreview ?? null);
                   } catch (caught) {
                     setMessageTone("error");
-                    setMessage(caught instanceof Error ? caught.message : "Could not create the account.");
+                    setMessage(caught instanceof Error ? caught.message : "Couldn't create your account. Try again or contact support.");
                     setLocalPreview(null);
                   } finally {
                     setBusy(null);

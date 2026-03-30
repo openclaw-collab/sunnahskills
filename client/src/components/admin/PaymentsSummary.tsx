@@ -1,7 +1,7 @@
 import React from "react";
 import { PremiumCard } from "@/components/brand/PremiumCard";
 import { Checkbox } from "@/components/ui/checkbox";
-import { formatMoneyFromCents } from "@shared/money";
+
 import { cn } from "@/lib/utils";
 import { summarizePaymentLifecycle } from "@/components/admin/paymentLifecycle";
 import { formatAdminDateTime } from "@/components/admin/adminDateTime";
@@ -32,7 +32,6 @@ type PaymentRow = {
 
 function money(amountCents: number, currency = "CAD") {
   return formatMoneyFromCents(amountCents, { currency });
-}
 
 function statusVariantClasses(variant: "paid_full" | "paid_partial" | "pending" | "failed" | "superseded" | "cancelled") {
   if (variant === "paid_full") return "bg-moss text-cream border-moss";
@@ -40,7 +39,6 @@ function statusVariantClasses(variant: "paid_full" | "paid_partial" | "pending" 
   if (variant === "failed") return "bg-clay text-cream border-clay";
   if (variant === "pending") return "bg-gold/18 text-charcoal border-gold/40";
   return "bg-charcoal/5 text-charcoal/65 border-charcoal/10";
-}
 
 export function PaymentsSummary({
   payments,
@@ -162,4 +160,3 @@ export function PaymentsSummary({
       </div>
     </PremiumCard>
   );
-}

@@ -25,19 +25,6 @@ export const bjjTrackOptions = BJJ_TRACKS.map((track) => ({
   label: track.label,
 })) as ReadonlyArray<{ value: (typeof BJJ_TRACKS)[number]["key"]; label: string }>;
 
-/** @deprecated Use bjjTrackOptions */
-export const bjjClassGroupOptions = [
-  { value: "boys", label: "Boys' class" },
-  { value: "girls", label: "Girls' class" },
-] as const;
-
-/** @deprecated Use bjjTrackOptions */
-export const bjjAgeGroupOptions = [
-  { value: "6-10", label: "6–10 yrs" },
-  { value: "11-14", label: "11–14 yrs" },
-  { value: "15-17", label: "15–17 yrs" },
-] as const;
-
 export const bjjTrialClassOptions = [
   { value: "yes", label: "Yes, trial class first" },
   { value: "no", label: "No, enrol directly" },

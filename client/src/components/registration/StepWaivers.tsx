@@ -3,7 +3,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import type { RegistrationStepProps } from "@/components/registration/steps";
 import { StudioBlock } from "@/studio/StudioBlock";
-import { isMediaWaiverExemptBjjTrack } from "../../../../shared/bjjCatalog";
+import { isMediaWaiverExemptBjjTrack } from "@shared/bjjCatalog";
 
 function WaiverRow({
   label,

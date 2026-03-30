@@ -22,7 +22,7 @@ import {
 import { useGuardianSession } from "@/hooks/useGuardianSession";
 import { PaymentProvider } from "@/components/payment/PaymentProvider";
 import { PaymentForm } from "@/components/payment/PaymentForm";
-import { BJJ_TRACK_BY_KEY, isMediaWaiverExemptBjjTrack } from "../../../../shared/bjjCatalog";
+import { BJJ_TRACK_BY_KEY, isMediaWaiverExemptBjjTrack } from "@shared/bjjCatalog";
 import { formatMoneyFromCents } from "@shared/money";
 import { StudioBlock } from "@/studio/StudioBlock";
 import { StudioText } from "@/studio/StudioText";

@@ -120,7 +120,7 @@ const POOL = {
   up: new THREE.Vector3(0, 1, 0),
 };
 
-const SEQUENCE_CACHE = new Map<string, SequenceData | null>();
+const SEQUENCE_CACHE = new Map<string, SequenceData>();
 const SEQUENCE_PENDING = new Map<string, Promise<SequenceData | null>>();
 
 const CAMERA_TARGET_DRAG = 0.2;
@@ -185,7 +185,9 @@ export async function loadGrappleMapSequence(sequencePath: string, signal?: Abor
   }
 
   const json = await pending;
-  SEQUENCE_CACHE.set(sequencePath, json);
+  if (json) {
+    SEQUENCE_CACHE.set(sequencePath, json);
+  }
   return json;
 }
 

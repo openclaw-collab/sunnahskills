@@ -68,6 +68,28 @@ describe("admin GrappleMap sequence routes", () => {
     expect(data.markers[10]?.name).toBe("(unnamed)");
   });
 
+  it("returns structured diagnostics for invalid graph steps", async () => {
+    const request = createMockRequest("POST", "https://example.com/api/admin/grapplemap-extract", {
+      body: {
+        sequence: [
+          { type: "position", id: 999999 },
+          { type: "transition", id: 888888, reverse: true },
+        ],
+      },
+    });
+
+    const response = await extractHandler({ request, env: { DB: {} as D1Database, GRAPPLEMAP_TEXT: grapplemapText } });
+    const data = await parseJsonResponse(response);
+
+    expect(response.status).toBe(200);
+    expect(data.frames).toEqual([]);
+    expect(data.markers).toEqual([]);
+    expect(data.diagnostics).toEqual([
+      expect.objectContaining({ type: "missing-position", id: 999999 }),
+      expect.objectContaining({ type: "missing-transition", id: 888888 }),
+    ]);
+  });
+
   it("regenerates canonical frames on save instead of trusting submitted frames", async () => {
     const writes: { markersJson?: string; framesJson?: string; rowId?: string; rowSlug?: string } = {};
 
@@ -156,5 +178,98 @@ describe("admin GrappleMap sequence routes", () => {
     expect(savedMarkers).toHaveLength(PREDEFINED_SEQUENCES.uchimata.length);
     expect(savedMarkers[0]?.name).not.toBe("placeholder-0");
     expect(data.sequence?.frames?.length).toBe(savedFrames.length);
+  });
+
+  it("preserves reverse transition direction in the saved canonical path", async () => {
+    const writes: { sourcesJson?: string; rowId?: string; rowSlug?: string; markersJson?: string; framesJson?: string } = {};
+
+    const db = {
+      prepare(query: string) {
+        if (query.includes("CREATE TABLE IF NOT EXISTS technique_sequences")) {
+          return { run: vi.fn().mockResolvedValue({ success: true }) };
+        }
+
+        if (query.includes("INSERT INTO technique_sequences")) {
+          return {
+            bind: vi.fn().mockImplementation((...args: unknown[]) => {
+              writes.rowId = String(args[0]);
+              writes.rowSlug = String(args[1]);
+              writes.markersJson = String(args[8]);
+              writes.framesJson = String(args[9]);
+              writes.sourcesJson = String(args[10]);
+              return {
+                run: vi.fn().mockResolvedValue({ success: true }),
+              };
+            }),
+          };
+        }
+
+        if (query.includes("SELECT * FROM technique_sequences WHERE id = ? LIMIT 1")) {
+          return {
+            bind: vi.fn().mockReturnValue({
+              first: vi.fn().mockImplementation(async () => ({
+                id: writes.rowId,
+                slug: writes.rowSlug,
+                name: "Reverse Standing Entry",
+                position_category: "standing",
+                starting_position: "",
+                ending_position: "",
+                difficulty: "intermediate",
+                description_json: JSON.stringify(["Reverse Standing Entry is part of the Sunnah Skills techniques library."]),
+                markers_json: writes.markersJson ?? "[]",
+                frames_json: writes.framesJson ?? "[]",
+                sources_json: writes.sourcesJson ?? "[]",
+                verified: 0,
+                created_at: "2026-03-31 00:00:00",
+                updated_at: "2026-03-31 00:00:00",
+              })),
+            }),
+          };
+        }
+
+        throw new Error(`Unexpected query: ${query}`);
+      },
+    } as unknown as D1Database;
+
+    const reverseSpec = [
+      { type: "position", id: 21 },
+      { type: "transition", id: 485, reverse: true },
+      { type: "position", id: 46 },
+    ] as const;
+
+    const request = createMockRequest("POST", "https://example.com/api/admin/sequences", {
+      body: {
+        id: "reverse-standing-entry",
+        meta: {
+          id: "reverse-standing-entry",
+          name: "Reverse Standing Entry",
+          slug: "reverse-standing-entry",
+          positionCategory: "standing",
+          difficulty: "intermediate",
+          description: ["Reverse Standing Entry is part of the Sunnah Skills techniques library."],
+          sources: ["Sunnah Skills Admin"],
+          grapplemapPathSpec: reverseSpec,
+        },
+        markers: [
+          { name: "standing vs\\nde la riva", frame: 0, type: "position", libraryType: "position", flatId: 21 },
+          { name: "reverse", frame: 0, type: "transition", libraryType: "transition", flatId: 485, reverse: true },
+          { name: "standing vs\\nreverse dlr", frame: 3, type: "position", libraryType: "position", flatId: 46 },
+        ],
+        frames: [],
+        verified: false,
+      },
+    });
+
+    const response = await saveSequenceHandler({ request, env: { DB: db, GRAPPLEMAP_TEXT: grapplemapText } });
+    const data = await parseJsonResponse(response);
+    const sources = JSON.parse(writes.sourcesJson ?? "[]") as Array<string | { grapplemapPathSpec?: Array<{ reverse?: boolean }> }>;
+    const graphSource = sources.find((entry) => typeof entry === "object" && entry && "grapplemapPathSpec" in entry) as
+      | { grapplemapPathSpec?: Array<{ type: string; id: number; reverse?: boolean }>; grapplemapPathString?: string }
+      | undefined;
+
+    expect(response.status).toBe(200);
+    expect(graphSource?.grapplemapPathSpec).toEqual(reverseSpec);
+    expect(graphSource?.grapplemapPathString).toBe("p21, t485r, p46");
+    expect(data.sequence?.meta?.grapplemapPathString).toBe("p21, t485r, p46");
   });
 });

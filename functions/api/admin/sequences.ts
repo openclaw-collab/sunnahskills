@@ -128,9 +128,20 @@ function parseGraphPathSpec(value: unknown): FlatSpecItem[] | undefined {
       s != null &&
       typeof s === "object" &&
       ((s as FlatSpecItem).type === "position" || (s as FlatSpecItem).type === "transition") &&
-      typeof (s as FlatSpecItem).id === "number",
+      typeof (s as FlatSpecItem).id === "number" &&
+      ((s as FlatSpecItem).reverse == null || typeof (s as FlatSpecItem).reverse === "boolean"),
   ) as FlatSpecItem[];
   return spec.length > 0 ? spec : undefined;
+}
+
+function normalizeGraphPathSpec(value: FlatSpecItem[] | undefined) {
+  return value?.filter(
+    (s) =>
+      s &&
+      (s.type === "position" || s.type === "transition") &&
+      Number.isFinite(s.id) &&
+      (s.reverse == null || typeof s.reverse === "boolean"),
+  );
 }
 
 function parseSourcesRow(value: string | null): {
@@ -304,13 +315,8 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
   const id = body?.id?.trim() || body?.meta.id?.trim() || slug;
   const description = (body?.meta.description ?? []).map((line) => line.trim()).filter(Boolean);
   const stringSources = (body?.meta.sources ?? []).map((line) => String(line).trim()).filter(Boolean);
-  const spec = body?.meta.grapplemapExtractSpec?.filter(
-    (s) => s && (s.type === "position" || s.type === "transition") && Number.isFinite(s.id),
-  );
-  const canonicalPathSpec =
-    body?.meta.grapplemapPathSpec?.filter(
-      (s) => s && (s.type === "position" || s.type === "transition") && Number.isFinite(s.id),
-    ) ?? spec;
+  const spec = normalizeGraphPathSpec(body?.meta.grapplemapExtractSpec);
+  const canonicalPathSpec = normalizeGraphPathSpec(body?.meta.grapplemapPathSpec) ?? spec;
   const sourcesPayload: unknown[] = [...stringSources];
   if (canonicalPathSpec && canonicalPathSpec.length > 0) {
     sourcesPayload.push({

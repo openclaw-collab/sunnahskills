@@ -7,13 +7,21 @@ import {
   stabilizeSequenceFrames as stabilizeSequenceFramesCanonical,
 } from "../GrappleMap/scripts/grapplemap-sequence-core.js";
 
-export type FlatSpecItem = { type: "position" | "transition"; id: number };
+export type FlatSpecItem = { type: "position" | "transition"; id: number; reverse?: boolean };
 export type GrappleMapGraphPathStep = FlatSpecItem;
 
 export type ExtractedMarker = {
   name: string;
   frame: number;
   type: "position" | "transition";
+};
+
+export type GrappleMapDiagnostic = {
+  type: string;
+  id: number;
+  stepType: "position" | "transition";
+  message: string;
+  relatedId?: number;
 };
 
 type ParsedFlatIndexLists = {
@@ -24,7 +32,11 @@ type ParsedFlatIndexLists = {
 export const PREDEFINED_SEQUENCES = PREDEFINED_SEQUENCES_CANONICAL as Record<string, FlatSpecItem[]>;
 
 export function serializeGraphPathSpec(spec: GrappleMapGraphPathStep[]) {
-  return spec.map((step) => `${step.type === "position" ? "p" : "t"}${step.id}`).join(", ");
+  return spec
+    .map((step) =>
+      step.type === "position" ? `p${step.id}` : `t${step.id}${step.reverse ? "r" : ""}`,
+    )
+    .join(", ");
 }
 
 export function parseFlatSpec(spec: string | FlatSpecItem[]) {
@@ -45,10 +57,11 @@ export function stabilizeSequenceFrames(
 export function buildSequenceFromGrappleMapText(
   text: string,
   spec: FlatSpecItem[],
-): { frames: number[][][][]; markers: ExtractedMarker[] } {
+): { frames: number[][][][]; markers: ExtractedMarker[]; diagnostics?: GrappleMapDiagnostic[] } {
   return buildSequenceFromGrappleMapTextCanonical(text, spec) as {
     frames: number[][][][];
     markers: ExtractedMarker[];
+    diagnostics?: GrappleMapDiagnostic[];
   };
 }
 
@@ -68,5 +81,6 @@ export function buildSequencePayloadFromGrappleMapText(
     };
     markers: ExtractedMarker[];
     frames: number[][][][];
+    diagnostics?: GrappleMapDiagnostic[];
   };
 }

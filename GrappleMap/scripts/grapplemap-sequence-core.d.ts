@@ -1,8 +1,15 @@
-export type FlatSpecItem = { type: "position" | "transition"; id: number };
+export type FlatSpecItem = { type: "position" | "transition"; id: number; reverse?: boolean };
 export type ExtractedMarker = {
   name: string;
   frame: number;
   type: "position" | "transition";
+};
+export type GrappleMapDiagnostic = {
+  type: string;
+  id: number;
+  stepType: "position" | "transition";
+  message: string;
+  relatedId?: number;
 };
 
 export const PREDEFINED_SEQUENCES: Record<string, FlatSpecItem[]>;
@@ -19,7 +26,7 @@ export function stabilizeSequenceFrames(
 export function buildSequenceFromGrappleMapText(
   text: string,
   spec: FlatSpecItem[],
-): { frames: number[][][][]; markers: ExtractedMarker[] };
+): { frames: number[][][][]; markers: ExtractedMarker[]; diagnostics?: GrappleMapDiagnostic[] };
 export function buildSequencePayloadFromGrappleMapText(
   name: string,
   text: string,
@@ -35,4 +42,5 @@ export function buildSequencePayloadFromGrappleMapText(
   };
   markers: ExtractedMarker[];
   frames: number[][][][];
+  diagnostics?: GrappleMapDiagnostic[];
 };

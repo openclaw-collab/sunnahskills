@@ -1,4 +1,4 @@
-export type FlatSpecItem = { type: "position" | "transition"; id: number };
+export type FlatSpecItem = { type: "position" | "transition"; id: number; reverse?: boolean };
 
 export type ExtractedMarker = {
   name: string;

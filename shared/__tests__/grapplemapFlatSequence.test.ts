@@ -5,7 +5,9 @@ import { loadGraph } from "../../GrappleMap/scripts/grapplemap-loader.js";
 import {
   buildSequenceFromGrappleMapText,
   buildSequencePayloadFromGrappleMapText,
+  parseFlatSpec,
   PREDEFINED_SEQUENCES,
+  serializeGraphPathSpec,
 } from "../grapplemapFlatSequence";
 
 const repoRoot = join(__dirname, "..", "..");
@@ -22,6 +24,37 @@ const uchimataPayload = buildSequencePayloadFromGrappleMapText(
 const uchimataLoader = loadGraph(grapplemapPath).buildSequence(uchimataSpec);
 
 describe("grapplemapFlatSequence", () => {
+  it("round-trips reverse transitions in the canonical path format", () => {
+    const spec = [
+      { type: "position", id: 21 },
+      { type: "transition", id: 485, reverse: true },
+      { type: "position", id: 46 },
+    ] as const;
+
+    const serialized = serializeGraphPathSpec([...spec]);
+
+    expect(serialized).toBe("p21, t485r, p46");
+    expect(parseFlatSpec(serialized)).toEqual(spec);
+    expect(parseFlatSpec("p21, -485, p46")).toEqual(spec);
+  });
+
+  it("extracts reverse graph transitions without dropping direction", () => {
+    const spec = [
+      { type: "position", id: 21 },
+      { type: "transition", id: 485, reverse: true },
+      { type: "position", id: 46 },
+    ] as const;
+
+    const canonical = buildSequenceFromGrappleMapText(grapplemapText, [...spec]);
+
+    expect(canonical.markers).toEqual([
+      { name: "standing vs\\nde la riva", frame: 0, type: "position" },
+      { name: "reverse", frame: 0, type: "transition" },
+      { name: "standing vs\\nreverse dlr", frame: 3, type: "position" },
+    ]);
+    expect(canonical.frames).toHaveLength(4);
+  });
+
   it("supports editor-style graph node ids for the long double-leg chain", () => {
     const spec = [
       { type: "position", id: 401 },

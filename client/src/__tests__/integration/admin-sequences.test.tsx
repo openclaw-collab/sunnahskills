@@ -44,6 +44,36 @@ describe("Admin sequence builder integration", () => {
         HttpResponse.json({
           positions: [
             {
+              id: "pos-21",
+              sourceId: 21,
+              graphNodeId: 21,
+              libraryType: "position",
+              name: "standing vs\\nde la riva",
+              displayName: "Standing Vs De La Riva",
+              slug: "standing-vs-de-la-riva",
+              tags: ["standing"],
+              props: [],
+              frameCount: 1,
+              previewPath: "/data/library/admin/positions/position-21.json",
+              outgoingCount: 1,
+              incomingCount: 1,
+            },
+            {
+              id: "pos-46",
+              sourceId: 46,
+              graphNodeId: 46,
+              libraryType: "position",
+              name: "standing vs\\nreverse dlr",
+              displayName: "Standing Vs Reverse Dlr",
+              slug: "standing-vs-reverse-dlr",
+              tags: ["standing"],
+              props: [],
+              frameCount: 1,
+              previewPath: "/data/library/admin/positions/position-46.json",
+              outgoingCount: 1,
+              incomingCount: 1,
+            },
+            {
               id: "pos-401",
               sourceId: 401,
               graphNodeId: 401,
@@ -55,7 +85,7 @@ describe("Admin sequence builder integration", () => {
               props: [],
               frameCount: 1,
               previewPath: "/data/library/admin/positions/position-401.json",
-              outgoingCount: 1,
+              outgoingCount: 2,
               incomingCount: 0,
             },
             {
@@ -86,7 +116,7 @@ describe("Admin sequence builder integration", () => {
               frameCount: 1,
               previewPath: "/data/library/admin/positions/position-490.json",
               outgoingCount: 0,
-              incomingCount: 1,
+              incomingCount: 2,
             },
           ],
         }),
@@ -116,15 +146,98 @@ describe("Admin sequence builder integration", () => {
               composerTitle: "Begin",
               composerSubtitle: "From staredown to symmetric staggered standing",
             },
+            {
+              id: "tx-485",
+              builderKey: "tx-485:forward",
+              sourceId: 485,
+              graphTransitionId: 485,
+              libraryType: "transition",
+              name: "reverse",
+              displayName: "Reverse",
+              slug: "reverse",
+              tags: ["standing", "bidirectional"],
+              props: ["bidirectional"],
+              frameCount: 4,
+              previewPath: "/data/library/admin/transitions/transition-485.json",
+              fromNodeId: 46,
+              toNodeId: 21,
+              fromDisplayName: "Standing Vs Reverse Dlr",
+              toDisplayName: "Standing Vs De La Riva",
+              reverse: false,
+              bidirectional: true,
+              composerTitle: "Reverse",
+              composerSubtitle: "From Standing Vs Reverse Dlr to Standing Vs De La Riva",
+            },
+            {
+              id: "tx-999",
+              builderKey: "tx-999:forward",
+              sourceId: 999,
+              graphTransitionId: 999,
+              libraryType: "transition",
+              name: "far away route",
+              displayName: "Far Away Route",
+              slug: "far-away-route",
+              tags: ["standing"],
+              props: [],
+              frameCount: 4,
+              previewPath: "/data/library/admin/transitions/transition-999.json",
+              fromNodeId: 46,
+              toNodeId: 490,
+              fromDisplayName: "Standing Vs Reverse Dlr",
+              toDisplayName: "Low Flying Double Leg",
+              reverse: false,
+              bidirectional: false,
+              composerTitle: "Far Away Route",
+              composerSubtitle: "From Standing Vs Reverse Dlr to Low Flying Double Leg",
+            },
+            {
+              id: "tx-840",
+              builderKey: "tx-840:forward",
+              sourceId: 840,
+              graphTransitionId: 840,
+              libraryType: "transition",
+              name: "snap double",
+              displayName: "Snap Double",
+              slug: "snap-double",
+              tags: ["standing", "double-leg"],
+              props: [],
+              frameCount: 6,
+              previewPath: "/data/library/admin/transitions/transition-840.json",
+              fromNodeId: 401,
+              toNodeId: 490,
+              fromDisplayName: "Staredown",
+              toDisplayName: "Low Flying Double Leg",
+              reverse: false,
+              bidirectional: false,
+              composerTitle: "Snap Double",
+              composerSubtitle: "From Staredown to Low Flying Double Leg",
+            },
           ],
         }),
       ),
       http.get("/data/library/admin/graph-links.json", () =>
         HttpResponse.json({
           nodes: [
-            { id: 401, incoming: [], outgoing: [{ transitionId: 838, reverse: false }] },
+            {
+              id: 401,
+              incoming: [],
+              outgoing: [
+                { transitionId: 838, reverse: false },
+                { transitionId: 840, reverse: false },
+              ],
+            },
             { id: 94, incoming: [{ transitionId: 838, reverse: false }], outgoing: [] },
-            { id: 490, incoming: [], outgoing: [] },
+            {
+              id: 21,
+              incoming: [{ transitionId: 485, reverse: false }],
+              outgoing: [{ transitionId: 485, reverse: true }],
+            },
+            {
+              id: 46,
+              incoming: [{ transitionId: 485, reverse: true }],
+              outgoing: [{ transitionId: 485, reverse: false }, { transitionId: 999, reverse: false }],
+            },
+            { id: 490, incoming: [{ transitionId: 840, reverse: false }], outgoing: [] },
           ],
         }),
       ),
@@ -177,17 +290,21 @@ describe("Admin sequence builder integration", () => {
           ],
         }),
       ),
-      http.post("/api/admin/grapplemap-extract", async () =>
-        HttpResponse.json({
-          frames: [],
-          markers: [
-            { name: "staredown", frame: 0, type: "position" },
-            { name: "begin", frame: 0, type: "transition" },
-            { name: "symmetric\\nstaggered\\nstanding", frame: 8, type: "position" },
-          ],
-          meta: { totalFrames: 0 },
-        }),
-      ),
+      http.post("/api/admin/grapplemap-extract", async ({ request }) => {
+        const body = (await request.json().catch(() => null)) as
+          | { sequence?: Array<{ type: "position" | "transition"; id: number; reverse?: boolean }> }
+          | null;
+        const spec = body?.sequence ?? [];
+        return HttpResponse.json({
+          frames: spec.length ? [[[[]]], [[[]]]] : [],
+          markers: spec.map((step, index) => ({
+            name: step.type === "position" ? `position-${step.id}` : `transition-${step.id}${step.reverse ? "r" : ""}`,
+            frame: index,
+            type: step.type,
+          })),
+          meta: { totalFrames: spec.length ? 2 : 0 },
+        });
+      }),
     );
   });
 
@@ -206,5 +323,170 @@ describe("Admin sequence builder integration", () => {
 
     expect(screen.getByText(/Loaded Staredown to Double Leg Entry into the builder for editing\./i)).toBeInTheDocument();
     expect(screen.getAllByText(/p401 -> t838 -> p94/i).length).toBeGreaterThan(0);
+  });
+
+  it("round-trips reverse transitions when loading an existing sequence", async () => {
+    const user = userEvent.setup();
+
+    server.use(
+      http.get("/api/admin/sequences", () =>
+        HttpResponse.json({
+          sequences: [
+            {
+              id: "reverse-standing-entry",
+              meta: {
+                id: "reverse-standing-entry",
+                slug: "reverse-standing-entry",
+                name: "Reverse Standing Entry",
+                positionCategory: "standing",
+                startingPosition: "Standing Vs De La Riva",
+                endingPosition: "Standing Vs Reverse Dlr",
+                difficulty: "intermediate",
+                description: ["Reverse standing entry.", "Loads a reverse graph route."],
+                grapplemapPathSpec: [
+                  { type: "position", id: 21 },
+                  { type: "transition", id: 485, reverse: true },
+                  { type: "position", id: 46 },
+                ],
+                grapplemapPathString: "p21, t485r, p46",
+              },
+              markers: [
+                { name: "standing vs\\nde la riva", frame: 0, type: "position" },
+                { name: "reverse", frame: 0, type: "transition", reverse: true },
+                { name: "standing vs\\nreverse dlr", frame: 3, type: "position" },
+              ],
+              frames: [[[]]],
+              verified: true,
+            },
+          ],
+        }),
+      ),
+    );
+
+    renderAdminSequencesAt();
+
+    await user.click(await screen.findByRole("button", { name: /reverse standing entry/i }));
+    await user.click(await screen.findByRole("button", { name: /edit in builder/i }));
+
+    await waitFor(() => {
+      expect(screen.getByDisplayValue("Reverse Standing Entry")).toBeInTheDocument();
+    });
+
+    expect(screen.getAllByText(/p21 -> t485r -> p46/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/standing vs de la riva -> standing vs reverse dlr/i).length).toBeGreaterThan(0);
+  });
+
+  it("blocks disconnected transitions in the search tab and clearly labels connected ones", async () => {
+    const user = userEvent.setup();
+    renderAdminSequencesAt();
+
+    await user.click(await screen.findByRole("button", { name: /staredown to double leg entry/i }));
+    await user.click(await screen.findByRole("button", { name: /edit in builder/i }));
+    await waitFor(() => {
+      expect(screen.getByDisplayValue("Staredown to Double Leg Entry")).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole("button", { name: /^search$/i }));
+    await user.click(screen.getByRole("button", { name: /^transitions$/i }));
+    await user.type(screen.getByPlaceholderText(/search transitions/i), "far away");
+
+    expect(await screen.findByText(/far away route/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /disconnected/i })).toBeDisabled();
+
+    await user.clear(screen.getByPlaceholderText(/search transitions/i));
+    await user.type(screen.getByPlaceholderText(/search transitions/i), "begin");
+
+    expect(await screen.findByText(/^begin$/i)).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: /add after/i }).length).toBeGreaterThan(0);
+  });
+
+  it("keeps the full sequence preview visible while composing outside the review tab", async () => {
+    const user = userEvent.setup();
+    renderAdminSequencesAt();
+
+    await user.click(await screen.findByRole("button", { name: /staredown to double leg entry/i }));
+    await user.click(await screen.findByRole("button", { name: /edit in builder/i }));
+    await waitFor(() => {
+      expect(screen.getByDisplayValue("Staredown to Double Leg Entry")).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole("button", { name: /^add after$/i }));
+
+    expect(screen.getByText(/live chain preview/i)).toBeInTheDocument();
+    expect(screen.getAllByTestId("technique-viewer")[0]).toHaveTextContent("2");
+  });
+
+  it("replaces a transition from the current anchor and resets the tail when the landing node changes", async () => {
+    const user = userEvent.setup();
+    renderAdminSequencesAt();
+
+    await user.click(await screen.findByRole("button", { name: /staredown to double leg entry/i }));
+    await user.click(await screen.findByRole("button", { name: /edit in builder/i }));
+    await waitFor(() => {
+      expect(screen.getByDisplayValue("Staredown to Double Leg Entry")).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole("button", { name: /replace begin/i }));
+    await user.type(screen.getByPlaceholderText(/search transitions/i), "snap");
+    await user.click(await screen.findByRole("button", { name: /replace from here/i }));
+
+    await waitFor(() => {
+      expect(screen.getAllByText(/p401 -> t840 -> p490/i).length).toBeGreaterThan(0);
+    });
+    expect(screen.getAllByText(/low flying double leg/i).length).toBeGreaterThan(0);
+  });
+
+  it("can flip an isolated bidirectional transition when editing an existing sequence", async () => {
+    const user = userEvent.setup();
+
+    server.use(
+      http.get("/api/admin/sequences", () =>
+        HttpResponse.json({
+          sequences: [
+            {
+              id: "reverse-standing-entry",
+              meta: {
+                id: "reverse-standing-entry",
+                slug: "reverse-standing-entry",
+                name: "Reverse Standing Entry",
+                positionCategory: "standing",
+                startingPosition: "Standing Vs De La Riva",
+                endingPosition: "Standing Vs Reverse Dlr",
+                difficulty: "intermediate",
+                description: ["Reverse standing entry.", "Loads a reverse graph route."],
+                grapplemapPathSpec: [
+                  { type: "position", id: 21 },
+                  { type: "transition", id: 485, reverse: true },
+                  { type: "position", id: 46 },
+                ],
+                grapplemapPathString: "p21, t485r, p46",
+              },
+              markers: [
+                { name: "standing vs\\nde la riva", frame: 0, type: "position" },
+                { name: "reverse", frame: 0, type: "transition", reverse: true },
+                { name: "standing vs\\nreverse dlr", frame: 3, type: "position" },
+              ],
+              frames: [[[]]],
+              verified: true,
+            },
+          ],
+        }),
+      ),
+    );
+
+    renderAdminSequencesAt();
+
+    await user.click(await screen.findByRole("button", { name: /reverse standing entry/i }));
+    await user.click(await screen.findByRole("button", { name: /edit in builder/i }));
+    await waitFor(() => {
+      expect(screen.getByDisplayValue("Reverse Standing Entry")).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole("button", { name: /flip reverse/i }));
+
+    await waitFor(() => {
+      expect(screen.getAllByText(/p46 -> t485 -> p21/i).length).toBeGreaterThan(0);
+    });
+    expect(screen.getByText(/flipped the route direction for this isolated step/i)).toBeInTheDocument();
   });
 });

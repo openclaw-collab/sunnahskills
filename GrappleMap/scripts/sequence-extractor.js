@@ -47,15 +47,27 @@ export function parseSpec(spec) {
   const result = [];
 
   for (const part of parts) {
+    const legacyReverseTransitionMatch = part.match(/^-(\d+)$/);
+    if (legacyReverseTransitionMatch) {
+      result.push({ type: "transition", id: parseInt(legacyReverseTransitionMatch[1], 10), reverse: true });
+      continue;
+    }
+
     const positionMatch = part.match(/^(p|position)?\s*(\d+)$/);
     if (positionMatch) {
       result.push({ type: "position", id: parseInt(positionMatch[2], 10) });
       continue;
     }
 
+    const reverseTransitionMatch = part.match(/^(t|transition)?\s*(\d+)\s*(r|rev|reverse)$/);
+    if (reverseTransitionMatch) {
+      result.push({ type: "transition", id: parseInt(reverseTransitionMatch[2], 10), reverse: true });
+      continue;
+    }
+
     const transitionMatch = part.match(/^(t|transition)?\s*(\d+)$/);
     if (transitionMatch) {
-      result.push({ type: "transition", id: parseInt(transitionMatch[2], 10) });
+      result.push({ type: "transition", id: parseInt(transitionMatch[2], 10), reverse: false });
     }
   }
 

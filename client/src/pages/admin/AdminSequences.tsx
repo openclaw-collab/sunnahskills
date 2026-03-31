@@ -122,6 +122,15 @@ type BuiltSequence = {
   markers: SequenceMarker[];
 };
 
+type TransitionEditContext = {
+  index: number;
+  marker: SequenceMarker;
+  previousPosition: SequenceMarker | null;
+  previousPositionIndex: number | null;
+  nextPosition: SequenceMarker | null;
+  nextPositionIndex: number | null;
+};
+
 const DIFFICULTY_OPTIONS: SequenceDifficulty[] = ["beginner", "intermediate", "advanced"];
 const CATEGORY_OPTIONS: Array<{ slug: PositionCategory | "mixed"; label: string }> = [
   { slug: "mixed", label: "Mixed" },
@@ -321,7 +330,11 @@ function markerFromTransition(item: LibraryItemSummary, index: number): Sequence
 function deriveExtractSpec(markers: SequenceMarker[]): FlatSpecItem[] {
   return markers
     .filter((marker) => marker.libraryType !== "note" && marker.flatId != null)
-    .map((marker) => ({ type: marker.type as "position" | "transition", id: marker.flatId as number }));
+    .map((marker) => ({
+      type: marker.type as "position" | "transition",
+      id: marker.flatId as number,
+      ...(marker.type === "transition" ? { reverse: Boolean(marker.reverse) } : {}),
+    }));
 }
 
 function mergeMarkersWithExtractedMarkers(
@@ -352,9 +365,30 @@ function mergeMarkersWithExtractedMarkers(
   return [...merged, ...normalizedNotes].sort((left, right) => left.frame - right.frame);
 }
 
+function findPreviousPositionContext(markers: SequenceMarker[], fromIndex: number) {
+  for (let index = fromIndex - 1; index >= 0; index -= 1) {
+    const marker = markers[index];
+    if (marker.type === "position" && marker.graphNodeId != null) {
+      return { marker, index };
+    }
+  }
+  return null;
+}
+
+function findNextPositionContext(markers: SequenceMarker[], fromIndex: number) {
+  for (let index = fromIndex + 1; index < markers.length; index += 1) {
+    const marker = markers[index];
+    if (marker.type === "position" && marker.graphNodeId != null) {
+      return { marker, index };
+    }
+  }
+  return null;
+}
+
 export default function AdminSequences() {
   const [, setLocation] = useLocation();
   const previewRequests = useRef(new Map<string, Promise<LibraryItemPreview | null>>());
+  const selectedPreviewRequestId = useRef(0);
   const [me, setMe] = useState<AdminUser | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [positions, setPositions] = useState<LibraryItemSummary[]>([]);
@@ -371,6 +405,7 @@ export default function AdminSequences() {
   const [selectedItemPreview, setSelectedItemPreview] = useState<LibraryItemPreview | null>(null);
   const [selectedSequenceId, setSelectedSequenceId] = useState<string | null>(null);
   const [sequenceMarkers, setSequenceMarkers] = useState<SequenceMarker[]>([]);
+  const [editingTransitionIndex, setEditingTransitionIndex] = useState<number | null>(null);
   const [sequenceName, setSequenceName] = useState("");
   const [notes, setNotes] = useState("");
   const [difficulty, setDifficulty] = useState<SequenceDifficulty>("beginner");
@@ -378,6 +413,7 @@ export default function AdminSequences() {
   const [published, setPublished] = useState(false);
   const [customTransition, setCustomTransition] = useState("");
   const [feedback, setFeedback] = useState<string | null>(null);
+  const [extractionDiagnostics, setExtractionDiagnostics] = useState<Array<{ type: string; id: number; message: string; relatedId?: number }> | null>(null);
 
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -468,15 +504,23 @@ export default function AdminSequences() {
     [positions],
   );
 
-  const transitionsByFlatId = useMemo(
-    () =>
-      new Map(
-        transitions
-          .filter((item) => !item.reverse)
-          .map((item) => [item.sourceId, applyDirectionalTransition(item, false)]),
-      ),
-    [transitions],
-  );
+  const transitionsByFlatId = useMemo(() => new Map(transitions.map((item) => [item.sourceId, item])), [transitions]);
+
+  const activeTransitionEdit = useMemo<TransitionEditContext | null>(() => {
+    if (editingTransitionIndex == null) return null;
+    const marker = sequenceMarkers[editingTransitionIndex];
+    if (!marker || marker.type !== "transition") return null;
+    const previous = findPreviousPositionContext(sequenceMarkers, editingTransitionIndex);
+    const next = findNextPositionContext(sequenceMarkers, editingTransitionIndex);
+    return {
+      index: editingTransitionIndex,
+      marker,
+      previousPosition: previous?.marker ?? null,
+      previousPositionIndex: previous?.index ?? null,
+      nextPosition: next?.marker ?? null,
+      nextPositionIndex: next?.index ?? null,
+    };
+  }, [editingTransitionIndex, sequenceMarkers]);
 
   const fetchCanonicalExtract = useCallback(async (spec: FlatSpecItem[]) => {
     const res = await fetch("/api/admin/grapplemap-extract", {
@@ -489,6 +533,7 @@ export default function AdminSequences() {
           frames?: number[][][][];
           markers?: Array<{ name: string; frame: number; type: "position" | "transition" }>;
           meta?: { totalFrames?: number };
+          diagnostics?: Array<{ type: string; id: number; message: string; relatedId?: number }>;
           error?: string;
         }
       | null;
@@ -590,13 +635,19 @@ export default function AdminSequences() {
 
   const loadLibraryItem = useCallback(
     async (item: LibraryItemSummary) => {
+      const requestId = selectedPreviewRequestId.current + 1;
+      selectedPreviewRequestId.current = requestId;
       setSelectedItem(item);
+      setSelectedItemPreview(null);
       setLoadingPreview(true);
       try {
         const preview = await ensurePreviewAsset(item.previewPath);
+        if (selectedPreviewRequestId.current !== requestId) return;
         setSelectedItemPreview(preview ? materializePreviewAsset(preview, Boolean(item.reverse)) : null);
       } finally {
-        setLoadingPreview(false);
+        if (selectedPreviewRequestId.current === requestId) {
+          setLoadingPreview(false);
+        }
       }
     },
     [ensurePreviewAsset],
@@ -630,6 +681,7 @@ export default function AdminSequences() {
     const spec = deriveExtractSpec(sequenceMarkers);
     if (spec.length === 0) {
       setExtractedOverride(null);
+      setExtractionDiagnostics(null);
       return;
     }
 
@@ -642,9 +694,11 @@ export default function AdminSequences() {
           frames: extracted.frames ?? [],
           markers: mergeMarkersWithExtractedMarkers(sequenceMarkers, extracted.markers ?? []),
         });
+        setExtractionDiagnostics(extracted.diagnostics?.length ? extracted.diagnostics : null);
       } catch {
         if (!cancelled) {
           setExtractedOverride(null);
+          setExtractionDiagnostics(null);
         }
       }
     })();
@@ -683,8 +737,14 @@ export default function AdminSequences() {
         frames: data.frames ?? [],
         markers: mergeMarkersWithExtractedMarkers(sequenceMarkers, data.markers ?? []),
       });
-      setFeedback("Extracted full sequence from GrappleMap.txt.");
+      setExtractionDiagnostics(data.diagnostics?.length ? data.diagnostics : null);
+      setFeedback(
+        data.diagnostics?.length
+          ? `Extracted with ${data.diagnostics.length} warning${data.diagnostics.length === 1 ? "" : "s"}.`
+          : "Extracted full sequence from GrappleMap.txt.",
+      );
     } catch (error) {
+      setExtractionDiagnostics(null);
       setFeedback(error instanceof Error ? error.message : "Could not extract sequence.");
     }
   }, [fetchCanonicalExtract, sequenceMarkers]);
@@ -708,6 +768,67 @@ export default function AdminSequences() {
     const firstTransition = sequenceMarkers.find((marker) => marker.type === "transition" && marker.fromNodeId != null);
     return firstTransition?.fromNodeId ?? null;
   }, [sequenceMarkers]);
+
+  const getTransitionInsertionMode = useCallback(
+    (item: LibraryItemSummary) => {
+      if (item.libraryType !== "transition") return "none" as const;
+      if (sequenceMarkers.length === 0) return "start" as const;
+      if (currentPositionNodeId != null && item.fromNodeId != null && item.fromNodeId === currentPositionNodeId) {
+        return "after" as const;
+      }
+      if (firstPositionNodeId != null && item.toNodeId != null && item.toNodeId === firstPositionNodeId) {
+        return "before" as const;
+      }
+      return "disconnected" as const;
+    },
+    [currentPositionNodeId, firstPositionNodeId, sequenceMarkers.length],
+  );
+
+  const getReplacementAction = useCallback(
+    (item: LibraryItemSummary) => {
+      if (!activeTransitionEdit || item.libraryType !== "transition") return null;
+      const previousNodeId = activeTransitionEdit.previousPosition?.graphNodeId ?? null;
+      const nextNodeId = activeTransitionEdit.nextPosition?.graphNodeId ?? null;
+      if (previousNodeId == null || item.fromNodeId == null || item.fromNodeId !== previousNodeId) {
+        return { disabled: true, label: "Disconnected" } as const;
+      }
+      if (nextNodeId != null && item.toNodeId != null && item.toNodeId === nextNodeId) {
+        return { disabled: false, label: "Replace and keep tail" } as const;
+      }
+      return { disabled: false, label: "Replace from here" } as const;
+    },
+    [activeTransitionEdit],
+  );
+
+  const getSearchAction = useCallback(
+    (item: LibraryItemSummary) => {
+      if (activeTransitionEdit) {
+        if (item.libraryType === "position") {
+          return { disabled: true, label: "Replace with route" } as const;
+        }
+        return getReplacementAction(item) ?? { disabled: true, label: "Disconnected" } as const;
+      }
+
+      if (item.libraryType === "position") {
+        return {
+          disabled: sequenceMarkers.length > 0,
+          label: sequenceMarkers.length > 0 ? "Start only" : "Start here",
+        } as const;
+      }
+
+      switch (getTransitionInsertionMode(item)) {
+        case "after":
+          return { disabled: false, label: "Add after" } as const;
+        case "before":
+          return { disabled: false, label: "Add before" } as const;
+        case "start":
+          return { disabled: true, label: "Start with position" } as const;
+        default:
+          return { disabled: true, label: "Disconnected" } as const;
+      }
+    },
+    [activeTransitionEdit, getReplacementAction, getTransitionInsertionMode, sequenceMarkers.length],
+  );
 
   const outgoingTransitionsByNode = useMemo(() => {
     const map = new Map<number, LibraryItemSummary[]>();
@@ -920,8 +1041,12 @@ export default function AdminSequences() {
       })
       .sort((left, right) => {
         if (catalogMode === "transitions" && currentPositionNodeId != null) {
-          const leftCurrent = left.fromNodeId === currentPositionNodeId ? 1 : 0;
-          const rightCurrent = right.fromNodeId === currentPositionNodeId ? 1 : 0;
+          const leftMode = getTransitionInsertionMode(left);
+          const rightMode = getTransitionInsertionMode(right);
+          const score = (mode: "after" | "before" | "start" | "disconnected" | "none") =>
+            mode === "after" ? 2 : mode === "before" ? 1 : 0;
+          const leftCurrent = score(leftMode);
+          const rightCurrent = score(rightMode);
           if (leftCurrent !== rightCurrent) return rightCurrent - leftCurrent;
         }
 
@@ -938,10 +1063,11 @@ export default function AdminSequences() {
 
         return getItemLabel(left).localeCompare(getItemLabel(right));
       });
-  }, [catalogMode, currentPositionNodeId, filterTag, positions, searchQuery, transitions]);
+  }, [catalogMode, currentPositionNodeId, filterTag, getTransitionInsertionMode, positions, searchQuery, transitions]);
 
   const resetEditor = useCallback(() => {
     setSelectedSequenceId(null);
+    setEditingTransitionIndex(null);
     setSequenceName("");
     setNotes("");
     setDifficulty("beginner");
@@ -950,10 +1076,12 @@ export default function AdminSequences() {
     setSequenceMarkers([]);
     setCustomTransition("");
     setFeedback(null);
+    setExtractionDiagnostics(null);
   }, []);
 
   const addPositionToBuilder = useCallback(
     (item: LibraryItemSummary) => {
+      setEditingTransitionIndex(null);
       setSequenceMarkers((current) => {
         const existingCurrentNodeId = (() => {
           const reversed = [...current].reverse();
@@ -986,6 +1114,7 @@ export default function AdminSequences() {
 
   const addTransitionToBuilder = useCallback(
     (item: LibraryItemSummary) => {
+      setEditingTransitionIndex(null);
       setSequenceMarkers((current) => {
         const currentNodeId = (() => {
           const reversed = [...current].reverse();
@@ -995,7 +1124,12 @@ export default function AdminSequences() {
           return lastTransition?.toNodeId ?? null;
         })();
 
-        if (currentNodeId != null && item.fromNodeId != null && currentNodeId !== item.fromNodeId) {
+        if (currentNodeId == null) {
+          setFeedback("Start from a position first, then add a connected route from the After tab or Search.");
+          return current;
+        }
+
+        if (item.fromNodeId != null && currentNodeId !== item.fromNodeId) {
           setFeedback(
             `This transition starts from ${item.fromDisplayName || "a different position"}, not the current end of your chain.`,
           );
@@ -1003,21 +1137,13 @@ export default function AdminSequences() {
         }
 
         const next = [...current];
-
-        if (currentNodeId == null && item.fromNodeId != null) {
-          const origin = positionsByNodeId.get(item.fromNodeId);
-          if (origin) next.push(markerFromPosition(origin, next.length));
-        }
+        const originNodeId = currentNodeId;
 
         next.push(markerFromTransition(item, next.length));
 
         if (item.toNodeId != null) {
           const destination = positionsByNodeId.get(item.toNodeId);
-          const lastPosition = next[next.length - 2];
-          if (
-            destination &&
-            !(lastPosition?.type === "position" && lastPosition.graphNodeId != null && lastPosition.graphNodeId === destination.graphNodeId)
-          ) {
+          if (destination && destination.graphNodeId !== originNodeId) {
             next.push(markerFromPosition(destination, next.length));
           }
         }
@@ -1036,6 +1162,7 @@ export default function AdminSequences() {
 
   const prependTransitionToBuilder = useCallback(
     (item: LibraryItemSummary) => {
+      setEditingTransitionIndex(null);
       setSequenceMarkers((current) => {
         const firstPosition = current.find((marker) => marker.type === "position" && marker.graphNodeId != null);
         const firstNodeId = firstPosition?.graphNodeId ?? null;
@@ -1049,7 +1176,7 @@ export default function AdminSequences() {
 
         if (item.fromNodeId != null) {
           const origin = positionsByNodeId.get(item.fromNodeId);
-          if (origin) {
+          if (origin && origin.graphNodeId !== firstNodeId) {
             prefix.push(markerFromPosition(origin, 0));
           }
         }
@@ -1123,8 +1250,123 @@ export default function AdminSequences() {
   }, [customTransition]);
 
   const removeMarker = useCallback((index: number) => {
+    if (editingTransitionIndex != null && index === editingTransitionIndex) {
+      setEditingTransitionIndex(null);
+    }
     setSequenceMarkers((current) => reindexMarkers(current.filter((_, markerIndex) => markerIndex !== index)));
-  }, []);
+  }, [editingTransitionIndex]);
+
+  const startReplacingTransition = useCallback(
+    (index: number) => {
+      const marker = sequenceMarkers[index];
+      if (!marker || marker.type !== "transition") return;
+      setEditingTransitionIndex(index);
+      setCatalogMode("transitions");
+      setWorkflowTab("search");
+      setSearchQuery("");
+      setFeedback(`Choose a connected replacement for ${getMarkerLabel(marker)} from the current anchor.`);
+    },
+    [sequenceMarkers],
+  );
+
+  const replaceTransitionAtIndex = useCallback(
+    (index: number, item: LibraryItemSummary) => {
+      if (item.libraryType !== "transition") return;
+
+      const marker = sequenceMarkers[index];
+      if (!marker || marker.type !== "transition") return;
+
+      const previous = findPreviousPositionContext(sequenceMarkers, index);
+      if (!previous?.marker.graphNodeId || item.fromNodeId == null || item.fromNodeId !== previous.marker.graphNodeId) {
+        setFeedback("This replacement route does not start from the same anchor position.");
+        return;
+      }
+
+      const next = findNextPositionContext(sequenceMarkers, index);
+      const preserveTail = next?.marker.graphNodeId != null && item.toNodeId != null && item.toNodeId === next.marker.graphNodeId;
+      const destination = item.toNodeId != null ? positionsByNodeId.get(item.toNodeId) ?? null : null;
+      if (!destination) {
+        setFeedback("This route is missing its destination position, so it cannot be inserted cleanly.");
+        return;
+      }
+
+      const prefix = sequenceMarkers.slice(0, index);
+      const replacementMarkers = [
+        markerFromTransition(item, prefix.length),
+        markerFromPosition(destination, prefix.length + 1),
+      ];
+      const suffix = preserveTail && next ? sequenceMarkers.slice(next.index + 1) : [];
+      const nextMarkers = reindexMarkers([...prefix, ...replacementMarkers, ...suffix]);
+
+      setSequenceMarkers(nextMarkers);
+      if (positionCategory === "mixed") {
+        setPositionCategory(deriveCategory(nextMarkers));
+      }
+      setEditingTransitionIndex(null);
+      setWorkflowTab(preserveTail ? "review" : "after");
+      setFeedback(
+        preserveTail
+          ? "Replaced the route and kept the remaining tail connected."
+          : "Replaced the route and reset the tail from that point.",
+      );
+    },
+    [positionCategory, positionsByNodeId, sequenceMarkers],
+  );
+
+  const flipTransitionDirection = useCallback(
+    (index: number) => {
+      setSequenceMarkers((current) => {
+        const marker = current[index];
+        if (!marker || marker.type !== "transition") return current;
+
+        const baseTransition =
+          (marker.graphTransitionId != null ? transitionsByGraphId.get(marker.graphTransitionId) : null) ??
+          (marker.flatId != null ? transitionsByFlatId.get(marker.flatId) : null);
+        if (!baseTransition || !baseTransition.bidirectional) {
+          setFeedback("Only bidirectional routes can be flipped.");
+          return current;
+        }
+
+        const previous = findPreviousPositionContext(current, index);
+        const next = findNextPositionContext(current, index);
+        const flipped = applyDirectionalTransition(baseTransition, !Boolean(marker.reverse));
+
+        if (
+          previous?.marker.graphNodeId != null &&
+          next?.marker.graphNodeId != null &&
+          previous.marker.graphNodeId === flipped.fromNodeId &&
+          next.marker.graphNodeId === flipped.toNodeId
+        ) {
+          const nextMarkers = [...current];
+          nextMarkers[index] = markerFromTransition(flipped, index);
+          setFeedback("Flipped the route direction in place.");
+          return reindexMarkers(nextMarkers);
+        }
+
+        const nonNoteMarkers = current.filter((entry) => entry.libraryType !== "note");
+        if (nonNoteMarkers.length !== 3 || !previous || !next || flipped.fromNodeId == null || flipped.toNodeId == null) {
+          setFeedback("This route cannot be flipped safely in place. Use Replace instead to keep the graph connected.");
+          return current;
+        }
+
+        const flippedStart = positionsByNodeId.get(flipped.fromNodeId);
+        const flippedEnd = positionsByNodeId.get(flipped.toNodeId);
+        if (!flippedStart || !flippedEnd) {
+          setFeedback("The flipped direction is missing one of its endpoint positions.");
+          return current;
+        }
+
+        const nextMarkers = [...current];
+        nextMarkers[previous.index] = markerFromPosition(flippedStart, previous.index);
+        nextMarkers[index] = markerFromTransition(flipped, index);
+        nextMarkers[next.index] = markerFromPosition(flippedEnd, next.index);
+        setEditingTransitionIndex(null);
+        setFeedback("Flipped the route direction for this isolated step.");
+        return reindexMarkers(nextMarkers);
+      });
+    },
+    [positionsByNodeId, transitionsByFlatId, transitionsByGraphId],
+  );
 
   const hydrateSavedMarkers = useCallback(
     (markers: SequenceMarker[]) => {
@@ -1157,7 +1399,7 @@ export default function AdminSequences() {
           }
 
           const transition = transitionsByFlatId.get(step.id);
-          return transition ? markerFromTransition(transition, index) : null;
+          return transition ? markerFromTransition(applyDirectionalTransition(transition, Boolean(step.reverse)), index) : null;
         })
         .filter((marker): marker is SequenceMarker => marker != null);
 
@@ -1174,10 +1416,12 @@ export default function AdminSequences() {
       setDifficulty(sequence.meta.difficulty);
       setPositionCategory((sequence.meta.positionCategory as PositionCategory | "mixed") ?? "mixed");
       setPublished(sequence.verified);
+      setExtractionDiagnostics(null);
       const hydrated =
         (sequence.meta.grapplemapPathSpec?.length || sequence.meta.grapplemapExtractSpec?.length)
           ? buildMarkersFromExtractSpec(sequence.meta.grapplemapPathSpec ?? sequence.meta.grapplemapExtractSpec ?? [])
           : hydrateSavedMarkers(sequence.markers ?? []);
+      setEditingTransitionIndex(null);
       setSequenceMarkers(hydrated);
       setWorkflowTab("review");
       setFeedback(`Loaded ${sequence.meta.name} into the builder for editing.`);
@@ -1425,6 +1669,13 @@ export default function AdminSequences() {
             })}
           </div>
 
+          {pathString ? (
+            <div className="mt-4 rounded-[1.3rem] border border-charcoal/10 bg-white px-4 py-3">
+              <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-moss">Current graph path</div>
+              <div className="mt-1 break-all font-mono text-xs text-charcoal/80">{pathString}</div>
+            </div>
+          ) : null}
+
           {workflowTab !== "review" ? (
             <div className="mt-4 grid gap-4 xl:grid-cols-[0.96fr_1.04fr]">
               <div className="rounded-[1.8rem] border border-charcoal/10 bg-white p-4 md:p-5">
@@ -1618,6 +1869,11 @@ export default function AdminSequences() {
 
                     <div className="mt-4 max-h-[38rem] space-y-3 overflow-y-auto pr-1">
                       {filteredCatalog.slice(0, 120).map((item) => (
+                        (() => {
+                          const action = getSearchAction(item);
+                          const transitionInsertionMode =
+                            item.libraryType === "transition" ? getTransitionInsertionMode(item) : null;
+                          return (
                         <div
                           key={getLibraryItemKey(item)}
                           className={`rounded-[1.5rem] border p-4 ${selectedItem && getLibraryItemKey(selectedItem) === getLibraryItemKey(item) ? "border-moss/25 bg-moss/10" : "border-charcoal/10 bg-cream/35"}`}
@@ -1629,21 +1885,55 @@ export default function AdminSequences() {
                                 {item.libraryType === "transition" ? getComposerSubtitle(item) : `${item.outgoingCount ?? 0} outgoing / ${item.incomingCount ?? 0} incoming`}
                               </div>
                               {item.libraryType === "transition" ? (
-                                <div className="mt-2 text-[11px] text-charcoal/45">{getDirectionHint(item)}</div>
+                                <div className="mt-2 text-[11px] text-charcoal/45">
+                                  {getDirectionHint(item)}
+                                  {activeTransitionEdit
+                                    ? action.label === "Disconnected"
+                                      ? " • does not preserve the active replacement anchor"
+                                      : action.label === "Replace and keep tail"
+                                        ? " • swaps this route without breaking the remaining chain"
+                                        : " • replaces the active route and lets you keep building from the new landing position"
+                                    : transitionInsertionMode === "disconnected"
+                                    ? " • not connected to the current chain"
+                                    : transitionInsertionMode === "before"
+                                      ? " • connects into the current start"
+                                      : transitionInsertionMode === "after"
+                                        ? " • continues from the current end"
+                                        : ""}
+                                </div>
                               ) : null}
                             </button>
                             <ClayButton
                               className="px-3 py-2 text-[11px] uppercase tracking-[0.18em]"
-                              onClick={() => (item.libraryType === "position" ? addPositionToBuilder(item) : addTransitionToBuilder(item))}
-                              disabled={item.libraryType === "position" && sequenceMarkers.length > 0}
+                              onClick={() => {
+                                if (item.libraryType === "position") {
+                                  addPositionToBuilder(item);
+                                  return;
+                                }
+
+                                if (activeTransitionEdit) {
+                                  replaceTransitionAtIndex(activeTransitionEdit.index, item);
+                                  return;
+                                }
+
+                                if (transitionInsertionMode === "before") {
+                                  prependTransitionToBuilder(item);
+                                  return;
+                                }
+
+                                addTransitionToBuilder(item);
+                              }}
+                              disabled={action.disabled}
                             >
                               <span className="inline-flex items-center gap-2">
                                 <Plus size={14} />
-                                {item.libraryType === "position" && sequenceMarkers.length > 0 ? "Start only" : "Add"}
+                                {action.label.replace(" and ", " ")}
                               </span>
                             </ClayButton>
                           </div>
                         </div>
+                          );
+                        })()
                       ))}
                     </div>
                   </div>
@@ -1653,35 +1943,45 @@ export default function AdminSequences() {
               <div className="rounded-[1.8rem] border border-charcoal/10 bg-white p-4">
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-moss">Preview</div>
+                    <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-moss">
+                      {sequencePreviewData ? "Live chain preview" : "Preview"}
+                    </div>
                     <h3 className="mt-2 font-heading text-xl text-charcoal">
-                      {selectedItem ? (selectedItem.libraryType === "transition" ? getComposerTitle(selectedItem) : getItemLabel(selectedItem)) : "Select a library item"}
+                      {sequencePreviewData
+                        ? sequenceName.trim() || "Current sequence"
+                        : selectedItem
+                          ? (selectedItem.libraryType === "transition" ? getComposerTitle(selectedItem) : getItemLabel(selectedItem))
+                          : "Select a library item"}
                     </h3>
                   </div>
                   <Eye className="text-moss" size={18} />
                 </div>
 
-                {selectedItem ? (
+                {selectedItem || sequencePreviewData ? (
                   <div className="mt-4 space-y-4">
-                    <div className="rounded-[1.4rem] border border-charcoal/10 bg-cream/35 p-4">
-                      <div className="text-sm text-charcoal">
-                        {selectedItem.libraryType === "transition" ? getComposerSubtitle(selectedItem) : `${selectedItem.outgoingCount ?? 0} exits from this position`}
+                    {selectedItem ? (
+                      <div className="rounded-[1.4rem] border border-charcoal/10 bg-cream/35 p-4">
+                        <div className="text-sm text-charcoal">
+                          {selectedItem.libraryType === "transition" ? getComposerSubtitle(selectedItem) : `${selectedItem.outgoingCount ?? 0} exits from this position`}
+                        </div>
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          {[selectedItem.family, selectedItem.fromFamily, selectedItem.toFamily, ...selectedItem.tags, ...selectedItem.props]
+                            .filter(Boolean)
+                            .slice(0, 8)
+                            .map((tag) => (
+                              <span key={tag} className="rounded-full border border-moss/15 bg-moss/10 px-3 py-1 text-[10px] uppercase tracking-[0.14em] text-moss">
+                                {toDisplayText(tag as string)}
+                              </span>
+                            ))}
+                        </div>
                       </div>
-                      <div className="mt-3 flex flex-wrap gap-2">
-                        {[selectedItem.family, selectedItem.fromFamily, selectedItem.toFamily, ...selectedItem.tags, ...selectedItem.props]
-                          .filter(Boolean)
-                          .slice(0, 8)
-                          .map((tag) => (
-                            <span key={tag} className="rounded-full border border-moss/15 bg-moss/10 px-3 py-1 text-[10px] uppercase tracking-[0.14em] text-moss">
-                              {toDisplayText(tag as string)}
-                            </span>
-                          ))}
-                      </div>
-                    </div>
+                    ) : null}
 
                     <div className="overflow-hidden rounded-[1.8rem] border border-charcoal/10 bg-[radial-gradient(circle_at_top,_rgba(143,171,113,0.18),_rgba(20,20,20,0.92))]">
                       <div className="h-[24rem]">
-                        {selectedItemPreview ? (
+                        {sequencePreviewData ? (
+                          <TechniqueViewer className="h-full w-full" sequenceData={sequencePreviewData} />
+                        ) : selectedItemPreview ? (
                           <TechniqueViewer className="h-full w-full" sequenceData={selectedItemPreview} />
                         ) : loadingPreview ? (
                           <div className="flex h-full items-center justify-center text-sm text-cream/70">Loading preview…</div>
@@ -1691,13 +1991,56 @@ export default function AdminSequences() {
                       </div>
                     </div>
 
+                    {sequencePreviewData ? (
+                      <div className="text-sm text-charcoal/60">
+                        The full chain stays live here while you add or replace routes, so you can verify the flow without leaving the builder.
+                      </div>
+                    ) : null}
+
                     <div className="flex flex-wrap gap-2">
-                      {workflowTab === "before" && selectedItem.libraryType === "transition" ? (
+                      {selectedItem && selectedItem.libraryType === "transition" && workflowTab === "search" ? (
+                        (() => {
+                          const replacementAction = activeTransitionEdit ? getReplacementAction(selectedItem) : null;
+                          const mode = getTransitionInsertionMode(selectedItem);
+                          const disabled = replacementAction ? replacementAction.disabled : mode === "start" || mode === "disconnected";
+                          const label = replacementAction
+                            ? replacementAction.label
+                            : mode === "before"
+                              ? "Add before"
+                              : mode === "after"
+                                ? "Add after"
+                                : mode === "start"
+                                  ? "Start with position"
+                                  : "Disconnected";
+                          return (
+                            <ClayButton
+                              className="px-4 py-2.5 text-[11px] uppercase tracking-[0.18em]"
+                              onClick={() => {
+                                if (replacementAction && activeTransitionEdit) {
+                                  replaceTransitionAtIndex(activeTransitionEdit.index, selectedItem);
+                                  return;
+                                }
+                                if (mode === "before") {
+                                  prependTransitionToBuilder(selectedItem);
+                                  return;
+                                }
+                                if (mode === "after") {
+                                  addTransitionToBuilder(selectedItem);
+                                }
+                              }}
+                              disabled={disabled}
+                            >
+                              {label.replace(" and ", " ")}
+                            </ClayButton>
+                          );
+                        })()
+                      ) : null}
+                      {workflowTab === "before" && selectedItem?.libraryType === "transition" ? (
                         <ClayButton className="px-4 py-2.5 text-[11px] uppercase tracking-[0.18em]" onClick={() => prependTransitionToBuilder(selectedItem)}>
                           Add before
                         </ClayButton>
                       ) : null}
-                      {selectedItem.libraryType === "position" ? (
+                      {selectedItem?.libraryType === "position" ? (
                         <ClayButton
                           className="px-4 py-2.5 text-[11px] uppercase tracking-[0.18em]"
                           onClick={() => addPositionToBuilder(selectedItem)}
@@ -1706,7 +2049,7 @@ export default function AdminSequences() {
                           {sequenceMarkers.length > 0 ? "Start only" : "Add position"}
                         </ClayButton>
                       ) : null}
-                      {selectedItem.libraryType === "transition" && workflowTab !== "before" ? (
+                      {selectedItem?.libraryType === "transition" && workflowTab !== "before" && workflowTab !== "search" ? (
                         <ClayButton className="px-4 py-2.5 text-[11px] uppercase tracking-[0.18em]" onClick={() => addTransitionToBuilder(selectedItem)}>
                           Add after
                         </ClayButton>
@@ -1783,10 +2126,15 @@ export default function AdminSequences() {
                       <div className="mt-1 break-all font-mono text-xs text-charcoal/80">{pathString}</div>
                     </div>
                   ) : null}
-                  <div className="mt-3 space-y-3">
-                    {sequenceMarkers.length === 0 ? (
-                      <div className="rounded-[1.4rem] border border-dashed border-charcoal/15 bg-cream/45 p-4 text-sm text-charcoal/55">
-                        Build a chain from the composer tabs before saving.
+                <div className="mt-3 space-y-3">
+                  {activeTransitionEdit ? (
+                    <div className="rounded-[1.3rem] border border-moss/15 bg-moss/10 p-3 text-sm text-charcoal/75">
+                      Replacing {getMarkerLabel(activeTransitionEdit.marker)} from {activeTransitionEdit.previousPosition ? getMarkerLabel(activeTransitionEdit.previousPosition) : "the current anchor"}.
+                    </div>
+                  ) : null}
+                  {sequenceMarkers.length === 0 ? (
+                    <div className="rounded-[1.4rem] border border-dashed border-charcoal/15 bg-cream/45 p-4 text-sm text-charcoal/55">
+                      Build a chain from the composer tabs before saving.
                       </div>
                     ) : (
                       sequenceMarkers.map((marker, index) => (
@@ -1804,6 +2152,32 @@ export default function AdminSequences() {
                                   : "Position"}
                             </div>
                           </div>
+                          {marker.type === "transition" ? (
+                            <div className="flex flex-wrap items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => startReplacingTransition(index)}
+                                className="rounded-full border border-moss/15 bg-white px-3 py-1.5 text-[10px] uppercase tracking-[0.16em] text-moss transition-colors hover:border-moss/30 hover:bg-moss/5"
+                              >
+                                Replace {getMarkerLabel(marker)}
+                              </button>
+                              {(() => {
+                                const baseTransition =
+                                  (marker.graphTransitionId != null ? transitionsByGraphId.get(marker.graphTransitionId) : null) ??
+                                  (marker.flatId != null ? transitionsByFlatId.get(marker.flatId) : null);
+                                if (!baseTransition?.bidirectional) return null;
+                                return (
+                                  <button
+                                    type="button"
+                                    onClick={() => flipTransitionDirection(index)}
+                                    className="rounded-full border border-charcoal/10 bg-white px-3 py-1.5 text-[10px] uppercase tracking-[0.16em] text-charcoal/70 transition-colors hover:border-charcoal/20 hover:bg-cream/40"
+                                  >
+                                    Flip {getMarkerLabel(marker)}
+                                  </button>
+                                );
+                              })()}
+                            </div>
+                          ) : null}
                           <button type="button" onClick={() => removeMarker(index)} className="text-charcoal/35 transition-colors hover:text-clay" aria-label="Remove marker">
                             <Trash2 size={14} />
                           </button>
@@ -1855,6 +2229,18 @@ export default function AdminSequences() {
                 </div>
 
                 {feedback ? <div className="mt-4 text-sm text-moss">{feedback}</div> : null}
+                {extractionDiagnostics?.length ? (
+                  <div className="mt-4 rounded-[1.4rem] border border-clay/20 bg-clay/5 p-4">
+                    <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-clay">Extraction warnings</div>
+                    <div className="mt-2 space-y-2 text-sm text-charcoal/75">
+                      {extractionDiagnostics.slice(0, 6).map((diagnostic, index) => (
+                        <div key={`${diagnostic.type}-${diagnostic.id}-${index}`}>
+                          {diagnostic.message}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
 
                 <div className="mt-4 flex flex-wrap gap-2">
                   <ClayButton

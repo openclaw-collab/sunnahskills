@@ -341,6 +341,7 @@ export function buildSequenceFromGraphText(text, spec) {
   const graph = loadGraphFromText(text);
   const frames = [];
   const markers = [];
+  const diagnostics = [];
   let reo = null;
   let previousTransitionStep = null;
 
@@ -376,7 +377,9 @@ export function buildSequenceFromGraphText(text, spec) {
     if (step.type === 'position') {
       const node = graph.nodeMap.get(step.id);
       if (!node) {
-        console.error(`Position ${step.id} not found (graph node id; ${graph.nodes.length} nodes in graph).`);
+        const message = `Position ${step.id} not found (graph node id; ${graph.nodes.length} nodes in graph).`;
+        console.error(message);
+        diagnostics.push({ type: 'missing-position', id: step.id, stepType: 'position', message });
         continue;
       }
 
@@ -386,10 +389,26 @@ export function buildSequenceFromGraphText(text, spec) {
       const expectedTo = prevTransitionIdx >= 0 ? edgeTo(spec[prevTransitionIdx]) : null;
 
       if (expectedFrom && expectedFrom.node !== step.id && prevTransitionIdx < 0) {
-        console.warn(`Position ${step.id} does not match start node ${expectedFrom.node} for transition ${spec[nextTransitionIdx].id}.`);
+        const message = `Position ${step.id} does not match start node ${expectedFrom.node} for transition ${spec[nextTransitionIdx].id}.`;
+        console.warn(message);
+        diagnostics.push({
+          type: 'position-start-mismatch',
+          id: step.id,
+          relatedId: spec[nextTransitionIdx].id,
+          stepType: 'position',
+          message,
+        });
       }
       if (expectedTo && expectedTo.node !== step.id) {
-        console.warn(`Position ${step.id} does not match end node ${expectedTo.node} for transition ${spec[prevTransitionIdx].id}.`);
+        const message = `Position ${step.id} does not match end node ${expectedTo.node} for transition ${spec[prevTransitionIdx].id}.`;
+        console.warn(message);
+        diagnostics.push({
+          type: 'position-end-mismatch',
+          id: step.id,
+          relatedId: spec[prevTransitionIdx].id,
+          stepType: 'position',
+          message,
+        });
       }
 
       let frame = Math.max(0, frames.length - 1);
@@ -409,7 +428,9 @@ export function buildSequenceFromGraphText(text, spec) {
 
     const edge = graph.edgeMap.get(step.id);
     if (!edge) {
-      console.error(`Transition ${step.id} not found (graph edge id; ${graph.edges.length} transitions in graph).`);
+      const message = `Transition ${step.id} not found (graph edge id; ${graph.edges.length} transitions in graph).`;
+      console.error(message);
+      diagnostics.push({ type: 'missing-transition', id: step.id, stepType: 'transition', message });
       continue;
     }
 
@@ -417,14 +438,18 @@ export function buildSequenceFromGraphText(text, spec) {
       const fromReo = edgeFrom(step)?.reo;
       const prevToReo = edgeTo(previousTransitionStep)?.reo;
       if (!fromReo || !prevToReo) {
-        console.error(`Transition ${step.id} is missing graph endpoint reorientation metadata.`);
+        const message = `Transition ${step.id} is missing graph endpoint reorientation metadata.`;
+        console.error(message);
+        diagnostics.push({ type: 'missing-transition-endpoint-reorientation', id: step.id, stepType: 'transition', message });
         continue;
       }
       reo = composeReorientation(composeReorientation(inverseReorientation(fromReo), prevToReo), reo);
     } else {
       const startReo = edgeFrom(step)?.reo;
       if (!startReo) {
-        console.error(`Transition ${step.id} is missing graph start reorientation metadata.`);
+        const message = `Transition ${step.id} is missing graph start reorientation metadata.`;
+        console.error(message);
+        diagnostics.push({ type: 'missing-transition-start-reorientation', id: step.id, stepType: 'transition', message });
         continue;
       }
       reo = copyReorientation(startReo);
@@ -454,12 +479,12 @@ export function buildSequenceFromGraphText(text, spec) {
     }
   }
 
-  return { frames, markers };
+  return { frames, markers, diagnostics };
 }
 
 export function buildSequencePayloadFromGraphText(name, text, spec, options = {}) {
   const { extractedAt = new Date().toISOString() } = options;
-  const { frames, markers } = buildSequenceFromGraphText(text, spec);
+  const { frames, markers, diagnostics } = buildSequenceFromGraphText(text, spec);
   return {
     meta: {
       name,
@@ -470,5 +495,6 @@ export function buildSequencePayloadFromGraphText(name, text, spec, options = {}
     },
     markers,
     frames,
+    diagnostics,
   };
 }

@@ -11,6 +11,15 @@ import {
 const repoRoot = join(__dirname, "..", "..");
 const grapplemapPath = join(repoRoot, "GrappleMap", "GrappleMap.txt");
 const grapplemapText = readFileSync(grapplemapPath, "utf8");
+const uchimataSpec = PREDEFINED_SEQUENCES.uchimata;
+const uchimataCanonical = buildSequenceFromGrappleMapText(grapplemapText, uchimataSpec);
+const uchimataPayload = buildSequencePayloadFromGrappleMapText(
+  "uchimata",
+  grapplemapText,
+  uchimataSpec,
+  "2026-03-30T00:00:00.000Z",
+);
+const uchimataLoader = loadGraph(grapplemapPath).buildSequence(uchimataSpec);
 
 describe("grapplemapFlatSequence", () => {
   it("supports editor-style graph node ids for the long double-leg chain", () => {
@@ -47,26 +56,19 @@ describe("grapplemapFlatSequence", () => {
   });
 
   it("matches GrappleMap loader output for the uchimata preset", () => {
-    const spec = PREDEFINED_SEQUENCES.uchimata;
-    const canonical = buildSequenceFromGrappleMapText(grapplemapText, spec);
-    const loader = loadGraph(grapplemapPath).buildSequence(spec);
-
-    expect(canonical.markers).toEqual(loader.markers);
-    expect(canonical.frames).toEqual(loader.frames);
+    expect(uchimataCanonical.markers).toEqual(uchimataLoader.markers);
+    expect(uchimataCanonical.frames).toEqual(uchimataLoader.frames);
   });
 
   it("builds payload metadata from the same canonical extraction", () => {
-    const spec = PREDEFINED_SEQUENCES.uchimata;
-    const payload = buildSequencePayloadFromGrappleMapText("uchimata", grapplemapText, spec, "2026-03-30T00:00:00.000Z");
-
-    expect(payload.meta).toEqual({
+    expect(uchimataPayload.meta).toEqual({
       name: "uchimata",
       extractedAt: "2026-03-30T00:00:00.000Z",
-      totalFrames: payload.frames.length,
-      positions: spec.filter((step) => step.type === "position").length,
-      transitions: spec.filter((step) => step.type === "transition").length,
+      totalFrames: uchimataPayload.frames.length,
+      positions: uchimataSpec.filter((step) => step.type === "position").length,
+      transitions: uchimataSpec.filter((step) => step.type === "transition").length,
     });
-    expect(payload.markers).toHaveLength(spec.length);
-    expect(payload.frames.length).toBeGreaterThan(spec.length);
+    expect(uchimataPayload.markers).toHaveLength(uchimataSpec.length);
+    expect(uchimataPayload.frames.length).toBeGreaterThan(uchimataSpec.length);
   });
 });

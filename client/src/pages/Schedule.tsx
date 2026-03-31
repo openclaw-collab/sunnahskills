@@ -1,9 +1,10 @@
 import { useMemo, useState } from "react";
 import { Link } from "wouter";
-import { CalendarDays, ChevronLeft, ChevronRight, Clock } from "lucide-react";
+import { CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
 import { ClayButton } from "@/components/brand/ClayButton";
 import { DarkCard } from "@/components/brand/DarkCard";
 import { OutlineButton } from "@/components/brand/OutlineButton";
+import { SessionDetailModal } from "@/components/schedule/SessionDetailModal";
 import { StudioBlock } from "@/studio/StudioBlock";
 import { StudioText } from "@/studio/StudioText";
 import { MotionDiv, MotionPage } from "@/components/motion/PageMotion";
@@ -14,17 +15,12 @@ import {
   type ScheduleTrack,
   formatTime12,
   registerHrefForSession,
-  GRID_START_MIN,
-  GRID_END_MIN,
-  GRID_RANGE,
-  minutesToTopPct,
-  minutesToHeightPct,
 } from "@/lib/scheduleCalendarData";
 
 type ViewMode = "weekly" | "monthly";
 
 const TRACK_FILTERS: { value: ScheduleTrack | "all"; label: string }[] = [
-  { value: "all", label: "All tracks" },
+  { value: "all", label: "All" },
   { value: "kids", label: "Kids" },
   { value: "women", label: "Women 11+" },
   { value: "men", label: "Men 14+" },
@@ -70,20 +66,6 @@ function getTrackForSession(session: NormalizedSession): ScheduleTrack {
   return session.track;
 }
 
-// Generate time slots from 8 AM to 10 PM in 30-minute increments
-const TIME_SLOTS = Array.from({ length: 29 }, (_, i) => GRID_START_MIN + i * 30);
-
-// Percentage-based positioning for consistent session alignment
-const SLOT_HEIGHT_PCT = (30 / GRID_RANGE) * 100; // ~3.57% per 30-min slot
-const HOUR_HEIGHT_PCT = (60 / GRID_RANGE) * 100; // ~7.14% per hour
-
-function formatHourLabel(minutes: number): string {
-  const h24 = Math.floor(minutes / 60);
-  const period = h24 >= 12 ? "PM" : "AM";
-  const h12 = h24 % 12 || 12;
-  return `${h12} ${period}`;
-}
-
 function formatShortTime(minutes: number): string {
   const h24 = Math.floor(minutes / 60);
   const m = minutes % 60;
@@ -110,14 +92,16 @@ function formatWeekRange(anchor: Date) {
   return `${startMonth} ${start.getDate()} - ${endMonth} ${end.getDate()}, ${end.getFullYear()}`;
 }
 
-// ==================== WEEKLY VIEW (Google Calendar Style) ====================
+// ==================== WEEKLY VIEW (Column-Based) ====================
 
 function WeeklyCalendarGrid({
   sessions,
   weekAnchor,
+  onSessionClick,
 }: {
   sessions: NormalizedSession[];
   weekAnchor: Date;
+  onSessionClick: (session: NormalizedSession) => void;
 }) {
   const startOfWeek = new Date(weekAnchor);
   startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
@@ -144,245 +128,82 @@ function WeeklyCalendarGrid({
     return map;
   }, [sessions]);
 
-  // Find concurrent sessions and calculate their widths/positions
-  const getSessionLayout = (daySessions: NormalizedSession[]) => {
-    if (daySessions.length === 0) return [];
-
-    // Sort by start time, then by duration (longer first for concurrent events)
-    const sorted = [...daySessions].sort((a, b) => {
-      if (a.startMinutes !== b.startMinutes) return a.startMinutes - b.startMinutes;
-      return getSessionDuration(b) - getSessionDuration(a);
-    });
-
-    const layouts: Array<{
-      session: NormalizedSession;
-      column: number;
-      totalColumns: number;
-    }> = [];
-
-    const columns: NormalizedSession[][] = [];
-
-    for (const session of sorted) {
-      // Find a column that doesn't conflict
-      let placedColumn = -1;
-      for (let i = 0; i < columns.length; i++) {
-        const column = columns[i];
-        const lastSession = column[column.length - 1];
-        if (lastSession.endMinutes <= session.startMinutes) {
-          placedColumn = i;
-          break;
-        }
-      }
-
-      if (placedColumn === -1) {
-        placedColumn = columns.length;
-        columns.push([]);
-      }
-
-      columns[placedColumn].push(session);
-      layouts.push({ session, column: placedColumn, totalColumns: columns.length });
-    }
-
-    // Update totalColumns for all layouts
-    const maxColumns = columns.length;
-    return layouts.map((l) => ({ ...l, totalColumns: maxColumns }));
-  };
-
   return (
     <div className="overflow-x-auto" data-testid="schedule-weekly-view">
       <div className="min-w-[900px] lg:min-w-0">
-        {/* Header Row - Day Names */}
-        <div className="grid grid-cols-[60px_1fr] border-b border-charcoal/10">
-          {/* Empty corner cell */}
-          <div className="border-r border-charcoal/10 bg-cream/50 p-3" />
+        <div className="grid grid-cols-7 gap-3">
+          {dayDates.map((date) => {
+            const dayIndex = date.getDay();
+            const isToday = date.getTime() === today.getTime();
+            const dayName = DAY_LABELS[dayIndex];
+            const daySessions = sessionsByDay.get(dayIndex) ?? [];
 
-          {/* Day headers */}
-          <div className="grid grid-cols-7">
-            {dayDates.map((date) => {
-              const dayIndex = date.getDay();
-              const isToday = date.getTime() === today.getTime();
-              const dayName = DAY_LABELS[dayIndex];
-
-              return (
+            return (
+              <div
+                key={dayIndex}
+                className={`flex min-h-[400px] flex-col rounded-xl border ${
+                  isToday ? "border-moss/20 bg-moss/5" : "border-charcoal/10 bg-white"
+                }`}
+              >
                 <div
-                  key={dayIndex}
-                  className={`flex flex-col items-center justify-center py-3 px-1 border-r border-charcoal/10 last:border-r-0 ${
-                    isToday ? "bg-moss/5" : "bg-cream/30"
+                  className={`border-b px-3 py-3 ${
+                    isToday ? "border-moss/20 bg-moss/10" : "border-charcoal/10 bg-cream/30"
                   }`}
                 >
-                  <span className={`text-xs font-medium ${isToday ? "text-moss" : "text-charcoal/60"}`}>
+                  <div className={`text-xs font-medium uppercase tracking-wide ${isToday ? "text-moss" : "text-charcoal/50"}`}>
                     {dayName}
-                  </span>
-                  <span
-                    className={`text-xl font-semibold mt-1 ${
-                      isToday ? "text-moss" : "text-charcoal"
-                    }`}
-                  >
+                  </div>
+                  <div className={`mt-1 text-2xl font-semibold ${isToday ? "text-moss" : "text-charcoal"}`}>
                     {date.getDate()}
-                  </span>
-                  {isToday && (
-                    <div className="mt-1 w-6 h-1 bg-moss rounded-full" />
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Time Grid - Fixed with consistent percentage-based positioning */}
-        <div className="grid grid-cols-[60px_1fr] relative" style={{ height: '840px' }}>
-          {/* Time labels column */}
-          <div className="border-r border-charcoal/10 bg-cream/50 relative h-full">
-            {TIME_SLOTS.filter((_, i) => i % 2 === 0).map((time, hourIndex) => (
-              <div
-                key={time}
-                className="absolute flex items-start justify-end pr-3 -mt-3 w-full"
-                style={{ top: `${(hourIndex * HOUR_HEIGHT_PCT).toFixed(2)}%` }}
-              >
-                <span className="text-xs text-charcoal/50 font-medium">
-                  {formatHourLabel(time)}
-                </span>
-              </div>
-            ))}
-          </div>
-
-          {/* Grid body */}
-          <div className="relative grid grid-cols-7 h-full">
-            {/* Horizontal grid lines - percentage based */}
-            <div className="absolute inset-0 pointer-events-none">
-              {TIME_SLOTS.map((_, i) => (
-                <div
-                  key={i}
-                  className="absolute w-full border-t border-charcoal/5"
-                  style={{ top: `${(i * SLOT_HEIGHT_PCT).toFixed(2)}%` }}
-                />
-              ))}
-            </div>
-
-            {/* Vertical grid lines + hour markers */}
-            {Array.from({ length: 7 }).map((_, i) => (
-              <div
-                key={i}
-                className="border-r border-charcoal/10 h-full relative"
-                style={{ gridColumn: i + 1 }}
-              >
-                {/* Hour markers for each column - percentage based */}
-                {TIME_SLOTS.filter((_, idx) => idx % 2 === 0).map((_, hourIdx) => (
-                  <div
-                    key={hourIdx}
-                    className="absolute w-full border-b border-charcoal/5"
-                    style={{
-                      top: `${(hourIdx * HOUR_HEIGHT_PCT).toFixed(2)}%`,
-                      height: `${HOUR_HEIGHT_PCT.toFixed(2)}%`
-                    }}
-                  />
-                ))}
-              </div>
-            ))}
-
-            {/* Current time indicator (if today is in this week) */}
-            {dayDates.some((d) => d.getTime() === today.getTime()) && (() => {
-              const now = new Date();
-              const currentMinutes = now.getHours() * 60 + now.getMinutes();
-              if (currentMinutes < GRID_START_MIN || currentMinutes > GRID_END_MIN) return null;
-
-              const todayIndex = today.getDay();
-              const topPosition = minutesToTopPct(currentMinutes);
-
-              return (
-                <div
-                  className="absolute z-20 pointer-events-none"
-                  style={{
-                    left: `${(todayIndex / 7) * 100}%`,
-                    width: `${100 / 7}%`,
-                    top: `${topPosition.toFixed(2)}%`,
-                  }}
-                >
-                  <div className="flex items-center">
-                    <div className="w-2 h-2 rounded-full bg-clay -ml-1" />
-                    <div className="flex-1 h-px bg-clay" />
                   </div>
                 </div>
-              );
-            })()}
 
-            {/* Event blocks */}
-            {dayDates.map((date, dayIdx) => {
-              const dayIndex = date.getDay();
-              const daySessions = sessionsByDay.get(dayIndex) ?? [];
-              const layouts = getSessionLayout(daySessions);
-              const isToday = date.getTime() === today.getTime();
+                <div className="flex-1 space-y-2 p-2">
+                  {daySessions.length === 0 ? (
+                    <div className="flex h-24 items-center justify-center text-xs italic text-charcoal/30">No classes</div>
+                  ) : (
+                    daySessions.map((session) => {
+                      const track = getTrackForSession(session);
+                      const colors = TRACK_COLORS[track];
 
-              return (
-                <div
-                  key={dayIndex}
-                  className={`relative h-full ${isToday ? "bg-moss/[0.02]" : ""}`}
-                  style={{ gridColumn: dayIdx + 1 }}
-                >
-                  {layouts.map(({ session, column, totalColumns }) => {
-                    const track = getTrackForSession(session);
-                    const colors = TRACK_COLORS[track];
-                    const top = minutesToTopPct(session.startMinutes);
-                    const height = minutesToHeightPct(session.startMinutes, session.endMinutes);
-                    const width = 100 / totalColumns;
-                    const left = column * width;
-                    const duration = getSessionDuration(session);
-                    const isShort = duration <= 60;
-
-                    return (
-                      <Link
-                        key={session.id}
-                        href={registerHrefForSession(session)}
-                        className={`absolute block rounded-lg border ${colors.bg} ${colors.border} ${colors.hover}
-                          transition-all duration-200 overflow-hidden group
-                          ${isShort ? "py-1 px-2" : "p-2.5"}`}
-                        style={{
-                          top: `${top.toFixed(2)}%`,
-                          height: `${Math.max(height, 3).toFixed(2)}%`,
-                          left: `${left.toFixed(2)}%`,
-                          width: `${(width - 1).toFixed(2)}%`,
-                          minHeight: "24px",
-                        }}
-                        title={session.label}
-                      >
-                        <div className={`font-semibold leading-tight ${isShort ? "text-[11px]" : "text-sm"} text-charcoal`}>
-                          {session.shortLabel}
-                        </div>
-                        {!isShort && (
-                          <div className="mt-1 text-xs text-charcoal/70 flex items-center gap-1">
-                            <Clock size={10} />
-                            <span>
-                              {formatShortTime(session.startMinutes)} - {formatShortTime(session.endMinutes)}
-                            </span>
+                      return (
+                        <button
+                          key={session.id}
+                          onClick={() => onSessionClick(session)}
+                          className={`group block w-full rounded-lg border p-3 text-left transition-all duration-200 ${colors.bg} ${colors.border} ${colors.hover}`}
+                        >
+                          <div className={`mb-1 text-xs font-medium ${colors.text}`}>
+                            {formatShortTime(session.startMinutes)} - {formatShortTime(session.endMinutes)}
                           </div>
-                        )}
-                        {isShort && (
-                          <div className="text-[10px] text-charcoal/60 mt-0.5">
-                            {formatShortTime(session.startMinutes)}
+                          <div className="text-sm font-semibold leading-tight text-charcoal">{session.shortLabel}</div>
+                          <div className={`mt-2 inline-flex items-center gap-1 text-[10px] uppercase tracking-wide ${colors.text}`}>
+                            <span className={`h-1.5 w-1.5 rounded-full ${colors.text.replace("text-", "bg-")}`} />
+                            {track === "kids" ? "Kids" : track === "women" ? "Women 11+" : track === "men" ? "Men 14+" : "All"}
                           </div>
-                        )}
-                        <div className={`absolute left-0 top-0 bottom-0 w-1 ${colors.text.replace("text-", "bg-")}`} />
-                      </Link>
-                    );
-                  })}
+                        </button>
+                      );
+                    })
+                  )}
                 </div>
-              );
-            })}
-          </div>
+              </div>
+            );
+          })}
         </div>
       </div>
     </div>
   );
 }
 
-// ==================== MONTHLY VIEW (Calendar Grid) ====================
+// ==================== MONTHLY VIEW (Full Grid, No Truncation) ====================
 
 function MonthCalendarGrid({
   sessions,
   monthAnchor,
+  onSessionClick,
 }: {
   sessions: NormalizedSession[];
   monthAnchor: Date;
+  onSessionClick: (session: NormalizedSession) => void;
 }) {
   const y = monthAnchor.getFullYear();
   const mo = monthAnchor.getMonth();
@@ -460,26 +281,24 @@ function MonthCalendarGrid({
                   const colors = TRACK_COLORS[track];
 
                   return (
-                    <Link
+                    <button
                       key={session.id}
-                      href={registerHrefForSession(session)}
-                      className={`block text-xs rounded-md px-2 py-1.5 border ${colors.bg} ${colors.border} ${colors.hover} transition-colors`}
+                      onClick={() => onSessionClick(session)}
+                      className={`block w-full rounded-md border px-2 py-1.5 text-left transition-colors ${colors.bg} ${colors.border} ${colors.hover}`}
                       title={session.label}
                     >
                       <div className="flex items-center gap-1.5">
                         <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${colors.text.replace("text-", "bg-")}`} />
-                        <span className="font-medium text-charcoal truncate">{session.shortLabel}</span>
+                        <span className="whitespace-nowrap text-xs text-charcoal/60">
+                          {formatShortTime(session.startMinutes)}
+                        </span>
+                        <span className="truncate text-xs font-medium text-charcoal">{session.shortLabel}</span>
                       </div>
-                      <div className="text-[10px] text-charcoal/60 mt-0.5 ml-2.5">
-                        {formatShortTime(session.startMinutes)}
-                      </div>
-                    </Link>
+                    </button>
                   );
                 })}
 
-                {daySessions.length === 0 && (
-                  <div className="text-xs text-charcoal/30 italic py-2">No classes</div>
-                )}
+                {daySessions.length === 0 ? <div className="py-1 text-xs italic text-charcoal/30">No classes</div> : null}
               </div>
             </div>
           );
@@ -494,9 +313,11 @@ function MonthCalendarGrid({
 function MobileDayView({
   sessions,
   weekAnchor,
+  onSessionClick,
 }: {
   sessions: NormalizedSession[];
   weekAnchor: Date;
+  onSessionClick: (session: NormalizedSession) => void;
 }) {
   const [currentDayIndex, setCurrentDayIndex] = useState(() => {
     const today = new Date();
@@ -551,7 +372,7 @@ function MobileDayView({
         </button>
       </div>
 
-      {/* Time slots list */}
+      {/* Sessions list */}
       <div className="space-y-3">
         {daySessions.length === 0 ? (
           <div className="text-center py-12 bg-cream/30 rounded-xl border border-charcoal/10">
@@ -567,10 +388,10 @@ function MobileDayView({
             const duration = getSessionDuration(session);
 
             return (
-              <Link
+              <button
                 key={session.id}
-                href={registerHrefForSession(session)}
-                className="block bg-white rounded-xl border border-charcoal/10 p-4 hover:shadow-md transition-shadow"
+                onClick={() => onSessionClick(session)}
+                className="block w-full rounded-xl border border-charcoal/10 bg-white p-4 text-left transition-shadow hover:shadow-md"
               >
                 <div className="flex items-start gap-4">
                   {/* Time column */}
@@ -597,7 +418,7 @@ function MobileDayView({
                     </div>
                   </div>
                 </div>
-              </Link>
+              </button>
             );
           })
         )}
@@ -613,6 +434,18 @@ const Schedule = () => {
   const [filter, setFilter] = useState<ScheduleTrack | "all">("all");
   const [weekAnchor, setWeekAnchor] = useState(() => new Date());
   const [monthAnchor, setMonthAnchor] = useState(() => new Date());
+  const [selectedSession, setSelectedSession] = useState<NormalizedSession | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const handleSessionClick = (session: NormalizedSession) => {
+    setSelectedSession(session);
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setTimeout(() => setSelectedSession(null), 200);
+  };
 
   const filtered = useMemo(
     () => NORMALIZED_SESSIONS.filter((session) => sessionMatchesFilter(session, filter)),
@@ -702,7 +535,7 @@ const Schedule = () => {
                     onClick={() => setFilter(option.value)}
                     className={`px-4 py-2 rounded-full text-sm font-medium transition-all border ${
                       filter === option.value
-                        ? "bg-charcoal text-cream border-charcoal"
+                        ? "border-moss bg-moss text-cream"
                         : "bg-white text-charcoal/70 border-charcoal/15 hover:border-charcoal/30 hover:text-charcoal"
                     }`}
                   >
@@ -777,15 +610,15 @@ const Schedule = () => {
             {/* Desktop Views */}
             <div className="hidden md:block">
               {view === "weekly" ? (
-                <WeeklyCalendarGrid sessions={filtered} weekAnchor={weekAnchor} />
+                <WeeklyCalendarGrid sessions={filtered} weekAnchor={weekAnchor} onSessionClick={handleSessionClick} />
               ) : (
-                <MonthCalendarGrid sessions={filtered} monthAnchor={monthAnchor} />
+                <MonthCalendarGrid sessions={filtered} monthAnchor={monthAnchor} onSessionClick={handleSessionClick} />
               )}
             </div>
 
             {/* Mobile View */}
             <div className="md:hidden p-4">
-              <MobileDayView sessions={filtered} weekAnchor={weekAnchor} />
+              <MobileDayView sessions={filtered} weekAnchor={weekAnchor} onSessionClick={handleSessionClick} />
             </div>
           </section>
 
@@ -841,6 +674,8 @@ const Schedule = () => {
           </MotionDiv>
         </div>
       </StudioBlock>
+
+      <SessionDetailModal session={selectedSession} isOpen={isModalOpen} onClose={handleCloseModal} />
     </MotionPage>
   );
 };

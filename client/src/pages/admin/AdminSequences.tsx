@@ -1180,7 +1180,7 @@ export default function AdminSequences() {
           : hydrateSavedMarkers(sequence.markers ?? []);
       setSequenceMarkers(hydrated);
       setWorkflowTab("review");
-      setFeedback(null);
+      setFeedback(`Loaded ${sequence.meta.name} into the builder for editing.`);
     },
     [buildMarkersFromExtractSpec, hydrateSavedMarkers],
   );
@@ -1901,6 +1901,9 @@ export default function AdminSequences() {
             <div>
               <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-moss">Saved sequences</div>
               <h2 className="mt-2 font-heading text-2xl text-charcoal">Drafts and published techniques</h2>
+              <p className="mt-2 max-w-md text-sm leading-relaxed text-charcoal/60">
+                Select any saved technique to preview it, then load it back into the builder to keep editing the same graph path.
+              </p>
             </div>
             <Sparkles className="text-moss" size={18} />
           </div>
@@ -1949,12 +1952,20 @@ export default function AdminSequences() {
                   <div className="mt-4 text-sm leading-relaxed text-charcoal/70">
                     {(selectedSequence.meta.description ?? []).join(" ")}
                   </div>
+                  {selectedSequence.meta.grapplemapPathString ? (
+                    <div className="mt-4 rounded-[1.2rem] border border-charcoal/10 bg-white/70 p-3">
+                      <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-charcoal/50">Saved path</div>
+                      <div className="mt-1 break-all font-mono text-xs text-charcoal/75">
+                        {selectedSequence.meta.grapplemapPathString}
+                      </div>
+                    </div>
+                  ) : null}
                   <div className="mt-4 flex gap-2">
                     <ClayButton
                       className="px-4 py-2.5 text-[11px] uppercase tracking-[0.18em]"
                       onClick={() => void loadSequence(selectedSequence)}
                     >
-                      Load into builder
+                      Edit in builder
                     </ClayButton>
                   </div>
                 </div>

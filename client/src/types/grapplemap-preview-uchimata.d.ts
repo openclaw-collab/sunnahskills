@@ -15,6 +15,7 @@ declare module "@grapplemap-preview/UchimataCardHuman.jsx" {
     isPlaying?: boolean;
     isLooping?: boolean;
     timeRef?: { current: number } | null;
+    playbackStateRef?: { current: { paused: boolean } } | null;
   };
 
   export default function UchimataCard(props: UchimataCardProps): JSX.Element;

@@ -162,6 +162,7 @@ export function GrappleMapPreviewViewer({
         isPlaying={isPlayingRef.current}
         isLooping={isLooping}
         timeRef={timeRef}
+        playbackStateRef={playbackRef}
         style={{ height: "100%", width: "100%" }}
       />
 

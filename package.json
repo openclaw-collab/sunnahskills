@@ -25,7 +25,7 @@
     "test:e2e:firefox": "playwright test --project=firefox",
     "test:e2e:webkit": "playwright test --project=webkit",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "ci:check": "tsc -p tsconfig.json --noEmit && vitest run --config vitest.config.ts && npm run build && wrangler deploy --dry-run --env production",
+    "ci:check": "tsc -p tsconfig.json --noEmit && vitest run --config vitest.config.ts && npm run build && wrangler pages functions build functions --project-directory . --outdir .wrangler/pages-ci-check",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build"
   },

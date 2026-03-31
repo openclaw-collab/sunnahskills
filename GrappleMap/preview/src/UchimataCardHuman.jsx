@@ -331,7 +331,7 @@ function Grid({ animStateRef }) {
   );
 }
 
-function Scene({ playbackSpeed, autoRotate, frames, onFrame, isPlaying, isLooping, timeRefExternal }) {
+function Scene({ playbackSpeed, autoRotate, frames, onFrame, isPlaying, isLooping, timeRefExternal, playbackStateRef }) {
   const controlsRef = useRef();
   const chaserRef = useRef(null);
   const animStateRef = useRef({ time: 0, chaser: null, isPlaying: true, isLooping: true });
@@ -354,7 +354,13 @@ function Scene({ playbackSpeed, autoRotate, frames, onFrame, isPlaying, isLoopin
     lastCenterRef.current = new THREE.Vector3(initialCenter[0], initialCenter[1], initialCenter[2]);
   }
 
-  animStateRef.current.isPlaying = isPlaying;
+  const externalPaused =
+    playbackStateRef && playbackStateRef.current && typeof playbackStateRef.current.paused === 'boolean'
+      ? playbackStateRef.current.paused
+      : null;
+  const effectiveIsPlaying = externalPaused === null ? isPlaying : !externalPaused;
+
+  animStateRef.current.isPlaying = effectiveIsPlaying;
   animStateRef.current.isLooping = isLooping;
 
   useFrame((state, delta) => {
@@ -364,7 +370,7 @@ function Scene({ playbackSpeed, autoRotate, frames, onFrame, isPlaying, isLoopin
       animStateRef.current.time = timeRefExternal.current;
     }
 
-    if (isPlaying) {
+    if (effectiveIsPlaying) {
       const dt = Math.min(delta, 0.05) * playbackSpeed;
       animStateRef.current.time += dt;
     }
@@ -503,6 +509,7 @@ export default function UchimataCard({
   isPlaying = true,
   isLooping = true,
   timeRef = null,
+  playbackStateRef = null,
   ...props
 }) {
   const frames = scene.frames;
@@ -533,6 +540,7 @@ export default function UchimataCard({
           isPlaying={isPlaying}
           isLooping={isLooping}
           timeRefExternal={timeRef}
+          playbackStateRef={playbackStateRef}
         />
       </Canvas>
     </div>

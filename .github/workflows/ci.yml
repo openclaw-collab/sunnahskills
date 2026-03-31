@@ -34,7 +34,7 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: Wrangler dry-run deploy check
-        run: npx wrangler deploy --dry-run --env production
+      - name: Pages Functions bundle check
+        run: npx wrangler pages functions build functions --project-directory . --outdir .wrangler/pages-ci-check
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}

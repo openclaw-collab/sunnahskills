@@ -4,6 +4,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import UchimataCard from './UchimataCardHuman';
+import { stabilizeSequencePayload } from './playerContinuity.js';
 
 const PREDEFINED_SEQUENCES = {
   uchimata: {
@@ -80,7 +81,7 @@ export default function SequenceBuilder() {
       if (response.ok) {
         const data = await response.json();
         if (data && data.frames) {
-          setSequenceData(data);
+          setSequenceData(stabilizeSequencePayload(data));
           setError(null);
         }
       }
@@ -118,7 +119,7 @@ export default function SequenceBuilder() {
       });
       if (response.ok) {
         const data = await response.json();
-        setSequenceData(data);
+        setSequenceData(stabilizeSequencePayload(data));
       } else {
         const errData = await response.json().catch(() => ({}));
         throw new Error(errData.error || 'Failed to extract sequence');

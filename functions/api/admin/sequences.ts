@@ -1,7 +1,14 @@
 import { getAdminFromRequest, hasAdminPermission } from "../../_utils/adminAuth";
+import {
+  buildSequencePayloadFromGrappleMapText,
+  serializeGraphPathSpec,
+  type FlatSpecItem,
+} from "../../../shared/grapplemapFlatSequence";
+import grapplemapText from "../../lib/GrappleMap.txt";
 
 interface Env {
   DB: D1Database;
+  GRAPPLEMAP_TEXT?: string;
 }
 
 type Marker = {
@@ -9,6 +16,18 @@ type Marker = {
   frame: number;
   type: "position" | "transition";
   positionId?: string;
+  sourceId?: string;
+  libraryType?: "position" | "transition" | "note";
+  previewPath?: string;
+  flatId?: number;
+  graphNodeId?: number | null;
+  graphTransitionId?: number | null;
+  fromNodeId?: number | null;
+  toNodeId?: number | null;
+  family?: string;
+  fromDisplayName?: string;
+  toDisplayName?: string;
+  reverse?: boolean;
 };
 
 type SequenceInput = {
@@ -23,6 +42,11 @@ type SequenceInput = {
     difficulty: "beginner" | "intermediate" | "advanced";
     description: string[];
     sources?: string[];
+    /** Legacy compatibility field for saved GrappleMap graph paths. */
+    grapplemapExtractSpec?: FlatSpecItem[];
+    /** Canonical saved graph path for replay/re-extract. */
+    grapplemapPathSpec?: FlatSpecItem[];
+    grapplemapPathString?: string;
     totalFrames?: number;
     positions?: number;
     transitions?: number;
@@ -97,6 +121,47 @@ function parseJsonArray(value: string | null, fallback: unknown[] = []) {
   }
 }
 
+function parseGraphPathSpec(value: unknown): FlatSpecItem[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  const spec = value.filter(
+    (s): s is FlatSpecItem =>
+      s != null &&
+      typeof s === "object" &&
+      ((s as FlatSpecItem).type === "position" || (s as FlatSpecItem).type === "transition") &&
+      typeof (s as FlatSpecItem).id === "number",
+  ) as FlatSpecItem[];
+  return spec.length > 0 ? spec : undefined;
+}
+
+function parseSourcesRow(value: string | null): {
+  stringSources: string[];
+  grapplemapExtractSpec?: FlatSpecItem[];
+  grapplemapPathSpec?: FlatSpecItem[];
+  grapplemapPathString?: string;
+} {
+  const raw = parseJsonArray(value, []) as unknown[];
+  const stringSources: string[] = [];
+  let grapplemapExtractSpec: FlatSpecItem[] | undefined;
+  let grapplemapPathSpec: FlatSpecItem[] | undefined;
+  let grapplemapPathString: string | undefined;
+  for (const item of raw) {
+    if (typeof item === "string") stringSources.push(item);
+    else if (item && typeof item === "object" && item !== null) {
+      const sourceEntry = item as {
+        grapplemapExtractSpec?: unknown;
+        grapplemapPathSpec?: unknown;
+        grapplemapPathString?: unknown;
+      };
+      grapplemapExtractSpec = parseGraphPathSpec(sourceEntry.grapplemapExtractSpec) ?? grapplemapExtractSpec;
+      grapplemapPathSpec = parseGraphPathSpec(sourceEntry.grapplemapPathSpec) ?? grapplemapPathSpec;
+      if (typeof sourceEntry.grapplemapPathString === "string" && sourceEntry.grapplemapPathString.trim()) {
+        grapplemapPathString = sourceEntry.grapplemapPathString.trim();
+      }
+    }
+  }
+  return { stringSources, grapplemapExtractSpec, grapplemapPathSpec, grapplemapPathString };
+}
+
 function parseFrames(value: string | null) {
   try {
     const parsed = JSON.parse(value ?? "[]");
@@ -109,7 +174,7 @@ function parseFrames(value: string | null) {
 function mapRow(row: SequenceRow) {
   const markers = parseJsonArray(row.markers_json) as Marker[];
   const description = parseJsonArray(row.description_json).filter((line): line is string => typeof line === "string");
-  const sources = parseJsonArray(row.sources_json).filter((line): line is string => typeof line === "string");
+  const { stringSources: sources, grapplemapExtractSpec, grapplemapPathSpec, grapplemapPathString } = parseSourcesRow(row.sources_json);
 
   return {
     id: row.id,
@@ -123,6 +188,9 @@ function mapRow(row: SequenceRow) {
       difficulty: (row.difficulty as "beginner" | "intermediate" | "advanced" | null) ?? "beginner",
       description,
       sources,
+      ...(grapplemapPathSpec?.length ? { grapplemapPathSpec } : {}),
+      ...(grapplemapPathString ? { grapplemapPathString } : {}),
+      ...(grapplemapExtractSpec?.length ? { grapplemapExtractSpec } : {}),
       totalFrames: parseFrames(row.frames_json).length,
       positions: markers.filter((marker) => marker.type === "position").length,
       transitions: markers.filter((marker) => marker.type === "transition").length,
@@ -147,6 +215,36 @@ function validateSequence(body: SequenceInput | null) {
   }
 
   return null;
+}
+
+function mergeMarkersWithCanonicalExtract(
+  submittedMarkers: Marker[],
+  canonicalMarkers: Marker[],
+) {
+  const nonNotes = submittedMarkers.filter((marker) => marker.libraryType !== "note");
+  const notes = submittedMarkers.filter((marker) => marker.libraryType === "note");
+  let cursor = 0;
+
+  const merged = nonNotes
+    .map((marker) => {
+      const extracted = canonicalMarkers[cursor++];
+      if (!extracted) return null;
+      return {
+        ...marker,
+        name: extracted.name,
+        frame: extracted.frame,
+        type: extracted.type,
+      } satisfies Marker;
+    })
+    .filter((marker): marker is Marker => marker != null);
+
+  const maxFrame = Math.max(0, canonicalMarkers[canonicalMarkers.length - 1]?.frame ?? 0);
+  const normalizedNotes = notes.map((marker) => ({
+    ...marker,
+    frame: Math.max(0, Math.min(marker.frame, maxFrame)),
+  }));
+
+  return [...merged, ...normalizedNotes].sort((left, right) => left.frame - right.frame);
 }
 
 export async function onRequestGet({ request, env }: { request: Request; env: Env }) {
@@ -205,9 +303,43 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
   const slug = slugify(body?.meta.slug?.trim() || body?.meta.name || body?.id || body?.meta.id || "");
   const id = body?.id?.trim() || body?.meta.id?.trim() || slug;
   const description = (body?.meta.description ?? []).map((line) => line.trim()).filter(Boolean);
-  const sources = (body?.meta.sources ?? []).map((line) => line.trim()).filter(Boolean);
-  const firstPosition = markers.find((marker) => marker.type === "position")?.name ?? markers[0]?.name ?? "";
-  const lastPosition = [...markers].reverse().find((marker) => marker.type === "position")?.name ?? markers[markers.length - 1]?.name ?? "";
+  const stringSources = (body?.meta.sources ?? []).map((line) => String(line).trim()).filter(Boolean);
+  const spec = body?.meta.grapplemapExtractSpec?.filter(
+    (s) => s && (s.type === "position" || s.type === "transition") && Number.isFinite(s.id),
+  );
+  const canonicalPathSpec =
+    body?.meta.grapplemapPathSpec?.filter(
+      (s) => s && (s.type === "position" || s.type === "transition") && Number.isFinite(s.id),
+    ) ?? spec;
+  const sourcesPayload: unknown[] = [...stringSources];
+  if (canonicalPathSpec && canonicalPathSpec.length > 0) {
+    sourcesPayload.push({
+      grapplemapPathSpec: canonicalPathSpec,
+      grapplemapPathString: serializeGraphPathSpec(canonicalPathSpec),
+      grapplemapExtractSpec: canonicalPathSpec,
+    });
+  }
+  let persistedMarkers = markers;
+  let persistedFrames = body?.frames ?? [];
+
+  if (canonicalPathSpec && canonicalPathSpec.length > 0) {
+    const grapplemapSource =
+      typeof grapplemapText === "string" && grapplemapText.length >= 1000 ? grapplemapText : env.GRAPPLEMAP_TEXT;
+    if (!grapplemapSource || typeof grapplemapSource !== "string" || grapplemapSource.length < 1000) {
+      return json({ error: "GrappleMap.txt not bundled on the admin runtime" }, { status: 500 });
+    }
+
+    const canonical = buildSequencePayloadFromGrappleMapText(body?.meta.name.trim(), grapplemapSource, canonicalPathSpec);
+    persistedFrames = canonical.frames;
+    persistedMarkers = mergeMarkersWithCanonicalExtract(markers, canonical.markers);
+  }
+
+  const firstPosition =
+    persistedMarkers.find((marker) => marker.type === "position")?.name ?? persistedMarkers[0]?.name ?? "";
+  const lastPosition =
+    [...persistedMarkers].reverse().find((marker) => marker.type === "position")?.name ??
+    persistedMarkers[persistedMarkers.length - 1]?.name ??
+    "";
 
   await env.DB.prepare(
     `
@@ -252,9 +384,9 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
       body?.meta.endingPosition?.trim() || lastPosition,
       body?.meta.difficulty ?? "beginner",
       JSON.stringify(description),
-      JSON.stringify(markers),
-      JSON.stringify(body?.frames ?? []),
-      JSON.stringify(sources),
+      JSON.stringify(persistedMarkers),
+      JSON.stringify(persistedFrames),
+      JSON.stringify(sourcesPayload),
       body?.verified ? 1 : 0,
       admin.adminUserId,
     )

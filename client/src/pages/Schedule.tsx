@@ -73,6 +73,10 @@ function getTrackForSession(session: NormalizedSession): ScheduleTrack {
 // Generate time slots from 8 AM to 10 PM in 30-minute increments
 const TIME_SLOTS = Array.from({ length: 29 }, (_, i) => GRID_START_MIN + i * 30);
 
+// Percentage-based positioning for consistent session alignment
+const SLOT_HEIGHT_PCT = (30 / GRID_RANGE) * 100; // ~3.57% per 30-min slot
+const HOUR_HEIGHT_PCT = (60 / GRID_RANGE) * 100; // ~7.14% per hour
+
 function formatHourLabel(minutes: number): string {
   const h24 = Math.floor(minutes / 60);
   const period = h24 >= 12 ? "PM" : "AM";
@@ -225,51 +229,52 @@ function WeeklyCalendarGrid({
           </div>
         </div>
 
-        {/* Time Grid */}
-        <div className="grid grid-cols-[60px_1fr] relative">
+        {/* Time Grid - Fixed with consistent percentage-based positioning */}
+        <div className="grid grid-cols-[60px_1fr] relative" style={{ height: '840px' }}>
           {/* Time labels column */}
-          <div className="border-r border-charcoal/10 bg-cream/50 relative">
-            {TIME_SLOTS.filter((_, i) => i % 2 === 0).map((time, index) => {
-              const hourIndex = index;
-              return (
-                <div
-                  key={time}
-                  className="h-16 flex items-start justify-end pr-3 -mt-3"
-                  style={{ position: "absolute", top: `${(hourIndex * 60)}px` }}
-                >
-                  <span className="text-xs text-charcoal/50 font-medium">
-                    {formatHourLabel(time)}
-                  </span>
-                </div>
-              );
-            })}
+          <div className="border-r border-charcoal/10 bg-cream/50 relative h-full">
+            {TIME_SLOTS.filter((_, i) => i % 2 === 0).map((time, hourIndex) => (
+              <div
+                key={time}
+                className="absolute flex items-start justify-end pr-3 -mt-3 w-full"
+                style={{ top: `${(hourIndex * HOUR_HEIGHT_PCT).toFixed(2)}%` }}
+              >
+                <span className="text-xs text-charcoal/50 font-medium">
+                  {formatHourLabel(time)}
+                </span>
+              </div>
+            ))}
           </div>
 
           {/* Grid body */}
-          <div className="relative grid grid-cols-7">
-            {/* Horizontal grid lines */}
+          <div className="relative grid grid-cols-7 h-full">
+            {/* Horizontal grid lines - percentage based */}
             <div className="absolute inset-0 pointer-events-none">
-              {TIME_SLOTS.map((time, i) => (
+              {TIME_SLOTS.map((_, i) => (
                 <div
-                  key={time}
+                  key={i}
                   className="absolute w-full border-t border-charcoal/5"
-                  style={{ top: `${i * 30}px` }}
+                  style={{ top: `${(i * SLOT_HEIGHT_PCT).toFixed(2)}%` }}
                 />
               ))}
             </div>
 
-            {/* Vertical grid lines */}
+            {/* Vertical grid lines + hour markers */}
             {Array.from({ length: 7 }).map((_, i) => (
               <div
                 key={i}
-                className={`border-r border-charcoal/10 ${i === 6 ? "" : ""}`}
+                className="border-r border-charcoal/10 h-full relative"
                 style={{ gridColumn: i + 1 }}
               >
-                {/* Hour markers for each column */}
+                {/* Hour markers for each column - percentage based */}
                 {TIME_SLOTS.filter((_, idx) => idx % 2 === 0).map((_, hourIdx) => (
                   <div
                     key={hourIdx}
-                    className="h-[60px] border-b border-charcoal/5"
+                    className="absolute w-full border-b border-charcoal/5"
+                    style={{
+                      top: `${(hourIdx * HOUR_HEIGHT_PCT).toFixed(2)}%`,
+                      height: `${HOUR_HEIGHT_PCT.toFixed(2)}%`
+                    }}
                   />
                 ))}
               </div>
@@ -282,7 +287,7 @@ function WeeklyCalendarGrid({
               if (currentMinutes < GRID_START_MIN || currentMinutes > GRID_END_MIN) return null;
 
               const todayIndex = today.getDay();
-              const topPosition = ((currentMinutes - GRID_START_MIN) / 30) * 30;
+              const topPosition = minutesToTopPct(currentMinutes);
 
               return (
                 <div
@@ -290,7 +295,7 @@ function WeeklyCalendarGrid({
                   style={{
                     left: `${(todayIndex / 7) * 100}%`,
                     width: `${100 / 7}%`,
-                    top: `${topPosition}px`,
+                    top: `${topPosition.toFixed(2)}%`,
                   }}
                 >
                   <div className="flex items-center">
@@ -311,7 +316,7 @@ function WeeklyCalendarGrid({
               return (
                 <div
                   key={dayIndex}
-                  className={`relative min-h-[840px] ${isToday ? "bg-moss/[0.02]" : ""}`}
+                  className={`relative h-full ${isToday ? "bg-moss/[0.02]" : ""}`}
                   style={{ gridColumn: dayIdx + 1 }}
                 >
                   {layouts.map(({ session, column, totalColumns }) => {
@@ -325,38 +330,38 @@ function WeeklyCalendarGrid({
                     const isShort = duration <= 60;
 
                     return (
-                      <Link key={session.id} href={registerHrefForSession(session)}>
-                        <a
-                          className={`absolute block rounded-lg border ${colors.bg} ${colors.border} ${colors.hover}
-                            transition-all duration-200 overflow-hidden group
-                            ${isShort ? "py-1 px-2" : "p-2.5"}`}
-                          style={{
-                            top: `${top}%`,
-                            height: `${height}%`,
-                            left: `${left + 1}%`,
-                            width: `${width - 2}%`,
-                            minHeight: "24px",
-                          }}
-                          title={session.label}
-                        >
-                          <div className={`font-semibold leading-tight ${isShort ? "text-[11px]" : "text-sm"} text-charcoal`}>
-                            {session.shortLabel}
+                      <Link
+                        key={session.id}
+                        href={registerHrefForSession(session)}
+                        className={`absolute block rounded-lg border ${colors.bg} ${colors.border} ${colors.hover}
+                          transition-all duration-200 overflow-hidden group
+                          ${isShort ? "py-1 px-2" : "p-2.5"}`}
+                        style={{
+                          top: `${top.toFixed(2)}%`,
+                          height: `${Math.max(height, 3).toFixed(2)}%`,
+                          left: `${left.toFixed(2)}%`,
+                          width: `${(width - 1).toFixed(2)}%`,
+                          minHeight: "24px",
+                        }}
+                        title={session.label}
+                      >
+                        <div className={`font-semibold leading-tight ${isShort ? "text-[11px]" : "text-sm"} text-charcoal`}>
+                          {session.shortLabel}
+                        </div>
+                        {!isShort && (
+                          <div className="mt-1 text-xs text-charcoal/70 flex items-center gap-1">
+                            <Clock size={10} />
+                            <span>
+                              {formatShortTime(session.startMinutes)} - {formatShortTime(session.endMinutes)}
+                            </span>
                           </div>
-                          {!isShort && (
-                            <div className="mt-1 text-xs text-charcoal/70 flex items-center gap-1">
-                              <Clock size={10} />
-                              <span>
-                                {formatShortTime(session.startMinutes)} - {formatShortTime(session.endMinutes)}
-                              </span>
-                            </div>
-                          )}
-                          {isShort && (
-                            <div className="text-[10px] text-charcoal/60 mt-0.5">
-                              {formatShortTime(session.startMinutes)}
-                            </div>
-                          )}
-                          <div className={`absolute left-0 top-0 bottom-0 w-1 ${colors.text.replace("text-", "bg-")}`} />
-                        </a>
+                        )}
+                        {isShort && (
+                          <div className="text-[10px] text-charcoal/60 mt-0.5">
+                            {formatShortTime(session.startMinutes)}
+                          </div>
+                        )}
+                        <div className={`absolute left-0 top-0 bottom-0 w-1 ${colors.text.replace("text-", "bg-")}`} />
                       </Link>
                     );
                   })}
@@ -450,36 +455,30 @@ function MonthCalendarGrid({
               </div>
 
               <div className="space-y-1.5">
-                {daySessions.slice(0, 4).map((session) => {
+                {daySessions.map((session) => {
                   const track = getTrackForSession(session);
                   const colors = TRACK_COLORS[track];
 
                   return (
-                    <Link key={session.id} href={registerHrefForSession(session)}>
-                      <a
-                        className={`block text-xs rounded-md px-2 py-1.5 border ${colors.bg} ${colors.border} ${colors.hover} transition-colors`}
-                        title={session.label}
-                      >
-                        <div className="flex items-center gap-1.5">
-                          <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${colors.text.replace("text-", "bg-")}`} />
-                          <span className="font-medium text-charcoal truncate">{session.shortLabel}</span>
-                        </div>
-                        <div className="text-[10px] text-charcoal/60 mt-0.5 ml-2.5">
-                          {formatShortTime(session.startMinutes)}
-                        </div>
-                      </a>
+                    <Link
+                      key={session.id}
+                      href={registerHrefForSession(session)}
+                      className={`block text-xs rounded-md px-2 py-1.5 border ${colors.bg} ${colors.border} ${colors.hover} transition-colors`}
+                      title={session.label}
+                    >
+                      <div className="flex items-center gap-1.5">
+                        <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${colors.text.replace("text-", "bg-")}`} />
+                        <span className="font-medium text-charcoal truncate">{session.shortLabel}</span>
+                      </div>
+                      <div className="text-[10px] text-charcoal/60 mt-0.5 ml-2.5">
+                        {formatShortTime(session.startMinutes)}
+                      </div>
                     </Link>
                   );
                 })}
 
                 {daySessions.length === 0 && (
                   <div className="text-xs text-charcoal/30 italic py-2">No classes</div>
-                )}
-
-                {daySessions.length > 4 && (
-                  <div className="text-[10px] text-charcoal/50 pl-2">
-                    +{daySessions.length - 4} more
-                  </div>
                 )}
               </div>
             </div>
@@ -568,34 +567,36 @@ function MobileDayView({
             const duration = getSessionDuration(session);
 
             return (
-              <Link key={session.id} href={registerHrefForSession(session)}>
-                <a className="block bg-white rounded-xl border border-charcoal/10 p-4 hover:shadow-md transition-shadow">
-                  <div className="flex items-start gap-4">
-                    {/* Time column */}
-                    <div className="flex-shrink-0 w-20">
-                      <div className="text-sm font-semibold text-charcoal">
-                        {formatTime12(session.startMinutes)}
-                      </div>
-                      <div className="text-xs text-charcoal/50">
-                        {formatTime12(session.endMinutes)}
-                      </div>
-                      <div className="text-[10px] text-charcoal/40 mt-1">
-                        {Math.round(duration / 60 * 10) / 10} hr
-                      </div>
+              <Link
+                key={session.id}
+                href={registerHrefForSession(session)}
+                className="block bg-white rounded-xl border border-charcoal/10 p-4 hover:shadow-md transition-shadow"
+              >
+                <div className="flex items-start gap-4">
+                  {/* Time column */}
+                  <div className="flex-shrink-0 w-20">
+                    <div className="text-sm font-semibold text-charcoal">
+                      {formatTime12(session.startMinutes)}
                     </div>
-
-                    {/* Event content */}
-                    <div className={`flex-1 rounded-lg border ${colors.bg} ${colors.border} p-3 relative overflow-hidden`}>
-                      <div className={`absolute left-0 top-0 bottom-0 w-1 ${colors.text.replace("text-", "bg-")}`} />
-                      <div className="font-semibold text-charcoal">{session.shortLabel}</div>
-                      <div className="text-sm text-charcoal/70 mt-1">{session.label}</div>
-                      <div className={`inline-flex items-center gap-1 mt-2 text-[10px] uppercase tracking-wide ${colors.text}`}>
-                        <span className={`w-1.5 h-1.5 rounded-full ${colors.text.replace("text-", "bg-")}`} />
-                        {track === "kids" ? "Kids" : track === "women" ? "Women 11+" : track === "men" ? "Men 14+" : "All"}
-                      </div>
+                    <div className="text-xs text-charcoal/50">
+                      {formatTime12(session.endMinutes)}
+                    </div>
+                    <div className="text-[10px] text-charcoal/40 mt-1">
+                      {Math.round(duration / 60 * 10) / 10} hr
                     </div>
                   </div>
-                </a>
+
+                  {/* Event content */}
+                  <div className={`flex-1 rounded-lg border ${colors.bg} ${colors.border} p-3 relative overflow-hidden`}>
+                    <div className={`absolute left-0 top-0 bottom-0 w-1 ${colors.text.replace("text-", "bg-")}`} />
+                    <div className="font-semibold text-charcoal">{session.shortLabel}</div>
+                    <div className="text-sm text-charcoal/70 mt-1">{session.label}</div>
+                    <div className={`inline-flex items-center gap-1 mt-2 text-[10px] uppercase tracking-wide ${colors.text}`}>
+                      <span className={`w-1.5 h-1.5 rounded-full ${colors.text.replace("text-", "bg-")}`} />
+                      {track === "kids" ? "Kids" : track === "women" ? "Women 11+" : track === "men" ? "Men 14+" : "All"}
+                    </div>
+                  </div>
+                </div>
               </Link>
             );
           })

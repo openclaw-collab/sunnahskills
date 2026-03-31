@@ -151,7 +151,9 @@ describe("Public page surfaces", () => {
     expect(screen.getByTestId("academy-snapshot-card")).toBeInTheDocument();
     expect(screen.getByTestId("home-mini-schedule")).toBeInTheDocument();
     expect(screen.getByTestId("enrollment-tracks")).toBeInTheDocument();
-    expect(screen.getByText(/full tuition for the current 13-week semester/i)).toBeInTheDocument();
+    expect(screen.getByTestId("curriculum-card-swimming")).toBeInTheDocument();
+    expect(screen.getByTestId("curriculum-card-horseback")).toBeInTheDocument();
+    expect(screen.getAllByText(/semester tuition/i).length).toBeGreaterThan(0);
     expect(screen.getByTestId("enrollment-card-girls")).toBeInTheDocument();
     expect(screen.getByText(/View technique library/i)).toBeInTheDocument();
 

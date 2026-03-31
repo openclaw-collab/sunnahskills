@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { Link } from "wouter";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { ClayButton } from "@/components/brand/ClayButton";
-import { InfoCard } from "@/components/brand/TelemetryCard";
 import { DarkCard } from "@/components/brand/DarkCard";
 import { TechniqueViewer } from "@/components/grapplemap/TechniqueViewer";
 import { PremiumCard } from "@/components/brand/PremiumCard";
@@ -10,6 +9,8 @@ import { SectionHeader } from "@/components/brand/SectionHeader";
 import { CollapsibleSection } from "@/components/CollapsibleSection";
 import { StatusDot } from "@/components/brand/StatusDot";
 import { ProgramVisual } from "@/components/programs/ProgramVisual";
+import scenesData from "@grapplemap-preview/scenes.json";
+import type { TechniqueSequence } from "@/lib/grapplemap-types";
 import { StudioBlock } from "@/studio/StudioBlock";
 import { StudioText } from "@/studio/StudioText";
 import { MotionPage } from "@/components/motion/PageMotion";
@@ -21,6 +22,7 @@ import { formatMoneyFromCents } from "@shared/money";
 import { resolveClassesInSemester } from "@shared/orderPricing";
 
 const DEFAULT_HOME_TECHNIQUE_SEQUENCE_PATH = "/api/techniques?id=double-leg-to-mount-escape-full-chain";
+const HOME_BUNDLED_SCENE_ID = "1383"; // Uchimata scene from bundled scenes.json
 
 const curriculum = [
   {
@@ -540,7 +542,7 @@ const Home = () => {
                     className="w-full h-full"
                     controlsMode="none"
                     autoplay
-                    sequencePath={DEFAULT_HOME_TECHNIQUE_SEQUENCE_PATH}
+                    sequenceData={scenesData.scenes["1383"] as unknown as TechniqueSequence}
                   />
                   <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-charcoal via-charcoal/18 to-transparent" />
                 </div>

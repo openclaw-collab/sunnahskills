@@ -3,17 +3,22 @@ import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import { OrbitControls as ThreeOrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { Pause, Play } from "lucide-react";
+import { stabilizeSequenceFrames } from "@/lib/grapplemapPlayerContinuity";
+import { grapplemapEngineSpeed } from "@/lib/grapplemapPlayback";
+import { techniqueSequenceApiUrl } from "@/lib/techniqueApi";
 
 type Marker = { name: string; frame: number; type: string };
-type SequenceData = { frames: number[][][][]; markers?: Marker[]; posterFrame?: number };
+export type GrappleMapSequenceData = { frames: number[][][][]; markers?: Marker[]; posterFrame?: number };
+type SequenceData = GrappleMapSequenceData;
 type PlayerFrame = number[][];
 type Frame = [PlayerFrame, PlayerFrame];
 
-type PlaybackState = {
+export type GrappleMapPlaybackState = {
   paused: boolean;
   speed: number;
   timeRef: React.MutableRefObject<number> | null;
 };
+type PlaybackState = GrappleMapPlaybackState;
 
 const COLOR_ATTACKER = 0x1a1a1a;
 const COLOR_ATTACKER_GLOW = 0x4a9eff;
@@ -120,13 +125,14 @@ const SEQUENCE_PENDING = new Map<string, Promise<SequenceData | null>>();
 
 const CAMERA_TARGET_DRAG = 0.2;
 const MAX_CAMERA_JUMP = 2.0;
-const BLEND_FRAMES = 3;
 const CAMERA_Y_SCALE = 0.7;
+const BLEND_FRAMES = 3; // Smooth transition blending for scene changes
 
 function lerp(a: number, b: number, t: number) {
   return a + (b - a) * t;
 }
 
+/** Matches GrappleMap/preview UchimataCardHuman.jsx — smooth, stable motion at high refresh rates. */
 function smoothenJoint(targetX: number, targetY: number, targetZ: number, lastX: number, lastY: number, lastZ: number) {
   const lag = Math.min(0.83, 0.6 + targetY);
   const factor = 1 - lag;
@@ -137,8 +143,9 @@ function smoothenJoint(targetX: number, targetY: number, targetZ: number, lastX:
   };
 }
 
-function normalizeRoleFrames(frames: number[][][][]): number[][][][] {
-  return Array.isArray(frames) ? frames : [];
+function normalizeRoleFrames(frames: number[][][][], markers?: Marker[]): number[][][][] {
+  if (!Array.isArray(frames) || frames.length === 0) return [];
+  return stabilizeSequenceFrames(frames, markers);
 }
 
 function getPoseCenter(pose: Frame | null) {
@@ -153,7 +160,8 @@ function getPoseCenter(pose: Frame | null) {
   );
 }
 
-async function loadSequenceData(sequencePath: string, signal?: AbortSignal) {
+/** Fetches and normalizes GrappleMap sequence JSON (cached). Safe to use from any viewer. */
+export async function loadGrappleMapSequence(sequencePath: string, signal?: AbortSignal) {
   const cached = SEQUENCE_CACHE.get(sequencePath);
   if (cached !== undefined) {
     return cached;
@@ -166,7 +174,7 @@ async function loadSequenceData(sequencePath: string, signal?: AbortSignal) {
         const json = (await res.json()) as SequenceData;
         return {
           ...json,
-          frames: normalizeRoleFrames(json.frames),
+          frames: normalizeRoleFrames(json.frames, json.markers),
         } satisfies SequenceData;
       })
       .catch(() => null)
@@ -232,6 +240,7 @@ function HumanPlayer({
   const limbsRef = useRef<Array<{ solid: THREE.Mesh; glow: THREE.Mesh }>>([]);
   const jointMapRef = useRef<Record<number, { solid: THREE.Mesh; glow: THREE.Mesh }>>({});
   const lastPosRef = useRef<number[][] | null>(null);
+  const lastSeqLenRef = useRef<number>(0);
 
   useEffect(() => {
     if (!groupRef.current) return;
@@ -371,8 +380,10 @@ function HumanPlayer({
     const pNext = next?.[pIdx] ?? pCur;
     if (!pCur || !pNext) return;
 
-    if (!lastPosRef.current) {
+    // Detect sequence change (new technique loaded) — reinitialize smoothing state
+    if (!lastPosRef.current || lastSeqLenRef.current !== total) {
       lastPosRef.current = pCur.map((joint) => [...joint]);
+      lastSeqLenRef.current = total;
     }
     const lastPositions = lastPosRef.current;
 
@@ -420,7 +431,7 @@ function HumanPlayer({
 }
 
 function MannequinSceneInner({
-  sequencePath = "/data/sequence.json",
+  sequencePath = techniqueSequenceApiUrl("double-leg-to-mount-escape-full-chain"),
   sequenceData,
   playbackRef,
   onLoaded,
@@ -434,7 +445,6 @@ function MannequinSceneInner({
   const timeRef = useRef(0);
   const controlsTargetRef = useRef(new THREE.Vector3(0, 1, 0));
   const lastCenterRef = useRef<THREE.Vector3 | null>(null);
-  const lastPoseCenterRef = useRef<[number, number, number] | null>(null);
 
   // Expose timeRef so the overlay can read/seek it
   useEffect(() => {
@@ -448,7 +458,7 @@ function MannequinSceneInner({
     if (sequenceData) {
       setData({
         ...sequenceData,
-        frames: normalizeRoleFrames(sequenceData.frames),
+        frames: normalizeRoleFrames(sequenceData.frames, sequenceData.markers),
       });
       onLoaded?.(true);
       return;
@@ -469,7 +479,7 @@ function MannequinSceneInner({
 
     (async () => {
       try {
-        const json = await loadSequenceData(sequencePath, controller.signal);
+        const json = await loadGrappleMapSequence(sequencePath, controller.signal);
         if (!cancelled) {
           setData(json);
           onLoaded?.(Boolean(json));
@@ -506,24 +516,25 @@ function MannequinSceneInner({
     if (center) {
       controlsTargetRef.current.copy(center);
       lastCenterRef.current = center.clone();
-      lastPoseCenterRef.current = [center.x, center.y / CAMERA_Y_SCALE, center.z];
     }
   }, [data]);
 
+  /** Single unified animation loop - time update, camera follow, and transition blending together */
   useFrame((_state, delta) => {
-    if (playbackRef.current.paused) return;
-    // Match Uchimata timing path: no hidden multiplier.
-    timeRef.current += Math.min(delta, 0.05) * playbackRef.current.speed;
-  });
-
-  useFrame(() => {
     if (!data?.frames?.length) return;
     const total = data.frames.length;
     if (total < 2) return;
 
+    // Time update (only when playing)
+    if (!playbackRef.current.paused) {
+      timeRef.current += Math.min(delta, 0.05) * playbackRef.current.speed;
+    }
+
+    // Calculate current frame position
     const raw = timeRef.current % Math.max(1, total - 1);
     const idx = Math.floor(raw);
     const t = raw - idx;
+
     const cur = data.frames[idx] as Frame | undefined;
     const next = data.frames[Math.min(idx + 1, total - 1)] as Frame | undefined;
     if (!cur || !next) return;
@@ -545,18 +556,7 @@ function MannequinSceneInner({
     let targetY = lerp(curCenterY, nextCenterY, t);
     let targetZ = lerp(curCenterZ, nextCenterZ, t);
 
-    const lastPoseCenter = lastPoseCenterRef.current;
-    if (lastPoseCenter) {
-      const coreJumpDist = Math.hypot(curCenterX - lastPoseCenter[0], curCenterZ - lastPoseCenter[2]);
-      if (coreJumpDist > 0.5 && idx < BLEND_FRAMES) {
-        const blendFactor = Math.min(1, idx / BLEND_FRAMES);
-        const smoothFactor = blendFactor * 0.5;
-        targetX = lastPoseCenter[0] + (targetX - lastPoseCenter[0]) * smoothFactor;
-        targetZ = lastPoseCenter[2] + (targetZ - lastPoseCenter[2]) * smoothFactor;
-      }
-    }
-    lastPoseCenterRef.current = [curCenterX, curCenterY, curCenterZ];
-
+    // Initialize lastCenter on first frame
     if (!lastCenterRef.current) {
       lastCenterRef.current = new THREE.Vector3(targetX, targetY, targetZ);
       controlsTargetRef.current.set(targetX, targetY * CAMERA_Y_SCALE, targetZ);
@@ -564,6 +564,16 @@ function MannequinSceneInner({
     }
 
     const lastCenter = lastCenterRef.current;
+
+    // Transition blending: smooth camera movement at sequence boundaries
+    if (idx < BLEND_FRAMES) {
+      const blendFactor = Math.min(1, idx / BLEND_FRAMES);
+      const smoothFactor = blendFactor * 0.5;
+      targetX = lastCenter.x + (targetX - lastCenter.x) * smoothFactor;
+      targetZ = lastCenter.z + (targetZ - lastCenter.z) * smoothFactor;
+    }
+
+    // Clamp large jumps
     const jumpDist = Math.hypot(targetX - lastCenter.x, targetZ - lastCenter.z);
     if (jumpDist > MAX_CAMERA_JUMP) {
       const scale = MAX_CAMERA_JUMP / jumpDist;
@@ -571,7 +581,10 @@ function MannequinSceneInner({
       targetZ = lastCenter.z + (targetZ - lastCenter.z) * scale;
     }
 
+    // Update last center
     lastCenter.set(targetX, targetY, targetZ);
+
+    // Smooth camera follow (chaser)
     controlsTargetRef.current.x += (targetX - controlsTargetRef.current.x) * CAMERA_TARGET_DRAG;
     controlsTargetRef.current.y += (targetY * CAMERA_Y_SCALE - controlsTargetRef.current.y) * CAMERA_TARGET_DRAG;
     controlsTargetRef.current.z += (targetZ - controlsTargetRef.current.z) * CAMERA_TARGET_DRAG;
@@ -588,6 +601,7 @@ function MannequinSceneInner({
       {data?.frames?.length ? (
         <>
           <HumanPlayer
+            key="attacker"
             frames={data.frames}
             isAttacker
             color={COLOR_ATTACKER}
@@ -595,6 +609,7 @@ function MannequinSceneInner({
             timeRef={timeRef}
           />
           <HumanPlayer
+            key="defender"
             frames={data.frames}
             isAttacker={false}
             color={COLOR_DEFENDER}
@@ -611,13 +626,14 @@ function MannequinSceneInner({
 
 // ── Playback overlay ────────────────────────────────────────────────────────
 
-function PlaybackOverlay({
+export function GrappleMapPlaybackOverlay({
   sequencePath,
   sequenceData,
   playbackRef,
   controlsMode,
   isPlaying,
   onTogglePlayback,
+  onPlaybackSpeedChange,
 }: {
   sequencePath: string;
   sequenceData?: SequenceData;
@@ -625,11 +641,16 @@ function PlaybackOverlay({
   controlsMode: "none" | "ridges" | "compact";
   isPlaying: boolean;
   onTogglePlayback: () => void;
+  /** Optional — parent can mirror speed for canvases that take `playbackSpeed` as a prop (e.g. GrappleMap preview card). */
+  onPlaybackSpeedChange?: (speed: number) => void;
 }) {
   const [markers, setMarkers] = useState<Marker[]>([]);
-  const [speed, setSpeed] = useState(1);
+  /** UI multiplier: 1× ⇒ `grapplemapEngineSpeed(1)` on the scene. */
+  const [speedUi, setSpeedUi] = useState(1);
   const [totalFrames, setTotalFrames] = useState(1);
-  const sliderRef = useRef<HTMLInputElement | null>(null);
+  const [sliderValue, setSliderValue] = useState(0);
+  const scrubbingRef = useRef(false);
+  const resumePlaybackRef = useRef(false);
   const rafRef = useRef(0);
 
   useEffect(() => {
@@ -638,31 +659,34 @@ function PlaybackOverlay({
     if (sequenceData) {
       setMarkers(sequenceData.markers ?? []);
       setTotalFrames(Math.max(1, sequenceData.frames.length - 1));
+      setSliderValue(0);
       return;
     }
 
     (async () => {
       try {
-        const json = await loadSequenceData(sequencePath);
+        const json = await loadGrappleMapSequence(sequencePath);
         if (!json) return;
         setMarkers(json.markers ?? []);
         setTotalFrames(Math.max(1, json.frames.length - 1));
+        setSliderValue(0);
       } catch {
         // ignore
       }
     })();
   }, [controlsMode, sequenceData, sequencePath]);
 
-  if (controlsMode === "none") return null;
+  useEffect(() => {
+    playbackRef.current.speed = grapplemapEngineSpeed(speedUi);
+  }, [speedUi, playbackRef]);
 
   useEffect(() => {
     if (controlsMode !== "compact") return;
 
     const tick = () => {
-      const slider = sliderRef.current;
       const tr = playbackRef.current.timeRef;
-      if (slider && tr) {
-        slider.value = `${tr.current % Math.max(1, totalFrames)}`;
+      if (tr && !scrubbingRef.current) {
+        setSliderValue(tr.current % Math.max(1, totalFrames));
       }
       rafRef.current = requestAnimationFrame(tick);
     };
@@ -680,25 +704,44 @@ function PlaybackOverlay({
   );
 
   const onScrub = useCallback(
-    (event: React.ChangeEvent<HTMLInputElement>) => {
+    (event: React.ChangeEvent<HTMLInputElement> | React.FormEvent<HTMLInputElement>) => {
+      const value = Number((event.target as HTMLInputElement).value);
+      setSliderValue(value);
       const tr = playbackRef.current.timeRef;
-      if (tr) tr.current = Number(event.target.value);
+      if (tr) tr.current = value;
     },
     [playbackRef]
   );
 
+  const startScrub = useCallback(() => {
+    scrubbingRef.current = true;
+    resumePlaybackRef.current = !playbackRef.current.paused;
+    playbackRef.current.paused = true;
+  }, [playbackRef]);
+
+  const endScrub = useCallback(() => {
+    scrubbingRef.current = false;
+    playbackRef.current.paused = !resumePlaybackRef.current;
+  }, [playbackRef]);
+
   const onSpeedChange = useCallback(
     (event: React.ChangeEvent<HTMLSelectElement>) => {
-      const nextSpeed = Number(event.target.value);
-      setSpeed(nextSpeed);
-      playbackRef.current.speed = nextSpeed;
+      const ui = Number(event.target.value);
+      setSpeedUi(ui);
+      const engine = grapplemapEngineSpeed(ui);
+      playbackRef.current.speed = engine;
+      onPlaybackSpeedChange?.(engine);
     },
-    [playbackRef]
+    [playbackRef, onPlaybackSpeedChange],
   );
+
+  if (controlsMode === "none") return null;
 
   if (controlsMode === "compact") {
     return (
       <div
+        onPointerDown={(e) => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
         style={{
           position: "absolute",
           bottom: 14,
@@ -718,7 +761,11 @@ function PlaybackOverlay({
       >
         <button
           type="button"
-          onClick={onTogglePlayback}
+          onPointerDown={(e) => e.stopPropagation()}
+          onClick={(e) => {
+            e.stopPropagation();
+            onTogglePlayback();
+          }}
           aria-label={isPlaying ? "Pause technique animation" : "Play technique animation"}
           style={{
             width: "36px",
@@ -737,18 +784,22 @@ function PlaybackOverlay({
           {isPlaying ? <Pause size={14} /> : <Play size={14} />}
         </button>
         <input
-          ref={sliderRef}
           type="range"
           min={0}
           max={totalFrames}
           step={0.1}
-          defaultValue={0}
+          value={sliderValue}
           onChange={onScrub}
+          onInput={onScrub}
+          onPointerDown={startScrub}
+          onPointerUp={endScrub}
+          onPointerCancel={endScrub}
+          onBlur={endScrub}
           aria-label="Scrub technique playback"
           style={{ flex: 1, accentColor: "#cc5833", cursor: "pointer" }}
         />
         <select
-          value={speed}
+          value={speedUi}
           onChange={onSpeedChange}
           aria-label="Technique playback speed"
           style={{
@@ -763,11 +814,10 @@ function PlaybackOverlay({
             flexShrink: 0,
           }}
         >
-          <option value={0.5}>0.5x</option>
-          <option value={0.75}>0.75x</option>
-          <option value={1}>1x</option>
-          <option value={1.25}>1.25x</option>
-          <option value={1.5}>1.5x</option>
+          <option value={0.25}>0.25×</option>
+          <option value={1}>1×</option>
+          <option value={2}>2×</option>
+          <option value={4}>4×</option>
         </select>
       </div>
     );
@@ -833,7 +883,7 @@ function PlaybackOverlay({
 
 export function MannequinViewer({
   className,
-  sequencePath = "/data/sequence.json",
+  sequencePath = techniqueSequenceApiUrl("double-leg-to-mount-escape-full-chain"),
   sequenceData,
   onThumbnailReady,
   controlsMode = "ridges",
@@ -856,7 +906,7 @@ export function MannequinViewer({
     }
   })[0];
   const [isPlaying, setIsPlaying] = useState(autoplay);
-  const playbackRef = useRef<PlaybackState>({ paused: !autoplay, speed: 1, timeRef: null });
+  const playbackRef = useRef<PlaybackState>({ paused: !autoplay, speed: grapplemapEngineSpeed(1), timeRef: null });
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const thumbnailCaptured = useRef(false);
   const [ready, setReady] = useState(Boolean(sequenceData?.frames?.length || (sequencePath && SEQUENCE_CACHE.get(sequencePath))));
@@ -919,7 +969,7 @@ export function MannequinViewer({
       <Canvas
         camera={{ position: [5, 3.5, 5], fov: 45, near: 0.1, far: 100 }}
         gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
-        dpr={typeof window !== "undefined" ? Math.min(window.devicePixelRatio || 1, 1.25) : 1}
+        frameloop="always"
         onCreated={({ gl }) => {
           canvasRef.current = gl.domElement;
         }}
@@ -954,14 +1004,18 @@ export function MannequinViewer({
       {controlsMode === "ridges" && ready ? (
         <button
           type="button"
-          onClick={() => setIsPlaying((playing) => !playing)}
+          onPointerDown={(e) => e.stopPropagation()}
+          onClick={(e) => {
+            e.stopPropagation();
+            setIsPlaying((playing) => !playing);
+          }}
           aria-label={isPlaying ? "Pause technique animation" : "Play technique animation"}
           className="absolute right-4 top-4 z-10 inline-flex h-11 w-11 items-center justify-center rounded-full border border-cream/15 bg-charcoal/78 text-cream/75 shadow-[0_12px_32px_rgba(0,0,0,0.24)] backdrop-blur-sm transition hover:border-moss/45 hover:text-cream"
         >
           {isPlaying ? <Pause size={16} /> : <Play size={16} className="translate-x-[1px]" />}
         </button>
       ) : null}
-      <PlaybackOverlay
+      <GrappleMapPlaybackOverlay
         sequencePath={sequencePath}
         sequenceData={sequenceData}
         playbackRef={playbackRef}

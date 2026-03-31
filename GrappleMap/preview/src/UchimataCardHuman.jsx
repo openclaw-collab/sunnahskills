@@ -331,7 +331,7 @@ function Grid({ animStateRef }) {
   );
 }
 
-function Scene({ playbackSpeed, autoRotate, frames, onFrame, isPlaying, isLooping }) {
+function Scene({ playbackSpeed, autoRotate, frames, onFrame, isPlaying, isLooping, timeRefExternal }) {
   const controlsRef = useRef();
   const chaserRef = useRef(null);
   const animStateRef = useRef({ time: 0, chaser: null, isPlaying: true, isLooping: true });
@@ -360,9 +360,17 @@ function Scene({ playbackSpeed, autoRotate, frames, onFrame, isPlaying, isLoopin
   useFrame((state, delta) => {
     if (!frames?.length) return;
 
+    if (timeRefExternal && typeof timeRefExternal.current === 'number') {
+      animStateRef.current.time = timeRefExternal.current;
+    }
+
     if (isPlaying) {
       const dt = Math.min(delta, 0.05) * playbackSpeed;
       animStateRef.current.time += dt;
+    }
+
+    if (timeRefExternal) {
+      timeRefExternal.current = animStateRef.current.time;
     }
 
     const total = frames.length;
@@ -494,6 +502,7 @@ export default function UchimataCard({
   showStats = false,
   isPlaying = true,
   isLooping = true,
+  timeRef = null,
   ...props
 }) {
   const frames = scene.frames;
@@ -523,6 +532,7 @@ export default function UchimataCard({
           onFrame={onFrame}
           isPlaying={isPlaying}
           isLooping={isLooping}
+          timeRefExternal={timeRef}
         />
       </Canvas>
     </div>

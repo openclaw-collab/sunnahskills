@@ -1,11 +1,13 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
-import { exec } from 'child_process'
-import { promisify } from 'util'
-import { readFile } from 'fs/promises'
+import { readFile, writeFile } from 'fs/promises'
 import { join } from 'path'
+import {
+  buildSequencePayloadFromGrappleMapText,
+} from '../scripts/grapplemap-sequence-core.js'
 
-const execAsync = promisify(exec)
+const grapplemapTextPath = join(__dirname, '..', 'GrappleMap.txt')
+const previewSequencePath = join(__dirname, 'src', 'sequence.json')
 
 function sequenceExtractorPlugin() {
   return {
@@ -18,22 +20,11 @@ function sequenceExtractorPlugin() {
           req.on('end', async () => {
             try {
               const { sequence } = JSON.parse(body)
+              const grapplemapText = await readFile(grapplemapTextPath, 'utf8')
+              const payload = buildSequencePayloadFromGrappleMapText('custom', grapplemapText, sequence)
+              const sequenceData = JSON.stringify(payload, null, 2)
 
-              const parts = sequence.map(s =>
-                s.type === 'position' ? `p${s.id}` : `t${s.id}`
-              )
-              const spec = parts.join(',')
-
-              const rootDir = join(__dirname, '..')
-              const scriptPath = join(rootDir, 'scripts', 'extract-sequence.js')
-              const cmd = `node "${scriptPath}" "${spec}"`
-
-              await execAsync(cmd, { cwd: rootDir })
-
-              const sequenceData = await readFile(
-                join(__dirname, 'src', 'sequence.json'),
-                'utf8'
-              )
+              await writeFile(previewSequencePath, sequenceData, 'utf8')
 
               res.setHeader('Content-Type', 'application/json')
               res.end(sequenceData)
@@ -57,24 +48,13 @@ function sequenceExtractorPlugin() {
           }
 
           try {
-            const rootDir = join(__dirname, '..')
-            const scriptPath = join(rootDir, 'scripts', 'extract-sequence.js')
-            const cmd = `node "${scriptPath}" search "${query}"`
-
-            const { stdout } = await execAsync(cmd, { cwd: rootDir })
-
-            const lines = stdout.split('\n').filter(l => l.includes(':'))
-            const results = lines.map(line => {
-              const match = line.match(/(position|transition)\s+(\d+):\s*"([^"]+)"/)
-              if (match) {
-                return {
-                  type: match[1],
-                  id: parseInt(match[2]),
-                  name: match[3]
-                }
-              }
-              return null
-            }).filter(Boolean)
+            const { loadGraph } = await import('../scripts/grapplemap-loader.js')
+            const graph = loadGraph(grapplemapTextPath)
+            const results = graph.findByName(query).slice(0, 20).map(result => ({
+              type: result.type,
+              id: result.id,
+              name: result.name,
+            }))
 
             res.setHeader('Content-Type', 'application/json')
             res.end(JSON.stringify(results))

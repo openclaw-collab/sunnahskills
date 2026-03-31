@@ -95,6 +95,6 @@ describe("AdminOverview", () => {
       <AdminOverview registrations={mockRegistrations} payments={mockPayments} />
     );
 
-    expect(screen.getByText(/statuses update from stripe webhooks/i)).toBeInTheDocument();
+    expect(screen.getByText(/Payment statuses update automatically/i)).toBeInTheDocument();
   });
 });

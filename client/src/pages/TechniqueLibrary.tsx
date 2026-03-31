@@ -10,7 +10,8 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { MotionPage, MotionDiv } from "@/components/motion/PageMotion";
 import type { PositionCategory } from "@/lib/grapplemap-types";
-import { LAUNCH_TECHNIQUE_BY_SLUG, LAUNCH_TECHNIQUE_SLUGS, LAUNCH_TECHNIQUE_SPECS } from "@/lib/launchTechniques";
+import { LAUNCH_TECHNIQUE_BY_SLUG, LAUNCH_TECHNIQUE_SPECS } from "@/lib/launchTechniques";
+import { techniqueSequenceApiUrl } from "@/lib/techniqueApi";
 
 type Difficulty = "beginner" | "intermediate" | "advanced";
 
@@ -18,7 +19,7 @@ type SceneMeta = {
   transitionId?: number;
   slug?: string;
   name: string;
-  tags: string[];
+  tags?: string[];
   description: string[];
   dataPath: string;
   positionCategory?: PositionCategory | "guard-pass";
@@ -34,16 +35,6 @@ type SceneMeta = {
 type SceneEntry = {
   id: string;
   meta: SceneMeta;
-};
-
-type LibraryManifestSequence = {
-  id: string;
-  name: string;
-  slug: string;
-  positionCategory: string;
-  difficulty: Difficulty;
-  startingPosition: string;
-  endingPosition: string;
 };
 
 type TechniqueStage = {
@@ -119,15 +110,16 @@ function normalizeSource(source?: string) {
   return source.replace(/\.txt$/i, "");
 }
 
+/** Fallback when D1 has no verified techniques (local dev before `npm run seed:techniques`). */
 function buildLaunchStaticScenes(): SceneEntry[] {
-  return LAUNCH_TECHNIQUE_SPECS.filter((spec) => spec.dataPath).map((spec) => ({
+  return LAUNCH_TECHNIQUE_SPECS.map((spec) => ({
     id: spec.slug,
     meta: {
       slug: spec.slug,
       name: spec.label,
       tags: spec.tags ?? [],
       description: spec.description ?? [],
-      dataPath: spec.dataPath ?? "/data/sequence.json",
+      dataPath: techniqueSequenceApiUrl(spec.slug),
       source: spec.source ?? "Sunnah Skills",
       positionCategory: spec.positionCategory,
       startingPosition: spec.startingPosition,
@@ -144,7 +136,7 @@ function deriveStage(scene: SceneEntry): TechniqueStage["slug"] {
 
   const searchable = [
     scene.meta.name,
-    ...(scene.meta.tags ?? []),
+    ...(Array.isArray(scene.meta.tags) ? scene.meta.tags : []),
     scene.meta.startingPosition ?? "",
     scene.meta.endingPosition ?? "",
     scene.meta.positionCategory ?? "",
@@ -170,29 +162,20 @@ function useTechniqueScenes() {
 
     (async () => {
       try {
-        const [manifestRes, publishedRes] = await Promise.all([
-          fetch("/data/library/sequences/manifest.json").catch(() => null),
-          fetch("/api/techniques").catch(() => null),
-        ]);
-        const manifestJson = manifestRes && manifestRes.ok
-          ? ((await manifestRes.json()) as { sequences?: LibraryManifestSequence[] })
-          : { sequences: [] as LibraryManifestSequence[] };
+        const publishedRes = await fetch("/api/techniques").catch(() => null);
         const publishedJson =
           publishedRes && publishedRes.ok
             ? ((await publishedRes.json()) as { techniques?: SceneEntry[] })
             : { techniques: [] as SceneEntry[] };
 
-        const manifestBySlug = new Map((manifestJson.sequences ?? []).map((sequence) => [sequence.slug, sequence]));
-        const launchStaticScenes = buildLaunchStaticScenes();
-        const publishedScenes = (publishedJson.techniques ?? []).filter((scene) =>
-          LAUNCH_TECHNIQUE_SLUGS.has(deriveTechniqueSlug(scene)),
-        );
-        const rawScenes = [...launchStaticScenes, ...publishedScenes];
+        const fromApi = publishedJson.techniques ?? [];
+        const baseScenes = fromApi.length > 0 ? fromApi : buildLaunchStaticScenes();
+
         const dedupedScenes = Array.from(
-          rawScenes.reduce<Map<string, SceneEntry>>((acc, scene) => {
+          baseScenes.reduce<Map<string, SceneEntry>>((acc, scene) => {
             const slug = deriveTechniqueSlug(scene);
-            if (!LAUNCH_TECHNIQUE_SLUGS.has(slug)) return acc;
-            acc.set(slug, scene);
+            const alias = TECHNIQUE_ALIASES[slug] ?? slug;
+            acc.set(alias, scene);
             return acc;
           }, new Map()),
         ).map(([, scene]) => scene);
@@ -209,8 +192,6 @@ function useTechniqueScenes() {
               };
 
               const slug = deriveTechniqueSlug(scene);
-              const manifestSlug = TECHNIQUE_ALIASES[slug] ?? slug;
-              const manifestMeta = manifestBySlug.get(manifestSlug);
               const override = TECHNIQUE_OVERRIDES[slug] ?? {};
               const launchSpec = LAUNCH_TECHNIQUE_BY_SLUG.get(slug);
               const markers = detail.markers ?? [];
@@ -227,39 +208,31 @@ function useTechniqueScenes() {
                   name: scene.meta.name ?? detail.meta?.name ?? launchSpec?.label ?? slug,
                   transitionId: detail.meta?.transitionId ?? scene.meta.transitionId,
                   description: detail.meta?.description ?? scene.meta.description,
-                  tags: detail.meta?.tags ?? scene.meta.tags,
+                  tags: detail.meta?.tags ?? launchSpec?.tags ?? scene.meta.tags,
                   positionCategory:
                     override.positionCategory ??
                     launchSpec?.positionCategory ??
-                    (manifestMeta?.positionCategory as PositionCategory | "guard-pass" | undefined) ??
                     detail.meta?.positionCategory ??
                     scene.meta.positionCategory,
                   startingPosition:
                     override.startingPosition ??
                     launchSpec?.startingPosition ??
-                    manifestMeta?.startingPosition ??
                     detail.meta?.startingPosition ??
                     scene.meta.startingPosition ??
                     firstPosition,
                   endingPosition:
                     override.endingPosition ??
                     launchSpec?.endingPosition ??
-                    manifestMeta?.endingPosition ??
                     detail.meta?.endingPosition ??
                     scene.meta.endingPosition ??
                     lastPosition,
                   source: normalizeSource(
-                    override.source ??
-                      launchSpec?.source ??
-                      detail.meta?.source ??
-                      scene.meta.source ??
-                      (manifestMeta ? "GrappleMap • curriculum aligned" : "GrappleMap"),
+                    override.source ?? launchSpec?.source ?? detail.meta?.source ?? scene.meta.source ?? "GrappleMap",
                   ),
                   totalFrames: detail.meta?.totalFrames ?? scene.meta.totalFrames,
                   difficulty:
                     override.difficulty ??
                     launchSpec?.difficulty ??
-                    manifestMeta?.difficulty ??
                     detail.meta?.difficulty ??
                     scene.meta.difficulty,
                   curriculumStage:
@@ -310,6 +283,7 @@ function TechniqueCard({
   const desc = scene.meta.description?.[1] ?? scene.meta.description?.[0] ?? "";
   const sceneKey = toStudioKeyPart(scene.id || scene.meta.name);
   const stage = deriveStage(scene);
+  const tags = scene.meta.tags ?? [];
 
   return (
     <motion.article
@@ -319,7 +293,12 @@ function TechniqueCard({
       className="group relative flex flex-col bg-charcoal rounded-3xl overflow-hidden border border-moss/20 hover:border-moss/50 transition-colors cursor-pointer"
       onClick={onClick}
     >
-      <div className="relative w-full h-72">
+      <div
+        className="relative w-full h-72"
+        onPointerDown={(e) => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
+        role="presentation"
+      >
         <TechniqueViewer className="w-full h-full" sequencePath={scene.meta.dataPath} controlsMode="compact" />
         <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-charcoal/80 via-charcoal/20 to-transparent pointer-events-none" />
         <button
@@ -378,9 +357,9 @@ function TechniqueCard({
           <span>{scene.meta.endingPosition ?? "Finish"}</span>
         </div>
 
-        {scene.meta.tags.length > 0 ? (
+        {tags.length > 0 ? (
           <div className="flex flex-wrap gap-1.5 mt-1">
-            {scene.meta.tags.map((tag) => (
+            {tags.map((tag) => (
               <span
                 key={tag}
                 className="text-[10px] uppercase tracking-[0.15em] bg-moss/20 text-moss px-2 py-0.5 rounded-full"
@@ -397,7 +376,7 @@ function TechniqueCard({
 
 const TechniqueLibrary = () => {
   const scenes = useTechniqueScenes();
-  const [selected, setSelected] = useState<SceneEntry | null>(null);
+  const [selected, setSelected] = useState<React.ComponentProps<typeof TechniqueModal>["scene"]>(null);
   const [modalMode, setModalMode] = useState<"default" | "fullscreen">("default");
   const [selectedStage, setSelectedStage] = useState<TechniqueStage["slug"]>("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -407,7 +386,7 @@ const TechniqueLibrary = () => {
       .filter((scene) => {
         const searchable = [
           scene.meta.name,
-          ...scene.meta.tags,
+          ...(Array.isArray(scene.meta.tags) ? scene.meta.tags : []),
           scene.meta.startingPosition ?? "",
           scene.meta.endingPosition ?? "",
           scene.meta.source ?? "",

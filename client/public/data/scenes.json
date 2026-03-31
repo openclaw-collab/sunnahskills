@@ -248,7 +248,7 @@
           "Bridge and roll from mount.",
           "Trap the arm and leg, bridge explosively, and come up on top."
         ],
-        "dataPath": "/data/techniques/side-control-escape.json",
+        "dataPath": "/api/techniques?id=side-control-escape",
         "source": "GrappleMap.txt",
         "positionCategory": "mount",
         "startingPosition": "Mount (Bottom)",
@@ -272,7 +272,7 @@
           "Half guard sweep using a cop sweep.",
           "Underhook the leg, build angle, and roll to top position."
         ],
-        "dataPath": "/data/techniques/half-guard-sweep.json",
+        "dataPath": "/api/techniques?id=half-guard-sweep",
         "source": "GrappleMap.txt",
         "positionCategory": "half-guard",
         "startingPosition": "Half Guard (Bottom)",
@@ -297,7 +297,7 @@
           "Bullfighter pass against open guard.",
           "Control both legs, redirect them, and step into side control."
         ],
-        "dataPath": "/data/techniques/guard-pass-bullfighter.json",
+        "dataPath": "/api/techniques?id=guard-pass-bullfighter",
         "source": "GrappleMap.txt",
         "positionCategory": "open-guard",
         "startingPosition": "Open Guard",
@@ -322,7 +322,7 @@
           "Open-guard leg-over pass.",
           "Stack the hips, step over the legs, and settle into side control."
         ],
-        "dataPath": "/data/techniques/guard-pass-leg-over.json",
+        "dataPath": "/api/techniques?id=guard-pass-leg-over",
         "source": "GrappleMap.txt",
         "positionCategory": "open-guard",
         "startingPosition": "Open Guard",
@@ -346,7 +346,7 @@
           "Back control entry from the top ride.",
           "Use the arm drag or seatbelt to take the back and secure hooks."
         ],
-        "dataPath": "/data/techniques/back-take.json",
+        "dataPath": "/api/techniques?id=back-take",
         "source": "GrappleMap.txt",
         "positionCategory": "back-control",
         "startingPosition": "Top Ride",
@@ -369,7 +369,7 @@
           "Closed-guard armbar.",
           "Break posture, pivot the hips, isolate the arm, and extend for the finish."
         ],
-        "dataPath": "/data/techniques/armbar-from-guard.json",
+        "dataPath": "/api/techniques?id=armbar-from-guard",
         "source": "GrappleMap.txt",
         "positionCategory": "closed-guard",
         "startingPosition": "Closed Guard",
@@ -392,7 +392,7 @@
           "Closed-guard kimura.",
           "Control the wrist, figure-four the arm, and rotate to the finish."
         ],
-        "dataPath": "/data/techniques/kimura-from-guard.json",
+        "dataPath": "/api/techniques?id=kimura-from-guard",
         "source": "GrappleMap.txt",
         "positionCategory": "closed-guard",
         "startingPosition": "Closed Guard",
@@ -416,7 +416,7 @@
           "Arm-in guillotine from a front headlock or guard tie.",
           "Clamp the neck, finish the grip, and squeeze to tap."
         ],
-        "dataPath": "/data/techniques/guillotine.json",
+        "dataPath": "/api/techniques?id=guillotine",
         "source": "GrappleMap.txt",
         "positionCategory": "closed-guard",
         "startingPosition": "Guard Front Headlock",

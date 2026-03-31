@@ -2,6 +2,15 @@ interface Env {
   DB?: D1Database;
 }
 
+const PUBLIC_TECHNIQUE_SLUGS = [
+  "double-leg-to-mount-escape-full-chain",
+  "arm-drag-to-back-finish",
+  "collar-tie-ankle-pick-to-armbar",
+] as const;
+
+const PUBLIC_TECHNIQUE_SLUG_SET = new Set<string>(PUBLIC_TECHNIQUE_SLUGS);
+const PUBLIC_TECHNIQUE_ORDER = new Map(PUBLIC_TECHNIQUE_SLUGS.map((slug, index) => [slug, index]));
+
 type Marker = {
   name: string;
   frame: number;
@@ -123,7 +132,7 @@ export async function onRequestGet({ request, env }: { request: Request; env: En
       .bind(id, id)
       .first()) as SequenceRow | null;
 
-    if (!row) {
+    if (!row || !PUBLIC_TECHNIQUE_SLUG_SET.has(row.slug)) {
       return json({ error: "Technique not found" }, { status: 404 });
     }
 
@@ -139,8 +148,12 @@ export async function onRequestGet({ request, env }: { request: Request; env: En
     `SELECT * FROM technique_sequences WHERE verified = 1 ORDER BY updated_at DESC, name ASC`,
   ).all()).results as SequenceRow[] | undefined;
 
+  const publicRows = (rows ?? [])
+    .filter((row) => PUBLIC_TECHNIQUE_SLUG_SET.has(row.slug))
+    .sort((a, b) => (PUBLIC_TECHNIQUE_ORDER.get(a.slug) ?? 999) - (PUBLIC_TECHNIQUE_ORDER.get(b.slug) ?? 999));
+
   return json({
-    techniques: (rows ?? []).map(mapSequenceRow).map((sequence) => ({
+    techniques: publicRows.map(mapSequenceRow).map((sequence) => ({
       id: sequence.id,
       meta: sequence.meta,
       verified: sequence.verified,

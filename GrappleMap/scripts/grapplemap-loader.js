@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 /**
  * GrappleMap graph loader that mirrors the native C++ loading path more closely.
  *
@@ -10,13 +9,13 @@
 import { readFileSync } from "fs";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
+import { buildSequenceFromGrappleMapText } from "./grapplemap-sequence-core.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, "..");
-
-const B62 = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 const JOINT_COUNT = 23;
 const PLAYER_COUNT = 2;
+const B62 = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 
 function fromBase62(c) {
   const i = B62.indexOf(c);
@@ -220,6 +219,11 @@ function firstDescriptionLine(description = []) {
   return description.find((line) => !/^(tags:|properties:|ref:|http)/.test(line)) ?? "(unnamed)";
 }
 
+function buildSequenceFromFlatSpec(dbPath, spec) {
+  const text = readFileSync(dbPath, "utf8");
+  return buildSequenceFromGrappleMapText(text, spec);
+}
+
 export function loadGraph(dbPath = join(ROOT, "GrappleMap.txt")) {
   const parsed = parseDatabase(dbPath);
   const nodes = [];
@@ -332,6 +336,12 @@ export function loadGraph(dbPath = join(ROOT, "GrappleMap.txt")) {
         ...nodes.filter((node) => node.tags.some((t) => t.toLowerCase().includes(lower))).map((node) => ({ type: "position", ...node })),
         ...edges.filter((edge) => edge.tags.some((t) => t.toLowerCase().includes(lower))).map((edge) => ({ type: "transition", ...edge })),
       ];
+    },
+    /**
+     * @param {Array<{ type: 'position' | 'transition', id: number }>} spec - `p557` → position id 557, `t1383` → transition id 1383 (flat file order; see extract_correct.js)
+     */
+    buildSequence(spec) {
+      return buildSequenceFromFlatSpec(dbPath, spec);
     },
   };
 }

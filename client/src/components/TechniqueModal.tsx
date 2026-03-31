@@ -6,7 +6,7 @@ import { TechniqueViewer } from "@/components/grapplemap/TechniqueViewer";
 type SceneMeta = {
   transitionId?: number;
   name: string;
-  tags: string[];
+  tags?: string[];
   description: string[];
   dataPath: string;
   startingPosition?: string;
@@ -54,7 +54,7 @@ export function TechniqueModal({ scene, mode, onClose, onModeChange }: Technique
               {scene.meta.difficulty ? <span>{scene.meta.difficulty}</span> : null}
             </div>
             <div className="flex flex-wrap gap-1.5">
-              {scene.meta.tags.map((tag) => (
+              {(scene.meta.tags ?? []).map((tag) => (
                 <span
                   key={tag}
                   className="text-[10px] uppercase tracking-[0.15em] bg-moss/20 text-moss px-2 py-0.5 rounded-full"

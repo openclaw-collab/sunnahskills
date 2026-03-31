@@ -1,5 +1,5 @@
 import React, { Suspense } from "react";
-import { MannequinViewer } from "./MannequinScene";
+import { GrappleMapPreviewViewer } from "./GrappleMapPreviewRenderer";
 import type { Marker } from "@/lib/grapplemap-types";
 
 type TechniqueViewerProps = {
@@ -21,7 +21,7 @@ export function TechniqueViewer({
 }: TechniqueViewerProps) {
   return (
     <Suspense fallback={null}>
-      <MannequinViewer
+      <GrappleMapPreviewViewer
         className={className}
         sequencePath={sequencePath}
         sequenceData={sequenceData}

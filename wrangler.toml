@@ -2,6 +2,9 @@ name = "sunnahskills"
 compatibility_date = "2024-01-01"
 pages_build_output_dir = "dist"
 
+# Bundle GrappleMap.txt as a string for admin extract (same flat-index pipeline as GrappleMap/scripts/grapplemap-loader.js).
+rules = [{ type = "Text", globs = ["**/*.txt"], fallthrough = true }]
+
 # Local development defaults
 # database_id = "DB" ensures that `wrangler d1 execute --local` hashes the string "DB"
 # to the same SQLite file as `wrangler pages dev --local` (which hashes the binding name "DB").

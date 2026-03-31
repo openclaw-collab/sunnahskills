@@ -21,16 +21,16 @@ export type LaunchTechniqueSpec = {
 export const LAUNCH_TECHNIQUE_SPECS: LaunchTechniqueSpec[] = [
   {
     slug: "double-leg-to-mount-escape-full-chain",
-    label: "Double Leg to Mount Escape Sweep",
+    label: "Standing Wrist Control to Double Leg",
     source: "Sunnah Skills launch chain",
-    tags: ["standing entry", "mount control", "escape and reversal"],
+    tags: ["standing entry", "wrist control", "double leg"],
     description: [
-      "The full launch chain from wrist control to double leg, mount, escape, and return sweep.",
-      "Enter on the double leg, climb to mount, recover from the bottom escape sequence, and reverse back on top with the pendulum finish.",
+      "Start from symmetric staggered standing, win the wrist control, and build into a clean double-leg entry.",
+      "Flow from the wrist-control hand fight to the high double, then drive forward into the low flying double leg finish.",
     ],
     positionCategory: "standing",
-    startingPosition: "Standing wrist control hand fight",
-    endingPosition: "Mount",
+    startingPosition: "Symmetric Staggered Standing",
+    endingPosition: "Low Flying Double Leg",
     difficulty: "intermediate",
     curriculumStage: "standing",
     curriculumOrder: 5,

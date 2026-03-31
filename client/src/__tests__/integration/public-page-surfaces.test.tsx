@@ -87,9 +87,9 @@ function installPublicFetchMock() {
       const slug = new URL(url, "http://localhost").searchParams.get("id") ?? "technique";
       const metaBySlug: Record<string, { name: string; stage: "standing" | "guard" | "escapes"; tags: string[] }> = {
         "double-leg-to-mount-escape-full-chain": {
-          name: "Double Leg to Mount Escape Sweep",
+          name: "Standing Wrist Control to Double Leg",
           stage: "standing",
-          tags: ["double leg", "mount"],
+          tags: ["wrist control", "double leg"],
         },
         "arm-drag-to-back-finish": {
           name: "Arm Drag to Back Finish",

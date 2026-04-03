@@ -127,6 +127,61 @@ describe("Registration Flow Integration", () => {
     expect(registration.programSlug).toBe("bjj");
   });
 
+  it("allows continuing without optional media consent", async () => {
+    const user = userEvent.setup();
+    render(<ProgramRegistrationPage slug="bjj" />);
+
+    expect(await screen.findByText(/step 1/i)).toBeInTheDocument();
+
+    await fillGuardianStep(user);
+    await user.click(screen.getByRole("button", { name: /continue/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/step 2/i)).toBeInTheDocument();
+    }, { timeout: 500 });
+
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText("Student's full name")).toBeInTheDocument();
+    }, { timeout: 1000 });
+
+    fireEvent.change(screen.getByPlaceholderText("Student's full name"), { target: { value: "Jimmy Doe" } });
+    fireEvent.change(screen.getByPlaceholderText("What should we call them?"), { target: { value: "Jim" } });
+    fireEvent.change(screen.getByPlaceholderText("YYYY-MM-DD"), { target: { value: "2015-01-01" } });
+
+    await user.click(screen.getByRole("button", { name: /continue/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/step 3/i)).toBeInTheDocument();
+    }, { timeout: 500 });
+
+    await user.click(await screen.findByLabelText(/Boys 7–13/i));
+    const sessionSelect = await screen.findByLabelText(/pick your session/i);
+    await user.selectOptions(sessionSelect, "1");
+    await user.click(await screen.findByLabelText(/No, enrol directly/i));
+
+    await user.click(screen.getByRole("button", { name: /continue/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/step 4/i)).toBeInTheDocument();
+    }, { timeout: 500 });
+
+    await user.click(await screen.findByRole("checkbox", { name: /liability waiver/i }));
+    await user.click(await screen.findByRole("checkbox", { name: /medical/i }));
+    await user.click(await screen.findByRole("checkbox", { name: /terms/i }));
+    fireEvent.change(screen.getByLabelText(/typed legal signature/i), { target: { value: "John Doe" } });
+    fireEvent.change(screen.getByLabelText(/^date$/i), { target: { value: "2026-03-18" } });
+
+    await user.click(screen.getByRole("button", { name: /continue/i }));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("payment-element")).toBeInTheDocument();
+    }, { timeout: 3000 });
+
+    await waitFor(() => {
+      expect(mockStore.registrations).toHaveLength(1);
+    });
+  });
+
   it("persists draft data in localStorage", async () => {
     const user = userEvent.setup();
     const localStorageData: Record<string, string> = {};

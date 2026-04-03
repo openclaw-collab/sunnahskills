@@ -4,10 +4,26 @@ import { screen, fireEvent } from "@testing-library/react";
 import { render } from "@/__tests__/test-utils";
 import { StepWaivers } from "@/components/registration/StepWaivers";
 import { useRegistration } from "@/hooks/useRegistration";
+import type { RegistrationDraft } from "@/hooks/useRegistration";
 
 function Harness() {
   const { draft, updateDraft } = useRegistration("bjj");
   return <StepWaivers draft={draft} updateDraft={updateDraft} />;
+}
+
+function WomenHarness() {
+  const { draft, updateDraft } = useRegistration("bjj");
+  const womenDraft: RegistrationDraft = {
+    ...draft,
+    programDetails: {
+      ...draft.programDetails,
+      programSpecific: {
+        ...draft.programDetails.programSpecific,
+        bjjTrack: "women-11-tue",
+      },
+    },
+  };
+  return <StepWaivers draft={womenDraft} updateDraft={updateDraft} />;
 }
 
 describe("StepWaivers", () => {
@@ -15,9 +31,21 @@ describe("StepWaivers", () => {
     render(<Harness />);
 
     expect(screen.getByText(/liability waiver/i)).toBeInTheDocument();
-    expect(screen.getByText(/photo\/media use/i)).toBeInTheDocument();
+    expect(screen.getByText(/optional: i consent to photo\/media use/i)).toBeInTheDocument();
     expect(screen.getByText(/medical treatment/i)).toBeInTheDocument();
     expect(screen.getByText(/terms and policies/i)).toBeInTheDocument();
+  });
+
+  it("shows the optional media disclaimer", () => {
+    render(<Harness />);
+
+    expect(screen.getByText(/cannot control photos or videos taken by other families or guests/i)).toBeInTheDocument();
+  });
+
+  it("shows the camera-free note for women's tracks", () => {
+    render(<WomenHarness />);
+
+    expect(screen.getByText(/camera-free environment/i)).toBeInTheDocument();
   });
 
   it("renders signature input", () => {

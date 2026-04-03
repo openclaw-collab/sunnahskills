@@ -3,16 +3,18 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import type { RegistrationStepProps } from "@/components/registration/steps";
 import { StudioBlock } from "@/studio/StudioBlock";
-import { isMediaWaiverExemptBjjTrack } from "../../../../shared/bjjCatalog";
+import { BJJ_TRACK_BY_KEY, isBjjTrackKey } from "../../../../shared/bjjCatalog";
 
 function WaiverRow({
   label,
   checked,
   onCheckedChange,
+  helperText,
 }: {
   label: string;
   checked: boolean;
   onCheckedChange: (next: boolean) => void;
+  helperText?: string;
 }) {
   return (
     <div className="flex items-start gap-3 rounded-2xl border border-charcoal/10 bg-cream p-4">
@@ -20,7 +22,7 @@ function WaiverRow({
       <div className="space-y-1">
         <div className="font-body text-sm text-charcoal">{label}</div>
         <div className="font-body text-xs text-charcoal/60">
-          You’ll review the full policy text during final submission.
+          {helperText ?? "You’ll review the full policy text during final submission."}
         </div>
       </div>
     </div>
@@ -31,7 +33,10 @@ export function StepWaivers({ draft, updateDraft }: RegistrationStepProps) {
   const selectedBjjTrack = draft.programSlug === "bjj"
     ? String((draft.programDetails.programSpecific as { bjjTrack?: string })?.bjjTrack ?? "")
     : "";
-  const requiresPhotoConsent = !(draft.programSlug === "bjj" && isMediaWaiverExemptBjjTrack(selectedBjjTrack));
+  const isWomenBjjTrack = isBjjTrackKey(selectedBjjTrack) && BJJ_TRACK_BY_KEY[selectedBjjTrack].marketingGroup === "women";
+  const mediaHelperText = isWomenBjjTrack
+    ? "Women’s sessions are run as a camera-free environment. We still cannot control photos or videos taken by other families or guests outside that setting."
+    : "We try to respect family preferences, but cannot control photos or videos taken by other families or guests.";
 
   return (
     <StudioBlock id={`registration.${draft.programSlug}.waivers-step`} label="Waivers step">
@@ -46,22 +51,17 @@ export function StepWaivers({ draft, updateDraft }: RegistrationStepProps) {
             }))
           }
         />
-        {requiresPhotoConsent ? (
-          <WaiverRow
-            label="I consent to photo/media use for program communications."
-            checked={draft.waivers.photoConsent}
-            onCheckedChange={(next) =>
-              updateDraft((prev) => ({
-                ...prev,
-                waivers: { ...prev.waivers, photoConsent: next },
-              }))
-            }
-          />
-        ) : (
-          <div className="rounded-2xl border border-charcoal/10 bg-cream p-4 font-body text-sm text-charcoal/70">
-            Media waiver does not apply to women&apos;s or girls&apos; programs.
-          </div>
-        )}
+        <WaiverRow
+          label="Optional: I consent to photo/media use for program communications."
+          checked={draft.waivers.photoConsent}
+          helperText={mediaHelperText}
+          onCheckedChange={(next) =>
+            updateDraft((prev) => ({
+              ...prev,
+              waivers: { ...prev.waivers, photoConsent: next },
+            }))
+          }
+        />
         <WaiverRow
           label="I consent to medical treatment in case of emergency."
           checked={draft.waivers.medicalConsent}

@@ -7,7 +7,6 @@ import {
   BJJ_TRACK_BY_KEY,
   isBjjTrackKey,
   isEligibleForBjjTrack,
-  isMediaWaiverExemptBjjTrack,
   normalizeGenderLabel,
 } from "../../../shared/bjjCatalog";
 import {
@@ -75,7 +74,7 @@ const payloadSchema = z.object({
   waivers: z.object({
     waiverId: z.number().int().positive(),
     liabilityWaiver: z.boolean(),
-    photoConsent: z.boolean(),
+    photoConsent: z.boolean().optional().default(false),
     medicalConsent: z.boolean(),
     termsAgreement: z.boolean(),
     signatureText: z.string().trim().min(2).max(120),
@@ -674,11 +673,6 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
         dueLaterCents: split.dueLater,
       },
     });
-  }
-
-  const mediaWaiverExemptOrder = lineMeta.length > 0 && lineMeta.every((line) => isMediaWaiverExemptBjjTrack(line.track));
-  if (!mediaWaiverExemptOrder && !body.waivers.photoConsent) {
-    return json({ error: "You must accept the media waiver requirement." }, { status: 400 });
   }
 
   await syncGuardianAccount(env, guardianSession.guardianAccountId, body.account);

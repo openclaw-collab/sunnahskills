@@ -22,7 +22,7 @@ import {
 import { useGuardianSession } from "@/hooks/useGuardianSession";
 import { PaymentProvider } from "@/components/payment/PaymentProvider";
 import { PaymentForm } from "@/components/payment/PaymentForm";
-import { BJJ_TRACK_BY_KEY, isMediaWaiverExemptBjjTrack } from "../../../../shared/bjjCatalog";
+import { BJJ_TRACK_BY_KEY, isBjjTrackKey } from "../../../../shared/bjjCatalog";
 import { formatMoneyFromCents } from "@shared/money";
 import { StudioBlock } from "@/studio/StudioBlock";
 import { StudioText } from "@/studio/StudioText";
@@ -126,11 +126,16 @@ export default function CartPage() {
   const [submitting, setSubmitting] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const cartLines = cart?.lines ?? [];
-  const mediaWaiverExemptOrder = React.useMemo(
-    () => Boolean(cartLines.length) && cartLines.every((line) => isMediaWaiverExemptBjjTrack(line.programDetails.programSpecific.bjjTrack)),
+  const includesWomenBjjTrack = React.useMemo(
+    () => cartLines.some((line) => {
+      const track = String(line.programDetails.programSpecific.bjjTrack ?? "");
+      return isBjjTrackKey(track) && BJJ_TRACK_BY_KEY[track].marketingGroup === "women";
+    }),
     [cartLines],
   );
-  const requiresPhotoConsent = !mediaWaiverExemptOrder;
+  const mediaDisclaimer = includesWomenBjjTrack
+    ? "Women’s sessions are run as a camera-free environment. We still cannot control photos or videos taken by other families or guests outside that setting."
+    : "We try to respect family preferences, but cannot control photos or videos taken by other families or guests.";
   const checkoutFingerprint = React.useMemo(
     () => (cart ? buildFamilyCartFingerprint(cart, prorationCode) : null),
     [cart, prorationCode],
@@ -289,7 +294,6 @@ export default function CartPage() {
     if (!waivers.liabilityWaiver) issues.liabilityWaiver = "Liability waiver is required.";
     if (!waivers.medicalConsent) issues.medicalConsent = "Medical consent is required.";
     if (!waivers.termsAgreement) issues.termsAgreement = "Terms acceptance is required.";
-    if (requiresPhotoConsent && !waivers.photoConsent) issues.photoConsent = "Media waiver is required.";
     if (!waivers.signatureText.trim()) issues.signatureText = "Signature is required.";
     const signedAt = Date.parse(waivers.signedAt);
     if (!Number.isFinite(signedAt) || signedAt > Date.now()) {
@@ -663,29 +667,29 @@ export default function CartPage() {
                         as="span"
                       />
                     </label>
-                    {requiresPhotoConsent ? (
-                      <label className={`flex items-start gap-3 rounded-xl border px-3 py-3 text-sm text-charcoal ${waiverErrors.photoConsent ? "border-clay bg-clay/5" : "border-charcoal/10 bg-cream/35"}`}>
-                        <Checkbox
-                          checked={waivers.photoConsent}
-                          onCheckedChange={(checked) => {
-                            setWaivers((prev) => ({ ...prev, photoConsent: checked === true }));
-                            clearWaiverError("photoConsent");
-                          }}
-                        />
+                    <label className="flex items-start gap-3 rounded-xl border border-charcoal/10 bg-cream/35 px-3 py-3 text-sm text-charcoal">
+                      <Checkbox
+                        checked={waivers.photoConsent}
+                        onCheckedChange={(checked) => {
+                          setWaivers((prev) => ({ ...prev, photoConsent: checked === true }));
+                          clearWaiverError("photoConsent");
+                        }}
+                      />
+                      <div className="space-y-1">
                         <StudioText
                           k="registration.cart.mediaText"
-                          defaultText="I accept the media waiver for community updates."
+                          defaultText="Optional: I consent to photo/media use for community updates."
                           as="span"
+                          className="block"
                         />
-                      </label>
-                    ) : (
-                      <StudioText
-                        k="registration.cart.mediaNotRequired"
-                        defaultText="Media waiver does not apply to women's or girls' programs."
-                        as="div"
-                        className="rounded-xl border border-charcoal/10 bg-cream/35 px-3 py-3 text-sm text-charcoal/70"
-                      />
-                    )}
+                        <StudioText
+                          k="registration.cart.mediaDisclaimer"
+                          defaultText={mediaDisclaimer}
+                          as="span"
+                          className="block text-xs text-charcoal/60"
+                        />
+                      </div>
+                    </label>
 
                     <label className="text-sm text-charcoal">
                       <StudioText k="registration.cart.signatureLabel" defaultText="Signature" as="span" />
@@ -713,7 +717,7 @@ export default function CartPage() {
                     {Object.keys(waiverErrors).length > 0 ? (
                       <StudioText
                         k="registration.cart.waiverError"
-                        defaultText="Complete every required waiver checkbox, signature, and date before continuing."
+                        defaultText="Complete every required waiver, signature, and date before continuing."
                         as="div"
                         className="rounded-xl border border-clay/25 bg-clay/10 px-3 py-3 text-sm text-clay"
                       />

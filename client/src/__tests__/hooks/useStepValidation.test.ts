@@ -122,39 +122,18 @@ describe("useStepValidation", () => {
       act(() => result.current.validateAndTouch());
 
       expect(result.current.errors["waivers.liabilityWaiver"]).toBe("Please agree to the liability waiver");
-      expect(result.current.errors["waivers.photoConsent"]).toBe("Please agree to the media waiver");
+      expect(result.current.errors["waivers.photoConsent"]).toBeUndefined();
       expect(result.current.errors["waivers.medicalConsent"]).toBe("Please consent to medical treatment authorization");
       expect(result.current.errors["waivers.termsAgreement"]).toBe("Please agree to the terms and policies");
       expect(result.current.errors["waivers.signatureText"]).toBe("Please type your full name as a signature");
       expect(result.current.errors["waivers.signedAt"]).toBe("Please add today’s date");
     });
 
-    it("does not require media waiver for women's bjj track", () => {
+    it("treats media waiver as optional for any track", () => {
       const draft = createDraft({
         programSlug: "bjj",
         programDetails: {
-          programSpecific: { bjjTrack: "women-11-tue", trialClass: "yes", notes: "" },
-        },
-        waivers: {
-          liabilityWaiver: true,
-          photoConsent: false,
-          medicalConsent: true,
-          termsAgreement: true,
-          signatureText: "Parent Name",
-          signedAt: "2026-03-18",
-        },
-      });
-      const { result } = renderHook(() => useStepValidation("waivers", draft));
-
-      expect(result.current.isValid).toBe(true);
-      expect(result.current.errors["waivers.photoConsent"]).toBeUndefined();
-    });
-
-    it("does not require media waiver for girls' bjj track", () => {
-      const draft = createDraft({
-        programSlug: "bjj",
-        programDetails: {
-          programSpecific: { bjjTrack: "girls-5-10", trialClass: "yes", notes: "" },
+          programSpecific: { bjjTrack: "boys-7-13", trialClass: "yes", notes: "" },
         },
         waivers: {
           liabilityWaiver: true,

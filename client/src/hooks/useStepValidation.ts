@@ -14,7 +14,6 @@ import {
   studentGenderOptions,
   studentSkillLevelOptions,
 } from "@shared/registration-options";
-import { isMediaWaiverExemptBjjTrack } from "@shared/bjjCatalog";
 
 export type ValidationErrors = Record<string, string>;
 
@@ -115,14 +114,7 @@ const detailsValidator: ValidatorFn = (draft) => {
 
 const waiversValidator: ValidatorFn = (draft) => {
   const errors: ValidationErrors = {};
-  const selectedBjjTrack = draft.programSlug === "bjj"
-    ? String((draft.programDetails.programSpecific as { bjjTrack?: string })?.bjjTrack ?? "")
-    : "";
-  const requiresPhotoConsent = !(draft.programSlug === "bjj" && isMediaWaiverExemptBjjTrack(selectedBjjTrack));
   if (!draft.waivers.liabilityWaiver) errors["waivers.liabilityWaiver"] = "Please agree to the liability waiver";
-  if (requiresPhotoConsent && !draft.waivers.photoConsent) {
-    errors["waivers.photoConsent"] = "Please agree to the media waiver";
-  }
   if (!draft.waivers.medicalConsent) errors["waivers.medicalConsent"] = "Please consent to medical treatment authorization";
   if (!draft.waivers.termsAgreement) errors["waivers.termsAgreement"] = "Please agree to the terms and policies";
   if (!draft.waivers.signatureText.trim()) errors["waivers.signatureText"] = "Please type your full name as a signature";

@@ -63,7 +63,7 @@ const registrationPayloadSchema = z.object({
   }),
   waivers: z.object({
     liabilityWaiver: z.boolean(),
-    photoConsent: z.boolean(),
+    photoConsent: z.boolean().optional().default(false),
     medicalConsent: z.boolean(),
     termsAgreement: z.boolean(),
     signatureText: z.string().trim().min(2).max(120),

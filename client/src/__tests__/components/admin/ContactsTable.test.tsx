@@ -83,4 +83,51 @@ describe("ContactsTable", () => {
     const card = await screen.findByTestId("premium-card-root");
     expect(card).toBeInTheDocument();
   });
+
+  it("lets an admin reply to a contact by email", async () => {
+    const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+      if (init?.method === "POST") {
+        return { ok: true, json: async () => ({ ok: true }) };
+      }
+      return {
+        ok: true,
+        json: async () => ({
+          contacts: [
+            {
+              id: 1,
+              name: "John Doe",
+              email: "john@example.com",
+              message: "I have a question about the BJJ program.",
+              timestamp: "2026-03-15T10:00:00Z",
+            },
+          ],
+        }),
+      };
+    });
+    (globalThis as any).fetch = fetchMock;
+
+    render(<ContactsTable />);
+
+    fireEvent.click(await screen.findByRole("button", { name: /reply to john doe/i }));
+    fireEvent.change(screen.getByLabelText(/subject/i), { target: { value: "Re: BJJ program" } });
+    fireEvent.change(screen.getByLabelText(/message/i), {
+      target: { value: "Assalamu alaykum. We can help with that." },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /send reply/i }));
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith(
+        "/api/admin/contacts",
+        expect.objectContaining({
+          method: "POST",
+          body: JSON.stringify({
+            contactId: 1,
+            subject: "Re: BJJ program",
+            message: "Assalamu alaykum. We can help with that.",
+          }),
+        }),
+      );
+    });
+    expect(await screen.findByText(/reply sent/i)).toBeInTheDocument();
+  });
 });

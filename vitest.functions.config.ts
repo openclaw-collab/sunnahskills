@@ -21,6 +21,7 @@ export default defineConfig({
     globals: true,
     include: [
       "functions/__tests__/guardian-account.test.ts",
+      "functions/__tests__/admin-contacts-reply.test.ts",
       "functions/__tests__/utils.test.ts",
       "functions/__tests__/payments.test.ts",
       "functions/__tests__/grapplemap-sequences.test.ts",

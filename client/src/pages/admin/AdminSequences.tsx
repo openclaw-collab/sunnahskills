@@ -18,6 +18,7 @@ type LibraryMode = "positions" | "transitions";
 type ComposerTab = "start" | "before" | "after" | "search" | "review";
 type SequenceDifficulty = "beginner" | "intermediate" | "advanced";
 type BuilderLibraryType = "position" | "transition" | "note";
+type CoachStartFilter = "all" | "standing" | "guard" | "mount" | "side" | "back" | "turtle" | "half";
 
 type LibraryItemSummary = {
   id: string;
@@ -136,6 +137,16 @@ const CATEGORY_OPTIONS: Array<{ slug: PositionCategory | "mixed"; label: string 
   { slug: "mixed", label: "Mixed" },
   ...POSITION_CATEGORIES,
 ];
+const COACH_START_FILTERS: Array<{ id: CoachStartFilter; label: string; keywords: string[] }> = [
+  { id: "all", label: "All", keywords: [] },
+  { id: "standing", label: "Standing", keywords: ["standing", "staredown", "collar tie", "single leg", "double leg"] },
+  { id: "guard", label: "Guard", keywords: ["guard", "butterfly", "ashi", "x guard", "closed"] },
+  { id: "mount", label: "Mount", keywords: ["mount", "s mount", "3/4 mount"] },
+  { id: "side", label: "Side Control", keywords: ["side", "north south", "knee on belly"] },
+  { id: "back", label: "Back", keywords: ["back", "seat belt", "rear", "hooks"] },
+  { id: "turtle", label: "Turtle", keywords: ["turtle", "front headlock"] },
+  { id: "half", label: "Half Guard", keywords: ["half", "lockdown", "z guard"] },
+];
 
 function slugify(value: string) {
   return value
@@ -176,7 +187,26 @@ function getComposerSubtitle(item: LibraryItemSummary) {
   if (item.libraryType === "transition") {
     return `From ${item.fromDisplayName || "unknown start"} to ${item.toDisplayName || "unknown finish"}`;
   }
-  return `${item.outgoingCount ?? 0} outgoing routes • ${item.incomingCount ?? 0} incoming routes`;
+  return `${item.outgoingCount ?? 0} next options • ${item.incomingCount ?? 0} can come from`;
+}
+
+function matchesCoachStartFilter(item: LibraryItemSummary, filter: CoachStartFilter) {
+  if (filter === "all") return true;
+  const option = COACH_START_FILTERS.find((entry) => entry.id === filter);
+  if (!option) return true;
+  const searchable = [
+    item.name,
+    item.displayName,
+    item.slug,
+    item.family,
+    ...(item.searchTerms ?? []),
+    ...item.tags,
+    ...item.props,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+  return option.keywords.some((keyword) => searchable.includes(keyword));
 }
 
 function getDirectionHint(item: LibraryItemSummary) {
@@ -400,6 +430,7 @@ export default function AdminSequences() {
   const [workflowTab, setWorkflowTab] = useState<ComposerTab>("start");
   const [searchQuery, setSearchQuery] = useState("");
   const [startSearchQuery, setStartSearchQuery] = useState("");
+  const [startGroupFilter, setStartGroupFilter] = useState<CoachStartFilter>("all");
   const [filterTag, setFilterTag] = useState("all");
   const [selectedItem, setSelectedItem] = useState<LibraryItemSummary | null>(null);
   const [selectedItemPreview, setSelectedItemPreview] = useState<LibraryItemPreview | null>(null);
@@ -812,7 +843,7 @@ export default function AdminSequences() {
       if (item.libraryType === "position") {
         return {
           disabled: sequenceMarkers.length > 0,
-          label: sequenceMarkers.length > 0 ? "Start only" : "Start here",
+          label: sequenceMarkers.length > 0 ? "Start only" : "Use this start",
         } as const;
       }
 
@@ -943,6 +974,7 @@ export default function AdminSequences() {
     const needle = startSearchQuery.trim().toLowerCase();
     return [...positions]
       .filter((item) => item.graphNodeId != null)
+      .filter((item) => matchesCoachStartFilter(item, startGroupFilter))
       .filter((item) => {
         if (!needle) return true;
         const searchable = [
@@ -960,7 +992,7 @@ export default function AdminSequences() {
         return searchable.includes(needle);
       })
       .sort((left, right) => getItemLabel(left).localeCompare(getItemLabel(right)));
-  }, [positions, startSearchQuery]);
+  }, [positions, startGroupFilter, startSearchQuery]);
 
   const randomizableStartingPositions = useMemo(
     () =>
@@ -1601,7 +1633,7 @@ export default function AdminSequences() {
             {currentPosition ? getItemLabel(currentPosition) : "Pick a starting position"}
           </div>
           <div className="mt-2 text-sm text-charcoal/65">
-            {currentPosition ? `${currentPosition.outgoingCount ?? 0} next transitions from this node.` : "Start with a position or add a transition and the builder will auto-chain the destination position."}
+            {currentPosition ? `${currentPosition.outgoingCount ?? 0} next options from this position.` : "Start with a position or add a transition and the builder will auto-chain the destination position."}
           </div>
         </PremiumCard>
         <PremiumCard className="bg-white border border-charcoal/10 p-5">
@@ -1676,6 +1708,25 @@ export default function AdminSequences() {
             </div>
           ) : null}
 
+          {sequenceMarkers.length > 0 ? (
+            <div className="mt-4 rounded-[1.3rem] border border-moss/15 bg-white px-4 py-3">
+              <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-moss">Sequence timeline</div>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {sequenceMarkers.map((marker, index) => (
+                  <div
+                    key={`${marker.name}-${index}`}
+                    className="inline-flex max-w-full items-center gap-2 rounded-full border border-charcoal/10 bg-cream/45 px-3 py-2 text-sm text-charcoal"
+                  >
+                    <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-moss/10 text-xs text-moss">
+                      {index + 1}
+                    </span>
+                    <span className="truncate">{getMarkerLabel(marker)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
+
           {workflowTab !== "review" ? (
             <div className="mt-4 grid gap-4 xl:grid-cols-[0.96fr_1.04fr]">
               <div className="rounded-[1.8rem] border border-charcoal/10 bg-white p-4 md:p-5">
@@ -1692,6 +1743,25 @@ export default function AdminSequences() {
                       <OutlineButton className="px-4 py-2.5 text-[11px] uppercase tracking-[0.18em]" onClick={randomizeSequence}>
                         Random drill
                       </OutlineButton>
+                    </div>
+                    <div className="mt-4">
+                      <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-moss">Coach filters</div>
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {COACH_START_FILTERS.map((option) => (
+                          <button
+                            key={option.id}
+                            type="button"
+                            onClick={() => setStartGroupFilter(option.id)}
+                            className={`rounded-full border px-3 py-1.5 text-[11px] uppercase tracking-[0.16em] transition-colors ${
+                              startGroupFilter === option.id
+                                ? "border-moss/25 bg-moss/10 text-charcoal"
+                                : "border-charcoal/10 bg-white text-charcoal/60"
+                            }`}
+                          >
+                            {option.label}
+                          </button>
+                        ))}
+                      </div>
                     </div>
                     <div className="relative mt-4">
                       <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-charcoal/35" size={16} />
@@ -1717,7 +1787,7 @@ export default function AdminSequences() {
                               <div className="mt-1 text-xs text-charcoal/55">{getComposerSubtitle(item)}</div>
                             </button>
                             <ClayButton className="px-3 py-2 text-[11px] uppercase tracking-[0.18em]" onClick={() => addPositionToBuilder(item)}>
-                              Start here
+                              Use this start
                             </ClayButton>
                           </div>
                         </div>
@@ -1731,12 +1801,12 @@ export default function AdminSequences() {
                     <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-moss">Pre choices</div>
                     <h3 className="mt-2 font-heading text-xl text-charcoal">Add a route before the current start</h3>
                     <p className="mt-2 text-sm text-charcoal/60">
-                      Showing all {suggestedPreviousTransitions.length} incoming routes into {sequenceMarkers[0] ? getMarkerLabel(sequenceMarkers[0]) : "the current start"}.
+                      Showing {suggestedPreviousTransitions.length} ways to arrive at {sequenceMarkers[0] ? getMarkerLabel(sequenceMarkers[0]) : "the current start"}.
                     </p>
                     <div className="mt-4 max-h-[42rem] space-y-3 overflow-y-auto pr-1">
                       {suggestedPreviousTransitions.length === 0 ? (
                         <div className="rounded-[1.5rem] border border-dashed border-charcoal/15 bg-cream/35 p-5 text-sm text-charcoal/55">
-                          No incoming graph routes were found for the current starting position.
+                          No connected ways into the current starting position were found.
                         </div>
                       ) : (
                         suggestedPreviousTransitions.map((item) => (
@@ -1769,12 +1839,12 @@ export default function AdminSequences() {
                     <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-moss">Post choices</div>
                     <h3 className="mt-2 font-heading text-xl text-charcoal">Continue from the current end</h3>
                     <p className="mt-2 text-sm text-charcoal/60">
-                      Showing all {suggestedNextTransitions.length} outgoing routes from {currentPosition ? getItemLabel(currentPosition) : "the current end"}.
+                      Showing {suggestedNextTransitions.length} next options from {currentPosition ? getItemLabel(currentPosition) : "the current end"}.
                     </p>
                     <div className="mt-4 max-h-[42rem] space-y-3 overflow-y-auto pr-1">
                       {suggestedNextTransitions.length === 0 ? (
                         <div className="rounded-[1.5rem] border border-dashed border-charcoal/15 bg-cream/35 p-5 text-sm text-charcoal/55">
-                          No outgoing graph routes were found for the current end position.
+                          No next options were found for the current end position.
                         </div>
                       ) : (
                         suggestedNextTransitions.map((item) => (
@@ -1882,7 +1952,7 @@ export default function AdminSequences() {
                             <button type="button" onClick={() => loadLibraryItem(item)} className="min-w-0 flex-1 text-left">
                               <div className="text-sm text-charcoal">{item.libraryType === "transition" ? getComposerTitle(item) : getItemLabel(item)}</div>
                               <div className="mt-1 text-xs text-charcoal/55">
-                                {item.libraryType === "transition" ? getComposerSubtitle(item) : `${item.outgoingCount ?? 0} outgoing / ${item.incomingCount ?? 0} incoming`}
+                                {item.libraryType === "transition" ? getComposerSubtitle(item) : `${item.outgoingCount ?? 0} next options / ${item.incomingCount ?? 0} can come from`}
                               </div>
                               {item.libraryType === "transition" ? (
                                 <div className="mt-2 text-[11px] text-charcoal/45">
@@ -1944,7 +2014,7 @@ export default function AdminSequences() {
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-moss">
-                      {sequencePreviewData ? "Live chain preview" : "Preview"}
+                      {sequencePreviewData ? "Full sequence preview" : "Preview"}
                     </div>
                     <h3 className="mt-2 font-heading text-xl text-charcoal">
                       {sequencePreviewData
@@ -1962,7 +2032,7 @@ export default function AdminSequences() {
                     {selectedItem ? (
                       <div className="rounded-[1.4rem] border border-charcoal/10 bg-cream/35 p-4">
                         <div className="text-sm text-charcoal">
-                          {selectedItem.libraryType === "transition" ? getComposerSubtitle(selectedItem) : `${selectedItem.outgoingCount ?? 0} exits from this position`}
+                          {selectedItem.libraryType === "transition" ? getComposerSubtitle(selectedItem) : `${selectedItem.outgoingCount ?? 0} next options from this position`}
                         </div>
                         <div className="mt-3 flex flex-wrap gap-2">
                           {[selectedItem.family, selectedItem.fromFamily, selectedItem.toFamily, ...selectedItem.tags, ...selectedItem.props]

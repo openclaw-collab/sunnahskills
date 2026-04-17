@@ -47,7 +47,7 @@ export function getDefaultPermissionsForRole(role: AdminRole): AdminPermissions 
     discounts: "write",
     pricing: "write",
     sessions: "write",
-    contacts: "read",
+    contacts: "write",
     sequences: "write",
     exports: "read",
     users: "none",

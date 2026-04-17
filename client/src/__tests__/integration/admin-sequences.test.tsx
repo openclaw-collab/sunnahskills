@@ -396,7 +396,7 @@ describe("Admin sequence builder integration", () => {
     await user.clear(screen.getByPlaceholderText(/search transitions/i));
     await user.type(screen.getByPlaceholderText(/search transitions/i), "begin");
 
-    expect(await screen.findByText(/^begin$/i)).toBeInTheDocument();
+    expect((await screen.findAllByText(/^begin$/i)).length).toBeGreaterThan(0);
     expect(screen.getAllByRole("button", { name: /add after/i }).length).toBeGreaterThan(0);
   });
 
@@ -412,7 +412,7 @@ describe("Admin sequence builder integration", () => {
 
     await user.click(screen.getByRole("button", { name: /^add after$/i }));
 
-    expect(screen.getByText(/live chain preview/i)).toBeInTheDocument();
+    expect(screen.getByText(/full sequence preview/i)).toBeInTheDocument();
     expect(screen.getAllByTestId("technique-viewer")[0]).toHaveTextContent("2");
   });
 
@@ -488,5 +488,30 @@ describe("Admin sequence builder integration", () => {
       expect(screen.getAllByText(/p46 -> t485 -> p21/i).length).toBeGreaterThan(0);
     });
     expect(screen.getByText(/flipped the route direction for this isolated step/i)).toBeInTheDocument();
+  });
+
+  it("offers coach-friendly start filters and plain-language route labels", async () => {
+    const user = userEvent.setup();
+    renderAdminSequencesAt();
+
+    expect(await screen.findByText(/Coach filters/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^standing$/i })).toBeInTheDocument();
+    expect(screen.getAllByText(/next options/i).length).toBeGreaterThan(0);
+    expect(screen.queryByText(/outgoing routes/i)).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /^standing$/i }));
+    expect(screen.getByText(/Showing/i)).toBeInTheDocument();
+  });
+
+  it("shows a persistent sequence timeline while a coach builds a chain", async () => {
+    const user = userEvent.setup();
+    renderAdminSequencesAt();
+
+    await user.type(await screen.findByPlaceholderText(/search starting positions/i), "staredown");
+    await user.click(screen.getByRole("button", { name: /use this start/i }));
+
+    expect(await screen.findByText(/Sequence timeline/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/Staredown/i).length).toBeGreaterThan(0);
+    expect(screen.getByText(/Full sequence preview/i)).toBeInTheDocument();
   });
 });

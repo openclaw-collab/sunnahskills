@@ -12,24 +12,19 @@ import { PROGRAMS, getProgramTypeLabel } from "@/lib/programConfig";
 
 const ArcheryProgram = () => {
   const program = PROGRAMS.archery;
+  const price = "$125";
   const sessions = [
     {
-      time: "10:00 AM Session",
-      skillLevel: "All Skill Groups",
-      equipment: "Shared equipment and safety checks",
-      focus: "Individualized coaching built around stance, anchor, and release",
+      time: "10:00 AM – 12:00 PM",
+      skillLevel: "Public May Series",
+      equipment: "All bows, arrows, targets, and safety equipment included",
+      focus: "Four-Sunday morning slot with safety lesson, stance work, and form coaching",
     },
     {
-      time: "12:30 PM Session",
-      skillLevel: "All Skill Groups",
-      equipment: "Shared equipment and safety checks",
-      focus: "Breath control, repeatable form, and calm shot selection",
-    },
-    {
-      time: "3:00 PM Session",
-      skillLevel: "All Skill Groups",
-      equipment: "Shared equipment and safety checks",
-      focus: "Precision practice and steady improvement under supervision",
+      time: "1:00 PM – 3:00 PM",
+      skillLevel: "Public May Series",
+      equipment: "All bows, arrows, targets, and safety equipment included",
+      focus: "Four-Sunday afternoon slot with individualized coaching and constructive feedback",
     },
   ];
 
@@ -53,8 +48,8 @@ const ArcheryProgram = () => {
                 {program.name}
               </h1>
               <p className="mt-4 text-cream/65 font-body text-sm max-w-2xl leading-relaxed text-pretty">
-                Seasonal sessions at E.T. Seaton Park range. Small groups of 6-8 students.
-                Equipment provided. Safety briefing every session.
+                Public May series at E.T. Seaton Park range on May 10, 17, 24, and 31.
+                Two time slots, all equipment provided, a mandatory intro lesson for first-timers, and one account checkout.
               </p>
 
               <div className="mt-8 flex flex-wrap gap-2">
@@ -94,8 +89,8 @@ const ArcheryProgram = () => {
                 {program.shortPitch} Small groups with individualized coaching on stance, anchor, and release.
               </p>
               <p className="font-body text-pretty text-charcoal/70 leading-relaxed">
-                Equipment provided. Safety rules reviewed every session. Students progress at their own pace
-                with clear feedback on form and consistency.
+                Seaton Archery Range is located behind the Ontario Science Centre. Students receive clear safety instruction,
+                individualized feedback on form, and repeated practice in stance, anchor, and release.
               </p>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
@@ -123,6 +118,11 @@ const ArcheryProgram = () => {
                   </div>
                 </div>
                 <div className="grid grid-cols-1 gap-3">
+                  <div className="rounded-2xl border border-clay/25 bg-clay/10 p-4 text-cream">
+                    <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-clay">Tuition</div>
+                    <div className="mt-2 font-heading text-3xl">{price}</div>
+                    <div className="mt-1 text-xs text-cream/70">Four-session series · paid in the normal account checkout</div>
+                  </div>
                   {sessions.map((s, index) => (
                     <MotionDiv key={s.time} delay={index * 0.04}>
                       <div className="rounded-2xl border border-cream/10 bg-charcoal/40 p-4 text-cream/80">
@@ -157,9 +157,9 @@ const ArcheryProgram = () => {
                 </div>
                 <ul className="mt-4 space-y-2 text-sm text-charcoal/70 font-body">
                   <li>• Age-appropriate bows and safety equipment provided</li>
+                  <li>• Mandatory 30-minute safety and intro lesson for first-timers</li>
                   <li>• Professional supervision at every session</li>
-                  <li>• Clear safety protocols and range rules</li>
-                  <li>• Regular equipment inspection and maintenance</li>
+                  <li>• Clear range rules and regular equipment inspection</li>
                 </ul>
               </PremiumCard>
             </MotionDiv>
@@ -172,8 +172,8 @@ const ArcheryProgram = () => {
                 <ul className="mt-4 space-y-2 text-sm text-charcoal/70 font-body">
                   <li>• Proper stance and shooting form</li>
                   <li>• Breathing techniques for accuracy</li>
-                  <li>• Mental focus and concentration</li>
-                  <li>• Equipment care and maintenance</li>
+                  <li>• Mental focus, concentration, and discipline</li>
+                  <li>• Constructive feedback throughout the session</li>
                 </ul>
               </PremiumCard>
             </MotionDiv>
@@ -194,7 +194,7 @@ const ArcheryProgram = () => {
                     Register for the next available session.
                   </h2>
                   <p className="mt-4 font-body text-charcoal/70 max-w-2xl text-pretty">
-                    Select a session window, acknowledge equipment and safety standards, then complete payment in-app.
+                    Sign in to your Family & Member Account, choose the participant, answer the archery form, and add it to the same registration cart.
                   </p>
                 </div>
                 <div className="flex w-full flex-col gap-3 md:w-auto sm:flex-row">

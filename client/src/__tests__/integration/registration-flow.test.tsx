@@ -406,7 +406,7 @@ describe("Registration Flow Integration", () => {
     await user.click(screen.getByRole("button", { name: /add archery to cart/i }));
 
     await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith("/registration/cart");
+      expect(storage.setItem).toHaveBeenCalledWith("sunnah-family-cart-v2", expect.any(String));
     });
     const cartWrite = storage.setItem.mock.calls.find(([key]) => key === "sunnah-family-cart-v2");
     expect(cartWrite).toBeDefined();

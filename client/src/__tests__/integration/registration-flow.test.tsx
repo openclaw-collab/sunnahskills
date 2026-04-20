@@ -4,6 +4,7 @@ import { fireEvent, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { render, mockLocalStorage } from "./test-utils";
 import { ProgramRegistrationPage } from "@/pages/registration/ProgramRegistrationPage";
+import ArcheryRegistration from "@/pages/registration/ArcheryRegistration";
 import { mockStore } from "./mocks/handlers";
 
 const mockNavigate = vi.fn();
@@ -365,5 +366,52 @@ describe("Registration Flow Integration", () => {
     });
 
     global.fetch = originalFetch;
+  });
+
+  it("adds archery to the authenticated family cart with eye dominance", async () => {
+    const user = userEvent.setup();
+    const localStorageData: Record<string, string> = {};
+    const storage = mockLocalStorage(localStorageData);
+    mockStore.currentGuardian = {
+      authenticated: true,
+      email: "parent@example.com",
+      accountNumber: "ACC-2001",
+      fullName: "Parent Example",
+      phone: "5551234567",
+      emergencyContactName: "Emergency Adult",
+      emergencyContactPhone: "5559876543",
+      accountRole: "parent_guardian",
+      accountComplete: true,
+    };
+    mockStore.guardianStudents = [
+      {
+        id: 7,
+        participant_type: "child",
+        full_name: "Amin Example",
+        date_of_birth: "2014-05-01",
+        gender: "male",
+        medical_notes: "",
+      },
+    ];
+
+    render(<ArcheryRegistration />);
+
+    expect(await screen.findByText(/add archery to your account checkout/i)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /watch the eye-dominance video/i })).toHaveAttribute(
+      "href",
+      "https://www.youtube.com/watch?v=zzotW5QE4gQ",
+    );
+
+    await user.click(screen.getByRole("button", { name: /right eye dominant/i }));
+    await user.click(screen.getByRole("button", { name: /add archery to cart/i }));
+
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith("/registration/cart");
+    });
+    const cartWrite = storage.setItem.mock.calls.find(([key]) => key === "sunnah-family-cart-v2");
+    expect(cartWrite).toBeDefined();
+    const stored = JSON.parse(String(cartWrite?.[1]));
+    expect(stored.lines[0].programSlug).toBe("archery");
+    expect(stored.lines[0].programDetails.programSpecific.eyeDominance).toBe("right");
   });
 });

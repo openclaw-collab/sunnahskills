@@ -21,8 +21,9 @@ export type ParticipantCartSnapshot = {
   experienceLevel: string;
 };
 
-export type FamilyCartLine = {
+export type BjjFamilyCartLine = {
   id: string;
+  programSlug?: "bjj";
   participant: ParticipantCartSnapshot;
   paymentChoice: "full" | "plan";
   discountCode?: string;
@@ -35,6 +36,26 @@ export type FamilyCartLine = {
     };
   };
 };
+
+export type ArcheryFamilyCartLine = {
+  id: string;
+  programSlug: "archery";
+  participant: ParticipantCartSnapshot;
+  paymentChoice: "full";
+  discountCode?: string;
+  programDetails: {
+    sessionId: number;
+    priceId: number | null;
+    programSpecific: {
+      eyeDominance: "right" | "left" | "unsure";
+      dominantHand?: string;
+      experience?: string;
+      notes?: string;
+    };
+  };
+};
+
+export type FamilyCartLine = BjjFamilyCartLine | ArcheryFamilyCartLine;
 
 export type FamilyCart = {
   account: AccountCartSnapshot;
@@ -71,6 +92,7 @@ export function buildFamilyCartFingerprint(cart: FamilyCart, prorationCode = "")
     lines: [...cart.lines]
       .map((line) => ({
         id: normalizeText(line.id),
+        programSlug: normalizeText(line.programSlug || "bjj"),
         paymentChoice: line.paymentChoice,
         discountCode: normalizeCode(line.discountCode),
         participant: {
@@ -86,7 +108,7 @@ export function buildFamilyCartFingerprint(cart: FamilyCart, prorationCode = "")
           sessionId: Number(line.programDetails.sessionId ?? 0),
           priceId: Number(line.programDetails.priceId ?? 0),
           programSpecific: {
-            bjjTrack: normalizeText(line.programDetails.programSpecific.bjjTrack),
+            ...line.programDetails.programSpecific,
             notes: normalizeText(line.programDetails.programSpecific.notes),
           },
         },
@@ -168,7 +190,7 @@ export function addLineToFamilyCart(account: AccountCartSnapshot, line: Omit<Fam
 
   const next: FamilyCart = {
     account,
-    lines: [...(existing?.lines ?? []), { ...line, id }],
+    lines: [...(existing?.lines ?? []), { ...line, id } as FamilyCartLine],
   };
   saveFamilyCart(next);
   return next;

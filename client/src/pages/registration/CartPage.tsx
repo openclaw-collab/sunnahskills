@@ -24,6 +24,7 @@ import { PaymentProvider } from "@/components/payment/PaymentProvider";
 import { PaymentForm } from "@/components/payment/PaymentForm";
 import { BJJ_TRACK_BY_KEY, isBjjTrackKey } from "../../../../shared/bjjCatalog";
 import { formatMoneyFromCents } from "@shared/money";
+import { ARCHERY_SERIES_LABEL, ARCHERY_SERIES_PRICE_CENTS } from "../../../../shared/archeryCatalog";
 import { StudioBlock } from "@/studio/StudioBlock";
 import { StudioText } from "@/studio/StudioText";
 
@@ -36,6 +37,23 @@ type WaiverRecord = {
 
 function money(cents: number) {
   return formatMoneyFromCents(cents);
+}
+
+function lineProgramSlug(line: FamilyCart["lines"][number]) {
+  return line.programSlug ?? "bjj";
+}
+
+function lineProgramLabel(line: FamilyCart["lines"][number]) {
+  if (lineProgramSlug(line) === "archery") return "Traditional Archery";
+  return "Brazilian Jiu-Jitsu";
+}
+
+function lineDetailLabel(line: FamilyCart["lines"][number]) {
+  if (line.programSlug === "archery") return ARCHERY_SERIES_LABEL;
+  const track = line.programDetails.programSpecific.bjjTrack;
+  return Object.prototype.hasOwnProperty.call(BJJ_TRACK_BY_KEY, track)
+    ? BJJ_TRACK_BY_KEY[track as keyof typeof BJJ_TRACK_BY_KEY].registerLabel
+    : track;
 }
 
 function discountReasonCopy(reason: string | undefined) {
@@ -128,6 +146,7 @@ export default function CartPage() {
   const cartLines = cart?.lines ?? [];
   const includesWomenBjjTrack = React.useMemo(
     () => cartLines.some((line) => {
+      if (line.programSlug === "archery") return false;
       const track = String(line.programDetails.programSpecific.bjjTrack ?? "");
       return isBjjTrackKey(track) && BJJ_TRACK_BY_KEY[track].marketingGroup === "women";
     }),
@@ -186,11 +205,12 @@ export default function CartPage() {
 
   React.useEffect(() => {
     (async () => {
-      const res = await fetch("/api/waivers?slug=registration");
+      const waiverSlug = cartLines.some((line) => lineProgramSlug(line) === "archery") ? "archery" : "registration";
+      const res = await fetch(`/api/waivers?slug=${encodeURIComponent(waiverSlug)}`);
       const json = (await res.json().catch(() => null)) as { waiver?: WaiverRecord | null } | null;
       if (res.ok) setWaiver(json?.waiver ?? null);
     })();
-  }, []);
+  }, [cartLines]);
 
   if (sessionQuery.isLoading) {
     return (
@@ -406,10 +426,11 @@ export default function CartPage() {
       return;
     }
 
+    const line = cartLines.find((entry) => entry.id === lineId);
     const res = await fetch("/api/discounts/validate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ code, programId: "bjj" }),
+      body: JSON.stringify({ code, programId: line ? lineProgramSlug(line) : "bjj" }),
     });
     const json = (await res.json().catch(() => null)) as
       | { valid?: boolean; reason?: string; type?: string }
@@ -475,10 +496,13 @@ export default function CartPage() {
                       <div>
                         <div className="text-sm font-medium text-charcoal">{line.participant.fullName}</div>
                         <div className="mt-1 text-xs uppercase tracking-[0.16em] text-charcoal/55">
-                          {Object.prototype.hasOwnProperty.call(BJJ_TRACK_BY_KEY, line.programDetails.programSpecific.bjjTrack)
-                            ? BJJ_TRACK_BY_KEY[line.programDetails.programSpecific.bjjTrack as keyof typeof BJJ_TRACK_BY_KEY].registerLabel
-                            : line.programDetails.programSpecific.bjjTrack}
+                          {lineProgramLabel(line)} · {lineDetailLabel(line)}
                         </div>
+                        {line.programSlug === "archery" ? (
+                          <div className="mt-2 text-sm text-charcoal/65">
+                            Eye dominance: {line.programDetails.programSpecific.eyeDominance || "not set"} · Price: {money(ARCHERY_SERIES_PRICE_CENTS)}
+                          </div>
+                        ) : null}
                         <StudioText
                           k={
                             line.paymentChoice === "plan"
@@ -486,7 +510,9 @@ export default function CartPage() {
                               : "registration.cart.linePaymentFull"
                           }
                           defaultText={
-                            line.paymentChoice === "plan"
+                            lineProgramSlug(line) === "archery"
+                              ? "Pay in full"
+                              : line.paymentChoice === "plan"
                               ? "Pay half now, half on May 12, 2026"
                               : "Pay in full"
                           }

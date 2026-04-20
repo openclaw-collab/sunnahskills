@@ -343,6 +343,7 @@ export default function BJJRegistration() {
                         return;
                       }
                       const duplicate = (cart?.lines ?? []).some((line) =>
+                        line.programSlug !== "archery" &&
                         line.participant.fullName.trim().toLowerCase() === selectedParticipant.full_name.trim().toLowerCase() &&
                         line.participant.dateOfBirth === selectedParticipant.date_of_birth &&
                         line.programDetails.programSpecific.bjjTrack === selectedTrack,
@@ -398,7 +399,9 @@ export default function BJJRegistration() {
                     <div>
                       <div className="text-sm font-medium text-charcoal">{line.participant.fullName}</div>
                         <div className="mt-1 text-xs uppercase tracking-[0.16em] text-charcoal/55">
-                          {Object.prototype.hasOwnProperty.call(BJJ_TRACK_BY_KEY, line.programDetails.programSpecific.bjjTrack)
+                          {line.programSlug === "archery"
+                            ? "Traditional Archery"
+                            : Object.prototype.hasOwnProperty.call(BJJ_TRACK_BY_KEY, line.programDetails.programSpecific.bjjTrack)
                             ? BJJ_TRACK_BY_KEY[line.programDetails.programSpecific.bjjTrack as keyof typeof BJJ_TRACK_BY_KEY].registerLabel
                             : line.programDetails.programSpecific.bjjTrack}
                         </div>

@@ -143,12 +143,15 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
   }
 
   const regRows = await env.DB.prepare(
-    `SELECT id FROM registrations WHERE enrollment_order_id = ? ORDER BY id ASC`,
+    `SELECT id, program_id FROM registrations WHERE enrollment_order_id = ? ORDER BY id ASC`,
   )
     .bind(orderId)
-    .all<{ id: number }>();
+    .all<{ id: number; program_id: string }>();
   const registrationIds = (regRows.results ?? []).map((row) => Number(row.id)).filter((value) => Number.isInteger(value));
   if (registrationIds.length === 0) return json({ error: "No registrations were found on this order." }, { status: 400 });
+  const programIds = Array.from(
+    new Set((regRows.results ?? []).map((row) => String(row.program_id ?? "").trim()).filter(Boolean)),
+  );
 
   let customerId = order.stripe_customer_id?.trim() ?? "";
   if (!customerId) {
@@ -199,7 +202,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
   intentParams.set("metadata[enrollment_order_id]", String(orderId));
   intentParams.set("metadata[registration_ids]", registrationIds.join(","));
   intentParams.set("metadata[pay_phase]", "first");
-  intentParams.set("metadata[program_id]", "bjj");
+  intentParams.set("metadata[program_id]", programIds.length === 1 ? programIds[0] : "multi");
   if (dueLater > 0) {
     intentParams.set("setup_future_usage", "off_session");
   }

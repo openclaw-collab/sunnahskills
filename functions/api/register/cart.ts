@@ -17,6 +17,7 @@ import {
   type SemesterRow,
 } from "../../../shared/orderPricing";
 import { siblingDiscountForLineCents } from "../../../shared/pricing";
+import { ARCHERY_SERIES_PRICE_CENTS, archeryEyeDominanceOptions } from "../../../shared/archeryCatalog";
 
 interface Env {
   DB: D1Database;
@@ -54,16 +55,14 @@ const participantSchema = z.object({
 });
 
 const lineSchema = z.object({
+  programSlug: z.enum(["bjj", "archery"]).optional().default("bjj"),
   participant: participantSchema,
   paymentChoice: z.enum(["full", "plan"]),
   discountCode: z.string().trim().max(64).optional().default(""),
   programDetails: z.object({
     sessionId: z.number().int().positive().nullable().optional(),
     priceId: z.number().int().positive().nullable().optional(),
-    programSpecific: z.object({
-      bjjTrack: z.string().trim().min(1),
-      notes: z.string().trim().max(1500).optional().default(""),
-    }),
+    programSpecific: z.record(z.any()).optional().default({}),
   }),
 });
 
@@ -362,6 +361,7 @@ async function supersedeOlderPendingOrders(env: Env, guardianAccountId: number, 
 async function insertRegistrationRecord(
   env: Env,
   args: {
+    programId: string;
     guardianId: number;
     studentId: number;
     sessionId: number | null;
@@ -375,6 +375,7 @@ async function insertRegistrationRecord(
     experienceLevel: string;
     track: string;
     notes: string;
+    programSpecificData?: Record<string, unknown>;
     discountCode: string | null;
     promoDiscountCents: number;
   },
@@ -384,17 +385,18 @@ async function insertRegistrationRecord(
       guardian_id, student_id, program_id, session_id, price_id, status, preferred_start_date, schedule_choice,
       program_specific_data, enrollment_order_id, payment_choice, line_subtotal_cents, sibling_discount_applied,
       created_at, updated_at
-    ) VALUES (?, ?, 'bjj', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))`,
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))`,
   )
     .bind(
       args.guardianId,
       args.studentId,
+      args.programId,
       args.sessionId,
       args.priceId,
       args.status,
       todayIso(),
       args.track,
-      JSON.stringify({
+      JSON.stringify(args.programSpecificData ?? {
         bjjTrack: args.track,
         participantType: args.participantType,
         experienceLevel: args.experienceLevel,
@@ -526,9 +528,10 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
 
   const duplicateKeys = new Set<string>();
   for (const line of body.lines) {
-    const duplicateKey = `${normalizedName(line.participant.fullName)}|${line.participant.dateOfBirth}|${line.programDetails.programSpecific.bjjTrack}`;
+    const programSlug = line.programSlug ?? "bjj";
+    const duplicateKey = `${programSlug}|${normalizedName(line.participant.fullName)}|${line.participant.dateOfBirth}|${programSlug === "bjj" ? line.programDetails.programSpecific.bjjTrack : line.programDetails.sessionId}`;
     if (duplicateKeys.has(duplicateKey)) {
-      return json({ error: "This participant already has that exact BJJ enrollment in the cart." }, { status: 400 });
+      return json({ error: "This participant already has that exact enrollment in the cart." }, { status: 400 });
     }
     duplicateKeys.add(duplicateKey);
   }
@@ -542,6 +545,8 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
   }));
 
   const lineMeta: Array<{
+    programId: "bjj" | "archery";
+    programName: string;
     waitlisted: boolean;
     sessionId: number | null;
     priceId: number | null;
@@ -561,13 +566,83 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
 
   for (let index = 0; index < body.lines.length; index += 1) {
     const line = body.lines[index];
+    const programId = line.programSlug ?? "bjj";
     const participantAge = computeAge(line.participant.dateOfBirth);
     if (participantAge == null) return json({ error: "Date of birth must be valid.", line: index }, { status: 400 });
     if (!isValidPastDate(line.participant.dateOfBirth)) {
       return json({ error: "Date of birth must be in the past.", line: index }, { status: 400 });
     }
 
-    const track = line.programDetails.programSpecific.bjjTrack;
+    const program = await env.DB.prepare(`SELECT id, name, status FROM programs WHERE id = ? LIMIT 1`)
+      .bind(programId)
+      .first<{ id: string; name: string | null; status: string | null }>();
+    if (!program?.id || program.status !== "active") {
+      return json({ error: "Registration is not open for this program right now.", line: index }, { status: 400 });
+    }
+
+    if (programId === "archery") {
+      const eyeDominance = String(line.programDetails.programSpecific.eyeDominance ?? "").trim();
+      if (!archeryEyeDominanceOptions.some((option) => option.value === eyeDominance)) {
+        return json({ error: "Choose a valid eye dominance option.", line: index }, { status: 400 });
+      }
+
+      const session = line.programDetails.sessionId
+        ? await env.DB.prepare(
+            `SELECT id, capacity, enrolled_count, visible, status
+             FROM program_sessions
+             WHERE id = ? AND program_id = 'archery'
+             LIMIT 1`,
+          )
+            .bind(line.programDetails.sessionId)
+            .first<{ id: number; capacity: number | null; enrolled_count: number | null; visible: number | null; status: string | null }>()
+        : null;
+      if (!session?.id || Number(session.visible ?? 1) !== 1 || session.status === "closed") {
+        return json({ error: "Choose a valid archery time slot.", line: index }, { status: 400 });
+      }
+
+      const waitlisted = session.capacity != null && Number(session.enrolled_count ?? 0) >= Number(session.capacity);
+      let promoCode: string | null = null;
+      let promoDiscountCents = 0;
+      if (line.discountCode?.trim()) {
+        const discount = await resolveDiscountCode(env.DB, line.discountCode, { programId: "archery" });
+        if (!discount.valid || !discount.row) {
+          return json({ error: "That discount code is invalid.", line: index }, { status: 400 });
+        }
+        promoCode = discount.row.code;
+        promoDiscountCents = promoDiscountForSubtotal(ARCHERY_SERIES_PRICE_CENTS, discount.row);
+      }
+      const finalLineTotalCents = Math.max(0, ARCHERY_SERIES_PRICE_CENTS - promoDiscountCents);
+
+      lineMeta.push({
+        programId: "archery",
+        programName: "Traditional Archery",
+        waitlisted,
+        sessionId: session.id,
+        priceId: line.programDetails.priceId ?? null,
+        track: "archery",
+        participantAge,
+        trialBookingId: null,
+        promoCode,
+        promoDiscountCents,
+        afterPromoCents: finalLineTotalCents,
+        manualReviewReason: promoDiscountCents > 0 ? "promo_discount" : null,
+        pricing: {
+          scheduledClassCount: 4,
+          perClassCents: 0,
+          baseTuitionCents: ARCHERY_SERIES_PRICE_CENTS,
+          trialCreditCents: 0,
+          lineSubtotalCents: ARCHERY_SERIES_PRICE_CENTS,
+          siblingDiscountCents: 0,
+          afterSiblingCents: finalLineTotalCents,
+          afterPromoCents: finalLineTotalCents,
+          dueTodayCents: finalLineTotalCents,
+          dueLaterCents: 0,
+        },
+      });
+      continue;
+    }
+
+    const track = String(line.programDetails.programSpecific.bjjTrack ?? "").trim();
     if (!isBjjTrackKey(track)) return json({ error: "Choose a valid BJJ track.", line: index }, { status: 400 });
     if (!isEligibleForBjjTrack(track, participantAge, line.participant.gender)) {
       return json({ error: "That participant is not eligible for the selected BJJ track.", line: index }, { status: 400 });
@@ -654,6 +729,8 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
     const split = splitPaymentPlan(finalLineTotalCents, line.paymentChoice);
 
     lineMeta.push({
+      programId: "bjj",
+      programName: "Brazilian Jiu-Jitsu",
       waitlisted,
       sessionId: session.id,
       priceId: priceRow.id,
@@ -724,7 +801,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
       siblingDiscountCents,
       prorationCode?.code ?? null,
       JSON.stringify({
-        programId: "bjj",
+        programId: Array.from(new Set(lineMeta.map((line) => line.programId))).join(","),
         lineCount: body.lines.length,
         prorationCode: prorationCode?.code ?? null,
         trialCreditCents,
@@ -749,6 +826,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
     await upsertSavedParticipant(env, guardianSession.guardianAccountId, line.participant);
     const studentId = await insertStudentRecord(env, guardianId, line.participant);
     const registrationId = await insertRegistrationRecord(env, {
+      programId: meta.programId,
       guardianId,
       studentId,
       sessionId: meta.sessionId,
@@ -761,7 +839,15 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
       participantType: line.participant.participantType,
       experienceLevel: line.participant.experienceLevel,
       track: meta.track,
-      notes: line.programDetails.programSpecific.notes,
+      notes: String(line.programDetails.programSpecific.notes ?? ""),
+      programSpecificData: {
+        programSlug: meta.programId,
+        participantType: line.participant.participantType,
+        experienceLevel: line.participant.experienceLevel,
+        ...line.programDetails.programSpecific,
+        discountCode: meta.promoCode,
+        promoDiscountCents: meta.promoDiscountCents,
+      },
       discountCode: meta.promoCode,
       promoDiscountCents: meta.promoDiscountCents,
     });
@@ -786,13 +872,13 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
     const emailPayload = meta.waitlisted
       ? waitlistConfirmationEmail({
           name: body.account.fullName,
-          programName: "Brazilian Jiu-Jitsu",
+          programName: meta.programName,
           siteUrl: env.SITE_URL,
         })
       : registrationConfirmationEmail({
           guardianName: body.account.fullName,
           studentName: line.participant.fullName,
-          programName: "Brazilian Jiu-Jitsu",
+          programName: meta.programName,
           registrationId,
           siteUrl: env.SITE_URL,
         });
@@ -810,7 +896,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
         guardianName: body.account.fullName,
         guardianEmail: signedInEmail,
         studentName: line.participant.fullName,
-        programName: "Brazilian Jiu-Jitsu",
+        programName: meta.programName,
         registrationId,
         siteUrl: env.SITE_URL,
       });

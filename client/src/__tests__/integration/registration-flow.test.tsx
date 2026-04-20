@@ -401,6 +401,7 @@ describe("Registration Flow Integration", () => {
       "href",
       "https://www.youtube.com/watch?v=zzotW5QE4gQ",
     );
+    expect((await screen.findAllByText(/May Series/i)).length).toBeGreaterThan(0);
 
     await user.click(screen.getByRole("button", { name: /right eye dominant/i }));
     await user.click(screen.getByRole("button", { name: /add archery to cart/i }));

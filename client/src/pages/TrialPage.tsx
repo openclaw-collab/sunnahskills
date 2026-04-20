@@ -253,7 +253,7 @@ export default function TrialPage() {
                 {submitting ? "Booking..." : "Reserve free trial"}
               </ClayButton>
               <OutlineButton asChild className="px-6 py-3 text-[11px] uppercase tracking-[0.18em]">
-                <Link href="/register">Open account instead</Link>
+                <Link href="/register">Sign in instead</Link>
               </OutlineButton>
             </div>
           </PremiumCard>

@@ -666,7 +666,7 @@ export default function RegistrationHub() {
                       </div>
                     </button>
                     <OutlineButton asChild className="px-6 py-3 text-[11px] uppercase tracking-[0.18em]">
-                      <Link href="/trial">Start with a free trial</Link>
+                      <Link href="/trial">Start BJJ Free Trial</Link>
                     </OutlineButton>
                   </div>
                   </PremiumCard>

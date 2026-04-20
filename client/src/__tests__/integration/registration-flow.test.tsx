@@ -431,11 +431,13 @@ describe("Registration Flow Integration", () => {
       "https://www.youtube.com/watch?v=zzotW5QE4gQ",
     );
     await user.click(screen.getByRole("button", { name: /right eye dominant/i }));
-    await user.click(screen.getByRole("button", { name: /continue to waiver and payment/i }));
+    await user.click(screen.getByRole("button", { name: /add to cart/i }));
 
     await waitFor(() => {
       expect(storage.setItem).toHaveBeenCalledWith("sunnah-family-cart-v2", expect.any(String));
     }, { timeout: 3000 });
+    expect(await screen.findByText(/your registrations/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /continue to waiver and payment/i })).toBeEnabled();
     const cartWrite = storage.setItem.mock.calls.find(([key]) => key === "sunnah-family-cart-v2");
     expect(cartWrite).toBeDefined();
     const stored = JSON.parse(String(cartWrite?.[1]));

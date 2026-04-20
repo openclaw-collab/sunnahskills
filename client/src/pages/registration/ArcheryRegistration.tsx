@@ -9,7 +9,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useGuardianSession, useGuardianStudents } from "@/hooks/useGuardianSession";
 import { useProgramsCatalog } from "@/hooks/useProgramsCatalog";
-import { addLineToFamilyCart, loadFamilyCart, type AccountCartSnapshot } from "@/lib/familyCart";
+import {
+  addLineToFamilyCart,
+  loadFamilyCart,
+  removeCartLine,
+  type AccountCartSnapshot,
+} from "@/lib/familyCart";
 import { formatMoneyFromCents } from "@shared/money";
 import {
   ARCHERY_EYE_DOMINANCE_VIDEO_URL,
@@ -35,6 +40,7 @@ export default function ArcheryRegistration() {
   const [dominantHand, setDominantHand] = React.useState("");
   const [experience, setExperience] = React.useState("beginner");
   const [notes, setNotes] = React.useState("");
+  const [cart, setCart] = React.useState(() => loadFamilyCart());
   const [error, setError] = React.useState<string | null>(null);
 
   const session = sessionQuery.data;
@@ -44,6 +50,7 @@ export default function ArcheryRegistration() {
   const selectedParticipant = participants.find((participant) => participant.id === selectedParticipantId) ?? null;
   const selectedSession = sessions.find((item: any) => Number(item.id) === Number(selectedSessionId)) ?? sessions[0] ?? null;
   const priceId = archery?.prices?.[0]?.id ?? null;
+  const cartLines = cart?.lines ?? [];
 
   React.useEffect(() => {
     if (!selectedParticipantId && participants[0]?.id) setSelectedParticipantId(participants[0].id);
@@ -139,7 +146,18 @@ export default function ArcheryRegistration() {
       return;
     }
 
-    addLineToFamilyCart(accountSnapshot, {
+    const duplicate = (existing?.lines ?? []).some((line) =>
+      line.programSlug === "archery" &&
+      line.participant.fullName.trim().toLowerCase() === selectedParticipant.full_name.trim().toLowerCase() &&
+      line.participant.dateOfBirth === (selectedParticipant.date_of_birth ?? "") &&
+      Number(line.programDetails.sessionId) === Number(selectedSession.id),
+    );
+    if (duplicate) {
+      setError("That participant is already in the cart for this archery time slot.");
+      return;
+    }
+
+    const nextCart = addLineToFamilyCart(accountSnapshot, {
       programSlug: "archery",
       participant: {
         id: selectedParticipant.id,
@@ -162,7 +180,9 @@ export default function ArcheryRegistration() {
         },
       },
     });
-    navigate("/registration/cart");
+    setCart(nextCart);
+    setError(null);
+    setNotes("");
   }
 
   return (
@@ -312,11 +332,60 @@ export default function ArcheryRegistration() {
               ) : null}
               {error ? <div className="rounded-xl border border-clay/20 bg-clay/5 p-3 text-clay">{error}</div> : null}
               <ClayButton className="w-full px-6 py-3 text-[11px] uppercase tracking-[0.18em]" onClick={addArcheryLine}>
-                Continue to waiver and payment
+                Add to cart
               </ClayButton>
-              <OutlineButton asChild className="w-full px-6 py-3 text-[11px] uppercase tracking-[0.18em]">
-                <Link href="/registration/cart">Review checkout</Link>
-              </OutlineButton>
+            </div>
+
+            <div className="mt-6 border-t border-charcoal/10 pt-5">
+              <div className="font-mono-label mb-3 text-[10px] uppercase tracking-[0.18em] text-moss">Your registrations</div>
+              <div className="space-y-3">
+                {cartLines.length > 0 ? (
+                  cartLines.map((line) => (
+                    <div key={line.id} className="rounded-2xl border border-charcoal/10 bg-cream/40 p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <div className="text-sm font-medium text-charcoal">{line.participant.fullName}</div>
+                          <div className="mt-1 text-xs uppercase tracking-[0.16em] text-charcoal/55">
+                            {line.programSlug === "archery"
+                              ? "Traditional Archery"
+                              : "Brazilian Jiu-Jitsu"}
+                          </div>
+                          {line.programSlug === "archery" ? (
+                            <div className="mt-2 text-sm text-charcoal/65">
+                              Eye dominance: {line.programDetails.programSpecific.eyeDominance} · {formatMoneyFromCents(ARCHERY_SERIES_PRICE_CENTS)}
+                            </div>
+                          ) : null}
+                        </div>
+                        <OutlineButton
+                          className="px-3 py-2 text-[10px] uppercase tracking-[0.18em]"
+                          onClick={() => {
+                            removeCartLine(line.id);
+                            setCart(loadFamilyCart());
+                          }}
+                        >
+                          Remove
+                        </OutlineButton>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="rounded-2xl border border-dashed border-charcoal/15 bg-cream/40 p-4 text-sm text-charcoal/65">
+                    No registrations added yet.
+                  </div>
+                )}
+              </div>
+              <div className="mt-5 flex flex-col gap-3">
+                <ClayButton
+                  className="w-full px-6 py-3 text-[11px] uppercase tracking-[0.18em]"
+                  disabled={cartLines.length === 0}
+                  onClick={() => navigate("/registration/cart")}
+                >
+                  Continue to waiver and payment
+                </ClayButton>
+                <OutlineButton asChild className="w-full px-6 py-3 text-[11px] uppercase tracking-[0.18em]">
+                  <Link href="/registration/cart">Review checkout</Link>
+                </OutlineButton>
+              </div>
             </div>
           </PremiumCard>
         </div>

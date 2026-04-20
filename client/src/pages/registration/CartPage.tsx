@@ -127,6 +127,11 @@ export default function CartPage() {
   const [reconcileToken, setReconcileToken] = React.useState<string | null>(null);
   const [laterChargeAuthorized, setLaterChargeAuthorized] = React.useState(false);
   const [prorationCode, setProrationCode] = React.useState(initialCheckoutState.prorationCode);
+  const [checkoutDiscountCode, setCheckoutDiscountCode] = React.useState("");
+  const [checkoutDiscountFeedback, setCheckoutDiscountFeedback] = React.useState<{
+    tone: "success" | "error";
+    message: string;
+  } | null>(null);
   const [lineDiscountDrafts, setLineDiscountDrafts] = React.useState<Record<string, string>>({});
   const [lineDiscountOpen, setLineDiscountOpen] = React.useState<Record<string, boolean>>({});
   const [lineDiscountFeedback, setLineDiscountFeedback] = React.useState<
@@ -453,6 +458,62 @@ export default function CartPage() {
     }));
   }
 
+  async function applyCheckoutDiscount() {
+    const code = checkoutDiscountCode.trim().toUpperCase();
+    if (!code) {
+      setCheckoutDiscountFeedback({ tone: "error", message: "Type a code first, then click Apply." });
+      return;
+    }
+    if (cartLines.length === 0) {
+      setCheckoutDiscountFeedback({ tone: "error", message: "Add a registration before applying a code." });
+      return;
+    }
+
+    let applied = 0;
+    const skipped: string[] = [];
+    for (const line of cartLines) {
+      const res = await fetch("/api/discounts/validate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code, programId: lineProgramSlug(line) }),
+      });
+      const json = (await res.json().catch(() => null)) as
+        | { valid?: boolean; reason?: string }
+        | null;
+
+      if (!res.ok || !json?.valid) {
+        skipped.push(line.participant.fullName);
+        continue;
+      }
+
+      updateCartLine(line.id, (current) => ({ ...current, discountCode: code }));
+      applied += 1;
+    }
+
+    const nextCart = loadFamilyCart();
+    setCart(nextCart);
+    setLineDiscountDrafts((prev) => ({
+      ...prev,
+      ...Object.fromEntries((nextCart?.lines ?? []).map((line) => [line.id, line.discountCode ?? ""])),
+    }));
+    setLineDiscountOpen((prev) => ({
+      ...prev,
+      ...Object.fromEntries((nextCart?.lines ?? []).filter((line) => line.discountCode).map((line) => [line.id, true])),
+    }));
+
+    if (applied === 0) {
+      setCheckoutDiscountFeedback({ tone: "error", message: "That code did not apply to any registration in this checkout." });
+      return;
+    }
+    setCheckoutDiscountFeedback({
+      tone: skipped.length > 0 ? "error" : "success",
+      message:
+        skipped.length > 0
+          ? `Code applied to ${applied} registration${applied === 1 ? "" : "s"}. It did not apply to ${skipped.join(", ")}.`
+          : `Code applied to ${applied} registration${applied === 1 ? "" : "s"}.`,
+    });
+  }
+
   function clearLineDiscount(lineId: string) {
     const nextCart = updateCartLine(lineId, (line) => {
       const nextLine = { ...line };
@@ -600,29 +661,43 @@ export default function CartPage() {
                 ))}
               </div>
 
-              {hasBjjLine ? (
               <div className="mt-6">
                 <label className="text-sm text-charcoal">
                   <StudioText
                     k="registration.cart.discountLabel"
-                    defaultText="Staff code (optional)"
+                    defaultText="Discount code for this checkout (optional)"
                     as="span"
                   />
                   <Input
                     className="mt-2 bg-cream/50 border-charcoal/10"
-                    value={prorationCode}
-                    onChange={(event) => setProrationCode(event.target.value.toUpperCase())}
-                    placeholder="Enter code if one was provided"
+                    value={checkoutDiscountCode}
+                    onChange={(event) => {
+                      setCheckoutDiscountCode(event.target.value.toUpperCase());
+                      setCheckoutDiscountFeedback(null);
+                    }}
+                    placeholder="Enter discount code"
                   />
                 </label>
+                <div className="mt-3">
+                  <OutlineButton
+                    className="px-4 py-2 text-[10px] uppercase tracking-[0.18em]"
+                    onClick={applyCheckoutDiscount}
+                  >
+                    Apply to all eligible registrations
+                  </OutlineButton>
+                </div>
                 <StudioText
                   k="registration.cart.discountHelper"
-                  defaultText="Only enter a code if Sunnah Skills gave you one."
+                  defaultText="You can also apply a different code on an individual registration above."
                   as="div"
                   className="mt-2 text-xs uppercase tracking-[0.16em] text-charcoal/55"
                 />
+                {checkoutDiscountFeedback ? (
+                  <div className={`mt-3 text-sm ${checkoutDiscountFeedback.tone === "error" ? "text-clay" : "text-moss"}`}>
+                    {checkoutDiscountFeedback.message}
+                  </div>
+                ) : null}
               </div>
-              ) : null}
               </PremiumCard>
 
               <PremiumCard className="border border-charcoal/10 bg-white p-6" data-testid="registration-cart-summary">

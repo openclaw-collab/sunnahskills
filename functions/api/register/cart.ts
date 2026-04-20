@@ -590,7 +590,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
       }
       const eyeDominance = String(line.programDetails.programSpecific.eyeDominance ?? "").trim();
       if (!archeryEyeDominanceOptions.some((option) => option.value === eyeDominance)) {
-        return json({ error: "Choose a valid eye dominance option.", line: index }, { status: 400 });
+        return json({ error: "Choose right or left eye dominance.", line: index }, { status: 400 });
       }
 
       const session = line.programDetails.sessionId

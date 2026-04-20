@@ -5,7 +5,6 @@ export const ARCHERY_EYE_DOMINANCE_VIDEO_URL = "https://www.youtube.com/watch?v=
 export const archeryEyeDominanceOptions = [
   { value: "right", label: "Right eye dominant" },
   { value: "left", label: "Left eye dominant" },
-  { value: "unsure", label: "Not sure yet" },
 ] as const;
 
 export type ArcheryEyeDominance = (typeof archeryEyeDominanceOptions)[number]["value"];

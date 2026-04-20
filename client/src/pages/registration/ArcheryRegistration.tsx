@@ -236,7 +236,7 @@ export default function ArcheryRegistration() {
                 >
                   Watch the eye-dominance video
                 </a>
-                <div className="mt-4 grid gap-2 sm:grid-cols-3">
+                <div className="mt-4 grid gap-2 sm:grid-cols-2">
                   {archeryEyeDominanceOptions.map((option) => (
                     <button
                       key={option.value}

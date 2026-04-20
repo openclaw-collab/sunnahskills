@@ -47,7 +47,7 @@ export type ArcheryFamilyCartLine = {
     sessionId: number;
     priceId: number | null;
     programSpecific: {
-      eyeDominance: "right" | "left" | "unsure";
+      eyeDominance: "right" | "left";
       dominantHand?: string;
       experience?: string;
       notes?: string;

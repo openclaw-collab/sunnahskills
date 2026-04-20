@@ -16,8 +16,7 @@ import ArcheryRegistration from "@/pages/registration/ArcheryRegistration";
 import OutdoorRegistration from "@/pages/registration/OutdoorRegistration";
 import BullyproofingRegistration from "@/pages/registration/BullyproofingRegistration";
 import BJJRegistration from "@/pages/registration/BJJRegistration";
-import SwimmingRegistration from "@/pages/registration/SwimmingRegistration";
-import HorsebackRegistration from "@/pages/registration/HorsebackRegistration";
+import { ProgramRegistrationPage } from "@/pages/registration/ProgramRegistrationPage";
 import NotFound from "@/pages/not-found";
 import { mockStore } from "./mocks/handlers";
 
@@ -144,13 +143,13 @@ describe("Additional route surface coverage", () => {
   });
 
   it("renders the registration waitlist for swimming and horseback while enrollment is closed", async () => {
-    const swimming = renderAt("/programs/swimming/register", <SwimmingRegistration />);
+    const swimming = renderAt("/programs/swimming/register", <ProgramRegistrationPage slug="swimming" />);
     expect(await screen.findByRole("heading", { name: /swimming/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /join waitlist/i })).toBeInTheDocument();
     expect(screen.getByText(/online registration for this program isn't open yet/i)).toBeInTheDocument();
     swimming.unmount();
 
-    renderAt("/programs/horseback/register", <HorsebackRegistration />);
+    renderAt("/programs/horseback/register", <ProgramRegistrationPage slug="horseback" />);
     expect(await screen.findByRole("heading", { name: /horseback riding/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /join waitlist/i })).toBeInTheDocument();
   });

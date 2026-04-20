@@ -9,23 +9,18 @@ import { StatusDot } from "@/components/brand/StatusDot";
 import { ProgramPageHeroMedia } from "@/components/programs/ProgramPageHeroMedia";
 import { MotionDiv, MotionPage, MotionSection } from "@/components/motion/PageMotion";
 import { PROGRAMS, getProgramTypeLabel } from "@/lib/programConfig";
+import { useProgramsCatalog } from "@/hooks/useProgramsCatalog";
+import { formatMoneyFromCents } from "@shared/money";
+import { ARCHERY_SERIES_PRICE_CENTS } from "../../../../shared/archeryCatalog";
 
 const ArcheryProgram = () => {
   const program = PROGRAMS.archery;
-  const price = "$125";
-  const sessions = [
-    {
-      time: "10:00 AM – 12:00 PM",
-      skillLevel: "Public May Series",
-      equipment: "All bows, arrows, targets, and safety equipment included",
-      focus: "Four-Sunday morning slot with safety lesson, stance work, and form coaching",
-    },
-    {
-      time: "1:00 PM – 3:00 PM",
-      skillLevel: "Public May Series",
-      equipment: "All bows, arrows, targets, and safety equipment included",
-      focus: "Four-Sunday afternoon slot with individualized coaching and constructive feedback",
-    },
+  const catalog = useProgramsCatalog();
+  const archery = catalog.data?.programs.find((entry) => entry.slug === "archery");
+  const price = formatMoneyFromCents(Number(archery?.prices?.[0]?.amount ?? ARCHERY_SERIES_PRICE_CENTS));
+  const sessions = (archery?.sessions ?? []).filter((session: any) => Number(session.visible ?? 1) === 1);
+  const displaySessions = sessions.length > 0 ? sessions : [
+    { name: "Next archery session", day_of_week: "Sunday", start_time: "Time listed in registration", end_time: "" },
   ];
 
   return (
@@ -48,8 +43,8 @@ const ArcheryProgram = () => {
                 {program.name}
               </h1>
               <p className="mt-4 text-cream/65 font-body text-sm max-w-2xl leading-relaxed text-pretty">
-                Public May series at E.T. Seaton Park range on May 10, 17, 24, and 31.
-                Two time slots, all equipment provided, a mandatory intro lesson for first-timers, and one account checkout.
+                Register through your account, choose a saved participant, pick one of the live archery sessions,
+                complete the archery waiver, and pay in one checkout.
               </p>
 
               <div className="mt-8 flex flex-wrap gap-2">
@@ -123,18 +118,20 @@ const ArcheryProgram = () => {
                     <div className="mt-2 font-heading text-3xl">{price}</div>
                     <div className="mt-1 text-xs text-cream/70">Four-session series · paid in the normal account checkout</div>
                   </div>
-                  {sessions.map((s, index) => (
-                    <MotionDiv key={s.time} delay={index * 0.04}>
+                  {displaySessions.map((s: any, index) => (
+                    <MotionDiv key={`${s.id ?? index}-${s.name ?? s.start_time}`} delay={index * 0.04}>
                       <div className="rounded-2xl border border-cream/10 bg-charcoal/40 p-4 text-cream/80">
                         <div className="flex items-center justify-between gap-3">
-                          <div className="font-heading">{s.time}</div>
+                          <div className="font-heading">{s.name ?? "Archery session"}</div>
                           <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-clay">
-                            {s.skillLevel}
+                            {s.day_of_week ?? "Session"}
                           </div>
                         </div>
-                        <div className="mt-2 text-xs text-cream/70">{s.focus}</div>
+                        <div className="mt-2 text-xs text-cream/70">
+                          {s.start_time ?? ""}{s.start_time && s.end_time ? " – " : ""}{s.end_time ?? ""}
+                        </div>
                         <div className="mt-2 text-[10px] font-mono-label uppercase tracking-[0.18em] text-cream/50">
-                          {s.equipment}
+                          All bows, arrows, targets, and safety equipment included
                         </div>
                       </div>
                     </MotionDiv>

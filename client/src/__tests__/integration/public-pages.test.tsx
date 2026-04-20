@@ -85,7 +85,7 @@ describe("Public page integration surfaces", () => {
     expect(await screen.findByText("Traditional Archery")).toBeInTheDocument();
     expect(screen.getByText(/session windows/i)).toBeInTheDocument();
     expect(screen.getByText(/safety comes first/i)).toBeInTheDocument();
-    expect(screen.getByText(/may 10, 17, 24, and 31/i)).toBeInTheDocument();
+    expect(screen.getByText(/live archery sessions/i)).toBeInTheDocument();
   });
 
   it("renders the swimming and horseback coming soon pages", async () => {

@@ -2,10 +2,12 @@ import React from "react";
 import { describe, it, expect, vi } from "vitest";
 import { fireEvent, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { http, HttpResponse } from "msw";
 import { render, mockLocalStorage } from "./test-utils";
 import { ProgramRegistrationPage } from "@/pages/registration/ProgramRegistrationPage";
 import ArcheryRegistration from "@/pages/registration/ArcheryRegistration";
 import { mockStore } from "./mocks/handlers";
+import { server } from "./mocks/server";
 
 const mockNavigate = vi.fn();
 
@@ -393,6 +395,33 @@ describe("Registration Flow Integration", () => {
         medical_notes: "",
       },
     ];
+    server.use(
+      http.get("/api/programs", () =>
+        HttpResponse.json({
+          programs: [
+            {
+              id: "archery",
+              slug: "archery",
+              name: "Traditional Archery",
+              status: "active",
+              sessions: [
+                {
+                  id: 21,
+                  program_id: "archery",
+                  name: "May Series — Morning Slot",
+                  start_time: "10:00",
+                  end_time: "12:00",
+                  visible: 1,
+                },
+              ],
+              prices: [{ id: 6, program_id: "archery", amount: 12500, active: 1 }],
+              offers: [],
+              active_semester: null,
+            },
+          ],
+        }),
+      ),
+    );
 
     render(<ArcheryRegistration />);
 

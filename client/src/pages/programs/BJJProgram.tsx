@@ -60,7 +60,7 @@ const BJJProgram = () => {
                 </Link>
                 <Link href="/programs/bjj/register">
                   <OutlineButton className="px-8 py-3.5 text-[11px] uppercase tracking-[0.18em] border-cream/20 text-cream hover:bg-cream/10">
-                    Open account &amp; register
+                    Register for BJJ
                   </OutlineButton>
                 </Link>
                 <Link href="/schedule">
@@ -187,10 +187,10 @@ const BJJProgram = () => {
                     Next step
                   </div>
                   <h2 className="mt-2 font-heading text-3xl md:text-4xl tracking-tight text-charcoal">
-                    Start with a free trial, then create your account when you&apos;re ready.
+                    Start with a free trial, or sign in when you&apos;re ready to register.
                   </h2>
                   <p className="mt-4 font-body text-charcoal/70 max-w-2xl text-pretty">
-                    The live BJJ flow keeps things simple: explore the schedule, take a first class, then sign in, choose the right track, and finish registration in one account.
+                    Choose the student, pick the right BJJ track, complete waivers, and pay in one checkout.
                   </p>
                 </div>
                 <div className="flex w-full flex-col gap-3 md:w-auto sm:flex-row">
@@ -201,7 +201,7 @@ const BJJProgram = () => {
                   </Link>
                   <Link href="/programs/bjj/register">
                     <OutlineButton className="w-full md:w-auto px-7 py-3.5 text-[11px] uppercase tracking-[0.18em] border-charcoal/15 text-charcoal hover:bg-charcoal/5">
-                      Open account
+                      Register for BJJ
                     </OutlineButton>
                   </Link>
                   <Link href="/contact">

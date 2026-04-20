@@ -36,7 +36,7 @@ const Programs = () => {
             <p className="font-body text-pretty text-sm text-charcoal/70 max-w-2xl mb-12">
                 <StudioText
                   k="programs.intro"
-                  defaultText="Brazilian Jiu-Jitsu is live right now, while Swimming and Horseback are coming soon. Open your Family & Member Account when you're ready, then complete registration in one flow."
+                  defaultText="Brazilian Jiu-Jitsu and Archery are open now. Swimming and Horseback are coming soon. Sign in once, add your participants, then choose the program you want to register for."
                   as="span"
                   className="inline"
                   multiline
@@ -83,7 +83,7 @@ const Programs = () => {
                       <div className="flex flex-wrap gap-3">
                         {program.enrollmentStatus === "open" ? (
                           <ClayButton asChild className="px-5 py-2.5 text-[11px] uppercase tracking-[0.18em]">
-                            <Link href={program.slug === "bjj" ? "/register" : program.registerPath}>Register now</Link>
+                            <Link href={program.registerPath}>Register now</Link>
                           </ClayButton>
                         ) : (
                           <OutlineButton
@@ -122,7 +122,7 @@ const Programs = () => {
 
           <div className="mt-14 flex justify-center">
             <ClayButton asChild className="px-8 py-3.5 text-[11px] uppercase tracking-[0.18em]">
-              <Link href="/register">Open Your Family &amp; Member Account</Link>
+              <Link href="/register">Sign In to Register</Link>
             </ClayButton>
           </div>
         </main>

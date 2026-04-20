@@ -194,7 +194,7 @@ const ArcheryProgram = () => {
                     Register for the next available session.
                   </h2>
                   <p className="mt-4 font-body text-charcoal/70 max-w-2xl text-pretty">
-                    Sign in to your Family & Member Account, choose the participant, answer the archery form, and add it to the same registration cart.
+                    Sign in, choose the participant, answer the archery questions, then continue to waiver and payment.
                   </p>
                 </div>
                 <div className="flex w-full flex-col gap-3 md:w-auto sm:flex-row">

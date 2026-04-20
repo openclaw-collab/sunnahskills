@@ -522,6 +522,10 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
   ).first<SemesterRow>()) ?? null;
 
   const prorationCode = body.prorationCode?.trim() ? await loadProrationCode(env, body.prorationCode) : null;
+  const hasBjjLine = body.lines.some((line) => (line.programSlug ?? "bjj") === "bjj");
+  if (body.prorationCode?.trim() && !hasBjjLine) {
+    return json({ error: "Staff proration codes only apply to BJJ registrations." }, { status: 400 });
+  }
   if (body.prorationCode?.trim() && !prorationCode) {
     return json({ error: "That discount code is invalid or already used." }, { status: 400 });
   }
@@ -581,6 +585,9 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
     }
 
     if (programId === "archery") {
+      if (line.paymentChoice !== "full") {
+        return json({ error: "Archery is paid in full at checkout.", line: index }, { status: 400 });
+      }
       const eyeDominance = String(line.programDetails.programSpecific.eyeDominance ?? "").trim();
       if (!archeryEyeDominanceOptions.some((option) => option.value === eyeDominance)) {
         return json({ error: "Choose a valid eye dominance option.", line: index }, { status: 400 });

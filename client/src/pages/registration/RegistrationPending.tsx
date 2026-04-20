@@ -14,12 +14,11 @@ export default function RegistrationPending() {
         <MotionDiv delay={0.04}>
           <PremiumCard className="bg-white border border-charcoal/10">
           <p className="font-body text-sm text-charcoal/70 leading-relaxed">
-            Your registration is pending payment. If you closed the tab, you can return to the program registration page
-            to complete checkout.
+            Your payment is still processing. If this page does not update, return to checkout or contact us and we’ll confirm the status.
           </p>
           <div className="mt-8">
             <ClayButton asChild className="px-7 py-3.5 text-[11px] uppercase tracking-[0.18em]">
-              <Link href="/programs">Return to Programs</Link>
+              <Link href="/registration/cart">Return to Checkout</Link>
             </ClayButton>
           </div>
           </PremiumCard>

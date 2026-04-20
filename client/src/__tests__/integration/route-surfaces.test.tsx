@@ -113,7 +113,7 @@ describe("Additional route surface coverage", () => {
 
     renderAt("/registration/waitlist?pos=3&program=BJJ", <RegistrationWaitlist />);
     expect(await screen.findByRole("heading", { name: /you're on the waitlist/i })).toBeInTheDocument();
-    expect(screen.getByText(/position 3/i)).toBeInTheDocument();
+    expect(screen.getByText(/currently #/i)).toBeInTheDocument();
   });
 
   it("renders the live archery registration wrapper and keeps other closed programs on waitlist", async () => {
@@ -139,7 +139,7 @@ describe("Additional route surface coverage", () => {
     renderAt("/programs/bjj/register", <BJJRegistration />);
 
     expect(await screen.findByRole("heading", { name: /sign in before you register/i })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /open your account/i })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /sign in to register/i })).toBeInTheDocument();
   });
 
   it("renders the registration waitlist for swimming and horseback while enrollment is closed", async () => {

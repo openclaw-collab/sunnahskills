@@ -185,11 +185,11 @@ export default function RegistrationHub() {
       <main className="mx-auto max-w-6xl px-6 pt-28" data-testid="registration-hub">
         <SectionHeader
           eyebrow="Your Account"
-          title={authenticated ? "Account & participant profiles" : "Open your account before you register"}
+          title={authenticated ? "Account and participant profiles" : "Sign in before you register"}
           className="mb-8"
         />
         <p className="mb-6 max-w-3xl text-sm leading-relaxed text-charcoal/70">
-          One account keeps all your registrations organized. Sign in with your email, add your details and student profiles, then you're ready to register.
+          Sign in with your email, add the people you want to register, then choose BJJ or archery.
         </p>
 
         {message ? (
@@ -597,7 +597,7 @@ export default function RegistrationHub() {
                     <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-moss mb-2">Ready for registration</div>
                     <h3 className="font-heading text-xl text-charcoal">Profiles on this account</h3>
                     <p className="mt-2 text-sm leading-relaxed text-charcoal/65">
-                      Once each profile is saved, BJJ registration will only show the tracks that fit that participant&apos;s age and gender.
+                      Choose a program below. BJJ filters tracks by age and gender; archery is open to any saved participant.
                     </p>
                   </div>
                   <div className="space-y-3">
@@ -636,19 +636,29 @@ export default function RegistrationHub() {
                       </div>
                     ) : null}
                   </div>
-                  <div className="mt-6 flex flex-wrap gap-3">
-                    <ClayButton
-                      className="px-6 py-3 text-[11px] uppercase tracking-[0.18em]"
+                  <div className="mt-6 grid gap-3">
+                    <button
+                      type="button"
                       disabled={participants.length === 0}
-                      onClick={() => navigate(targetPath)}
+                      onClick={() => navigate("/programs/bjj/register")}
+                      className="rounded-2xl border border-charcoal/10 bg-cream/45 px-4 py-4 text-left transition-colors hover:border-moss/25 hover:bg-white disabled:cursor-not-allowed disabled:opacity-50"
                     >
-                      Register for {targetProgramLabel}
-                    </ClayButton>
-                    {targetProgramLabel !== "Archery" ? (
-                      <OutlineButton asChild className="px-6 py-3 text-[11px] uppercase tracking-[0.18em]">
-                        <Link href="/programs/archery/register">Register for Archery</Link>
-                      </OutlineButton>
-                    ) : null}
+                      <div className="text-sm font-medium text-charcoal">Brazilian Jiu-Jitsu</div>
+                      <div className="mt-1 text-xs uppercase tracking-[0.16em] text-charcoal/55">
+                        Age and gender tracks · semester checkout
+                      </div>
+                    </button>
+                    <button
+                      type="button"
+                      disabled={participants.length === 0}
+                      onClick={() => navigate("/programs/archery/register")}
+                      className="rounded-2xl border border-charcoal/10 bg-cream/45 px-4 py-4 text-left transition-colors hover:border-moss/25 hover:bg-white disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      <div className="text-sm font-medium text-charcoal">Traditional Archery</div>
+                      <div className="mt-1 text-xs uppercase tracking-[0.16em] text-charcoal/55">
+                        Four-session series · $125 · choose eye dominance
+                      </div>
+                    </button>
                     <OutlineButton asChild className="px-6 py-3 text-[11px] uppercase tracking-[0.18em]">
                       <Link href="/trial">Start with a free trial</Link>
                     </OutlineButton>

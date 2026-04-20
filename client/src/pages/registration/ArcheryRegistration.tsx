@@ -71,14 +71,14 @@ export default function ArcheryRegistration() {
       <MotionPage className="min-h-screen bg-cream pb-24">
         <div className="noise-overlay" />
         <main className="mx-auto max-w-3xl px-6 pt-28">
-          <SectionHeader eyebrow="Archery Registration" title="Open your account first" className="mb-6" />
+          <SectionHeader eyebrow="Archery Registration" title="Sign in before you register" className="mb-6" />
           <PremiumCard className="border border-charcoal/10 bg-white p-6">
             <p className="text-sm leading-relaxed text-charcoal/70">
-              Archery registration uses the Family & Member Account so all participants, waivers, and payments stay in one place.
+              Sign in so your participants, waiver, and payment stay in one place.
             </p>
             <div className="mt-6">
               <ClayButton asChild className="px-6 py-3 text-[11px] uppercase tracking-[0.18em]">
-                <Link href="/register?next=%2Fprograms%2Farchery%2Fregister">Open your account</Link>
+                <Link href="/register?next=%2Fprograms%2Farchery%2Fregister">Sign in to register</Link>
               </ClayButton>
             </div>
           </PremiumCard>
@@ -95,7 +95,7 @@ export default function ArcheryRegistration() {
           <SectionHeader eyebrow="Archery Registration" title="Finish your account setup first" className="mb-6" />
           <PremiumCard className="border border-charcoal/10 bg-white p-6">
             <p className="text-sm leading-relaxed text-charcoal/70">
-              Save your account details and add at least one participant before adding archery to checkout.
+              Save your account details and add at least one participant before registering for archery.
             </p>
             <div className="mt-6">
               <ClayButton asChild className="px-6 py-3 text-[11px] uppercase tracking-[0.18em]">
@@ -169,9 +169,9 @@ export default function ArcheryRegistration() {
     <MotionPage className="min-h-screen bg-cream pb-24">
       <div className="noise-overlay" />
       <main className="mx-auto max-w-7xl px-6 pt-28">
-        <SectionHeader eyebrow="Archery Registration" title="Add archery to your account checkout" className="mb-6" />
+        <SectionHeader eyebrow="Archery Registration" title="Register for Archery" className="mb-6" />
         <p className="mb-8 max-w-3xl text-sm leading-relaxed text-charcoal/70">
-          Choose any participant in your account, complete the archery-specific details, then checkout with the same cart and waiver flow used for registration.
+          Choose a participant, answer the archery details, then continue to waiver and payment.
         </p>
 
         <div className="grid gap-6 xl:grid-cols-[0.95fr_1.1fr_0.95fr]">
@@ -312,10 +312,10 @@ export default function ArcheryRegistration() {
               ) : null}
               {error ? <div className="rounded-xl border border-clay/20 bg-clay/5 p-3 text-clay">{error}</div> : null}
               <ClayButton className="w-full px-6 py-3 text-[11px] uppercase tracking-[0.18em]" onClick={addArcheryLine}>
-                Add archery to cart
+                Continue to waiver and payment
               </ClayButton>
               <OutlineButton asChild className="w-full px-6 py-3 text-[11px] uppercase tracking-[0.18em]">
-                <Link href="/registration/cart">Go to cart</Link>
+                <Link href="/registration/cart">Review checkout</Link>
               </OutlineButton>
             </div>
           </PremiumCard>

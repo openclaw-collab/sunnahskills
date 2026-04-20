@@ -2,6 +2,7 @@ import React from "react";
 import { SectionHeader } from "@/components/brand/SectionHeader";
 import { PremiumCard } from "@/components/brand/PremiumCard";
 import { ClayButton } from "@/components/brand/ClayButton";
+import { OutlineButton } from "@/components/brand/OutlineButton";
 import { Link } from "wouter";
 import { MotionDiv, MotionPage } from "@/components/motion/PageMotion";
 
@@ -14,13 +15,15 @@ export default function RegistrationCancel() {
         <MotionDiv delay={0.04}>
           <PremiumCard className="bg-white border border-charcoal/10">
           <p className="font-body text-sm text-charcoal/70 leading-relaxed">
-            Your payment was cancelled. Your registration may still be saved as pending—return to the registration flow
-            to complete payment.
+            Payment was cancelled, so registration is not finished yet. Return to checkout when you’re ready to try again.
           </p>
-          <div className="mt-8">
+          <div className="mt-8 flex flex-wrap gap-3">
             <ClayButton asChild className="px-7 py-3.5 text-[11px] uppercase tracking-[0.18em]">
-              <Link href="/programs">Back to Programs</Link>
+              <Link href="/registration/cart">Return to Checkout</Link>
             </ClayButton>
+            <OutlineButton asChild className="px-7 py-3.5 text-[11px] uppercase tracking-[0.18em]">
+              <Link href="/programs">Back to Programs</Link>
+            </OutlineButton>
           </div>
           </PremiumCard>
         </MotionDiv>

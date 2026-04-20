@@ -1,13 +1,13 @@
 import React from "react";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, CheckboxGroup, SelectField } from "./FormControls";
 import type { RegistrationStepProps } from "@/components/registration/steps";
 import type { BjjSpecific, ArcherySpecific, OutdoorSpecific, BullyproofingSpecific } from "@/hooks/useRegistration";
-import { useProgramsCatalog } from "@/hooks/useProgramsCatalog";
+import { useProgramsCatalog, type CatalogOffer } from "@/hooks/useProgramsCatalog";
 import {
   archeryDominantHandOptions,
   archeryExperienceOptions,
-  archerySessionOptions,
   bjjTrackOptions,
   bjjTrialClassOptions,
   bullyproofingAgeGroupOptions,
@@ -121,7 +121,12 @@ function BjjFields({ draft, updateDraft }: RegistrationStepProps) {
 }
 
 function ArcheryFields({ draft, updateDraft }: RegistrationStepProps) {
+  const { data, isLoading } = useProgramsCatalog();
   const ps = draft.programDetails.programSpecific as ArcherySpecific;
+  const archery = data?.programs?.find((program) => program.slug === "archery");
+  const [revealedOffer, setRevealedOffer] = React.useState<CatalogOffer | null>(null);
+  const [revealError, setRevealError] = React.useState<string | null>(null);
+  const [revealing, setRevealing] = React.useState(false);
   const set = (patch: Partial<ArcherySpecific>) =>
     updateDraft((prev) => ({
       ...prev,
@@ -131,8 +136,144 @@ function ArcheryFields({ draft, updateDraft }: RegistrationStepProps) {
       },
     }));
 
+  const publicOffers = archery?.offers ?? [];
+  const offers = React.useMemo(() => {
+    if (!revealedOffer) return publicOffers;
+    return publicOffers.some((offer) => offer.id === revealedOffer.id) ? publicOffers : [...publicOffers, revealedOffer];
+  }, [publicOffers, revealedOffer]);
+
+  const selectedOffer = offers.find((offer) => offer.id === draft.programDetails.offerId) ?? null;
+  const selectedSession = selectedOffer?.sessions.find((session) => session.id === draft.programDetails.sessionId) ?? null;
+  const sessionOptions = (selectedOffer?.sessions ?? []).map((session) => ({
+    value: String(session.id),
+    label: `${session.start_time ?? ""}–${session.end_time ?? ""}${session.name ? ` · ${session.name}` : ""}`,
+  }));
+
+  function formatOfferDates(offer: CatalogOffer) {
+    if (offer.dates.length > 0) {
+      return offer.dates
+        .map((date) =>
+          new Date(`${date}T12:00:00`).toLocaleDateString(undefined, { month: "short", day: "numeric" }),
+        )
+        .join(", ");
+    }
+    return offer.sessions[0]?.season ?? "Dates announced in the offer details";
+  }
+
+  function syncOffer(nextOffer: CatalogOffer) {
+    const defaultSession = nextOffer.sessions[0] ?? null;
+    const defaultPrice = nextOffer.prices[0] ?? null;
+    updateDraft((prev) => ({
+      ...prev,
+      programDetails: {
+        ...prev.programDetails,
+        offerId: nextOffer.id,
+        sessionId: defaultSession?.id ?? null,
+        priceId: defaultPrice?.id ?? null,
+        programSpecific: {
+          ...(prev.programDetails.programSpecific as ArcherySpecific),
+          sessionDate: nextOffer.dates[0] ?? defaultSession?.start_date ?? defaultSession?.season ?? "",
+        },
+      },
+    }));
+  }
+
+  async function revealOffer(inputCode?: string, silent = false) {
+    const accessCode = (inputCode ?? draft.programDetails.accessCode).trim();
+    if (!accessCode) {
+      if (!silent) setRevealError("Enter a valid staff code.");
+      return;
+    }
+    setRevealing(true);
+    if (!silent) setRevealError(null);
+    try {
+      const response = await fetch("/api/programs/reveal-offer", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ programSlug: "archery", accessCode }),
+      });
+      const payload = (await response.json().catch(() => null)) as { offer?: CatalogOffer; error?: string } | null;
+      if (!response.ok || !payload?.offer) {
+        throw new Error(payload?.error ?? "That code is not valid right now.");
+      }
+      setRevealedOffer(payload.offer);
+    } catch (error) {
+      if (!silent) {
+        setRevealError(error instanceof Error ? error.message : "That code is not valid right now.");
+      }
+    } finally {
+      setRevealing(false);
+    }
+  }
+
+  React.useEffect(() => {
+    const persistedCode = draft.programDetails.accessCode.trim();
+    if (!persistedCode || revealedOffer) return;
+    void revealOffer(persistedCode, true);
+  }, [draft.programDetails.accessCode, revealedOffer]);
+
   return (
     <div className="space-y-6">
+      <div className="rounded-2xl border border-charcoal/10 bg-cream/40 p-4 space-y-4">
+        <div>
+          <div className="font-body text-sm text-charcoal font-medium">Have a staff code?</div>
+          <p className="font-body text-xs text-charcoal/60">
+            Enter the code here if Sunnah Skills gave you one.
+          </p>
+        </div>
+        <div className="flex flex-col gap-3 sm:flex-row">
+          <Input
+            aria-label="Archery staff code"
+            value={draft.programDetails.accessCode}
+            onChange={(event) =>
+              updateDraft((prev) => ({
+                ...prev,
+                programDetails: { ...prev.programDetails, accessCode: event.target.value.toUpperCase() },
+              }))
+            }
+            placeholder="Enter staff code"
+            className="bg-white border-charcoal/10"
+          />
+          <button
+            type="button"
+            className="rounded-xl border border-charcoal/15 bg-white px-4 py-2.5 text-[11px] font-mono-label uppercase tracking-[0.18em] text-charcoal transition-colors hover:border-charcoal/30"
+            onClick={() => {
+              void revealOffer();
+            }}
+          >
+            {revealing ? "Checking..." : "Apply code"}
+          </button>
+        </div>
+        {revealError ? <p className="font-body text-xs text-clay">{revealError}</p> : null}
+      </div>
+      {isLoading ? <p className="font-body text-sm text-charcoal/60">Loading archery offers…</p> : null}
+      {offers.length > 0 ? (
+        <RadioGroup
+          label="Choose your archery offer"
+          name="archery-offer"
+          value={draft.programDetails.offerId ? String(draft.programDetails.offerId) : ""}
+          onChange={(value) => {
+            const nextOffer = offers.find((entry) => String(entry.id) === value);
+            if (nextOffer) syncOffer(nextOffer);
+          }}
+          options={offers.map((offer) => ({
+            value: String(offer.id),
+            label: offer.name,
+            sublabel: `${formatOfferDates(offer)} · ${
+              offer.prices[0]
+                ? new Intl.NumberFormat(undefined, { style: "currency", currency: "CAD" }).format(offer.prices[0].amount / 100)
+                : "Price set in admin"
+            }${offer.is_private ? " · Private" : ""}`,
+          }))}
+        />
+      ) : null}
+      {selectedOffer ? (
+        <div className="rounded-2xl border border-charcoal/10 bg-moss/5 px-4 py-3 text-sm text-charcoal/75">
+          <div className="font-medium text-charcoal">{selectedOffer.name}</div>
+          <div className="mt-1">{selectedOffer.description ?? selectedOffer.confirmation_notes ?? "Offer details will appear here."}</div>
+          <div className="mt-2 text-xs uppercase tracking-[0.16em] text-charcoal/50">Dates: {formatOfferDates(selectedOffer)}</div>
+        </div>
+      ) : null}
       <RadioGroup
         label="Dominant hand"
         name="archery-hand"
@@ -151,13 +292,34 @@ function ArcheryFields({ draft, updateDraft }: RegistrationStepProps) {
             opt.value === "never" ? "Complete beginner" : opt.value === "some" ? "A few sessions" : "Regular practice",
         }))}
       />
-      <SelectField
-        label="Preferred session"
-        value={ps.sessionDate}
-        onChange={(v) => set({ sessionDate: v })}
-        options={[...archerySessionOptions]}
-        placeholder="Select a session"
-      />
+      {selectedOffer ? (
+        <SelectField
+          label="Choose your time slot"
+          value={draft.programDetails.sessionId ? String(draft.programDetails.sessionId) : ""}
+          onChange={(value) => {
+            const session = selectedOffer.sessions.find((entry) => String(entry.id) === value) ?? null;
+            updateDraft((prev) => ({
+              ...prev,
+              programDetails: {
+                ...prev.programDetails,
+                sessionId: session?.id ?? null,
+                priceId: selectedOffer.prices[0]?.id ?? null,
+                programSpecific: {
+                  ...(prev.programDetails.programSpecific as ArcherySpecific),
+                  sessionDate: session?.start_date ?? selectedOffer.dates[0] ?? session?.season ?? "",
+                },
+              },
+            }));
+          }}
+          options={sessionOptions}
+          placeholder="Select a time slot"
+        />
+      ) : null}
+      {selectedSession ? (
+        <p className="rounded-xl border border-charcoal/10 bg-white px-4 py-3 font-body text-xs text-charcoal/70 leading-relaxed">
+          <strong>Schedule:</strong> {selectedSession.day_of_week ?? "Day"} {selectedSession.start_time ?? ""}–{selectedSession.end_time ?? ""} · {formatOfferDates(selectedOffer!)}
+        </p>
+      ) : null}
       <div className="space-y-2">
         <label className="font-body text-sm text-charcoal font-medium">Anything else we should know? (optional)</label>
         <Textarea

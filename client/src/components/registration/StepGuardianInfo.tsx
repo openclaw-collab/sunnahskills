@@ -106,7 +106,7 @@ export function StepGuardianInfo({ draft, updateDraft, errors = {}, touch }: Pro
         />
 
         <SelectField
-          label="Relationship to student"
+          label="Relationship to participant"
           value={draft.guardian.relationship}
           onChange={(v) => set({ relationship: v })}
           onBlur={() => touch?.("guardian.relationship")}

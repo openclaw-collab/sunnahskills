@@ -425,13 +425,13 @@ describe("Registration Flow Integration", () => {
 
     render(<ArcheryRegistration />);
 
-    expect(await screen.findByText(/add archery to your account checkout/i)).toBeInTheDocument();
+    expect(await screen.findByText(/register for archery/i)).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /watch the eye-dominance video/i })).toHaveAttribute(
       "href",
       "https://www.youtube.com/watch?v=zzotW5QE4gQ",
     );
     await user.click(screen.getByRole("button", { name: /right eye dominant/i }));
-    await user.click(screen.getByRole("button", { name: /add archery to cart/i }));
+    await user.click(screen.getByRole("button", { name: /continue to waiver and payment/i }));
 
     await waitFor(() => {
       expect(storage.setItem).toHaveBeenCalledWith("sunnah-family-cart-v2", expect.any(String));

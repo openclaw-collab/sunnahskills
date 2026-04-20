@@ -31,13 +31,13 @@ export default function RegistrationWaitlist() {
 
         <MotionDiv delay={0.06} className="text-center mb-10">
           <div className="font-mono-label text-[10px] uppercase tracking-[0.25em] text-clay mb-3">
-            Session Full
+            Waitlist Joined
           </div>
           <h1 className="font-heading text-4xl text-charcoal mb-3">
             You're on the waitlist.
           </h1>
           <p className="font-body text-sm text-charcoal/60 max-w-sm mx-auto">
-            You're position {position} on the waitlist for {programName}. We'll email you as soon as a spot opens up.
+            You’re currently #{position} on the waitlist for {programName}. We’ll email you when a spot opens.
           </p>
         </MotionDiv>
 

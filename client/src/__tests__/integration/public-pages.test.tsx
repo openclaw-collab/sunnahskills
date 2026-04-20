@@ -41,6 +41,7 @@ describe("Public page integration surfaces", () => {
     expect(await screen.findByText("The Founding Vision")).toBeInTheDocument();
     expect(screen.getByText("Show Up Consistently")).toBeInTheDocument();
     expect(screen.getByText("Safety First")).toBeInTheDocument();
+    expect(screen.getByText(/Ibraheem Gaied/i)).toBeInTheDocument();
   });
 
   it("renders the programs index with live enrollment messaging", async () => {
@@ -51,7 +52,7 @@ describe("Public page integration surfaces", () => {
     expect(screen.getByTestId("program-card-swimming")).toBeInTheDocument();
     expect(screen.getByTestId("program-card-horseback")).toBeInTheDocument();
     expect(screen.getByTestId("program-card-archery")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /open your family & member account/i })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /sign in to register/i })).toBeInTheDocument();
   });
 
   it("renders the schedule page with summary tracks and weekly calendar", async () => {
@@ -65,7 +66,7 @@ describe("Public page integration surfaces", () => {
   it("renders the registration hub account-opening flow", async () => {
     renderAt("/register", <RegistrationHub />);
 
-    expect(await screen.findByText(/open your account before you register/i)).toBeInTheDocument();
+    expect(await screen.findByText(/sign in before you register/i)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /email me the sign-in link/i })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: /create your account/i })).toBeInTheDocument();
   });
@@ -78,12 +79,13 @@ describe("Public page integration surfaces", () => {
     expect(screen.getByRole("heading", { name: "Technique Over Strength" })).toBeInTheDocument();
   });
 
-  it("renders the archery program page with session windows", async () => {
+  it("renders the archery program page with live launch details", async () => {
     renderAt("/programs/archery", <ArcheryProgram />);
 
     expect(await screen.findByText("Traditional Archery")).toBeInTheDocument();
     expect(screen.getByText(/session windows/i)).toBeInTheDocument();
     expect(screen.getByText(/safety comes first/i)).toBeInTheDocument();
+    expect(screen.getByText(/may 10, 17, 24, and 31/i)).toBeInTheDocument();
   });
 
   it("renders the swimming and horseback coming soon pages", async () => {

@@ -104,7 +104,7 @@ export default function BJJRegistration() {
             <PremiumCard className="border border-charcoal/10 bg-white p-6">
               <StudioText
                 k="registration.bjj.loadingCopy"
-                defaultText="Loading your account and BJJ offerings..."
+                defaultText="Loading your account and BJJ classes..."
                 as="p"
                 className="text-sm text-charcoal/70"
               />
@@ -129,13 +129,13 @@ export default function BJJRegistration() {
             <PremiumCard className="border border-charcoal/10 bg-white p-6">
               <StudioText
                 k="registration.bjj.signinCopy"
-                defaultText="Live BJJ enrollment now runs through the Family & Member Account so your participants, waivers, payment plan, and later charges all stay tied to the right account."
+                defaultText="Sign in so your participants, waivers, payment plan, and later charges stay tied to the right account."
                 as="p"
                 className="text-sm leading-relaxed text-charcoal/70"
               />
               <div className="mt-6 flex flex-wrap gap-3">
                 <ClayButton asChild className="px-6 py-3 text-[11px] uppercase tracking-[0.18em]">
-                  <Link href="/register?next=%2Fprograms%2Fbjj%2Fregister">Open your account</Link>
+                  <Link href="/register?next=%2Fprograms%2Fbjj%2Fregister">Sign in to register</Link>
                 </ClayButton>
                 <OutlineButton asChild className="px-6 py-3 text-[11px] uppercase tracking-[0.18em]">
                   <Link href="/trial">Start with a free trial</Link>
@@ -194,12 +194,12 @@ export default function BJJRegistration() {
         <StudioBlock id="registration.bjj.hero" label="BJJ registration hero">
           <SectionHeader
             eyebrow={<StudioText k="registration.bjj.heroEyebrow" defaultText="BJJ Registration" />}
-            title={<StudioText k="registration.bjj.heroTitle" defaultText="Build the registrations on one screen" />}
+            title={<StudioText k="registration.bjj.heroTitle" defaultText="Choose BJJ classes" />}
             className="mb-6"
           />
           <StudioText
             k="registration.bjj.heroPitch"
-            defaultText="Choose a participant first, then we'll show only the BJJ tracks that actually fit that profile. You can add multiple people and offerings to the same cart before checkout."
+            defaultText="Choose a participant first, then we'll show only the BJJ tracks that fit. Add one or more registrations before checkout."
             as="p"
             className="mb-8 max-w-3xl text-sm leading-relaxed text-charcoal/70"
           />
@@ -378,10 +378,10 @@ export default function BJJRegistration() {
                       setLineNotes("");
                     }}
                   >
-                    Add to cart
+                    Add this registration
                   </ClayButton>
                   <OutlineButton asChild className="px-6 py-3 text-[11px] uppercase tracking-[0.18em]">
-                    <Link href="/registration/cart">Open checkout</Link>
+                    <Link href="/registration/cart">Review checkout</Link>
                   </OutlineButton>
                 </div>
               </div>
@@ -391,7 +391,7 @@ export default function BJJRegistration() {
 
           <StudioBlock id="registration.bjj.cart" label="BJJ cart preview">
             <PremiumCard className="border border-charcoal/10 bg-white p-6">
-            <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-moss mb-3">Live cart</div>
+            <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-moss mb-3">Your registrations</div>
             <div className="space-y-3">
               {(cart?.lines ?? []).map((line) => (
                 <div key={line.id} className="rounded-2xl border border-charcoal/10 bg-cream/40 p-4">

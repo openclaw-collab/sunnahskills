@@ -82,10 +82,10 @@ export function StepStudentInfo({
         {savedStudents.length > 0 ? (
           <div className="rounded-2xl border border-charcoal/10 bg-cream p-4">
             <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-moss mb-2">
-              Saved students
+              Saved participants
             </div>
             <p className="mb-3 text-xs text-charcoal/60">
-              Pick a saved student to skip retyping details.
+              Pick a saved participant to skip retyping details.
             </p>
             <div className="flex flex-wrap gap-2">
               {savedStudents.map((student) => (
@@ -105,7 +105,7 @@ export function StepStudentInfo({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <FormInput
             id="student-name"
-            label="Student full name"
+            label="Participant full name"
             value={draft.student.fullName}
             onChange={(v) => set({ fullName: v })}
             onBlur={() => touch?.("student.fullName")}

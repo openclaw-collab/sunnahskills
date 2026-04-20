@@ -9,8 +9,8 @@ import { MotionDiv, MotionPage } from "@/components/motion/PageMotion";
 const NEXT_STEPS = [
   {
     n: "01",
-    title: "Placement confirmation",
-    body: "We review your details and confirm your class group, session time, and age tier within 1–2 business days.",
+    title: "Registration review",
+    body: "We’ll review your registration and send confirmation details within 1–2 business days.",
   },
   {
     n: "02",
@@ -20,7 +20,7 @@ const NEXT_STEPS = [
   {
     n: "03",
     title: "First class",
-    body: "Arrive 10 minutes early. Coaches will introduce themselves, walk you through the space, and get your child started.",
+    body: "Arrive 10 minutes early. Coaches will introduce themselves, walk you through the space, and get the participant started.",
   },
 ];
 

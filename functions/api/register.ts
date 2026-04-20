@@ -8,7 +8,6 @@ import {
 import {
   archeryDominantHandOptions,
   archeryExperienceOptions,
-  archerySessionOptions,
   bjjTrialClassOptions,
   bjjTrackOptions,
   bullyproofingAgeGroupOptions,
@@ -55,8 +54,10 @@ const registrationPayloadSchema = z.object({
     medicalNotes: z.string().optional().default(""),
   }),
   programDetails: z.object({
+    offerId: z.number().int().positive().nullable().optional(),
     sessionId: z.number().int().positive().nullable().optional(),
     priceId: z.number().int().positive().nullable().optional(),
+    accessCode: z.string().trim().optional().default(""),
     preferredStartDate: z.string().trim().optional().default(""),
     scheduleChoice: z.string().trim().optional().default(""),
     programSpecific: z.record(z.any()).optional().default({}),
@@ -115,7 +116,7 @@ function sanitizeProgramSpecific(programSlug: string, programSpecific: Record<st
       return {
         dominantHand: isAllowedValue(dominantHand, archeryDominantHandOptions) ? dominantHand : "",
         experience: isAllowedValue(experience, archeryExperienceOptions) ? experience : "",
-        sessionDate: isAllowedValue(sessionDate, archerySessionOptions) ? sessionDate : "",
+        sessionDate,
         notes: sanitizeFreeText(typeof programSpecific.notes === "string" ? programSpecific.notes : "", 1000),
       };
     }
@@ -171,6 +172,7 @@ function sanitizeRegistrationPayload(payload: z.infer<typeof registrationPayload
     },
     programDetails: {
       ...payload.programDetails,
+      accessCode: payload.programDetails.accessCode.trim(),
       preferredStartDate: payload.programDetails.preferredStartDate.trim(),
       scheduleChoice: sanitizeFreeText(payload.programDetails.scheduleChoice, 250),
       programSpecific: sanitizeProgramSpecific(
@@ -192,6 +194,9 @@ function validateRegistrationPayload(body: ReturnType<typeof sanitizeRegistratio
   if (!body.waivers.signatureText) return "Signature is required";
   if (!isValidPastDate(body.student.dateOfBirth)) return "Date of birth must be a valid past date";
   if (!isValidPastDate(body.waivers.signedAt)) return "Signed date must be a valid past date";
+  if (!body.waivers.liabilityWaiver || !body.waivers.medicalConsent || !body.waivers.termsAgreement) {
+    return "You must accept the waiver and policy requirements.";
+  }
   if (!hasAtLeastTenDigits(body.guardian.phone)) return "Guardian phone number is required";
   if (body.guardian.emergencyContactPhone && !hasAtLeastTenDigits(body.guardian.emergencyContactPhone)) {
     return "Emergency contact phone number is invalid";
@@ -221,7 +226,7 @@ function validateRegistrationPayload(body: ReturnType<typeof sanitizeRegistratio
       if (!isAllowedValue(String(ps.experience ?? ""), archeryExperienceOptions)) {
         return "Please select a valid experience level";
       }
-      if (!isAllowedValue(String(ps.sessionDate ?? ""), archerySessionOptions)) {
+      if (!String(ps.sessionDate ?? "").trim()) {
         return "Please select a valid session";
       }
       break;
@@ -298,24 +303,27 @@ async function insertRegistration(
     guardianId: number;
     studentId: number;
     programId: string;
+    offerId: number | null;
     payload: ReturnType<typeof sanitizeRegistrationPayload>;
     status: "submitted" | "waitlisted";
   },
 ) {
-  const { guardianId, studentId, programId, payload, status } = params;
+  const { guardianId, studentId, programId, offerId, payload, status } = params;
   const result = await env.DB.prepare(
     `INSERT INTO registrations (
       guardian_id, student_id, program_id,
+      offer_id,
       session_id, price_id,
       status, preferred_start_date, schedule_choice,
       program_specific_data,
       created_at, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))`,
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))`,
   )
     .bind(
       guardianId,
       studentId,
       programId,
+      offerId,
       payload.programDetails.sessionId ?? null,
       payload.programDetails.priceId ?? null,
       status,
@@ -335,16 +343,20 @@ async function insertWaivers(
   env: Env,
   registrationId: number,
   waivers: ReturnType<typeof sanitizeRegistrationPayload>["waivers"],
+  waiverDocument: { id: number; version_label: string } | null,
 ) {
   await env.DB.prepare(
     `INSERT INTO waivers (
       registration_id,
+      waiver_document_id, waiver_version_label,
       liability_waiver, photo_consent, medical_consent, terms_agreement,
       signature_text, signed_at, created_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))`,
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))`,
   )
     .bind(
       registrationId,
+      waiverDocument?.id ?? null,
+      waiverDocument?.version_label ?? null,
       waivers.liabilityWaiver ? 1 : 0,
       waivers.photoConsent ? 1 : 0,
       waivers.medicalConsent ? 1 : 0,
@@ -353,6 +365,18 @@ async function insertWaivers(
       new Date(waivers.signedAt).toISOString(),
     )
     .run();
+}
+
+async function loadActiveWaiverDocument(env: Env, slug: string) {
+  return env.DB.prepare(
+    `SELECT id, slug, version_label
+     FROM waiver_documents
+     WHERE slug = ? AND active = 1
+     ORDER BY published_at DESC, id DESC
+     LIMIT 1`,
+  )
+    .bind(slug)
+    .first<{ id: number; slug: string; version_label: string }>();
 }
 
 async function sendRegistrationEmails(
@@ -449,6 +473,9 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
   }
 
   const body = sanitizeRegistrationPayload(parsed.data);
+  if (body.programSlug === "archery") {
+    return json({ error: "Archery registration now uses account checkout. Please sign in and add archery to your registration cart." }, { status: 409 });
+  }
   const validationError = validateRegistrationPayload(body);
   if (validationError) {
     return json({ error: validationError }, { status: 400 });
@@ -458,32 +485,98 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
     .bind(body.programSlug)
     .first<{ id: string; slug: string; name: string; status: string | null }>();
   if (!program?.id) return json({ error: "Program not found" }, { status: 404 });
-
-  if (program.slug !== "bjj") {
-    return json({ error: "Registration is only open for Brazilian Jiu-Jitsu right now." }, { status: 403 });
+  if (program.status !== "active") {
+    return json({ error: "Registration is not open for this program right now." }, { status: 403 });
   }
 
-  if (body.programSlug === "bjj" && body.programDetails.sessionId) {
-    const sess = await env.DB.prepare(`SELECT age_group FROM program_sessions WHERE id = ? AND program_id = 'bjj'`)
-      .bind(body.programDetails.sessionId)
-      .first<{ age_group: string | null }>();
+  const sessionRows =
+    (
+      await env.DB.prepare(`SELECT * FROM program_sessions WHERE program_id = ?`)
+        .bind(program.id)
+        .all()
+    ).results ?? [];
+  const priceRows =
+    (
+      await env.DB.prepare(`SELECT * FROM program_prices WHERE program_id = ?`)
+        .bind(program.id)
+        .all()
+    ).results ?? [];
+  const offerRows =
+    (
+      await env.DB.prepare(`SELECT * FROM program_offers WHERE program_id = ?`)
+        .bind(program.id)
+        .all()
+    ).results ?? [];
+
+  const selectedSession = body.programDetails.sessionId
+    ? (sessionRows as any[]).find((row) => Number(row.id) === Number(body.programDetails.sessionId))
+    : null;
+  const selectedPrice = body.programDetails.priceId
+    ? (priceRows as any[]).find((row) => Number(row.id) === Number(body.programDetails.priceId))
+    : null;
+  const selectedOffer = body.programDetails.offerId
+    ? (offerRows as any[]).find((row) => Number(row.id) === Number(body.programDetails.offerId))
+    : null;
+
+  if (body.programSlug === "bjj" && selectedSession) {
     const track = String((body.programDetails.programSpecific as { bjjTrack?: string }).bjjTrack ?? "");
-    if (sess?.age_group && track && sess.age_group !== track) {
+    if (selectedSession.age_group && track && selectedSession.age_group !== track) {
       return json({ error: "Selected session does not match the chosen track." }, { status: 400 });
+    }
+  }
+
+  if (body.programSlug === "archery") {
+    if (!selectedOffer) {
+      return json({ error: "Please choose a valid archery offer." }, { status: 400 });
+    }
+    if (!selectedSession || !selectedPrice) {
+      return json({ error: "Please choose a valid archery session and price." }, { status: 400 });
+    }
+    if (Number(selectedOffer.active ?? 0) !== 1) {
+      return json({ error: "Selected offer is no longer available." }, { status: 400 });
+    }
+    if (Number(selectedOffer.is_private ?? 0) === 1) {
+      const normalizedAccessCode = body.programDetails.accessCode.trim().toUpperCase();
+      if (!normalizedAccessCode) {
+        return json({ error: "A valid access code is required for this private offer." }, { status: 400 });
+      }
+      if (String(selectedOffer.access_code ?? "").trim().toUpperCase() !== normalizedAccessCode) {
+        return json({ error: "That access code is invalid for this offer." }, { status: 400 });
+      }
+    }
+    if (selectedOffer.audience_gender === "female" && body.student.gender !== "female") {
+      return json({ error: "This offer is restricted to female participants." }, { status: 400 });
+    }
+    if (selectedSession.offer_id != null && Number(selectedSession.offer_id) !== Number(selectedOffer.id)) {
+      return json({ error: "Selected session does not belong to the chosen offer." }, { status: 400 });
+    }
+    if (selectedPrice.offer_id != null && Number(selectedPrice.offer_id) !== Number(selectedOffer.id)) {
+      return json({ error: "Selected price does not belong to the chosen offer." }, { status: 400 });
+    }
+    if (Number(selectedPrice.active ?? 0) !== 1) {
+      return json({ error: "Selected price is no longer active." }, { status: 400 });
+    }
+    if (Number(selectedSession.visible ?? 1) !== 1 || selectedSession.status === "closed") {
+      return json({ error: "Selected session is no longer available." }, { status: 400 });
     }
   }
 
   let waitlisted = false;
   let waitlistPosition: number | null = null;
 
-  if (body.programDetails.sessionId) {
-    const session = await env.DB.prepare(
-      `SELECT capacity, enrolled_count FROM program_sessions WHERE id = ?`,
-    )
-      .bind(body.programDetails.sessionId)
-      .first<{ capacity: number | null; enrolled_count: number | null }>();
-
-    if (session && session.capacity != null && Number(session.enrolled_count ?? 0) >= Number(session.capacity)) {
+  if (selectedSession) {
+    if (selectedSession.status === "waitlist_only") {
+      waitlisted = true;
+      const wlCount = await env.DB.prepare(
+        `SELECT COUNT(*) as cnt FROM registrations WHERE session_id = ? AND status = 'waitlisted'`,
+      )
+        .bind(body.programDetails.sessionId)
+        .first<{ cnt: number }>();
+      waitlistPosition = Number(wlCount?.cnt ?? 0) + 1;
+    } else if (
+      selectedSession.capacity != null &&
+      Number(selectedSession.enrolled_count ?? 0) >= Number(selectedSession.capacity)
+    ) {
       waitlisted = true;
       const wlCount = await env.DB.prepare(
         `SELECT COUNT(*) as cnt FROM registrations WHERE session_id = ? AND status = 'waitlisted'`,
@@ -504,12 +597,21 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
     guardianId,
     studentId,
     programId: program.id,
+    offerId: selectedOffer ? Number(selectedOffer.id) : null,
     payload: body,
     status: waitlisted ? "waitlisted" : "submitted",
   });
   if (!registrationId) return json({ error: "Failed to create registration" }, { status: 500 });
 
-  await insertWaivers(env, registrationId, body.waivers);
+  const waiverSlug =
+    selectedOffer?.waiver_slug && String(selectedOffer.waiver_slug).trim()
+      ? String(selectedOffer.waiver_slug).trim()
+      : body.programSlug === "archery"
+        ? "archery"
+        : "registration";
+  const waiverDocument = await loadActiveWaiverDocument(env, waiverSlug);
+
+  await insertWaivers(env, registrationId, body.waivers, waiverDocument ?? null);
 
   try {
     await sendRegistrationEmails(env, {

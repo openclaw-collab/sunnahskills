@@ -144,6 +144,7 @@ export default function CartPage() {
   const [submitting, setSubmitting] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const cartLines = cart?.lines ?? [];
+  const hasBjjLine = cartLines.some((line) => lineProgramSlug(line) === "bjj");
   const includesWomenBjjTrack = React.useMemo(
     () => cartLines.some((line) => {
       if (line.programSlug === "archery") return false;
@@ -246,13 +247,13 @@ export default function CartPage() {
             <PremiumCard className="border border-charcoal/10 bg-white p-6">
               <StudioText
                 k="registration.cart.signinCopy"
-                defaultText="Checkout is tied to your Family & Member Account so participant records, waivers, and payment plans all stay in one place."
+                defaultText="Sign in so your registrations, waivers, and payments stay in one place."
                 as="p"
                 className="text-sm leading-relaxed text-charcoal/70"
               />
               <div className="mt-6">
                 <ClayButton asChild className="px-6 py-3 text-[11px] uppercase tracking-[0.18em]">
-                  <Link href="/register?next=%2Fregistration%2Fcart">Open your account</Link>
+                  <Link href="/register?next=%2Fregistration%2Fcart">Sign in to checkout</Link>
                 </ClayButton>
               </div>
             </PremiumCard>
@@ -276,13 +277,13 @@ export default function CartPage() {
             <PremiumCard className="border border-charcoal/10 bg-white p-6">
               <StudioText
                 k="registration.cart.emptyCopy"
-                defaultText="Add one or more BJJ registrations first, then come back here to review the order, confirm the waiver, and pay."
+                defaultText="Add a BJJ or Archery registration first, then come back here to review waivers and payment."
                 as="p"
                 className="text-sm leading-relaxed text-charcoal/70"
               />
               <div className="mt-6 flex flex-wrap gap-3">
                 <ClayButton asChild className="px-6 py-3 text-[11px] uppercase tracking-[0.18em]">
-                  <Link href="/programs/bjj/register">Back to BJJ</Link>
+                  <Link href="/register">Choose a program</Link>
                 </ClayButton>
                 <OutlineButton asChild className="px-6 py-3 text-[11px] uppercase tracking-[0.18em]">
                   <Link href="/trial">Start with a free trial</Link>
@@ -484,8 +485,8 @@ export default function CartPage() {
             <div className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
               <PremiumCard className="border border-charcoal/10 bg-white p-6" data-testid="registration-cart-line-items">
                 <StudioText
-                  k="registration.cart.linesHeading"
-                  defaultText="Registration lines"
+                k="registration.cart.linesHeading"
+                  defaultText="Registrations in this checkout"
                   as="div"
                   className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-moss mb-3"
                 />
@@ -599,11 +600,12 @@ export default function CartPage() {
                 ))}
               </div>
 
+              {hasBjjLine ? (
               <div className="mt-6">
                 <label className="text-sm text-charcoal">
                   <StudioText
                     k="registration.cart.discountLabel"
-                    defaultText="Staff proration code (optional)"
+                    defaultText="Staff code (optional)"
                     as="span"
                   />
                   <Input
@@ -615,11 +617,12 @@ export default function CartPage() {
                 </label>
                 <StudioText
                   k="registration.cart.discountHelper"
-                  defaultText="Use this only when staff provided a remaining-classes code for the whole order."
+                  defaultText="Only enter a code if Sunnah Skills gave you one."
                   as="div"
                   className="mt-2 text-xs uppercase tracking-[0.16em] text-charcoal/55"
                 />
               </div>
+              ) : null}
               </PremiumCard>
 
               <PremiumCard className="border border-charcoal/10 bg-white p-6" data-testid="registration-cart-summary">
@@ -769,13 +772,13 @@ export default function CartPage() {
                 >
                   <StudioText
                     k={submitting ? "registration.cart.preparingPayment" : orderId ? "registration.cart.retryPayment" : "registration.cart.continuePayment"}
-                    defaultText={submitting ? "Preparing payment..." : orderId ? "Retry payment setup" : "Continue to payment"}
+                    defaultText={submitting ? "Preparing payment..." : orderId ? "Try payment again" : "Continue to payment"}
                     as="span"
                   />
                 </ClayButton>
                 <OutlineButton asChild className="px-6 py-3 text-[11px] uppercase tracking-[0.18em]">
-                  <Link href="/programs/bjj/register">
-                    <StudioText k="registration.cart.backToBuilder" defaultText="Back to cart builder" />
+                  <Link href="/register">
+                    <StudioText k="registration.cart.backToBuilder" defaultText="Add another registration" />
                   </Link>
                 </OutlineButton>
               </div>

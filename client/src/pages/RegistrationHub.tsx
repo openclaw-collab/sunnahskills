@@ -53,6 +53,7 @@ function ageLabel(participant: SavedStudent) {
 export default function RegistrationHub() {
   const [, navigate] = useLocation();
   const targetPath = nextPath();
+  const targetProgramLabel = targetPath.includes("/archery") ? "Archery" : "BJJ";
   const sessionQuery = useGuardianSession();
   const participantsQuery = useGuardianStudents(Boolean(sessionQuery.data?.authenticated));
 
@@ -351,7 +352,7 @@ export default function RegistrationHub() {
                 <div className="flex flex-wrap gap-3">
                   {accountComplete && participants.length > 0 ? (
                     <ClayButton className="px-5 py-2.5 text-[11px] uppercase tracking-[0.18em]" onClick={() => navigate(targetPath)}>
-                      Continue to BJJ
+                      Continue to {targetProgramLabel}
                     </ClayButton>
                   ) : null}
                   <OutlineButton
@@ -641,8 +642,13 @@ export default function RegistrationHub() {
                       disabled={participants.length === 0}
                       onClick={() => navigate(targetPath)}
                     >
-                      Register for BJJ
+                      Register for {targetProgramLabel}
                     </ClayButton>
+                    {targetProgramLabel !== "Archery" ? (
+                      <OutlineButton asChild className="px-6 py-3 text-[11px] uppercase tracking-[0.18em]">
+                        <Link href="/programs/archery/register">Register for Archery</Link>
+                      </OutlineButton>
+                    ) : null}
                     <OutlineButton asChild className="px-6 py-3 text-[11px] uppercase tracking-[0.18em]">
                       <Link href="/trial">Start with a free trial</Link>
                     </OutlineButton>

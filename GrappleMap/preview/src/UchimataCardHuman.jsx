@@ -331,88 +331,7 @@ function Grid({ animStateRef }) {
   );
 }
 
-function lerpVector(a, b, t) {
-  return [
-    lerp(a[0], b[0], t),
-    lerp(a[1], b[1], t),
-    lerp(a[2], b[2], t),
-  ];
-}
-
-function resolveCameraPose(cameraPath, progress, target) {
-  const preset = cameraPath?.preset || 'static';
-  const distance = cameraPath?.distance ?? 4.8;
-  const height = cameraPath?.height ?? 2.7;
-  const orbitRadians = ((cameraPath?.orbitDegrees ?? 160) * Math.PI) / 180;
-
-  if (Array.isArray(cameraPath?.keyframes) && cameraPath.keyframes.length > 0) {
-    const keyframes = [...cameraPath.keyframes].sort((a, b) => a.t - b.t);
-    const nextIndex = keyframes.findIndex((keyframe) => keyframe.t >= progress);
-    const prev = keyframes[Math.max(0, nextIndex - 1)] || keyframes[0];
-    const next = nextIndex >= 0 ? keyframes[nextIndex] : keyframes[keyframes.length - 1];
-    const span = Math.max(0.0001, next.t - prev.t);
-    const localT = Math.max(0, Math.min(1, (progress - prev.t) / span));
-    return {
-      position: lerpVector(prev.position, next.position, localT),
-      target: lerpVector(prev.target || [target.x, target.y, target.z], next.target || [target.x, target.y, target.z], localT),
-      fov: lerp(prev.fov ?? 45, next.fov ?? 45, localT),
-    };
-  }
-
-  if (preset === 'orbit') {
-    const angle = -orbitRadians / 2 + orbitRadians * progress;
-    return {
-      position: [
-        target.x + Math.cos(angle) * distance,
-        target.y + height,
-        target.z + Math.sin(angle) * distance,
-      ],
-      target: [target.x, target.y + 0.45, target.z],
-      fov: 44,
-    };
-  }
-
-  if (preset === 'push-in') {
-    const currentDistance = lerp(distance * 1.5, distance * 0.72, progress);
-    return {
-      position: [target.x + currentDistance, target.y + height * 0.85, target.z + currentDistance * 0.55],
-      target: [target.x, target.y + 0.5, target.z],
-      fov: lerp(50, 34, progress),
-    };
-  }
-
-  if (preset === 'swoop') {
-    const angle = -Math.PI * 0.8 + Math.PI * 1.25 * progress;
-    const currentHeight = lerp(height * 1.35, 0.85, Math.sin(progress * Math.PI));
-    const currentDistance = lerp(distance * 1.2, distance * 0.75, progress);
-    return {
-      position: [
-        target.x + Math.cos(angle) * currentDistance,
-        target.y + currentHeight,
-        target.z + Math.sin(angle) * currentDistance,
-      ],
-      target: [target.x, target.y + 0.35, target.z],
-      fov: lerp(48, 36, progress),
-    };
-  }
-
-  if (preset === 'overhead') {
-    const angle = Math.PI * 0.25 + progress * Math.PI * 0.25;
-    return {
-      position: [
-        target.x + Math.cos(angle) * distance * 0.45,
-        target.y + height * 2.25,
-        target.z + Math.sin(angle) * distance * 0.45,
-      ],
-      target: [target.x, target.y, target.z],
-      fov: 42,
-    };
-  }
-
-  return null;
-}
-
-function Scene({ playbackSpeed, autoRotate, frames, onFrame, isPlaying, isLooping, timeRefExternal, playbackStateRef, cameraPath }) {
+function Scene({ playbackSpeed, autoRotate, frames, onFrame, isPlaying, isLooping, timeRefExternal, playbackStateRef }) {
   const controlsRef = useRef();
   const chaserRef = useRef(null);
   const animStateRef = useRef({ time: 0, chaser: null, isPlaying: true, isLooping: true });
@@ -538,22 +457,6 @@ function Scene({ playbackSpeed, autoRotate, frames, onFrame, isPlaying, isLoopin
       controlsRef.current.target.copy(chaser);
     }
 
-    const progress = total > 1 ? Math.max(0, Math.min(1, raw / (total - 1))) : 0;
-    const cameraPose = cameraPath ? resolveCameraPose(cameraPath, progress, chaser) : null;
-    if (cameraPose) {
-      state.camera.position.lerp(new THREE.Vector3(...cameraPose.position), 0.16);
-      if (cameraPose.fov && state.camera.isPerspectiveCamera) {
-        state.camera.fov += (cameraPose.fov - state.camera.fov) * 0.12;
-        state.camera.updateProjectionMatrix();
-      }
-      if (controlsRef.current) {
-        controlsRef.current.target.lerp(new THREE.Vector3(...cameraPose.target), 0.2);
-        controlsRef.current.update();
-      } else {
-        state.camera.lookAt(...cameraPose.target);
-      }
-    }
-
     if (onFrame) onFrame(idx);
   });
 
@@ -607,7 +510,6 @@ export default function UchimataCard({
   isLooping = true,
   timeRef = null,
   playbackStateRef = null,
-  cameraPath = null,
   ...props
 }) {
   const frames = scene.frames;
@@ -626,7 +528,7 @@ export default function UchimataCard({
     >
       <Canvas
         camera={{ position: cameraPosition, fov: 45, near: 0.1, far: 100 }}
-        gl={{ antialias: true, alpha: true, preserveDrawingBuffer: true, powerPreference: 'high-performance' }}
+        gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }}
         style={{ background: 'transparent' }}
       >
         {showStats && <Stats />}
@@ -639,7 +541,6 @@ export default function UchimataCard({
           isLooping={isLooping}
           timeRefExternal={timeRef}
           playbackStateRef={playbackStateRef}
-          cameraPath={cameraPath}
         />
       </Canvas>
     </div>

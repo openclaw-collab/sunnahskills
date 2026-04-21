@@ -4,6 +4,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import UchimataCard from './UchimataCardHuman';
+import AgentVideoRecorder from './AgentVideoRecorder';
 import { stabilizeSequencePayload } from './playerContinuity.js';
 
 const PREDEFINED_SEQUENCES = {
@@ -73,7 +74,8 @@ export default function SequenceBuilder() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const isEmbedded = window.self !== window.top;
+  const isAgentRecording = new URLSearchParams(window.location.search).get('agent') === 'true';
+  const isEmbedded = window.self !== window.top || isAgentRecording;
 
   const loadSequenceData = useCallback(async () => {
     try {
@@ -356,14 +358,25 @@ export default function SequenceBuilder() {
         {/* Canvas */}
         <div style={{ flex: 1, background: isEmbedded ? 'transparent' : 'inherit' }}>
           {frames.length > 0 ? (
-            <UchimataCard
+            <AgentVideoRecorder
               scene={{ frames }}
               playbackSpeed={playbackSpeed}
-              showStats={showStats}
               isPlaying={isPlaying}
-              isLooping={isLooping}
-              style={{ height: '100%', width: '100%' }}
-            />
+              fps={30}
+              autoStartRecording
+              onRecordComplete={(blob) => {
+                console.log('Recording complete!', blob);
+              }}
+            >
+              <UchimataCard
+                scene={{ frames }}
+                playbackSpeed={playbackSpeed}
+                showStats={showStats}
+                isPlaying={isPlaying}
+                isLooping={isLooping}
+                style={{ height: '100%', width: '100%' }}
+              />
+            </AgentVideoRecorder>
           ) : (
             <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#999' }}>
               Select a sequence to preview

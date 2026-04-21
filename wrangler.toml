@@ -2,9 +2,6 @@ name = "sunnahskills"
 compatibility_date = "2024-01-01"
 pages_build_output_dir = "dist"
 
-# Bundle GrappleMap.txt as a string for admin extract (same flat-index pipeline as GrappleMap/scripts/grapplemap-loader.js).
-rules = [{ type = "Text", globs = ["**/*.txt"], fallthrough = true }]
-
 # Local development defaults
 # database_id = "DB" ensures that `wrangler d1 execute --local` hashes the string "DB"
 # to the same SQLite file as `wrangler pages dev --local` (which hashes the binding name "DB").
@@ -22,8 +19,8 @@ EMAIL_TO = "mysunnahskill@gmail.com"
 # ─── Production environment (main branch → sunnahskills-admin-v2) ─────────────
 [[env.production.d1_databases]]
 binding = "DB"
-database_name = "sunnahskills-admin-v3"
-database_id = "69bf03d8-908e-410b-b3cf-5dfb13676679"
+database_name = "sunnahskills-admin-v2"
+database_id = "fc0a958f-4bfe-487f-845f-bce49d4715d5"
 
 [env.production.vars]
 SITE_URL = "https://sunnahskills.com"

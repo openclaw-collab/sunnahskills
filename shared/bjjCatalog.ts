@@ -3,6 +3,9 @@ export type BjjTrackKey =
   | "boys-7-13"
   | "women-11-tue"
   | "women-11-thu"
+  | "women-self-defense-2026-04-30"
+  | "women-self-defense-2026-05-28"
+  | "women-self-defense-2026-06-25"
   | "men-14";
 
 export type BjjMarketingGroupKey = "girls" | "boys" | "women" | "men";
@@ -20,9 +23,20 @@ export type BjjTrackDescriptor = {
   maxAge: number | null;
   allowedGenders: readonly string[];
   meetingDays: readonly string[];
+  meetingDates?: readonly string[];
   defaultPerClassCents: number;
+  oneTimePriceCents?: number;
   sortOrder: number;
 };
+
+export const WOMEN_BJJ_WEEKLY_TRACKS = ["women-11-tue", "women-11-thu"] as const;
+export const WOMEN_SELF_DEFENSE_TRACKS = [
+  "women-self-defense-2026-04-30",
+  "women-self-defense-2026-05-28",
+  "women-self-defense-2026-06-25",
+] as const;
+export const WOMEN_SECOND_WEEKLY_CLASS_CENTS = 5000;
+export const WOMEN_SELF_DEFENSE_PRICE_CENTS = 2500;
 
 export const BJJ_TRACKS: readonly BjjTrackDescriptor[] = [
   {
@@ -90,6 +104,60 @@ export const BJJ_TRACKS: readonly BjjTrackDescriptor[] = [
     sortOrder: 4,
   },
   {
+    key: "women-self-defense-2026-04-30",
+    label: "Women Self-Defense — Apr 30",
+    marketingGroup: "women",
+    marketingLabel: "Women 11+",
+    ageLabel: "Women ages 11+",
+    scheduleLabel: "Thursday Apr 30, 2026 — last Thursday of the month",
+    registerLabel: "Women Self-Defense — Apr 30",
+    isKids: false,
+    minAge: 11,
+    maxAge: null,
+    allowedGenders: ["female", "girl", "woman"],
+    meetingDays: ["Thursday"],
+    meetingDates: ["2026-04-30"],
+    defaultPerClassCents: WOMEN_SELF_DEFENSE_PRICE_CENTS,
+    oneTimePriceCents: WOMEN_SELF_DEFENSE_PRICE_CENTS,
+    sortOrder: 5,
+  },
+  {
+    key: "women-self-defense-2026-05-28",
+    label: "Women Self-Defense — May 28",
+    marketingGroup: "women",
+    marketingLabel: "Women 11+",
+    ageLabel: "Women ages 11+",
+    scheduleLabel: "Thursday May 28, 2026 — last Thursday of the month",
+    registerLabel: "Women Self-Defense — May 28",
+    isKids: false,
+    minAge: 11,
+    maxAge: null,
+    allowedGenders: ["female", "girl", "woman"],
+    meetingDays: ["Thursday"],
+    meetingDates: ["2026-05-28"],
+    defaultPerClassCents: WOMEN_SELF_DEFENSE_PRICE_CENTS,
+    oneTimePriceCents: WOMEN_SELF_DEFENSE_PRICE_CENTS,
+    sortOrder: 6,
+  },
+  {
+    key: "women-self-defense-2026-06-25",
+    label: "Women Self-Defense — Jun 25",
+    marketingGroup: "women",
+    marketingLabel: "Women 11+",
+    ageLabel: "Women ages 11+",
+    scheduleLabel: "Thursday Jun 25, 2026 — last Thursday of the month",
+    registerLabel: "Women Self-Defense — Jun 25",
+    isKids: false,
+    minAge: 11,
+    maxAge: null,
+    allowedGenders: ["female", "girl", "woman"],
+    meetingDays: ["Thursday"],
+    meetingDates: ["2026-06-25"],
+    defaultPerClassCents: WOMEN_SELF_DEFENSE_PRICE_CENTS,
+    oneTimePriceCents: WOMEN_SELF_DEFENSE_PRICE_CENTS,
+    sortOrder: 7,
+  },
+  {
     key: "men-14",
     label: "Teens+ Men 14+",
     marketingGroup: "men",
@@ -103,7 +171,7 @@ export const BJJ_TRACKS: readonly BjjTrackDescriptor[] = [
     allowedGenders: ["male", "boy", "man"],
     meetingDays: ["Friday", "Saturday"],
     defaultPerClassCents: 1400,
-    sortOrder: 5,
+    sortOrder: 8,
   },
 ] as const;
 
@@ -121,6 +189,14 @@ export function isBjjTrackKey(value: string): value is BjjTrackKey {
 
 export function isKidsBjjTrackKey(value: string) {
   return isBjjTrackKey(value) && BJJ_TRACK_BY_KEY[value].isKids;
+}
+
+export function isWomenWeeklyBjjTrack(value: string): value is (typeof WOMEN_BJJ_WEEKLY_TRACKS)[number] {
+  return (WOMEN_BJJ_WEEKLY_TRACKS as readonly string[]).includes(value);
+}
+
+export function isWomenSelfDefenseBjjTrack(value: string): value is (typeof WOMEN_SELF_DEFENSE_TRACKS)[number] {
+  return (WOMEN_SELF_DEFENSE_TRACKS as readonly string[]).includes(value);
 }
 
 export function isMediaWaiverExemptBjjTrack(value: string) {
@@ -193,6 +269,21 @@ export const BJJ_MARKETING_GROUPS: readonly BjjMarketingGroup[] = [
         trackKey: "women-11-thu",
         label: "Thursday enrollment",
         scheduleLabel: "Thursday 8:00 to 9:30 PM",
+      },
+      {
+        trackKey: "women-self-defense-2026-04-30",
+        label: "Self-defense — Apr 30",
+        scheduleLabel: "Last Thursday of the month · Apr 30 · one-time $25 registration",
+      },
+      {
+        trackKey: "women-self-defense-2026-05-28",
+        label: "Self-defense — May 28",
+        scheduleLabel: "Last Thursday of the month · May 28 · one-time $25 registration",
+      },
+      {
+        trackKey: "women-self-defense-2026-06-25",
+        label: "Self-defense — Jun 25",
+        scheduleLabel: "Last Thursday of the month · Jun 25 · one-time $25 registration",
       },
     ],
   },

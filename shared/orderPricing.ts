@@ -2,7 +2,13 @@ import {
   KIDS_PER_CLASS_CENTS_DEFAULT,
   lineTotalAfterSiblingCents,
 } from "./pricing";
-import { BJJ_TRACK_BY_KEY, isBjjTrackKey, isKidsBjjTrackKey } from "./bjjCatalog";
+import {
+  BJJ_TRACK_BY_KEY,
+  WOMEN_SECOND_WEEKLY_CLASS_CENTS,
+  isBjjTrackKey,
+  isKidsBjjTrackKey,
+  isWomenSelfDefenseBjjTrack,
+} from "./bjjCatalog";
 
 export type BjjTrack = string;
 
@@ -83,6 +89,7 @@ export type LinePricingInput = {
   trialCreditCents?: number;
   prorationAllowed?: boolean;
   chargeDateIso?: string | null;
+  womenSecondWeeklyClass?: boolean;
 };
 
 export type LinePricingResult = {
@@ -129,6 +136,8 @@ export function resolveChargeStartDateIso(
 }
 
 export function resolveClassesInSemester(meta: string | null, sem: SemesterRow | null, track?: string, startDateIso?: string) {
+  if (track && isWomenSelfDefenseBjjTrack(track)) return 1;
+
   if (track && isBjjTrackKey(track)) {
     const startIso = startDateIso ?? sem?.start_date?.trim() ?? isoDateOnly(new Date());
     const endIso = sem?.end_date?.trim();
@@ -189,7 +198,12 @@ function linePricingCore(input: LinePricingInput): LineCore {
     perClassCents = Math.max(0, Number(input.programPriceAmount ?? 0));
   }
 
-  const baseTuitionCents = Math.max(0, perClassCents) * Math.max(0, scheduledClassCount);
+  const oneTimePriceCents = isBjjTrackKey(input.track) ? BJJ_TRACK_BY_KEY[input.track].oneTimePriceCents : undefined;
+  const baseTuitionCents = input.womenSecondWeeklyClass
+    ? WOMEN_SECOND_WEEKLY_CLASS_CENTS
+    : typeof oneTimePriceCents === "number"
+      ? Math.max(0, oneTimePriceCents)
+      : Math.max(0, perClassCents) * Math.max(0, scheduledClassCount);
   const trialCreditCents = Math.max(0, Math.min(baseTuitionCents, Math.round(Number(input.trialCreditCents ?? 0))));
 
   const registrationFeeCents = Math.max(0, regFee);

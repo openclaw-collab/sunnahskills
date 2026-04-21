@@ -11,7 +11,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useGuardianSession, useGuardianStudents } from "@/hooks/useGuardianSession";
 import { useProgramsCatalog } from "@/hooks/useProgramsCatalog";
 import { addLineToFamilyCart, loadFamilyCart, removeCartLine, type AccountCartSnapshot } from "@/lib/familyCart";
-import { BJJ_MARKETING_GROUPS, BJJ_TRACK_BY_KEY, isEligibleForBjjTrack, type BjjMarketingGroup } from "../../../../shared/bjjCatalog";
+import {
+  BJJ_MARKETING_GROUPS,
+  BJJ_TRACK_BY_KEY,
+  isEligibleForBjjTrack,
+  isWomenSelfDefenseBjjTrack,
+  isWomenWeeklyBjjTrack,
+  type BjjMarketingGroup,
+} from "../../../../shared/bjjCatalog";
 import { computeLaterPaymentDateIso, computeLineTuitionCents, splitPaymentPlan } from "../../../../shared/orderPricing";
 import { formatMoneyFromCents } from "@shared/money";
 import { StudioBlock } from "@/studio/StudioBlock";
@@ -77,6 +84,24 @@ export default function BJJRegistration() {
 
   const selectedPrice = prices.find((price) => price.age_group === selectedTrack) ?? null;
   const selectedSession = sessions.find((item) => item.age_group === selectedTrack) ?? null;
+  const selectedParticipantExistingCartTracks = (cart?.lines ?? [])
+    .filter((line) =>
+      line.programSlug !== "archery" &&
+      selectedParticipant &&
+      line.participant.fullName.trim().toLowerCase() === selectedParticipant.full_name.trim().toLowerCase() &&
+      line.participant.dateOfBirth === selectedParticipant.date_of_birth,
+    )
+    .map((line) =>
+      "bjjTrack" in line.programDetails.programSpecific
+        ? String(line.programDetails.programSpecific.bjjTrack ?? "")
+        : "",
+    );
+  const selectedParticipantHasWomenWeeklyInCart = selectedParticipantExistingCartTracks.some(isWomenWeeklyBjjTrack);
+  const selectedTrackIsSecondWomenWeekly =
+    isWomenWeeklyBjjTrack(selectedTrack) &&
+    selectedParticipantExistingCartTracks.some((track) => isWomenWeeklyBjjTrack(track) && track !== selectedTrack);
+  const selectedTrackIsBlockedSelfDefense =
+    isWomenSelfDefenseBjjTrack(selectedTrack) && selectedParticipantHasWomenWeeklyInCart;
   const cartLinePreview =
     selectedTrack && selectedPrice && selectedSession
       ? computeLineTuitionCents({
@@ -89,6 +114,7 @@ export default function BJJRegistration() {
           paymentChoice,
           siblingRankAmongKidsStudents: 0,
           semester,
+          womenSecondWeeklyClass: selectedTrackIsSecondWomenWeekly,
         })
       : null;
   const paymentSplit = cartLinePreview ? splitPaymentPlan(cartLinePreview.afterSiblingCents, paymentChoice) : null;
@@ -269,9 +295,18 @@ export default function BJJRegistration() {
                             <div className="mt-2 text-sm text-charcoal/65">{option.scheduleLabel}</div>
                             <div className="mt-3 text-xs uppercase tracking-[0.16em] text-charcoal/55">
                               {optionPrice
-                                ? `${money(optionPrice.amount)} per class`
+                                ? isWomenSelfDefenseBjjTrack(option.trackKey)
+                                  ? "$25 one-time"
+                                  : selectedParticipantExistingCartTracks.some((track) => isWomenWeeklyBjjTrack(track) && track !== option.trackKey) && isWomenWeeklyBjjTrack(option.trackKey)
+                                    ? "$50 second class"
+                                    : `${money(optionPrice.amount)} per class`
                                 : `${money(BJJ_TRACK_BY_KEY[option.trackKey].defaultPerClassCents)} per class`}
                             </div>
+                            {isWomenSelfDefenseBjjTrack(option.trackKey) ? (
+                              <div className="mt-2 text-xs leading-relaxed text-charcoal/55">
+                                For women who are not registered for Tuesday or Thursday BJJ.
+                              </div>
+                            ) : null}
                           </button>
                         );
                       })}
@@ -327,7 +362,11 @@ export default function BJJRegistration() {
                         : `Due today ${money(paymentSplit.dueToday)}.`}
                     </div>
                     <div className="mt-1 text-xs uppercase tracking-[0.16em] text-charcoal/55">
-                      Staff discount codes can adjust totals at checkout when provided.
+                      {selectedTrackIsSecondWomenWeekly
+                        ? "Second weekly women’s class pricing is applied here."
+                        : selectedTrackIsBlockedSelfDefense
+                          ? "Self-defense is only available when this participant is not taking Tuesday or Thursday women’s BJJ."
+                          : "Staff discount codes can adjust totals at checkout when provided."}
                     </div>
                   </div>
                 ) : null}
@@ -340,6 +379,10 @@ export default function BJJRegistration() {
                     onClick={() => {
                       if (!selectedParticipant || !selectedTrack || !selectedPrice || !selectedSession) {
                         setError("Choose a participant and eligible BJJ track first.");
+                        return;
+                      }
+                      if (selectedTrackIsBlockedSelfDefense) {
+                        setError("Women self-defense is for participants who are not registered for Tuesday or Thursday women’s BJJ.");
                         return;
                       }
                       const duplicate = (cart?.lines ?? []).some((line) =>

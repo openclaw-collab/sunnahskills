@@ -7,6 +7,8 @@ import {
   BJJ_TRACK_BY_KEY,
   isBjjTrackKey,
   isEligibleForBjjTrack,
+  isWomenSelfDefenseBjjTrack,
+  isWomenWeeklyBjjTrack,
   normalizeGenderLabel,
 } from "../../../shared/bjjCatalog";
 import {
@@ -104,6 +106,13 @@ function todayIso() {
 
 function normalizedName(value: string) {
   return compactWhitespace(value).toLowerCase();
+}
+
+function sameParticipantIdentity(
+  a: { fullName: string; dateOfBirth: string },
+  b: { fullName: string; dateOfBirth: string },
+) {
+  return normalizedName(a.fullName) === normalizedName(b.fullName) && a.dateOfBirth.trim() === b.dateOfBirth.trim();
 }
 
 function computeAge(dateOfBirth: string) {
@@ -491,6 +500,37 @@ async function resolveTrialMatch(
   return { id: null, ambiguous: false, matchedGuardianAccountId: guardianAccountId };
 }
 
+async function loadExistingBjjRegistrations(env: Env, guardianAccountId: number) {
+  const rows = await env.DB.prepare(
+    `SELECT
+       r.schedule_choice,
+       r.status,
+       s.full_name as student_full_name,
+       s.date_of_birth as student_date_of_birth,
+       o.guardian_account_id
+     FROM registrations r
+     JOIN students s ON s.id = r.student_id
+     JOIN enrollment_orders o ON o.id = r.enrollment_order_id
+     WHERE o.guardian_account_id = ?
+       AND r.program_id = 'bjj'
+       AND r.status IN ('submitted', 'pending_payment', 'paid', 'active')
+     ORDER BY r.id ASC`,
+  )
+    .bind(guardianAccountId)
+    .all<{
+      schedule_choice: string | null;
+      status: string | null;
+      student_full_name: string | null;
+      student_date_of_birth: string | null;
+      guardian_account_id?: number | null;
+    }>();
+
+  return (rows.results ?? []).filter((row) => {
+    if (row.guardian_account_id != null && Number(row.guardian_account_id) !== guardianAccountId) return false;
+    return Boolean(row.schedule_choice && row.student_full_name && row.student_date_of_birth);
+  });
+}
+
 export async function onRequestPost({ request, env }: { request: Request; env: Env }) {
   if (!env.DB) return json({ error: "DB not configured" }, { status: 500 });
   const guardianSession = await getGuardianFromRequest(env, request);
@@ -547,6 +587,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
       dateOfBirth: line.participant.dateOfBirth,
     },
   }));
+  const existingBjjRegistrations = await loadExistingBjjRegistrations(env, guardianSession.guardianAccountId);
 
   const lineMeta: Array<{
     programId: "bjj" | "archery";
@@ -655,6 +696,45 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
       return json({ error: "That participant is not eligible for the selected BJJ track.", line: index }, { status: 400 });
     }
 
+    const existingTracksForParticipant = existingBjjRegistrations
+      .filter((row) =>
+        sameParticipantIdentity(
+          { fullName: row.student_full_name ?? "", dateOfBirth: row.student_date_of_birth ?? "" },
+          { fullName: line.participant.fullName, dateOfBirth: line.participant.dateOfBirth },
+        ),
+      )
+      .map((row) => String(row.schedule_choice ?? "").trim())
+      .filter(Boolean);
+    if (existingTracksForParticipant.includes(track)) {
+      return json({ error: "This participant is already registered for that BJJ option.", line: index }, { status: 400 });
+    }
+
+    const sameCartTracksForParticipant = body.lines
+      .slice(0, index)
+      .filter((otherLine) =>
+        (otherLine.programSlug ?? "bjj") === "bjj" &&
+        sameParticipantIdentity(
+          { fullName: otherLine.participant.fullName, dateOfBirth: otherLine.participant.dateOfBirth },
+          { fullName: line.participant.fullName, dateOfBirth: line.participant.dateOfBirth },
+        ),
+      )
+      .map((otherLine) => String(otherLine.programDetails.programSpecific.bjjTrack ?? "").trim())
+      .filter(Boolean);
+
+    const hasWomenWeeklyInCartOrAccount =
+      sameCartTracksForParticipant.some(isWomenWeeklyBjjTrack) ||
+      existingTracksForParticipant.some(isWomenWeeklyBjjTrack);
+    if (isWomenSelfDefenseBjjTrack(track) && hasWomenWeeklyInCartOrAccount) {
+      return json({
+        error: "Women self-defense is for participants who are not already registered for Tuesday or Thursday women’s BJJ.",
+        line: index,
+      }, { status: 400 });
+    }
+    const womenSecondWeeklyClass =
+      isWomenWeeklyBjjTrack(track) &&
+      (sameCartTracksForParticipant.some((otherTrack) => isWomenWeeklyBjjTrack(otherTrack) && otherTrack !== track) ||
+        existingTracksForParticipant.some((otherTrack) => isWomenWeeklyBjjTrack(otherTrack) && otherTrack !== track));
+
     const priceRow = line.programDetails.priceId
       ? await env.DB.prepare(
           `SELECT id, amount, registration_fee, frequency, metadata
@@ -706,6 +786,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
       trialCreditCents,
       prorationAllowed: Boolean(prorationCode),
       chargeDateIso: todayIso(),
+      womenSecondWeeklyClass,
     });
     let promoCode: string | null = null;
     let promoDiscountCents = 0;

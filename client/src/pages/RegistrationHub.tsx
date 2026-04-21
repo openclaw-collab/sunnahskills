@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { queryClient } from "@/lib/queryClient";
 import { useGuardianSession, useGuardianStudents, type SavedStudent } from "@/hooks/useGuardianSession";
+import { formatMoneyFromCents } from "@shared/money";
 
 type SignupErrors = Partial<Record<"signupFullName" | "signupEmail", string>>;
 type LoginErrors = Partial<Record<"loginEmail", string>>;
@@ -18,6 +19,13 @@ type ParticipantErrors = Partial<Record<"participantType" | "fullName" | "dateOf
 type LocalPreview = {
   verifyUrl: string;
   accountNumber?: string | null;
+};
+type UpcomingFee = {
+  orderId: number;
+  amountCents: number;
+  currency: string;
+  chargeDate: string | null;
+  programNames: string[];
 };
 
 function isValidEmail(value: string) {
@@ -56,6 +64,7 @@ export default function RegistrationHub() {
   const targetProgramLabel = targetPath.includes("/archery") ? "Archery" : "BJJ";
   const sessionQuery = useGuardianSession();
   const participantsQuery = useGuardianStudents(Boolean(sessionQuery.data?.authenticated));
+  const [upcomingFees, setUpcomingFees] = React.useState<UpcomingFee[]>([]);
 
   const [signupFullName, setSignupFullName] = React.useState("");
   const [signupEmail, setSignupEmail] = React.useState("");
@@ -89,6 +98,22 @@ export default function RegistrationHub() {
     await queryClient.invalidateQueries({ queryKey: ["/api/guardian/me"] });
     await queryClient.invalidateQueries({ queryKey: ["/api/guardian/students"] });
   }
+
+  React.useEffect(() => {
+    if (!sessionQuery.data?.authenticated) {
+      setUpcomingFees([]);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const res = await fetch("/api/guardian/upcoming-fees", { credentials: "include" });
+      const json = (await res.json().catch(() => null)) as { fees?: UpcomingFee[] } | null;
+      if (!cancelled && res.ok) setUpcomingFees(json?.fees ?? []);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [sessionQuery.data?.authenticated]);
 
   async function post(path: string, body: unknown) {
     const res = await fetch(path, {
@@ -363,6 +388,37 @@ export default function RegistrationHub() {
                 </div>
               </div>
             </PremiumCard>
+
+            {upcomingFees.length > 0 ? (
+              <PremiumCard className="border border-moss/15 bg-moss/5 p-6">
+                <div className="mb-4">
+                  <div className="font-mono-label mb-2 text-[10px] uppercase tracking-[0.18em] text-moss">Upcoming payments</div>
+                  <h3 className="font-heading text-xl text-charcoal">Scheduled card charges</h3>
+                  <p className="mt-2 text-sm leading-relaxed text-charcoal/65">
+                    These are remaining balances from registrations where you chose to split payment.
+                  </p>
+                </div>
+                <div className="space-y-3">
+                  {upcomingFees.map((fee) => (
+                    <div key={fee.orderId} className="rounded-2xl border border-charcoal/10 bg-white px-4 py-4">
+                      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                        <div>
+                          <div className="text-sm font-medium text-charcoal">
+                            {formatMoneyFromCents(fee.amountCents, { currency: fee.currency })}
+                          </div>
+                          <div className="mt-1 text-xs uppercase tracking-[0.16em] text-charcoal/55">
+                            {fee.chargeDate ? `Charges on ${fee.chargeDate}` : "Charge date pending"} · Order #{fee.orderId}
+                          </div>
+                        </div>
+                        <div className="text-sm text-charcoal/65">
+                          {fee.programNames.length > 0 ? fee.programNames.join(", ") : "Registration balance"}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </PremiumCard>
+            ) : null}
 
             {!accountComplete ? (
               <PremiumCard className="border border-charcoal/10 bg-white p-6">

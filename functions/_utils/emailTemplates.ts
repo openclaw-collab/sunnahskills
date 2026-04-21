@@ -281,6 +281,46 @@ Receipt: ${params.receiptUrl ?? "—"}`;
   return { subject: "Sunnah Skills — Payment received", text, html };
 }
 
+export function laterChargeReminderEmail(params: {
+  guardianName: string;
+  amountCents: number;
+  currency: string;
+  chargeDate: string;
+  orderId: number;
+  siteUrl?: string;
+}) {
+  const money = formatMoneyFromCents(params.amountCents, { currency: params.currency });
+  const title = "Upcoming payment reminder";
+  const accountUrl = params.siteUrl ? `${params.siteUrl.replace(/\/$/, "")}/register` : undefined;
+  const text = `Sunnah Skills — Upcoming payment reminder
+
+Assalamu alaykum ${params.guardianName}.
+
+Your card will be charged ${money} on ${params.chargeDate} for order #${params.orderId}.
+
+You can view your account here: ${accountUrl ?? "sunnahskills.com/register"}`;
+
+  const html = wrapHtml(
+    title,
+    `
+      <p style="margin:0 0 12px 0;line-height:1.7;">
+        Assalamu alaykum ${escapeHtml(params.guardianName)}. This is a friendly reminder about an upcoming Sunnah Skills payment.
+      </p>
+      ${cardBlock("Upcoming charge", [
+        { label: "Amount", value: money },
+        { label: "Charge date", value: params.chargeDate },
+        { label: "Order", value: `#${params.orderId}` },
+      ])}
+      <p style="margin:0 0 16px 0;line-height:1.7;color:${BRAND.stone};">
+        The card saved during registration will be charged automatically on that date.
+      </p>
+      ${accountUrl ? `<div style="margin:18px 0 14px 0;">${pillButton(accountUrl, "View account")}</div>` : ""}
+    `,
+  );
+
+  return { subject: "Sunnah Skills — Upcoming payment reminder", text, html };
+}
+
 export function adminNewRegistrationEmail(params: {
   guardianName: string;
   guardianEmail: string;

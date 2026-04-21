@@ -49,6 +49,8 @@ export function createMockD1Database() {
     programs: [],
     program_sessions: [],
     program_prices: [],
+    program_offers: [],
+    program_offer_dates: [],
     enrollment_orders: [],
     payments: [],
     waivers: [],
@@ -64,15 +66,20 @@ export function createMockD1Database() {
 
   const mockPrepare = vi.fn().mockImplementation((query: string) => {
     const queryLower = query.toLowerCase();
+    let boundArgs: any[] = [];
 
     return {
-      bind: vi.fn().mockReturnThis(),
+      bind: vi.fn().mockImplementation(function (...args: any[]) {
+        boundArgs = args;
+        return this;
+      }),
       first: vi.fn().mockImplementation(async () => {
         // SELECT ... WHERE id = ?
         if (queryLower.includes("where") && queryLower.includes("id = ?")) {
           const table = extractTableName(queryLower);
           const results = mockData[table] || [];
-          return results[0] || null;
+          const id = boundArgs[0];
+          return results.find((r: any) => String(r.id) === String(id)) || results[0] || null;
         }
         // SELECT COUNT(*)
         if (queryLower.includes("count(*)")) {

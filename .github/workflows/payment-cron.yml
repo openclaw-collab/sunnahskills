@@ -1,0 +1,36 @@
+name: Payment Cron
+
+on:
+  schedule:
+    - cron: "0 12 * * *"
+  workflow_dispatch:
+
+jobs:
+  payment-cron:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send later-charge reminders
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          if [ -z "$CRON_SECRET" ]; then
+            echo "CRON_SECRET is not configured; skipping reminder job."
+            exit 0
+          fi
+          curl --fail-with-body \
+            --request POST \
+            --header "Authorization: Bearer $CRON_SECRET" \
+            https://sunnahskills.com/api/payments/send-later-charge-reminders
+
+      - name: Collect due later charges
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          if [ -z "$CRON_SECRET" ]; then
+            echo "CRON_SECRET is not configured; skipping collection job."
+            exit 0
+          fi
+          curl --fail-with-body \
+            --request POST \
+            --header "Authorization: Bearer $CRON_SECRET" \
+            https://sunnahskills.com/api/payments/collect-order-balance

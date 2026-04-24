@@ -16,11 +16,12 @@ export async function onRequestGet({ request, env }: { request: Request; env: En
   const waiver = await env.DB.prepare(
     `SELECT id, slug, title, body_html, version_label, published_at
      FROM waiver_documents
-     WHERE slug = ? AND active = 1
-     ORDER BY published_at DESC, id DESC
+     WHERE active = 1
+       AND slug IN (?, 'registration')
+     ORDER BY CASE WHEN slug = ? THEN 0 ELSE 1 END, published_at DESC, id DESC
      LIMIT 1`,
   )
-    .bind(slug)
+    .bind(slug, slug)
     .first();
   return json({ waiver: waiver ?? null });
 }

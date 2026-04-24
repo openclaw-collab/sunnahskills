@@ -18,9 +18,11 @@ import {
 import { formatMoneyFromCents } from "@shared/money";
 import {
   ARCHERY_EYE_DOMINANCE_VIDEO_URL,
+  ARCHERY_FIRST_REGISTRATION_PRICE_CENTS,
   ARCHERY_SERIES_LABEL,
-  ARCHERY_SERIES_PRICE_CENTS,
+  ARCHERY_ADDITIONAL_REGISTRATION_PRICE_CENTS,
   archeryEyeDominanceOptions,
+  getArcheryFamilyPriceCents,
   type ArcheryEyeDominance,
 } from "../../../../shared/archeryCatalog";
 
@@ -51,6 +53,14 @@ export default function ArcheryRegistration() {
   const selectedSession = sessions.find((item: any) => Number(item.id) === Number(selectedSessionId)) ?? sessions[0] ?? null;
   const priceId = archery?.prices?.[0]?.id ?? null;
   const cartLines = cart?.lines ?? [];
+  const archeryLineCount = cartLines.filter((line) => line.programSlug === "archery").length;
+  const nextArcheryPriceCents = getArcheryFamilyPriceCents(archeryLineCount);
+
+  function archeryLinePriceCents(lineId: string) {
+    const archeryLines = cartLines.filter((line) => line.programSlug === "archery");
+    const archeryIndex = archeryLines.findIndex((line) => line.id === lineId);
+    return getArcheryFamilyPriceCents(archeryIndex);
+  }
 
   React.useEffect(() => {
     if (!selectedParticipantId && participants[0]?.id) setSelectedParticipantId(participants[0].id);
@@ -322,7 +332,10 @@ export default function ArcheryRegistration() {
               </div>
               <div className="rounded-2xl border border-charcoal/10 bg-cream/50 p-4">
                 <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-charcoal/55">Price</div>
-                <div className="mt-1 text-2xl font-heading text-charcoal">{formatMoneyFromCents(ARCHERY_SERIES_PRICE_CENTS)}</div>
+                <div className="mt-1 text-2xl font-heading text-charcoal">{formatMoneyFromCents(nextArcheryPriceCents)}</div>
+                <div className="mt-2 text-xs uppercase tracking-[0.16em] text-charcoal/55">
+                  First family registration {formatMoneyFromCents(ARCHERY_FIRST_REGISTRATION_PRICE_CENTS)} · additional family registrations {formatMoneyFromCents(ARCHERY_ADDITIONAL_REGISTRATION_PRICE_CENTS)}
+                </div>
               </div>
               {selectedSession ? (
                 <div>
@@ -352,7 +365,7 @@ export default function ArcheryRegistration() {
                           </div>
                           {line.programSlug === "archery" ? (
                             <div className="mt-2 text-sm text-charcoal/65">
-                              Eye dominance: {line.programDetails.programSpecific.eyeDominance} · {formatMoneyFromCents(ARCHERY_SERIES_PRICE_CENTS)}
+                              Eye dominance: {line.programDetails.programSpecific.eyeDominance} · {formatMoneyFromCents(archeryLinePriceCents(line.id))}
                             </div>
                           ) : null}
                         </div>

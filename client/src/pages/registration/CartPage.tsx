@@ -24,7 +24,12 @@ import { PaymentProvider } from "@/components/payment/PaymentProvider";
 import { PaymentForm } from "@/components/payment/PaymentForm";
 import { BJJ_TRACK_BY_KEY, isBjjTrackKey } from "../../../../shared/bjjCatalog";
 import { formatMoneyFromCents } from "@shared/money";
-import { ARCHERY_SERIES_LABEL, ARCHERY_SERIES_PRICE_CENTS } from "../../../../shared/archeryCatalog";
+import {
+  ARCHERY_ADDITIONAL_REGISTRATION_PRICE_CENTS,
+  ARCHERY_FIRST_REGISTRATION_PRICE_CENTS,
+  ARCHERY_SERIES_LABEL,
+  getArcheryFamilyPriceCents,
+} from "../../../../shared/archeryCatalog";
 import { StudioBlock } from "@/studio/StudioBlock";
 import { StudioText } from "@/studio/StudioText";
 
@@ -54,6 +59,12 @@ function lineDetailLabel(line: FamilyCart["lines"][number]) {
   return Object.prototype.hasOwnProperty.call(BJJ_TRACK_BY_KEY, track)
     ? BJJ_TRACK_BY_KEY[track as keyof typeof BJJ_TRACK_BY_KEY].registerLabel
     : track;
+}
+
+function archeryLinePriceCents(lines: FamilyCart["lines"], lineId: string) {
+  const archeryLines = lines.filter((line) => line.programSlug === "archery");
+  const archeryIndex = archeryLines.findIndex((line) => line.id === lineId);
+  return getArcheryFamilyPriceCents(archeryIndex);
 }
 
 function discountReasonCopy(reason: string | undefined) {
@@ -562,7 +573,7 @@ export default function CartPage() {
                         </div>
                         {line.programSlug === "archery" ? (
                           <div className="mt-2 text-sm text-charcoal/65">
-                            Eye dominance: {line.programDetails.programSpecific.eyeDominance || "not set"} · Price: {money(ARCHERY_SERIES_PRICE_CENTS)}
+                            Eye dominance: {line.programDetails.programSpecific.eyeDominance || "not set"} · Price: {money(archeryLinePriceCents(cartLines, line.id))}
                           </div>
                         ) : null}
                         <StudioText
@@ -688,7 +699,7 @@ export default function CartPage() {
                 </div>
                 <StudioText
                   k="registration.cart.discountHelper"
-                  defaultText="You can also apply a different code on an individual registration above."
+                  defaultText={`Archery pricing: first family registration ${money(ARCHERY_FIRST_REGISTRATION_PRICE_CENTS)}, additional family registrations ${money(ARCHERY_ADDITIONAL_REGISTRATION_PRICE_CENTS)}. You can also apply a different code on an individual registration above.`}
                   as="div"
                   className="mt-2 text-xs uppercase tracking-[0.16em] text-charcoal/55"
                 />

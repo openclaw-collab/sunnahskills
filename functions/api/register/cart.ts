@@ -19,7 +19,7 @@ import {
   type SemesterRow,
 } from "../../../shared/orderPricing";
 import { siblingDiscountForLineCents } from "../../../shared/pricing";
-import { ARCHERY_SERIES_PRICE_CENTS, archeryEyeDominanceOptions } from "../../../shared/archeryCatalog";
+import { archeryEyeDominanceOptions, getArcheryFamilyPriceCents } from "../../../shared/archeryCatalog";
 
 interface Env {
   DB: D1Database;
@@ -626,6 +626,10 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
     }
 
     if (programId === "archery") {
+      const archeryRegistrationIndex = body.lines
+        .slice(0, index + 1)
+        .filter((entry) => (entry.programSlug ?? "bjj") === "archery").length - 1;
+      const archeryLinePriceCents = getArcheryFamilyPriceCents(archeryRegistrationIndex);
       if (line.paymentChoice !== "full") {
         return json({ error: "Archery is paid in full at checkout.", line: index }, { status: 400 });
       }
@@ -657,9 +661,9 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
           return json({ error: "That discount code is invalid.", line: index }, { status: 400 });
         }
         promoCode = discount.row.code;
-        promoDiscountCents = promoDiscountForSubtotal(ARCHERY_SERIES_PRICE_CENTS, discount.row);
+        promoDiscountCents = promoDiscountForSubtotal(archeryLinePriceCents, discount.row);
       }
-      const finalLineTotalCents = Math.max(0, ARCHERY_SERIES_PRICE_CENTS - promoDiscountCents);
+      const finalLineTotalCents = Math.max(0, archeryLinePriceCents - promoDiscountCents);
 
       lineMeta.push({
         programId: "archery",
@@ -677,9 +681,9 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
         pricing: {
           scheduledClassCount: 4,
           perClassCents: 0,
-          baseTuitionCents: ARCHERY_SERIES_PRICE_CENTS,
+          baseTuitionCents: archeryLinePriceCents,
           trialCreditCents: 0,
-          lineSubtotalCents: ARCHERY_SERIES_PRICE_CENTS,
+          lineSubtotalCents: archeryLinePriceCents,
           siblingDiscountCents: 0,
           afterSiblingCents: finalLineTotalCents,
           afterPromoCents: finalLineTotalCents,

@@ -16,11 +16,11 @@ SITE_URL = "http://localhost:8788"
 EMAIL_FROM = "noreply@sunnahskills.pages.dev"
 EMAIL_TO = "mysunnahskill@gmail.com"
 
-# ─── Production environment (main branch → sunnahskills-admin-v2) ─────────────
+# ─── Production environment (main branch → sunnahskills-admin-v3) ─────────────
 [[env.production.d1_databases]]
 binding = "DB"
-database_name = "sunnahskills-admin-v2"
-database_id = "fc0a958f-4bfe-487f-845f-bce49d4715d5"
+database_name = "sunnahskills-admin-v3"
+database_id = "69bf03d8-908e-410b-b3cf-5dfb13676679"
 
 [env.production.vars]
 SITE_URL = "https://sunnahskills.com"

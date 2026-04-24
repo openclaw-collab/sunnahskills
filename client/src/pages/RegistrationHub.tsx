@@ -718,7 +718,7 @@ export default function RegistrationHub() {
                     >
                       <div className="text-sm font-medium text-charcoal">Traditional Archery</div>
                       <div className="mt-1 text-xs uppercase tracking-[0.16em] text-charcoal/55">
-                        Four-session series · $125 · choose eye dominance
+                        Four-session series · $130 first registration / $125 additional family registrations
                       </div>
                     </button>
                     <OutlineButton asChild className="px-6 py-3 text-[11px] uppercase tracking-[0.18em]">

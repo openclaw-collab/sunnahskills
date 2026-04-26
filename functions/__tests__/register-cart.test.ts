@@ -47,7 +47,7 @@ describe("POST /api/register/cart", () => {
     const mockDb = env.DB as any;
     mockDb.setMockData("programs", [{ id: "archery", name: "Traditional Archery", status: "active" }]);
     mockDb.setMockData("program_sessions", [
-      { id: 21, program_id: "archery", visible: 1, status: "active", capacity: 15, enrolled_count: 0 },
+      { id: 21, program_id: "archery", visible: 1, status: "active", capacity: 15, enrolled_count: 0, active_count: 0 },
     ]);
     mockDb.setMockData("waiver_documents", [
       { id: 2, slug: "archery", active: 1, title: "Archery Waiver", version_label: "2026.04" },
@@ -112,8 +112,8 @@ describe("POST /api/register/cart", () => {
     const mockDb = env.DB as any;
     mockDb.setMockData("programs", [{ id: "archery", name: "Traditional Archery", status: "active" }]);
     mockDb.setMockData("program_sessions", [
-      { id: 21, program_id: "archery", visible: 1, status: "active", capacity: 15, enrolled_count: 0 },
-      { id: 22, program_id: "archery", visible: 1, status: "active", capacity: 15, enrolled_count: 0 },
+      { id: 21, program_id: "archery", visible: 1, status: "active", capacity: 15, enrolled_count: 0, active_count: 0 },
+      { id: 22, program_id: "archery", visible: 1, status: "active", capacity: 15, enrolled_count: 0, active_count: 0 },
     ]);
     mockDb.setMockData("waiver_documents", [
       { id: 2, slug: "archery", active: 1, title: "Archery Waiver", version_label: "2026.04" },
@@ -193,8 +193,8 @@ describe("POST /api/register/cart", () => {
       { id: 4, program_id: "bjj", age_group: "women-11-thu", amount: 2000, registration_fee: 0, frequency: "per_session", metadata: null, active: 1 },
     ]);
     mockDb.setMockData("program_sessions", [
-      { id: 31, program_id: "bjj", age_group: "women-11-tue", capacity: 20, enrolled_count: 0 },
-      { id: 32, program_id: "bjj", age_group: "women-11-thu", capacity: 20, enrolled_count: 0 },
+      { id: 31, program_id: "bjj", age_group: "women-11-tue", capacity: 20, enrolled_count: 0, active_count: 0 },
+      { id: 32, program_id: "bjj", age_group: "women-11-thu", capacity: 20, enrolled_count: 0, active_count: 0 },
     ]);
     mockDb.setMockData("semesters", [
       { classes_in_semester: 13, price_per_class_cents: 1200, registration_fee_cents: 0, later_payment_date: "2026-05-12", start_date: "2026-03-31", end_date: "2026-06-27" },
@@ -225,7 +225,7 @@ describe("POST /api/register/cart", () => {
       { id: 4, program_id: "bjj", age_group: "women-11-thu", amount: 2000, registration_fee: 0, frequency: "per_session", metadata: null, active: 1 },
     ]);
     mockDb.setMockData("program_sessions", [
-      { id: 32, program_id: "bjj", age_group: "women-11-thu", capacity: 20, enrolled_count: 0 },
+      { id: 32, program_id: "bjj", age_group: "women-11-thu", capacity: 20, enrolled_count: 0, active_count: 0 },
     ]);
     mockDb.setMockData("semesters", [
       { classes_in_semester: 13, price_per_class_cents: 1200, registration_fee_cents: 0, later_payment_date: "2026-05-12", start_date: "2026-03-31", end_date: "2026-06-27" },
@@ -262,8 +262,8 @@ describe("POST /api/register/cart", () => {
       { id: 12, program_id: "bjj", age_group: "women-self-defense-2026-05-28", amount: 2500, registration_fee: 0, frequency: "per_workshop", metadata: null, active: 1 },
     ]);
     mockDb.setMockData("program_sessions", [
-      { id: 31, program_id: "bjj", age_group: "women-11-tue", capacity: 20, enrolled_count: 0 },
-      { id: 42, program_id: "bjj", age_group: "women-self-defense-2026-05-28", capacity: 30, enrolled_count: 0 },
+      { id: 31, program_id: "bjj", age_group: "women-11-tue", capacity: 20, enrolled_count: 0, active_count: 0 },
+      { id: 42, program_id: "bjj", age_group: "women-self-defense-2026-05-28", capacity: 30, enrolled_count: 0, active_count: 0 },
     ]);
     mockDb.setMockData("semesters", [
       { classes_in_semester: 13, price_per_class_cents: 1200, registration_fee_cents: 0, later_payment_date: "2026-05-12", start_date: "2026-03-31", end_date: "2026-06-27" },

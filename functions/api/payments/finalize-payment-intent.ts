@@ -130,7 +130,7 @@ async function redeemProrationCode(env: PaymentsEnv, code: string | null | undef
     .run();
 }
 
-async function sendPaymentEmails(
+export async function sendPaymentEmails(
   env: PaymentsEnv,
   params: {
     guardianName: string;
@@ -187,7 +187,7 @@ async function sendPaymentEmails(
   }
 }
 
-async function markRegistrationActive(env: PaymentsEnv, registrationId: number) {
+export async function markRegistrationActive(env: PaymentsEnv, registrationId: number) {
   await env.DB.prepare(
     `UPDATE registrations SET status='active', updated_at=datetime('now') WHERE id = ?`,
   )
@@ -195,9 +195,19 @@ async function markRegistrationActive(env: PaymentsEnv, registrationId: number) 
     .run();
 }
 
-async function incrementSessionEnrollment(env: PaymentsEnv, sessionId: number | null | undefined) {
+export async function syncSessionEnrolledCount(env: PaymentsEnv, sessionId: number | null | undefined) {
   if (!sessionId) return;
-  await env.DB.prepare(`UPDATE program_sessions SET enrolled_count = enrolled_count + 1 WHERE id = ?`)
+  await env.DB.prepare(
+    `UPDATE program_sessions
+     SET enrolled_count = (
+       SELECT COUNT(*)
+       FROM registrations r
+       WHERE r.session_id = program_sessions.id
+         AND r.program_id = program_sessions.program_id
+         AND r.status = 'active'
+     )
+     WHERE id = ?`,
+  )
     .bind(sessionId)
     .run();
 }
@@ -365,7 +375,7 @@ export async function finalizePaymentIntentSucceeded(
           program_name: string;
         }>();
       if (reg) {
-        await incrementSessionEnrollment(env, reg.session_id);
+        await syncSessionEnrolledCount(env, reg.session_id);
         if (!firstReg) firstReg = reg;
       }
     }
@@ -445,7 +455,7 @@ export async function finalizePaymentIntentSucceeded(
         currency: string | null;
       }>();
 
-    await incrementSessionEnrollment(env, reg?.session_id ?? payment?.session_id ?? null);
+    await syncSessionEnrolledCount(env, reg?.session_id ?? payment?.session_id ?? null);
 
     if (reg?.guardian_email) {
       await sendPaymentEmails(env, {

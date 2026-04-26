@@ -1,9 +1,13 @@
 import Stripe from "stripe";
+import { DEFAULT_CURRENCY } from "../../../shared/money";
 import {
   finalizePaymentIntentSucceeded,
   incrementDiscountUse,
   loadOrderStatus,
   loadPaymentBySubscription,
+  markRegistrationActive,
+  syncSessionEnrolledCount,
+  sendPaymentEmails,
   type PaymentsEnv as Env,
 } from "./finalize-payment-intent";
 
@@ -120,7 +124,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
 
           if (payment?.registration_id) {
             await markRegistrationActive(env, payment.registration_id);
-            await incrementSessionEnrollment(env, payment.session_id ?? null);
+            await syncSessionEnrolledCount(env, payment.session_id ?? null);
 
             const reg = await env.DB.prepare(
               `

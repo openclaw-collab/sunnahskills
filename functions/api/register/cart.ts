@@ -148,14 +148,39 @@ async function syncGuardianAccount(env: Env, guardianAccountId: number, account:
     .run();
 }
 
-async function insertGuardianRecord(env: Env, account: z.infer<typeof accountSchema>) {
+async function upsertGuardianRecord(env: Env, account: z.infer<typeof accountSchema>) {
+  const email = account.email.trim().toLowerCase();
+  const existing = await env.DB.prepare(
+    `SELECT id FROM guardians WHERE lower(email) = ? ORDER BY id DESC LIMIT 1`,
+  )
+    .bind(email)
+    .first<{ id: number }>();
+
+  if (existing?.id) {
+    await env.DB.prepare(
+      `UPDATE guardians
+       SET full_name = ?, phone = ?, emergency_contact_name = ?, emergency_contact_phone = ?, relationship = ?
+       WHERE id = ?`,
+    )
+      .bind(
+        compactWhitespace(account.fullName),
+        sanitizePhone(account.phone),
+        compactWhitespace(account.emergencyContactName),
+        sanitizePhone(account.emergencyContactPhone),
+        account.accountRole,
+        existing.id,
+      )
+      .run();
+    return existing.id;
+  }
+
   const result = await env.DB.prepare(
     `INSERT INTO guardians (full_name, email, phone, emergency_contact_name, emergency_contact_phone, relationship, created_at)
      VALUES (?, ?, ?, ?, ?, ?, datetime('now'))`,
   )
     .bind(
       compactWhitespace(account.fullName),
-      account.email.trim().toLowerCase(),
+      email,
       sanitizePhone(account.phone),
       compactWhitespace(account.emergencyContactName),
       sanitizePhone(account.emergencyContactPhone),
@@ -244,8 +269,36 @@ async function upsertSavedParticipant(
   return Number(inserted.meta?.last_row_id ?? 0);
 }
 
-async function insertStudentRecord(env: Env, guardianId: number, participant: z.infer<typeof participantSchema>) {
+async function upsertStudentRecord(env: Env, guardianId: number, participant: z.infer<typeof participantSchema>) {
   const age = computeAge(participant.dateOfBirth);
+  const name = compactWhitespace(participant.fullName);
+
+  const existing = await env.DB.prepare(
+    `SELECT id FROM students
+     WHERE guardian_id = ? AND lower(full_name) = lower(?) AND COALESCE(date_of_birth, '') = ?
+     ORDER BY id DESC LIMIT 1`,
+  )
+    .bind(guardianId, name, participant.dateOfBirth)
+    .first<{ id: number }>();
+
+  if (existing?.id) {
+    await env.DB.prepare(
+      `UPDATE students
+       SET age = ?, gender = ?, prior_experience = ?, skill_level = ?, medical_notes = ?
+       WHERE id = ?`,
+    )
+      .bind(
+        age,
+        normalizeGenderLabel(participant.gender),
+        participant.experienceLevel,
+        participant.experienceLevel,
+        sanitizeText(participant.medicalNotes ?? "") || null,
+        existing.id,
+      )
+      .run();
+    return existing.id;
+  }
+
   const result = await env.DB.prepare(
     `INSERT INTO students (
       guardian_id, full_name, preferred_name, date_of_birth, age, gender, prior_experience, skill_level, medical_notes, created_at
@@ -253,7 +306,7 @@ async function insertStudentRecord(env: Env, guardianId: number, participant: z.
   )
     .bind(
       guardianId,
-      compactWhitespace(participant.fullName),
+      name,
       null,
       participant.dateOfBirth,
       age,
@@ -640,19 +693,22 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
 
       const session = line.programDetails.sessionId
         ? await env.DB.prepare(
-            `SELECT id, capacity, enrolled_count, visible, status
-             FROM program_sessions
-             WHERE id = ? AND program_id = 'archery'
+            `SELECT ps.id, ps.capacity, ps.visible, ps.status,
+                    (SELECT COUNT(*) FROM registrations r
+                     WHERE r.session_id = ps.id AND r.program_id = 'archery'
+                       AND r.status IN ('active', 'submitted', 'pending_payment')) AS active_count
+             FROM program_sessions ps
+             WHERE ps.id = ? AND ps.program_id = 'archery'
              LIMIT 1`,
           )
             .bind(line.programDetails.sessionId)
-            .first<{ id: number; capacity: number | null; enrolled_count: number | null; visible: number | null; status: string | null }>()
+            .first<{ id: number; capacity: number | null; visible: number | null; status: string | null; active_count: number }>()
         : null;
       if (!session?.id || Number(session.visible ?? 1) !== 1 || session.status === "closed") {
         return json({ error: "Choose a valid archery time slot.", line: index }, { status: 400 });
       }
 
-      const waitlisted = session.capacity != null && Number(session.enrolled_count ?? 0) >= Number(session.capacity);
+      const waitlisted = session.capacity != null && Number(session.active_count ?? 0) >= Number(session.capacity);
       let promoCode: string | null = null;
       let promoDiscountCents = 0;
       if (line.discountCode?.trim()) {
@@ -754,19 +810,22 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
     }
 
     const session = await env.DB.prepare(
-      `SELECT id, age_group, capacity, enrolled_count
-       FROM program_sessions
-       WHERE id = ? AND program_id = 'bjj'
+      `SELECT ps.id, ps.age_group, ps.capacity,
+              (SELECT COUNT(*) FROM registrations r
+               WHERE r.session_id = ps.id AND r.program_id = 'bjj'
+                 AND r.status IN ('active', 'submitted', 'pending_payment')) AS active_count
+       FROM program_sessions ps
+       WHERE ps.id = ? AND ps.program_id = 'bjj'
        LIMIT 1`,
     )
       .bind(line.programDetails.sessionId)
-      .first<{ id: number; age_group: string | null; capacity: number | null; enrolled_count: number | null }>();
+      .first<{ id: number; age_group: string | null; capacity: number | null; active_count: number }>();
     if (!session?.id || session.age_group !== track) {
       return json({ error: "Selected session does not match the chosen track.", line: index }, { status: 400 });
     }
 
     const waitlisted =
-      session.capacity != null && Number(session.enrolled_count ?? 0) >= Number(session.capacity);
+      session.capacity != null && Number(session.active_count ?? 0) >= Number(session.capacity);
 
     const trialMatch = await resolveTrialMatch(
       env,
@@ -845,7 +904,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
   }
 
   await syncGuardianAccount(env, guardianSession.guardianAccountId, body.account);
-  const guardianId = await insertGuardianRecord(env, body.account);
+  const guardianId = await upsertGuardianRecord(env, body.account);
   if (!guardianId) return json({ error: "Could not create account record." }, { status: 500 });
 
   const totalCents = lineMeta.filter((line) => !line.waitlisted).reduce((sum, line) => sum + line.afterPromoCents, 0);
@@ -916,7 +975,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
     const meta = lineMeta[index];
 
     await upsertSavedParticipant(env, guardianSession.guardianAccountId, line.participant);
-    const studentId = await insertStudentRecord(env, guardianId, line.participant);
+    const studentId = await upsertStudentRecord(env, guardianId, line.participant);
     const registrationId = await insertRegistrationRecord(env, {
       programId: meta.programId,
       guardianId,

@@ -145,16 +145,30 @@ export function createMockD1Database() {
   };
 }
 
+function stripParenthesized(sql: string): string {
+  let result = "";
+  let depth = 0;
+  for (const ch of sql) {
+    if (ch === "(") depth++;
+    else if (ch === ")") depth--;
+    else if (depth === 0) result += ch;
+  }
+  return result;
+}
+
 function extractTableName(query: string): string {
-  // Extract table name from INSERT INTO, SELECT FROM, UPDATE, DELETE FROM
   const insertMatch = query.match(/insert into\s+(\w+)/);
   if (insertMatch) return insertMatch[1];
 
-  const fromMatch = query.match(/from\s+(\w+)/);
-  if (fromMatch) return fromMatch[1];
-
   const updateMatch = query.match(/update\s+(\w+)/);
   if (updateMatch) return updateMatch[1];
+
+  const stripped = stripParenthesized(query);
+  const fromMatch = stripped.match(/from\s+(\w+)/);
+  if (fromMatch) return fromMatch[1];
+
+  const fallbackFrom = query.match(/from\s+(\w+)/);
+  if (fallbackFrom) return fallbackFrom[1];
 
   return "unknown";
 }

@@ -89,11 +89,15 @@ export function SessionManager() {
                     <OutlineButton
                       className="px-4 py-2 text-[11px] uppercase tracking-[0.18em]"
                       onClick={async () => {
-                        await fetch("/api/admin/sessions", {
+                        const res = await fetch("/api/admin/sessions", {
                           method: "PATCH",
                           headers: { "Content-Type": "application/json" },
                           body: JSON.stringify({ sessionId: s.id, visible: s.visible ? 0 : 1 }),
                         });
+                        if (!res.ok) {
+                          alert("Failed to update session visibility");
+                          return;
+                        }
                         await refresh();
                       }}
                     >
@@ -103,11 +107,15 @@ export function SessionManager() {
                       className="px-4 py-2 text-[11px] uppercase tracking-[0.18em]"
                       onClick={async () => {
                         const next = s.status === "active" ? "waitlist_only" : "active";
-                        await fetch("/api/admin/sessions", {
+                        const res = await fetch("/api/admin/sessions", {
                           method: "PATCH",
                           headers: { "Content-Type": "application/json" },
                           body: JSON.stringify({ sessionId: s.id, status: next }),
                         });
+                        if (!res.ok) {
+                          alert("Failed to update session status");
+                          return;
+                        }
                         await refresh();
                       }}
                     >

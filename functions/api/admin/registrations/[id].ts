@@ -59,7 +59,9 @@ export async function onRequestGet({ request, env }: { request: Request; env: En
       o.total_cents as order_total_cents,
       o.amount_due_today_cents as order_amount_due_today_cents,
       o.later_amount_cents as order_later_amount_cents,
-      o.later_payment_date as order_later_payment_date
+      o.later_payment_date as order_later_payment_date,
+      (SELECT SUM(CASE WHEN p2.status = 'paid' THEN p2.amount ELSE 0 END)
+       FROM payments p2 WHERE p2.enrollment_order_id = o.id) as order_paid_cents
     FROM registrations r
     JOIN programs p ON p.id = r.program_id
     JOIN guardians g ON g.id = r.guardian_id

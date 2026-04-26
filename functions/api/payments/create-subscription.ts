@@ -1,6 +1,7 @@
 import Stripe from "stripe";
 import { DEFAULT_CURRENCY, normalizeCurrencyCode } from "../../../shared/money";
 import { discountInvalidReasonMessage, resolveDiscountCode } from "../../_utils/discounts";
+import { getGuardianFromRequest } from "../../_utils/guardianAuth";
 
 interface Env {
   DB: D1Database;
@@ -67,6 +68,22 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
     return json({ error: "registrationId is required" }, { status: 400 });
   }
 
+  const guardian = await getGuardianFromRequest(env, request);
+  if (!guardian) {
+    return json({ error: "Not authenticated" }, { status: 401 });
+  }
+
+  const ownerCheck = await env.DB.prepare(
+    `SELECT r.id FROM registrations r
+     JOIN enrollment_orders o ON o.id = r.enrollment_order_id
+     WHERE r.id = ? AND o.guardian_account_id = ?`,
+  )
+    .bind(body.registrationId, guardian.guardianAccountId)
+    .first<{ id: number }>();
+  if (!ownerCheck) {
+    return json({ error: "Registration not found" }, { status: 404 });
+  }
+
   const stripeKey = env.STRIPE_SECRET_KEY;
   if (!stripeKey) {
     // Graceful fallback: subscriptions not configured
@@ -105,8 +122,8 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
 
   if (!reg) return json({ error: "Registration not found" }, { status: 404 });
 
-  const guardianEmail = compactWhitespace((body.guardianEmail ?? reg.guardian_email) || "").toLowerCase();
-  const guardianName = compactWhitespace(body.guardianName ?? reg.guardian_name);
+  const guardianEmail = String(reg.guardian_email || "").trim().toLowerCase();
+  const guardianName = String(reg.guardian_name || "").trim();
   if (!guardianEmail || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(guardianEmail)) {
     return json({ error: "guardianEmail is invalid" }, { status: 400 });
   }

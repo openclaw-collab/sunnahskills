@@ -1,4 +1,5 @@
 import { clearGuardianSessionCookie } from "../../_utils/guardianAuth";
+import { parseCookieHeader } from "../../_utils/cookies";
 
 interface Env {
   DB: D1Database;
@@ -13,6 +14,11 @@ function json(data: unknown, init?: ResponseInit) {
 }
 
 export async function onRequestPost({ request, env }: { request: Request; env: Env }) {
+  const cookies = parseCookieHeader(request.headers.get("Cookie") ?? "");
+  const token = cookies["guardian_session"];
+  if (token && env.DB) {
+    await env.DB.prepare(`DELETE FROM guardian_sessions WHERE token = ?`).bind(token).run();
+  }
   const cookie = clearGuardianSessionCookie(env);
   return json({ ok: true }, { headers: { "Set-Cookie": cookie } });
 }

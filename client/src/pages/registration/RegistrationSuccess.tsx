@@ -90,13 +90,17 @@ export default function RegistrationSuccess() {
       ? "Finalizing Registration"
       : reconcileState === "pending"
         ? "Payment Processing"
-        : "Registration Complete";
+        : reconcileState === "failed"
+          ? "Payment Under Review"
+          : "Registration Complete";
   const title =
     reconcileState === "loading"
       ? "We're confirming your enrollment."
       : reconcileState === "pending"
         ? "Your payment is still processing."
-        : "You're enrolled.";
+        : reconcileState === "failed"
+          ? "We're checking your payment."
+          : "You're enrolled.";
   const subtitle =
     reconcileState === "loading"
       ? "One moment while we finish syncing your payment and registration."
@@ -113,17 +117,25 @@ export default function RegistrationSuccess() {
 
         {/* Checkmark */}
         <MotionDiv delay={0.02} className="flex justify-center mb-8">
-          <div className="w-20 h-20 rounded-full bg-clay/10 border-2 border-clay/30 flex items-center justify-center">
-            <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
-              <path
-                d="M6 16L13 23L26 9"
-                stroke="#CE5833"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-          </div>
+          {reconcileState === "loading" ? (
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-amber-50">
+              <div className="h-8 w-8 animate-spin rounded-full border-4 border-amber-200 border-t-amber-500" />
+            </div>
+          ) : reconcileState === "failed" ? (
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-red-50">
+              <span className="text-2xl text-red-500">!</span>
+            </div>
+          ) : reconcileState === "pending" ? (
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-amber-50">
+              <span className="text-2xl text-amber-500">&#x23F3;</span>
+            </div>
+          ) : (
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-50">
+              <svg className="h-8 w-8 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+          )}
         </MotionDiv>
 
         <MotionDiv delay={0.06} className="text-center mb-10">

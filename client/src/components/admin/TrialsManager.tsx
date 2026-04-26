@@ -50,11 +50,15 @@ export function TrialsManager() {
   }, []);
 
   async function verify(id: number) {
-    await fetch("/api/admin/trials", {
+    const res = await fetch("/api/admin/trials", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id, verify: true }),
     });
+    if (!res.ok) {
+      alert("Failed to verify trial");
+      return;
+    }
     await refresh();
   }
 

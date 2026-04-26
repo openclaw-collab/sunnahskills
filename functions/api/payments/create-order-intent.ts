@@ -1,5 +1,6 @@
 import { DEFAULT_CURRENCY } from "../../../shared/money";
 import { issuePaymentReconcileToken } from "../../_utils/paymentReconcileToken";
+import { getGuardianFromRequest } from "../../_utils/guardianAuth";
 
 interface Env {
   DB: D1Database;
@@ -21,6 +22,21 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
   if (!Number.isInteger(orderId) || orderId <= 0) {
     return json({ error: "enrollmentOrderId is required" }, { status: 400 });
   }
+
+  const guardian = await getGuardianFromRequest(env, request);
+  if (!guardian) {
+    return json({ error: "Not authenticated" }, { status: 401 });
+  }
+
+  const ownerCheck = await env.DB.prepare(
+    `SELECT id FROM enrollment_orders WHERE id = ? AND guardian_account_id = ?`,
+  )
+    .bind(orderId, guardian.guardianAccountId)
+    .first<{ id: number }>();
+  if (!ownerCheck) {
+    return json({ error: "Order not found" }, { status: 404 });
+  }
+
   if (!env.DB) return json({ error: "DB not configured" }, { status: 500 });
 
   const order = await env.DB.prepare(

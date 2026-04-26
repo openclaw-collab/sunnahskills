@@ -1,6 +1,6 @@
 import React from "react";
 import { Link, useLocation } from "wouter";
-import { ShieldCheck, LogOut, LayoutDashboard, ClipboardList, Wallet, BadgePercent, Tags, CalendarRange, Inbox, ScrollText, Users, Download } from "lucide-react";
+import { ShieldCheck, LogOut, LayoutDashboard, ClipboardList, Wallet, BadgePercent, Gift, Tags, CalendarRange, Inbox, ScrollText, Users, Download } from "lucide-react";
 import { SectionHeader } from "@/components/brand/SectionHeader";
 import { PremiumCard } from "@/components/brand/PremiumCard";
 import { ClayButton } from "@/components/brand/ClayButton";
@@ -12,6 +12,7 @@ export type AdminPermissionKey =
   | "registrations"
   | "payments"
   | "discounts"
+  | "offers"
   | "pricing"
   | "sessions"
   | "contacts"
@@ -34,6 +35,7 @@ export type AdminSection =
   | "trials"
   | "payments"
   | "discounts"
+  | "offers"
   | "pricing"
   | "sessions"
   | "contacts"
@@ -96,6 +98,15 @@ const NAV_ITEMS: NavItem[] = [
     permission: "discounts",
     required: "read",
     icon: <BadgePercent size={15} />,
+  },
+  {
+    id: "offers",
+    label: "Offers",
+    href: "/admin/dashboard/offers",
+    hint: "Program offers and private access codes",
+    permission: "offers",
+    required: "read",
+    icon: <Gift size={15} />,
   },
   {
     id: "pricing",

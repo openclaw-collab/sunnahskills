@@ -14,6 +14,7 @@ import { PricingManager } from "@/components/admin/PricingManager";
 import { SessionManager } from "@/components/admin/SessionManager";
 import { ContactsTable } from "@/components/admin/ContactsTable";
 import { TrialsManager } from "@/components/admin/TrialsManager";
+import { OffersManager } from "@/components/admin/OffersManager";
 import { AdminShell, type AdminPermissionKey, type AdminSection, type AdminUser, hasAdminAccess } from "@/components/admin/AdminShell";
 import { formatMoneyFromCents } from "@shared/money";
 
@@ -99,6 +100,7 @@ type DashboardTab =
   | "trials"
   | "payments"
   | "discounts"
+  | "offers"
   | "pricing"
   | "sessions"
   | "contacts"
@@ -117,6 +119,7 @@ const DASHBOARD_TABS: DashboardTabConfig[] = [
   { value: "trials", label: "Trials", permission: "registrations", required: "read" },
   { value: "payments", label: "Payments", permission: "payments", required: "read" },
   { value: "discounts", label: "Discounts", permission: "discounts", required: "read" },
+  { value: "offers", label: "Offers", permission: "offers", required: "read" },
   { value: "pricing", label: "Pricing", permission: "pricing", required: "read" },
   { value: "sessions", label: "Sessions", permission: "sessions", required: "read" },
   { value: "contacts", label: "Contacts", permission: "contacts", required: "read" },
@@ -165,6 +168,7 @@ function getTabFromLocation(location: string): DashboardTab {
     pathTab === "trials" ||
     pathTab === "payments" ||
     pathTab === "discounts" ||
+    pathTab === "offers" ||
     pathTab === "pricing" ||
     pathTab === "sessions" ||
     pathTab === "contacts" ||
@@ -185,6 +189,7 @@ function getTabFromLocation(location: string): DashboardTab {
     tab === "trials" ||
     tab === "payments" ||
     tab === "discounts" ||
+    tab === "offers" ||
     tab === "pricing" ||
     tab === "sessions" ||
     tab === "contacts" ||
@@ -530,6 +535,10 @@ export default function AdminDashboard() {
 
         <TabsContent value="discounts" data-testid="admin-discounts-panel">
           <DiscountsManager />
+        </TabsContent>
+
+        <TabsContent value="offers" className="space-y-4">
+          <OffersManager />
         </TabsContent>
 
         <TabsContent value="pricing" data-testid="admin-pricing-panel">

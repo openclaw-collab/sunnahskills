@@ -9,6 +9,7 @@ export type AdminPermissionKey =
   | "discounts"
   | "pricing"
   | "sessions"
+  | "offers"
   | "contacts"
   | "sequences"
   | "exports"
@@ -29,6 +30,7 @@ export const ADMIN_PERMISSION_KEYS: AdminPermissionKey[] = [
   "discounts",
   "pricing",
   "sessions",
+  "offers",
   "contacts",
   "sequences",
   "exports",
@@ -47,6 +49,7 @@ export function getDefaultPermissionsForRole(role: AdminRole): AdminPermissions 
     discounts: "write",
     pricing: "write",
     sessions: "write",
+    offers: "write",
     contacts: "write",
     sequences: "write",
     exports: "read",
@@ -205,7 +208,7 @@ export async function getAdminFromRequest(env: { DB: D1Database }, request: Requ
 
   const role = (row.role ? String(row.role) : "admin") as AdminRole;
   const permissions = normalizePermissions(
-    row.permissions_json ? JSON.parse(String(row.permissions_json)) : null,
+    row.permissions_json ? (() => { try { return JSON.parse(String(row.permissions_json)); } catch { return null; } })() : null,
     role,
   );
 

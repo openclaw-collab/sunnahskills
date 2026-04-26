@@ -26,6 +26,10 @@ export function ContactsTable() {
     setLoading(true);
     try {
       const res = await fetch("/api/admin/contacts");
+      if (!res.ok) {
+        console.error("Failed to load contacts:", res.status);
+        return;
+      }
       const json = (await res.json().catch(() => null)) as any;
       setContacts((json?.contacts ?? []) as ContactRow[]);
     } finally {

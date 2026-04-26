@@ -68,6 +68,8 @@ export const Default: Story = {
   args: {
     initial: ROWS,
     onOpen: (id: number) => console.log('opened', id),
+    showSuperseded: false,
+    onShowSupersededChange: () => {},
   },
 };
 
@@ -75,6 +77,8 @@ export const Empty: Story = {
   args: {
     initial: [],
     onOpen: (id: number) => console.log('opened', id),
+    showSuperseded: false,
+    onShowSupersededChange: () => {},
   },
 };
 
@@ -86,5 +90,7 @@ export const MixedStatuses: Story = {
       { ...ROWS[2], registration_status: 'active', payment_status: 'paid', payment_amount: 14900 },
     ],
     onOpen: (id: number) => console.log('opened', id),
+    showSuperseded: false,
+    onShowSupersededChange: () => {},
   },
 };

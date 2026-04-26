@@ -2,6 +2,7 @@ import { computeLineTuitionCents, type SemesterRow } from "../../../shared/order
 import { DEFAULT_CURRENCY } from "../../../shared/money";
 import { siblingDiscountForLineCents } from "../../../shared/pricing";
 import { discountInvalidReasonMessage, promoDiscountForSubtotal, resolveDiscountCode } from "../../_utils/discounts";
+import { getGuardianFromRequest } from "../../_utils/guardianAuth";
 
 interface Env {
   DB: D1Database;
@@ -29,6 +30,23 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
   if (!Number.isInteger(body?.registrationId) || Number(body.registrationId) <= 0) {
     return json({ error: "registrationId is required" }, { status: 400 });
   }
+
+  const guardian = await getGuardianFromRequest(env, request);
+  if (!guardian) {
+    return json({ error: "Not authenticated" }, { status: 401 });
+  }
+
+  const ownerCheck = await env.DB.prepare(
+    `SELECT r.id FROM registrations r
+     JOIN enrollment_orders o ON o.id = r.enrollment_order_id
+     WHERE r.id = ? AND o.guardian_account_id = ?`,
+  )
+    .bind(body.registrationId, guardian.guardianAccountId)
+    .first<{ id: number }>();
+  if (!ownerCheck) {
+    return json({ error: "Registration not found" }, { status: 404 });
+  }
+
   if (!env.DB) return json({ error: "DB not configured" }, { status: 500 });
 
   const reg = await env.DB.prepare(

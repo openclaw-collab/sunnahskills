@@ -407,6 +407,9 @@ export async function onRequestDelete({ request, env }: { request: Request; env:
 
   const admin = await getAdminFromRequest(env, request);
   if (!admin) return json({ error: "Unauthorized" }, { status: 401 });
+  if (!hasAdminPermission(admin, "sequences", "write")) {
+    return json({ error: "Forbidden" }, { status: 403 });
+  }
 
   await ensureSequenceTable(env);
 

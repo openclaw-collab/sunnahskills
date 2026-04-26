@@ -94,24 +94,15 @@ const coaches = [
     specialties: ["Men's BJJ", "Boys BJJ", "Fundamentals"],
     funFact: "Enjoys hiking and coding.",
   },
-  // {
-  //   key: "fatima",
-  //   name: "Coach Fatima",
-  //   role: "BJJ Coach for Women & Girls",
-  //   bio: "Focused on empowering girls and women through martial arts.",
-  //   achievements: "BJJ Blue Belt, women's self-defense certified",
-  //   specialties: ["Women's BJJ", "Confidence", "Community Building"],
-  //   funFact: "Loves baking and archery.",
-  // },
-  // {
-  //   key: "yusuf",
-  //   name: "Coach Yusuf",
-  //   role: "Archery Coach",
-  //   bio: "Lifelong archer, passionate about teaching Sunnah archery.",
-  //   achievements: "NASP certified, 10+ years coaching youth",
-  //   specialties: ["Traditional Archery", "Focus Training"],
-  //   funFact: "Enjoys camping and poetry.",
-  // },
+  {
+    key: "ibraheem",
+    name: "Ibraheem Gaied",
+    role: "Archery Instructor",
+    bio: "Former president and head coach of the UofT Scarborough Archery Club who has coached hundreds of children, post-secondary students, and corporate teams.",
+    achievements: "UTSC Athletics leadership award, beginner archer instruction certification (2019), former UTSC archery president/head coach (2018-2023)",
+    specialties: ["Traditional Archery", "Beginner Coaching", "Youth Programs"],
+    funFact: "Has built archery programs with Camp UofT and The Manhood Muslim youth program.",
+  },
 ];
 
 const reasons = [

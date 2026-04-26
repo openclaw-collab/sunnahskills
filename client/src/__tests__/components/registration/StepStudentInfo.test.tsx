@@ -14,7 +14,7 @@ describe("StepStudentInfo", () => {
   it("renders all form fields", () => {
     render(<Harness />);
 
-    expect(screen.getByLabelText(/student full name/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/participant full name/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/preferred name/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/date of birth/i)).toBeInTheDocument();
     expect(screen.getByText(/gender/i)).toBeInTheDocument();
@@ -24,7 +24,7 @@ describe("StepStudentInfo", () => {
   it("updates student full name", () => {
     render(<Harness />);
 
-    const input = screen.getByLabelText(/student full name/i) as HTMLInputElement;
+    const input = screen.getByLabelText(/participant full name/i) as HTMLInputElement;
     fireEvent.change(input, { target: { value: "John Doe" } });
     expect(input.value).toBe("John Doe");
   });

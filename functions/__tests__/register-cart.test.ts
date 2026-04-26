@@ -108,7 +108,7 @@ describe("POST /api/register/cart", () => {
     expect(data.registrationIds).toHaveLength(1);
   });
 
-  it("charges $125 for each additional archery registration in the same family cart", async () => {
+  it("charges $120 for each additional archery registration in the same family cart", async () => {
     const mockDb = env.DB as any;
     mockDb.setMockData("programs", [{ id: "archery", name: "Traditional Archery", status: "active" }]);
     mockDb.setMockData("program_sessions", [
@@ -181,8 +181,8 @@ describe("POST /api/register/cart", () => {
     const data = await parseJsonResponse(response);
 
     expect(response.status).toBe(200);
-    expect(data.summary.totalCents).toBe(25500);
-    expect(data.summary.dueTodayCents).toBe(25500);
+    expect(data.summary.totalCents).toBe(25000);
+    expect(data.summary.dueTodayCents).toBe(25000);
   });
 
   it("charges only $50 for the second women weekly BJJ class in the same cart", async () => {

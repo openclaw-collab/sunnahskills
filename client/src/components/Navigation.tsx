@@ -6,6 +6,7 @@ import { ClayButton } from "./brand/ClayButton";
 
 const navSections = [
   { label: "Techniques", href: "/techniques" },
+  { label: "Register", href: "/register" },
   { label: "Schedule", href: "/schedule" },
   { label: "About", href: "/about" },
   { label: "Contact", href: "/contact" },

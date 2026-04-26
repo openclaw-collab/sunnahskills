@@ -18,9 +18,9 @@ describe("programConfig", () => {
     expect(getProgramConfig("nope")).toBeNull();
   });
 
-  it("only BJJ enrollment is open for live registration", () => {
+  it("keeps BJJ and archery open for live registration", () => {
     expect(getProgramConfig("bjj")?.enrollmentStatus).toBe("open");
-    expect(getProgramConfig("archery")?.enrollmentStatus).toBe("coming_soon");
+    expect(getProgramConfig("archery")?.enrollmentStatus).toBe("open");
     expect(getProgramConfig("outdoor")?.enrollmentStatus).toBe("coming_soon");
     expect(getProgramConfig("bullyproofing")?.enrollmentStatus).toBe("coming_soon");
     expect(getProgramConfig("swimming")?.enrollmentStatus).toBe("coming_soon");

@@ -3,7 +3,6 @@ import type { RegistrationDraft } from "./useRegistration";
 import {
   archeryDominantHandOptions,
   archeryExperienceOptions,
-  archerySessionOptions,
   bjjTrackOptions,
   bjjTrialClassOptions,
   bullyproofingAgeGroupOptions,
@@ -76,6 +75,9 @@ const detailsValidator: ValidatorFn = (draft) => {
     if (!draft.programDetails.priceId) errors["programDetails.priceId"] = "Pricing is missing — pick a track again";
   }
   if (draft.programSlug === "archery") {
+    if (!draft.programDetails.offerId) errors["programDetails.offerId"] = "Please choose an archery offer";
+    if (!draft.programDetails.sessionId) errors["programDetails.sessionId"] = "Please select a time slot";
+    if (!draft.programDetails.priceId) errors["programDetails.priceId"] = "Pricing is missing for this offer";
     if (!ps.dominantHand) errors["programSpecific.dominantHand"] = "Please select your dominant hand";
     if (ps.dominantHand && !archeryDominantHandOptions.some((opt) => opt.value === ps.dominantHand)) {
       errors["programSpecific.dominantHand"] = "Please select a valid dominant hand";
@@ -85,9 +87,6 @@ const detailsValidator: ValidatorFn = (draft) => {
       errors["programSpecific.experience"] = "Please select a valid experience level";
     }
     if (!ps.sessionDate) errors["programSpecific.sessionDate"] = "Please select a session";
-    if (ps.sessionDate && !archerySessionOptions.some((opt) => opt.value === ps.sessionDate)) {
-      errors["programSpecific.sessionDate"] = "Please select a valid session";
-    }
   }
   if (draft.programSlug === "outdoor") {
     if (!ps.workshopDate) errors["programSpecific.workshopDate"] = "Please select a workshop date";

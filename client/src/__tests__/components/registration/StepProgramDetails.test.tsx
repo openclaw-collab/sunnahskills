@@ -131,6 +131,61 @@ const MOCK_PROGRAMS_CATALOG = {
         active: 1,
       },
     },
+    {
+      id: "archery",
+      slug: "archery",
+      name: "Traditional Archery",
+      status: "active",
+      sessions: [],
+      prices: [],
+      offers: [
+        {
+          id: 10,
+          program_id: "archery",
+          name: "May 2026 Four-Week Series",
+          slug: "archery-may-2026",
+          description: "Four Sunday sessions.",
+          confirmation_notes: null,
+          is_private: 0,
+          access_code: null,
+          active: 1,
+          audience_gender: null,
+          waiver_slug: "archery",
+          dates: ["2026-05-10", "2026-05-17"],
+          sessions: [
+            {
+              id: 501,
+              program_id: "archery",
+              offer_id: 10,
+              name: "Morning slot",
+              season: null,
+              day_of_week: "Sunday",
+              start_time: "10:00",
+              end_time: "12:00",
+              age_group: null,
+              gender_group: null,
+              capacity: 12,
+              start_date: "2026-05-10",
+              end_date: null,
+            },
+          ],
+          prices: [
+            {
+              id: 601,
+              program_id: "archery",
+              offer_id: 10,
+              age_group: "all",
+              label: "Series",
+              amount: 14000,
+              frequency: "one_time",
+              registration_fee: null,
+              metadata: "{}",
+            },
+          ],
+        },
+      ],
+      active_semester: null,
+    },
   ],
 };
 
@@ -186,12 +241,16 @@ describe("StepProgramDetails", () => {
   });
 
   describe("Archery program", () => {
-    it("renders archery-specific fields", () => {
+    it("renders archery-specific fields", async () => {
       render(<ArcheryHarness />);
+
+      await waitFor(() => {
+        expect(screen.queryByText(/loading archery offers/i)).not.toBeInTheDocument();
+      });
 
       expect(screen.getByText(/dominant hand/i)).toBeInTheDocument();
       expect(screen.getByText(/prior archery experience/i)).toBeInTheDocument();
-      expect(screen.getByText(/preferred session/i)).toBeInTheDocument();
+      expect(screen.getByText(/choose your archery offer/i)).toBeInTheDocument();
     });
 
     it("renders hand options", () => {

@@ -72,6 +72,7 @@ CREATE TABLE IF NOT EXISTS programs (
 CREATE TABLE IF NOT EXISTS program_prices (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   program_id TEXT NOT NULL REFERENCES programs(id),
+  offer_id INTEGER REFERENCES program_offers(id),
   age_group TEXT NOT NULL,
   label TEXT NOT NULL,
   amount INTEGER NOT NULL, -- cents
@@ -82,10 +83,40 @@ CREATE TABLE IF NOT EXISTS program_prices (
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Program offers (public/private purchasable configurations layered over sessions + prices)
+CREATE TABLE IF NOT EXISTS program_offers (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  program_id TEXT NOT NULL REFERENCES programs(id),
+  name TEXT NOT NULL,
+  slug TEXT,
+  description TEXT,
+  confirmation_notes TEXT,
+  is_private INTEGER DEFAULT 0,
+  access_code TEXT,
+  active INTEGER DEFAULT 1,
+  audience_gender TEXT,
+  waiver_slug TEXT DEFAULT 'registration',
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_program_offers_program ON program_offers(program_id, active);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_program_offers_access_code ON program_offers(access_code);
+
+CREATE TABLE IF NOT EXISTS program_offer_dates (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  offer_id INTEGER NOT NULL REFERENCES program_offers(id) ON DELETE CASCADE,
+  event_date TEXT NOT NULL,
+  sort_order INTEGER DEFAULT 0,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_program_offer_dates_offer ON program_offer_dates(offer_id, sort_order, event_date);
+
 -- Program sessions/classes
 CREATE TABLE IF NOT EXISTS program_sessions (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   program_id TEXT NOT NULL REFERENCES programs(id),
+  offer_id INTEGER REFERENCES program_offers(id),
   name TEXT NOT NULL,
   season TEXT,
   day_of_week TEXT,
@@ -135,6 +166,7 @@ CREATE TABLE IF NOT EXISTS registrations (
   guardian_id INTEGER NOT NULL REFERENCES guardians(id),
   student_id INTEGER NOT NULL REFERENCES students(id),
   program_id TEXT NOT NULL REFERENCES programs(id),
+  offer_id INTEGER REFERENCES program_offers(id),
   session_id INTEGER REFERENCES program_sessions(id),
   price_id INTEGER REFERENCES program_prices(id),
   status TEXT DEFAULT 'draft', -- draft, submitted, pending_payment, paid, active, waitlisted, cancelled, refunded
@@ -159,6 +191,8 @@ CREATE INDEX IF NOT EXISTS idx_registrations_created ON registrations(created_at
 CREATE TABLE IF NOT EXISTS waivers (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   registration_id INTEGER NOT NULL REFERENCES registrations(id),
+  waiver_document_id INTEGER REFERENCES waiver_documents(id),
+  waiver_version_label TEXT,
   liability_waiver INTEGER DEFAULT 0,
   photo_consent INTEGER DEFAULT 0,
   medical_consent INTEGER DEFAULT 0,
@@ -352,6 +386,7 @@ CREATE TABLE IF NOT EXISTS enrollment_orders (
   stripe_invoice_id TEXT,
   stripe_customer_id TEXT,
   second_stripe_payment_intent_id TEXT,
+  later_charge_reminder_sent_at DATETIME,
   waiver_version_id INTEGER,
   waiver_version_label TEXT,
   waiver_accepted_at DATETIME,

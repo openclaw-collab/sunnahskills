@@ -23,8 +23,10 @@ const BASE_DRAFT: RegistrationDraft = {
     medicalNotes: '',
   },
   programDetails: {
+    offerId: null,
     sessionId: 1,
     priceId: 1,
+    accessCode: '',
     siblingCount: 0,
     paymentChoice: 'full',
     preferredStartDate: '',

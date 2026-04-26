@@ -57,8 +57,10 @@ export type RegistrationDraft = {
     medicalNotes: string;
   };
   programDetails: {
+    offerId: number | null;
     sessionId: number | null;
     priceId: number | null;
+    accessCode: string;
     siblingCount: 0 | 1 | 2;
     /** Pay full tuition today vs split (server uses semester later date). */
     paymentChoice: "full" | "plan";
@@ -109,8 +111,10 @@ function createEmptyDraft(programSlug: ProgramSlug): RegistrationDraft {
       medicalNotes: "",
     },
     programDetails: {
+      offerId: null,
       sessionId: null,
       priceId: null,
+      accessCode: "",
       siblingCount: 0,
       paymentChoice: "full",
       preferredStartDate: "",
@@ -224,4 +228,3 @@ export function useRegistration(programSlug: ProgramSlug) {
     goTo,
   };
 }
-

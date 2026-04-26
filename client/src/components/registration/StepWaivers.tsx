@@ -5,6 +5,15 @@ import type { RegistrationStepProps } from "@/components/registration/steps";
 import { StudioBlock } from "@/studio/StudioBlock";
 import { BJJ_TRACK_BY_KEY, isBjjTrackKey } from "../../../../shared/bjjCatalog";
 
+type WaiverRecord = {
+  id: number;
+  slug: string;
+  title: string;
+  body_html: string;
+  version_label: string;
+  published_at: string | null;
+};
+
 function WaiverRow({
   label,
   checked,
@@ -37,10 +46,37 @@ export function StepWaivers({ draft, updateDraft }: RegistrationStepProps) {
   const mediaHelperText = isWomenBjjTrack
     ? "Women’s sessions are run as a camera-free environment. We still cannot control photos or videos taken by other families or guests outside that setting."
     : "We try to respect family preferences, but cannot control photos or videos taken by other families or guests.";
+  const waiverSlug = draft.programSlug === "archery" ? "archery" : "registration";
+  const [waiver, setWaiver] = React.useState<WaiverRecord | null>(null);
+
+  React.useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const response = await fetch(`/api/waivers?slug=${encodeURIComponent(waiverSlug)}`);
+        const payload = (await response.json().catch(() => null)) as { waiver?: WaiverRecord | null } | null;
+        if (!cancelled && response.ok) {
+          setWaiver(payload?.waiver ?? null);
+        }
+      } catch {
+        if (!cancelled) setWaiver(null);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [waiverSlug]);
 
   return (
     <StudioBlock id={`registration.${draft.programSlug}.waivers-step`} label="Waivers step">
       <div className="space-y-4">
+        {waiver ? (
+          <div className="rounded-2xl border border-charcoal/10 bg-white p-4">
+            <div className="text-sm font-medium text-charcoal">{waiver.title}</div>
+            <div className="mt-1 text-xs uppercase tracking-[0.16em] text-charcoal/55">Version {waiver.version_label}</div>
+            <div className="prose prose-sm mt-4 max-w-none text-charcoal" dangerouslySetInnerHTML={{ __html: waiver.body_html }} />
+          </div>
+        ) : null}
         <WaiverRow
           label="I agree to the liability waiver."
           checked={draft.waivers.liabilityWaiver}

@@ -59,6 +59,7 @@ type Props = {
   siblingCount: 0 | 1 | 2;
   discountCode: string;
   onDiscountCodeChange: (code: string) => void;
+  selectedPriceId?: number | null;
   /** BJJ: live estimate from D1 catalog + same formulas as checkout. */
   bjjLinePreview?: BjjLinePreviewInput;
 };
@@ -68,6 +69,7 @@ export function OrderSummaryCard({
   siblingCount,
   discountCode,
   onDiscountCodeChange,
+  selectedPriceId,
   bjjLinePreview,
 }: Props) {
   const { data: catalog, isLoading: catalogLoading } = useProgramsCatalog();
@@ -98,6 +100,12 @@ export function OrderSummaryCard({
     });
   }, [program.slug, bjjLinePreview, catalog?.programs, siblingCount]);
 
+  const selectedProgramPrice = useMemo(() => {
+    if (!selectedPriceId) return null;
+    const currentProgram = catalog?.programs?.find((entry) => entry.slug === program.slug);
+    return currentProgram?.prices.find((entry) => entry.id === selectedPriceId) ?? null;
+  }, [catalog?.programs, program.slug, selectedPriceId]);
+
   const showBjjEstimate = program.slug === "bjj" && Boolean(bjjLinePreview?.track && bjjLinePreview?.priceId);
 
   return (
@@ -117,7 +125,7 @@ export function OrderSummaryCard({
               <span className="text-cream">{money(bjjBreakdown.afterSiblingCents)}</span>
             ) : (
               <>
-                {price.amount}
+                {selectedProgramPrice ? money(selectedProgramPrice.amount) : price.amount}
                 {price.monthly && <span className="text-[9px] text-cream/40">/mo</span>}
               </>
             )}
@@ -220,7 +228,11 @@ export function OrderSummaryCard({
         <div className="border-t border-cream/10 pt-3 flex items-center justify-between">
           <div className="font-body text-sm text-cream/60">Total</div>
           <div className="font-heading text-lg text-cream">
-            {showBjjEstimate && bjjBreakdown ? money(bjjBreakdown.afterSiblingCents) : "Confirmed at checkout"}
+            {showBjjEstimate && bjjBreakdown
+              ? money(bjjBreakdown.afterSiblingCents)
+              : selectedProgramPrice
+                ? money(selectedProgramPrice.amount)
+                : "Confirmed at checkout"}
           </div>
         </div>
       </div>

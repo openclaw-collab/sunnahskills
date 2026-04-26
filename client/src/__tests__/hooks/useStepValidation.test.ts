@@ -188,6 +188,9 @@ describe("useStepValidation", () => {
       const draft = createDraft({
         programSlug: "archery",
         programDetails: {
+          offerId: null,
+          sessionId: null,
+          priceId: null,
           programSpecific: { dominantHand: "", experience: "", sessionDate: "", notes: "" },
         },
       });
@@ -196,6 +199,8 @@ describe("useStepValidation", () => {
       act(() => result.current.validateAndTouch());
 
       await waitFor(() => {
+        expect(result.current.errors["programDetails.offerId"]).toBe("Please choose an archery offer");
+        expect(result.current.errors["programDetails.sessionId"]).toBe("Please select a time slot");
         expect(result.current.errors["programSpecific.dominantHand"]).toBe("Please select your dominant hand");
         expect(result.current.errors["programSpecific.sessionDate"]).toBe("Please select a session");
       });

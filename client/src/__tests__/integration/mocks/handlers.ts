@@ -77,6 +77,7 @@ export const mockStore = {
   networkError: false,
   /** When true, BJJ flows hit create-intent after subscription endpoint declines (Vitest). */
   subscriptionUnavailable: false,
+  adminOffers: [] as any[],
 };
 
 export function resetMockStore() {
@@ -102,6 +103,19 @@ export function resetMockStore() {
   mockStore.shouldFailPayment = false;
   mockStore.networkError = false;
   mockStore.subscriptionUnavailable = false;
+  mockStore.adminOffers = [
+    {
+      id: 1,
+      program_id: "archery",
+      name: "May 2026 Four-Week Series",
+      is_private: 0,
+      active: 1,
+      access_code: null,
+      audience_gender: null,
+      dates: ["2026-05-10", "2026-05-17", "2026-05-24", "2026-05-31"],
+      confirmation_notes: "All equipment is provided.",
+    },
+  ];
 }
 
 // MSW Handlers
@@ -625,6 +639,48 @@ export const handlers = [
     return HttpResponse.json({ contacts: [] });
   }),
 
+  http.get("/api/admin/offers", () => {
+    if (!mockStore.currentUser) {
+      return HttpResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    return HttpResponse.json({ offers: mockStore.adminOffers });
+  }),
+
+  http.post("/api/admin/offers", async ({ request }) => {
+    if (!mockStore.currentUser) {
+      return HttpResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const body = await request.json() as Record<string, unknown>;
+    const offer = {
+      id: mockStore.adminOffers.length + 1,
+      program_id: String(body.programId ?? "archery"),
+      name: String(body.name ?? "Offer"),
+      is_private: body.isPrivate ? 1 : 0,
+      active: 1,
+      access_code: body.isPrivate ? "PRIVATE123" : null,
+      audience_gender: body.audienceGender ? String(body.audienceGender) : null,
+      dates: Array.isArray(body.dates) ? body.dates : [],
+      confirmation_notes: body.confirmationNotes ? String(body.confirmationNotes) : null,
+    };
+    mockStore.adminOffers.unshift(offer);
+    return HttpResponse.json({ offer }, { status: 201 });
+  }),
+
+  http.patch("/api/admin/offers", async ({ request }) => {
+    if (!mockStore.currentUser) {
+      return HttpResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const body = await request.json() as Record<string, unknown>;
+    const offer = mockStore.adminOffers.find((entry: any) => entry.id === Number(body.offerId));
+    if (!offer) {
+      return HttpResponse.json({ error: "Offer not found" }, { status: 404 });
+    }
+    if (typeof body.active === "number") offer.active = body.active;
+    if (Array.isArray(body.dates)) offer.dates = body.dates;
+    if (typeof body.confirmationNotes === "string") offer.confirmation_notes = body.confirmationNotes;
+    return HttpResponse.json({ ok: true });
+  }),
+
   http.get("/api/programs", () => {
     return HttpResponse.json({
       programs: [
@@ -687,6 +743,7 @@ export const handlers = [
               active: 1,
             },
           ],
+          offers: [],
           active_semester: {
             id: 1,
             name: "Spring 2026",
@@ -700,7 +757,208 @@ export const handlers = [
             active: 1,
           },
         },
+        {
+          id: "archery",
+          slug: "archery",
+          name: "Traditional Archery",
+          status: "active",
+          sessions: [
+            {
+              id: 21,
+              program_id: "archery",
+              offer_id: 1,
+              name: "May Series — Morning Slot",
+              season: "May 10, 17, 24, 31",
+              day_of_week: "Sunday",
+              start_time: "10:00",
+              end_time: "12:00",
+              age_group: "all",
+              gender_group: null,
+              capacity: 15,
+              enrolled_count: 0,
+              visible: 1,
+              start_date: "2026-05-10",
+              end_date: "2026-05-31",
+            },
+            {
+              id: 22,
+              program_id: "archery",
+              offer_id: 1,
+              name: "May Series — Afternoon Slot",
+              season: "May 10, 17, 24, 31",
+              day_of_week: "Sunday",
+              start_time: "13:00",
+              end_time: "15:00",
+              age_group: "all",
+              gender_group: null,
+              capacity: 15,
+              enrolled_count: 0,
+              visible: 1,
+              start_date: "2026-05-10",
+              end_date: "2026-05-31",
+            },
+          ],
+          prices: [
+            {
+              id: 6,
+              program_id: "archery",
+              offer_id: 1,
+              age_group: "all",
+              label: "May 2026 Four-Week Series",
+              amount: 14000,
+              frequency: "per_series",
+              registration_fee: 0,
+              metadata: '{"offer_id":1}',
+              active: 1,
+            },
+          ],
+          offers: [
+            {
+              id: 1,
+              program_id: "archery",
+              name: "May 2026 Four-Week Series",
+              is_private: 0,
+              active: 1,
+              audience_gender: null,
+              dates: ["2026-05-10", "2026-05-17", "2026-05-24", "2026-05-31"],
+              description: "Four Sunday sessions with two time slots and all equipment included.",
+              confirmation_notes: "All equipment is provided.",
+              sessions: [
+                {
+                  id: 21,
+                  program_id: "archery",
+                  offer_id: 1,
+                  name: "May Series — Morning Slot",
+                  season: "May 10, 17, 24, 31",
+                  day_of_week: "Sunday",
+                  start_time: "10:00",
+                  end_time: "12:00",
+                  age_group: "all",
+                  gender_group: null,
+                  capacity: 15,
+                  enrolled_count: 0,
+                  visible: 1,
+                  start_date: "2026-05-10",
+                  end_date: "2026-05-31",
+                },
+                {
+                  id: 22,
+                  program_id: "archery",
+                  offer_id: 1,
+                  name: "May Series — Afternoon Slot",
+                  season: "May 10, 17, 24, 31",
+                  day_of_week: "Sunday",
+                  start_time: "13:00",
+                  end_time: "15:00",
+                  age_group: "all",
+                  gender_group: null,
+                  capacity: 15,
+                  enrolled_count: 0,
+                  visible: 1,
+                  start_date: "2026-05-10",
+                  end_date: "2026-05-31",
+                },
+              ],
+              prices: [
+                {
+                  id: 6,
+                  program_id: "archery",
+                  offer_id: 1,
+                  age_group: "all",
+                  label: "May 2026 Four-Week Series",
+                  amount: 14000,
+                  frequency: "per_series",
+                  registration_fee: 0,
+                  metadata: '{"offer_id":1}',
+                  active: 1,
+                },
+              ],
+            },
+          ],
+          active_semester: null,
+        },
       ],
+    });
+  }),
+
+  http.post("/api/programs/reveal-offer", async ({ request }) => {
+    const body = await request.json() as { accessCode?: string };
+    if ((body.accessCode ?? "").toUpperCase() !== "WOMENS19") {
+      return HttpResponse.json({ error: "Invalid or inactive access code." }, { status: 404 });
+    }
+    return HttpResponse.json({
+      offer: {
+        id: 2,
+        program_id: "archery",
+        name: "Women's Archery Campfire Session",
+        is_private: 1,
+        active: 1,
+        access_code: "WOMENS19",
+        audience_gender: "female",
+        dates: ["2026-04-19"],
+        description: "A women-only private one-off with campfire and marshmallows included.",
+        confirmation_notes: "Bring layered clothing for the range and outdoor social time after shooting.",
+        sessions: [
+          {
+            id: 23,
+            program_id: "archery",
+            offer_id: 2,
+            name: "Women's One-Off",
+            season: "April 19, 2026",
+            day_of_week: "Sunday",
+            start_time: "12:00",
+            end_time: "14:30",
+            age_group: "all",
+            gender_group: "female",
+            capacity: 25,
+            enrolled_count: 0,
+            visible: 1,
+            start_date: "2026-04-19",
+            end_date: "2026-04-19",
+          },
+        ],
+        prices: [
+          {
+            id: 7,
+            program_id: "archery",
+            offer_id: 2,
+            age_group: "female",
+            label: "Women's One-Off Session",
+            amount: 4500,
+            frequency: "per_workshop",
+            registration_fee: 0,
+            metadata: '{"offer_id":2}',
+            active: 1,
+          },
+        ],
+      },
+    });
+  }),
+
+  http.get("/api/waivers", ({ request }) => {
+    const url = new URL(request.url);
+    const slug = url.searchParams.get("slug") ?? "registration";
+    if (slug === "archery") {
+      return HttpResponse.json({
+        waiver: {
+          id: 2,
+          slug: "archery",
+          title: "Sunnah Skills Archery Waiver",
+          version_label: "2026.04.09",
+          body_html: "<p>Archery participation waiver.</p>",
+          published_at: "2026-04-09T00:00:00.000Z",
+        },
+      });
+    }
+    return HttpResponse.json({
+      waiver: {
+        id: 1,
+        slug: "registration",
+        title: "Sunnah Skills Registration Waiver",
+        version_label: "2026.03.31",
+        body_html: "<p>Registration waiver.</p>",
+        published_at: "2026-03-31T00:00:00.000Z",
+      },
     });
   }),
 

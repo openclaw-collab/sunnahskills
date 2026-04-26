@@ -231,6 +231,7 @@ export function ProgramRegistrationPage({ slug }: { slug: ProgramSlug }) {
           program={program}
           siblingCount={draft.programDetails.siblingCount}
           discountCode={draft.payment.discountCode}
+          selectedPriceId={draft.programDetails.priceId}
           onDiscountCodeChange={(code) =>
             updateDraft((prev) => ({ ...prev, payment: { ...prev.payment, discountCode: code } }))
           }

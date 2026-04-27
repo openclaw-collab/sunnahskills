@@ -696,7 +696,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
             `SELECT ps.id, ps.capacity, ps.visible, ps.status,
                     (SELECT COUNT(*) FROM registrations r
                      WHERE r.session_id = ps.id AND r.program_id = 'archery'
-                       AND r.status IN ('active', 'submitted', 'pending_payment')) AS active_count
+                       AND r.status = 'active') AS active_count
              FROM program_sessions ps
              WHERE ps.id = ? AND ps.program_id = 'archery'
              LIMIT 1`,

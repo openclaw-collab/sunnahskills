@@ -84,7 +84,7 @@ describe("Guardian account + trial email flows", () => {
   });
 
   describe("POST /api/guardian/request-link", () => {
-    it("returns a generic success response when the account does not exist", async () => {
+    it("returns a clear error response when the account does not exist", async () => {
       const request = createMockRequest("POST", "https://example.com/api/guardian/request-link", {
         body: {
           email: "missing@example.com",
@@ -94,9 +94,8 @@ describe("Guardian account + trial email flows", () => {
       const response = await requestLinkHandler({ request, env });
       const data = await parseJsonResponse(response);
 
-      expect(response.status).toBe(200);
-      expect(data.ok).toBe(true);
-      expect(String(data.message)).toContain("If an account exists");
+      expect(response.status).toBe(404);
+      expect(String(data.error)).toContain("No account found");
       expect(vi.mocked(sendMailChannelsEmail)).not.toHaveBeenCalled();
     });
 
@@ -122,7 +121,7 @@ describe("Guardian account + trial email flows", () => {
 
       expect(response.status).toBe(200);
       expect(data.ok).toBe(true);
-      expect(String(data.message)).toContain("If an account exists");
+      expect(String(data.message)).toContain("We found your account");
       expect(vi.mocked(sendMailChannelsEmail)).toHaveBeenCalledTimes(1);
       expect(vi.mocked(sendMailChannelsEmail).mock.calls[0]?.[1]).toMatchObject({
         subject: "Sunnah Skills — Your sign-in link",

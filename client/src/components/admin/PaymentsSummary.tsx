@@ -5,6 +5,8 @@ import { formatMoneyFromCents } from "@shared/money";
 import { cn } from "@/lib/utils";
 import { summarizePaymentLifecycle } from "@/components/admin/paymentLifecycle";
 import { formatAdminDateTime } from "@/components/admin/adminDateTime";
+import { AdminFilterBar } from "@/components/admin/AdminFilterBar";
+import { DEFAULT_ADMIN_FILTERS, buildAdminQuery, type AdminFilterState } from "@/components/admin/adminFilterOptions";
 
 type PaymentRow = {
   order_id?: number;
@@ -22,6 +24,9 @@ type PaymentRow = {
   guardian_name?: string | null;
   registration_count?: number;
   student_names?: string | null;
+  program_names?: string | null;
+  location_names?: string | null;
+  tracks?: string | null;
   latest_payment_status?: string | null;
   first_registration_id?: number | null;
   paid_cents?: number | null;
@@ -42,6 +47,9 @@ function statusVariantClasses(variant: "paid_full" | "paid_partial" | "pending" 
   return "bg-charcoal/5 text-charcoal/65 border-charcoal/10";
 }
 
+type Program = { id: string; name: string; slug: string };
+type Location = { id: string; display_name: string };
+
 export function PaymentsSummary({
   payments,
   showSuperseded,
@@ -51,6 +59,43 @@ export function PaymentsSummary({
   showSuperseded: boolean;
   onShowSupersededChange: (value: boolean) => void;
 }) {
+  const [rows, setRows] = React.useState<PaymentRow[]>(payments);
+  const [programs, setPrograms] = React.useState<Program[]>([]);
+  const [locations, setLocations] = React.useState<Location[]>([]);
+  const [refreshing, setRefreshing] = React.useState(false);
+  const [filters, setFilters] = React.useState<AdminFilterState>({
+    ...DEFAULT_ADMIN_FILTERS,
+    includeSuperseded: showSuperseded,
+  });
+  const queryUrl = React.useMemo(() => buildAdminQuery("/api/admin/orders", filters), [filters]);
+
+  React.useEffect(() => setRows(payments), [payments]);
+
+  React.useEffect(() => {
+    setFilters((current) => ({ ...current, includeSuperseded: showSuperseded }));
+  }, [showSuperseded]);
+
+  React.useEffect(() => {
+    (async () => {
+      const [programsRes, catalogRes] = await Promise.all([fetch("/api/admin/programs"), fetch("/api/programs")]);
+      const programsJson = (await programsRes.json().catch(() => null)) as { programs?: Program[] } | null;
+      const catalogJson = (await catalogRes.json().catch(() => null)) as { locations?: Location[] } | null;
+      setPrograms(programsJson?.programs ?? []);
+      setLocations(catalogJson?.locations ?? []);
+    })();
+  }, []);
+
+  async function refresh() {
+    setRefreshing(true);
+    try {
+      const res = await fetch(queryUrl);
+      const json = (await res.json().catch(() => null)) as { orders?: PaymentRow[] } | null;
+      setRows(json?.orders ?? []);
+    } finally {
+      setRefreshing(false);
+    }
+  }
+
   return (
     <PremiumCard className="bg-white border border-charcoal/10">
       <div className="mb-4 flex items-start justify-between gap-3">
@@ -66,13 +111,27 @@ export function PaymentsSummary({
           Show superseded
         </label>
       </div>
-      <div className="overflow-x-auto">
+      <AdminFilterBar
+        value={filters}
+        programs={programs}
+        locations={locations}
+        tracks={[]}
+        mode="payments"
+        refreshing={refreshing}
+        onChange={(next) => {
+          setFilters(next);
+          onShowSupersededChange(next.includeSuperseded);
+        }}
+        onRefresh={refresh}
+      />
+      <div className="mt-4 overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="text-charcoal/60">
             <tr className="border-b border-charcoal/10">
               <th className="text-left py-2 pr-4">Order</th>
               <th className="text-left py-2 pr-4">Guardian</th>
               <th className="text-left py-2 pr-4">Students</th>
+              <th className="text-left py-2 pr-4">Program / Location</th>
               <th className="text-left py-2 pr-4">Status</th>
               <th className="text-left py-2 pr-4">Review</th>
               <th className="text-left py-2 pr-4">Today / Later</th>
@@ -80,7 +139,7 @@ export function PaymentsSummary({
             </tr>
           </thead>
           <tbody>
-            {payments.map((p) => {
+            {rows.map((p) => {
               const lifecycle = summarizePaymentLifecycle({
                 orderStatus: p.order_status,
                 latestPaymentStatus: p.latest_payment_status ?? p.status,
@@ -121,6 +180,10 @@ export function PaymentsSummary({
                   <td className="py-2 pr-4 align-top">{p.guardian_name ?? "—"}</td>
                   <td className="py-2 pr-4 align-top">{p.student_names ?? "—"}</td>
                   <td className="py-2 pr-4 align-top">
+                    <div>{p.program_names ?? "—"}</div>
+                    <div className="text-xs text-charcoal/55">{p.location_names ?? "—"}</div>
+                  </td>
+                  <td className="py-2 pr-4 align-top">
                     <div
                       className={cn(
                         "inline-flex rounded-full border px-2.5 py-1 text-[11px] uppercase tracking-[0.14em] font-mono-label",
@@ -150,9 +213,9 @@ export function PaymentsSummary({
                 </tr>
               );
             })}
-            {payments.length === 0 ? (
+            {rows.length === 0 ? (
               <tr>
-                <td colSpan={7} className="py-8 text-center text-charcoal/60">
+                <td colSpan={8} className="py-8 text-center text-charcoal/60">
                   No orders found.
                 </td>
               </tr>

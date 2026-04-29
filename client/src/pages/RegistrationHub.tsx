@@ -703,23 +703,29 @@ export default function RegistrationHub() {
                       type="button"
                       disabled={participants.length === 0}
                       onClick={() => navigate("/programs/bjj/register")}
-                      className="rounded-2xl border border-moss/15 bg-white px-4 py-4 text-left shadow-sm transition-colors hover:border-moss/35 disabled:cursor-not-allowed disabled:opacity-50"
+                      className="group flex items-center justify-between rounded-2xl border border-moss/15 bg-white px-4 py-4 text-left shadow-sm transition-colors hover:border-moss/40 hover:bg-moss/5 disabled:cursor-not-allowed disabled:opacity-50"
                     >
-                      <div className="text-sm font-medium text-charcoal">Brazilian Jiu-Jitsu</div>
-                      <div className="mt-1 text-xs uppercase tracking-[0.16em] text-charcoal/55">
-                        Age and gender tracks · semester checkout
+                      <div>
+                        <div className="text-sm font-medium text-charcoal">Brazilian Jiu-Jitsu</div>
+                        <div className="mt-1 text-xs text-charcoal/50">Mississauga + Oakville</div>
                       </div>
+                      <span className="rounded-full border border-moss/20 bg-moss/8 px-3 py-1 text-[10px] font-mono-label uppercase tracking-[0.16em] text-moss">
+                        Register
+                      </span>
                     </button>
                     <button
                       type="button"
                       disabled={participants.length === 0}
                       onClick={() => navigate("/programs/archery/register")}
-                      className="rounded-2xl border border-clay/20 bg-white px-4 py-4 text-left shadow-sm transition-colors hover:border-clay/40 disabled:cursor-not-allowed disabled:opacity-50"
+                      className="group flex items-center justify-between rounded-2xl border border-clay/20 bg-white px-4 py-4 text-left shadow-sm transition-colors hover:border-clay/40 hover:bg-clay/5 disabled:cursor-not-allowed disabled:opacity-50"
                     >
-                      <div className="text-sm font-medium text-charcoal">Traditional Archery</div>
-                      <div className="mt-1 text-xs uppercase tracking-[0.16em] text-charcoal/55">
-                        Four-session series · $130 first registration / $125 additional family registrations
+                      <div>
+                        <div className="text-sm font-medium text-charcoal">Traditional Archery</div>
+                        <div className="mt-1 text-xs text-charcoal/50">Open registration</div>
                       </div>
+                      <span className="rounded-full border border-clay/20 bg-clay/8 px-3 py-1 text-[10px] font-mono-label uppercase tracking-[0.16em] text-clay">
+                        Register
+                      </span>
                     </button>
                     <OutlineButton asChild className="px-6 py-3 text-[11px] uppercase tracking-[0.18em]">
                       <Link href="/trial">Start BJJ Free Trial</Link>

@@ -1,13 +1,10 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { PremiumCard } from "@/components/brand/PremiumCard";
-import { ClayButton } from "@/components/brand/ClayButton";
-import { OutlineButton } from "@/components/brand/OutlineButton";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { summarizePaymentLifecycle } from "@/components/admin/paymentLifecycle";
 import { formatAdminDateTime } from "@/components/admin/adminDateTime";
+import { AdminFilterBar } from "@/components/admin/AdminFilterBar";
+import { DEFAULT_ADMIN_FILTERS, buildAdminQuery, type AdminFilterState } from "@/components/admin/adminFilterOptions";
 
 type RegistrationRow = {
   registration_id: number;
@@ -17,6 +14,12 @@ type RegistrationRow = {
   program_slug: string;
   track?: string | null;
   session_id?: number | null;
+  session_name?: string | null;
+  session_day_of_week?: string | null;
+  session_start_time?: string | null;
+  session_end_time?: string | null;
+  location_id?: string | null;
+  location_name?: string | null;
   guardian_name: string;
   guardian_email: string;
   guardian_phone?: string | null;
@@ -38,6 +41,7 @@ type RegistrationRow = {
 };
 
 type Program = { id: string; name: string; slug: string };
+type Location = { id: string; display_name: string };
 
 function humanize(value: string | null | undefined) {
   if (!value) return "Unknown";
@@ -92,20 +96,27 @@ export function RegistrationsTable({
 }) {
   const [rows, setRows] = useState<RegistrationRow[]>(initial);
   const [programs, setPrograms] = useState<Program[]>([]);
+  const [locations, setLocations] = useState<Location[]>([]);
   const [tracks, setTracks] = useState<string[]>([]);
-  const [programId, setProgramId] = useState<string>("all");
-  const [track, setTrack] = useState<string>("all");
-  const [status, setStatus] = useState<string>("all");
-  const [q, setQ] = useState("");
+  const [filters, setFilters] = useState<AdminFilterState>({
+    ...DEFAULT_ADMIN_FILTERS,
+    includeSuperseded: showSuperseded,
+  });
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     (async () => {
-      const res = await fetch("/api/admin/programs");
-      const json = (await res.json().catch(() => null)) as any;
-      setPrograms((json?.programs ?? []) as Program[]);
+      const [programsRes, catalogRes] = await Promise.all([fetch("/api/admin/programs"), fetch("/api/programs")]);
+      const programsJson = (await programsRes.json().catch(() => null)) as any;
+      const catalogJson = (await catalogRes.json().catch(() => null)) as any;
+      setPrograms((programsJson?.programs ?? []) as Program[]);
+      setLocations((catalogJson?.locations ?? []) as Location[]);
     })();
   }, []);
+
+  useEffect(() => {
+    setFilters((current) => ({ ...current, includeSuperseded: showSuperseded }));
+  }, [showSuperseded]);
 
   useEffect(() => {
     // Extract unique tracks from current rows
@@ -114,15 +125,8 @@ export function RegistrationsTable({
   }, [rows]);
 
   const queryUrl = useMemo(() => {
-    const sp = new URLSearchParams();
-    if (programId !== "all") sp.set("programId", programId);
-    if (track !== "all") sp.set("track", track);
-    if (status !== "all") sp.set("status", status);
-    if (q.trim()) sp.set("q", q.trim());
-    if (showSuperseded) sp.set("includeSuperseded", "1");
-    const qs = sp.toString();
-    return `/api/admin/registrations${qs ? `?${qs}` : ""}`;
-  }, [programId, track, q, showSuperseded, status]);
+    return buildAdminQuery("/api/admin/registrations", filters);
+  }, [filters]);
 
   async function refresh() {
     setLoading(true);
@@ -199,113 +203,26 @@ export function RegistrationsTable({
             Registrations
           </div>
           <div className="font-body text-sm text-charcoal/70 mt-1">
-            Filter by program, track, and status. Click a student to view full details.
+            Filter by program, location, track, registration status, and payment state. Click a student to view full details.
           </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <label className="mr-2 flex items-center gap-2 rounded-full border border-charcoal/10 bg-cream/40 px-3 py-2 text-[11px] uppercase tracking-[0.14em] font-mono-label text-charcoal/65">
-            <Checkbox
-              checked={showSuperseded}
-              onCheckedChange={(checked) => onShowSupersededChange(checked === true)}
-              aria-label="Show superseded registrations"
-            />
-            Show superseded
-          </label>
-          <OutlineButton
-            className="px-4 py-2.5 text-[11px] uppercase tracking-[0.18em]"
-            onClick={() => {
-              setProgramId("all");
-              setTrack("all");
-              setStatus("all");
-              setQ("");
-              setRows(initial);
-            }}
-          >
-            Reset
-          </OutlineButton>
-          <ClayButton
-            className="px-5 py-2.5 text-[11px] uppercase tracking-[0.18em]"
-            onClick={refresh}
-            disabled={loading}
-          >
-            {loading ? "Refreshing…" : "Refresh"}
-          </ClayButton>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
-        <div className="space-y-2">
-          <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-charcoal/60">
-            Program
-          </div>
-          <Select value={programId} onValueChange={(val) => { setProgramId(val); setTrack("all"); }}>
-            <SelectTrigger className="bg-cream/50 border-charcoal/10">
-              <SelectValue placeholder="All programs" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All programs</SelectItem>
-              {programs.map((p) => (
-                <SelectItem key={p.id} value={p.id}>
-                  {p.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+      <AdminFilterBar
+        value={filters}
+        programs={programs}
+        locations={locations}
+        tracks={tracks.map((value) => ({ value, label: value.replace(/-/g, " ") }))}
+        mode="registrations"
+        refreshing={loading}
+        onChange={(next) => {
+          setFilters(next);
+          onShowSupersededChange(next.includeSuperseded);
+        }}
+        onRefresh={refresh}
+      />
 
-        <div className="space-y-2">
-          <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-charcoal/60">
-            Track / Stream
-          </div>
-          <Select value={track} onValueChange={setTrack}>
-            <SelectTrigger className="bg-cream/50 border-charcoal/10">
-              <SelectValue placeholder="All tracks" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All tracks</SelectItem>
-              {tracks.map((t) => (
-                <SelectItem key={t} value={t}>
-                  {t.replace(/-/g, " ")}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="space-y-2">
-          <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-charcoal/60">
-            Status
-          </div>
-          <Select value={status} onValueChange={setStatus}>
-            <SelectTrigger className="bg-cream/50 border-charcoal/10">
-              <SelectValue placeholder="All statuses" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All statuses</SelectItem>
-              <SelectItem value="submitted">submitted</SelectItem>
-              <SelectItem value="pending_payment">pending_payment</SelectItem>
-              <SelectItem value="paid">paid</SelectItem>
-              <SelectItem value="active">active</SelectItem>
-              <SelectItem value="waitlisted">waitlisted</SelectItem>
-              <SelectItem value="cancelled">cancelled</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="space-y-2">
-          <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-charcoal/60">
-            Search
-          </div>
-          <Input
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder="Parent, student, or email…"
-            className="bg-cream/50 border-charcoal/10"
-          />
-        </div>
-      </div>
-
-      <div className="mb-5 grid gap-3 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
+      <div className="mb-5 mt-4 grid gap-3 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
         <div className="rounded-[1.75rem] border border-charcoal/10 bg-cream/45 px-4 py-3">
           <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-charcoal/45">
             Reading this table
@@ -358,6 +275,7 @@ export function RegistrationsTable({
             <tr className="border-b border-charcoal/10">
               <th className="text-left py-3 pl-4 pr-4">Student</th>
               <th className="text-left py-3 pr-4">Program / Track</th>
+              <th className="text-left py-3 pr-4">Location / Session</th>
               <th className="text-left py-3 pr-4">Status</th>
               <th className="text-left py-3 pr-4">Payment</th>
               <th className="text-left py-3 pr-4">Guardian</th>
@@ -404,6 +322,14 @@ export function RegistrationsTable({
                     </div>
                   </td>
                   <td className="py-3 pr-4">
+                    <div className="text-charcoal">{r.location_name ?? (r.location_id === "oakville" ? "Oakville" : "Mississauga")}</div>
+                    <div className="mt-1 text-xs text-charcoal/55">
+                      {[r.session_day_of_week, r.session_start_time && r.session_end_time ? `${r.session_start_time}-${r.session_end_time}` : null]
+                        .filter(Boolean)
+                        .join(" · ") || r.session_name || "No session"}
+                    </div>
+                  </td>
+                  <td className="py-3 pr-4">
                     <span className={badgeClass("status", r.registration_status)}>
                       {humanize(r.registration_status)}
                     </span>
@@ -429,7 +355,7 @@ export function RegistrationsTable({
             })}
             {groupedRows.length === 0 ? (
               <tr>
-                <td colSpan={6} className="py-8 text-center text-charcoal/60">
+                <td colSpan={7} className="py-8 text-center text-charcoal/60">
                   No registrations match your filters.
                 </td>
               </tr>

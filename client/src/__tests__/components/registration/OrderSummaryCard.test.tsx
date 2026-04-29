@@ -4,6 +4,37 @@ import { render, screen, fireEvent } from "@/__tests__/test-utils";
 import { OrderSummaryCard } from "@/components/registration/OrderSummaryCard";
 import { PROGRAMS } from "@/lib/programConfig";
 
+vi.mock("@/hooks/useProgramsCatalog", () => ({
+  useProgramsCatalog: () => ({
+    isLoading: false,
+    data: {
+      programs: [
+        {
+          slug: "bjj",
+          active_semester: {
+            classes_in_semester: 13,
+            price_per_class_cents: 1200,
+            registration_fee_cents: 0,
+            later_payment_date: "2026-05-12",
+            start_date: "2026-03-31",
+            end_date: "2026-06-27",
+          },
+          prices: [
+            {
+              id: 1,
+              age_group: "boys-7-13",
+              amount: 1200,
+              registration_fee: 0,
+              frequency: "semester",
+              metadata: null,
+            },
+          ],
+        },
+      ],
+    },
+  }),
+}));
+
 describe("OrderSummaryCard", () => {
   it("renders program name and fee label", () => {
     render(
@@ -129,5 +160,27 @@ describe("OrderSummaryCard", () => {
     );
 
     expect(screen.getByText(/final amounts are calculated server-side/i)).toBeInTheDocument();
+  });
+
+  it("shows BJJ semester totals without per-class math", async () => {
+    render(
+      <OrderSummaryCard
+        program={PROGRAMS.bjj}
+        siblingCount={0}
+        discountCode=""
+        onDiscountCodeChange={() => {}}
+        selectedPriceId={1}
+        bjjLinePreview={{
+          track: "boys-7-13",
+          paymentChoice: "full",
+          priceId: 1,
+        }}
+      />,
+    );
+
+    expect((await screen.findAllByText(/Semester tuition/i)).length).toBeGreaterThan(0);
+    expect(screen.queryByText(/classes\s*×/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/per class/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/sessions\s*×/i)).not.toBeInTheDocument();
   });
 });

@@ -1,5 +1,6 @@
 import React from "react";
-import { describe, it, expect } from "vitest";
+import { beforeEach, describe, it, expect, vi } from "vitest";
+import userEvent from "@testing-library/user-event";
 import { render, screen } from "@/__tests__/test-utils";
 import { PaymentsSummary } from "@/components/admin/PaymentsSummary";
 
@@ -16,6 +17,8 @@ const mockPayments = [
     later_payment_date: "2026-05-12",
     guardian_name: "John Doe",
     student_names: "Jimmy Doe",
+    program_names: "Brazilian Jiu-Jitsu",
+    location_names: "Oakville",
     created_at: "2026-03-15T10:00:00Z",
   },
   {
@@ -28,11 +31,20 @@ const mockPayments = [
     manual_review_reason: "stale_cleanup_kept_order:5",
     guardian_name: "Jane Doe",
     student_names: "Sara Doe",
+    program_names: "Traditional Archery",
+    location_names: "Mississauga",
     created_at: "2026-03-16T14:30:00Z",
   },
 ];
 
 describe("PaymentsSummary", () => {
+  beforeEach(() => {
+    (globalThis as any).fetch = vi.fn(async () => ({
+      ok: true,
+      json: async () => ({ programs: [], locations: [] }),
+    }));
+  });
+
   it("renders payments table header", () => {
     render(<PaymentsSummary payments={mockPayments} showSuperseded={false} onShowSupersededChange={() => {}} />);
 
@@ -40,6 +52,7 @@ describe("PaymentsSummary", () => {
     expect(screen.getByText("Order")).toBeInTheDocument();
     expect(screen.getByText("Guardian")).toBeInTheDocument();
     expect(screen.getByText("Students")).toBeInTheDocument();
+    expect(screen.getByText("Program / Location")).toBeInTheDocument();
     expect(screen.getByText("Status")).toBeInTheDocument();
     expect(screen.getByText("Review")).toBeInTheDocument();
     expect(screen.getByText("Today / Later")).toBeInTheDocument();
@@ -53,6 +66,7 @@ describe("PaymentsSummary", () => {
     expect(screen.getByText("Reg: 101")).toBeInTheDocument();
     expect(screen.getByText("John Doe")).toBeInTheDocument();
     expect(screen.getByText("Jimmy Doe")).toBeInTheDocument();
+    expect(screen.getByText("Oakville")).toBeInTheDocument();
     expect(screen.getByText("Half paid")).toBeInTheDocument();
     expect(screen.getAllByText(/\$100\.00/).length).toBeGreaterThanOrEqual(2);
   });
@@ -89,5 +103,23 @@ describe("PaymentsSummary", () => {
 
     const card = screen.getByTestId("premium-card-root");
     expect(card).toBeInTheDocument();
+  });
+
+  it("refreshes orders with admin filter query", async () => {
+    const user = userEvent.setup();
+    const fetchMock = vi
+      .fn()
+      .mockImplementationOnce(async () => ({ ok: true, json: async () => ({ programs: [] }) }))
+      .mockImplementationOnce(async () => ({ ok: true, json: async () => ({ locations: [] }) }))
+      .mockImplementationOnce(async () => ({ ok: true, json: async () => ({ orders: [] }) }));
+    (globalThis as any).fetch = fetchMock;
+
+    render(<PaymentsSummary payments={[]} showSuperseded={false} onShowSupersededChange={() => {}} />);
+
+    await user.type(screen.getByPlaceholderText(/parent, student, email, order/i), "john");
+    await user.click(screen.getByRole("button", { name: /refresh/i }));
+
+    expect(fetchMock.mock.calls.at(-1)?.[0]).toContain("/api/admin/orders?");
+    expect(fetchMock.mock.calls.at(-1)?.[0]).toContain("q=john");
   });
 });

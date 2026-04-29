@@ -61,6 +61,7 @@ export default function BJJRegistration() {
   const [selectedParticipantId, setSelectedParticipantId] = React.useState<number | null>(null);
   const [selectedLocationId, setSelectedLocationId] = React.useState(DEFAULT_BJJ_LOCATION_ID);
   const [selectedTrack, setSelectedTrack] = React.useState<string>("");
+  const [selectedSessionId, setSelectedSessionId] = React.useState<number | null>(null);
   const [experienceLevel, setExperienceLevel] = React.useState("beginner");
   const [paymentChoice, setPaymentChoice] = React.useState<"full" | "plan">("full");
   const [lineNotes, setLineNotes] = React.useState("");
@@ -76,7 +77,7 @@ export default function BJJRegistration() {
     const matching = catalogLocations.filter((location) => sessionLocationIds.has(location.id));
     const fallback = [
       { id: "mississauga", display_name: "Mississauga", city: "Mississauga", address: "918 Dundas St. West, Mississauga", status: "active" },
-      { id: "oakville", display_name: "Oakville", city: "Oakville", address: "Oakville, ON", status: "active" },
+      { id: "oakville", display_name: "Oakville", city: "Oakville", address: "2200 Speers Road, Oakville", status: "active" },
     ];
     return matching.length > 0 ? matching : fallback;
   }, [program?.sessions, programsQuery.data?.locations]);
@@ -109,7 +110,11 @@ export default function BJJRegistration() {
     prices.find((price) => price.age_group === selectedTrack && !price.location_id) ??
     prices.find((price) => price.age_group === selectedTrack) ??
     null;
-  const selectedSession = sessions.find((item) => item.age_group === selectedTrack) ?? null;
+  const selectedTrackSessions = sessions.filter((item) => item.age_group === selectedTrack);
+  const selectedSession =
+    selectedTrackSessions.find((item) => item.id === selectedSessionId) ??
+    selectedTrackSessions[0] ??
+    null;
   const selectedParticipantExistingCartTracks = (cart?.lines ?? [])
     .filter((line) =>
       line.programSlug !== "archery" &&
@@ -279,6 +284,7 @@ export default function BJJRegistration() {
                     onClick={() => {
                       setSelectedLocationId(location.id);
                       setSelectedTrack("");
+                      setSelectedSessionId(null);
                     }}
                   >
                     <div className="text-sm font-medium text-charcoal">{location.display_name}</div>
@@ -303,6 +309,7 @@ export default function BJJRegistration() {
                     onClick={() => {
                       setSelectedParticipantId(participant.id);
                       setSelectedTrack("");
+                      setSelectedSessionId(null);
                     }}
                   >
                     <div className="text-sm font-medium text-charcoal">{participant.full_name}</div>
@@ -344,6 +351,22 @@ export default function BJJRegistration() {
                           prices.find((price) => price.age_group === option.trackKey && price.location_id && normalizeLocationId(price.location_id) === selectedLocationId) ??
                           prices.find((price) => price.age_group === option.trackKey && !price.location_id) ??
                           prices.find((price) => price.age_group === option.trackKey);
+                        const optionPricingPreview = optionPrice
+                          ? computeLineTuitionCents({
+                              track: option.trackKey,
+                              priceId: optionPrice.id,
+                              programPriceAmount: optionPrice.amount,
+                              programPriceRegFee: optionPrice.registration_fee,
+                              programPriceFrequency: optionPrice.frequency,
+                              priceMetadataJson: optionPrice.metadata,
+                              paymentChoice,
+                              siblingRankAmongKidsStudents: 0,
+                              semester,
+                              womenSecondWeeklyClass:
+                                selectedParticipantExistingCartTracks.some((entry) => isWomenWeeklyBjjTrack(entry.track) && entry.track !== option.trackKey) &&
+                                isWomenWeeklyBjjTrack(option.trackKey),
+                            })
+                          : null;
                         return (
                           <button
                             key={option.trackKey}
@@ -351,7 +374,10 @@ export default function BJJRegistration() {
                             className={`rounded-2xl border px-4 py-4 text-left transition-colors ${
                               selected ? "border-moss bg-moss/5" : "border-charcoal/10 bg-cream/40 hover:bg-cream/70"
                             }`}
-                            onClick={() => setSelectedTrack(option.trackKey)}
+                            onClick={() => {
+                              setSelectedTrack(option.trackKey);
+                              setSelectedSessionId(optionSessions[0]?.id ?? null);
+                            }}
                           >
                             <div className="text-sm font-medium text-charcoal">{option.label}</div>
                             <div className="mt-2 text-sm text-charcoal/65">
@@ -362,13 +388,9 @@ export default function BJJRegistration() {
                                 : option.scheduleLabel}
                             </div>
                             <div className="mt-3 text-xs uppercase tracking-[0.16em] text-charcoal/55">
-                              {optionPrice
-                                ? isWomenSelfDefenseBjjTrack(option.trackKey)
-                                  ? "$25 one-time"
-                                  : selectedParticipantExistingCartTracks.some((entry) => isWomenWeeklyBjjTrack(entry.track) && entry.track !== option.trackKey) && isWomenWeeklyBjjTrack(option.trackKey)
-                                    ? "$50 second class"
-                                    : `${money(optionPrice.amount)} per class`
-                                : `${money(BJJ_TRACK_BY_KEY[option.trackKey].defaultPerClassCents)} per class`}
+                              {optionPricingPreview
+                                ? `Semester tuition ${money(optionPricingPreview.afterSiblingCents)}`
+                                : "Semester tuition confirmed at checkout"}
                             </div>
                             {isWomenSelfDefenseBjjTrack(option.trackKey) ? (
                               <div className="mt-2 text-xs leading-relaxed text-charcoal/55">
@@ -381,6 +403,27 @@ export default function BJJRegistration() {
                     </div>
                   </div>
                 ))}
+
+                {selectedTrack && selectedTrackSessions.length > 1 ? (
+                  <label className="block text-sm text-charcoal">
+                    Pick your {selectedLocation?.display_name ?? "location"} session
+                    <Select
+                      value={selectedSession ? String(selectedSession.id) : ""}
+                      onValueChange={(value) => setSelectedSessionId(Number(value))}
+                    >
+                      <SelectTrigger className="mt-2 bg-cream/50 border-charcoal/10">
+                        <SelectValue placeholder="Select a day and time" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {selectedTrackSessions.map((session) => (
+                          <SelectItem key={session.id} value={String(session.id)}>
+                            {session.day_of_week ?? "Day"} {session.start_time ?? ""}-{session.end_time ?? ""} · {session.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </label>
+                ) : null}
 
                 <div className="grid gap-4 md:grid-cols-2">
                   <label className="text-sm text-charcoal">

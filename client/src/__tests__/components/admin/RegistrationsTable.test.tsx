@@ -61,6 +61,10 @@ describe("RegistrationsTable", () => {
       }))
       .mockImplementationOnce(async () => ({
         ok: true,
+        json: async () => ({ locations: [{ id: "oakville", display_name: "Oakville" }] }),
+      }))
+      .mockImplementationOnce(async () => ({
+        ok: true,
         json: async () => ({ registrations: [] }),
       }));
 
@@ -82,8 +86,8 @@ describe("RegistrationsTable", () => {
 
     expect(await screen.findByText("Registrations")).toBeInTheDocument();
 
-    await user.type(screen.getByPlaceholderText(/parent, student, or email/i), "student one");
-    await user.click(screen.getByLabelText(/show superseded registrations/i));
+    await user.type(screen.getByPlaceholderText(/parent, student, email, order/i), "student one");
+    await user.click(screen.getByLabelText(/show superseded/i));
     await user.click(screen.getByRole("button", { name: /refresh/i }));
 
     const lastCall = fetchMock.mock.calls.at(-1)?.[0];

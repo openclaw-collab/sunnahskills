@@ -22,14 +22,14 @@ const BJJ_LOCATIONS = [
   {
     id: "oakville",
     label: "Oakville",
-    address: "Oakville, ON",
+    address: "2200 Speers Road",
     summary: "Kids BJJ launch classes for girls and boys.",
   },
 ] as const;
 
 const OAKVILLE_TRACK_SCHEDULES: Record<string, string> = {
-  "girls-5-10": "Tuesday 5:00 to 6:00 PM",
-  "boys-7-13": "Tuesday 5:00 to 6:00 PM",
+  "girls-5-10": "Starts May 15 · Monday and Wednesday 2:30 to 3:30 PM",
+  "boys-7-13": "Starts May 15 · Monday and Wednesday 2:30 to 3:30 PM",
 };
 
 const BJJProgram = () => {

@@ -117,7 +117,7 @@ export function OrderSummaryCard({
           <div>
             <div className="font-body text-sm text-cream/90">{program.name}</div>
             <div className="font-mono-label text-[9px] uppercase tracking-[0.15em] text-cream/40 mt-0.5">
-              {showBjjEstimate && bjjBreakdown ? "Selected tier (estimate)" : price.label}
+              {showBjjEstimate && bjjBreakdown ? "Semester tuition estimate" : price.label}
             </div>
           </div>
           <div className="font-mono-label text-[12px] text-cream/80 text-right whitespace-nowrap">
@@ -146,9 +146,7 @@ export function OrderSummaryCard({
               <div>
                 <div className="font-body text-sm text-cream/90">Tuition</div>
                 <div className="font-mono-label text-[9px] uppercase tracking-[0.15em] text-cream/40 mt-0.5">
-                  {bjjBreakdown.perClassCents != null
-                    ? `${bjjBreakdown.classesN} classes × ${money(bjjBreakdown.perClassCents)}`
-                    : `${bjjBreakdown.classesN} sessions × tier rate`}
+                  Semester total
                 </div>
               </div>
               <div className="font-mono-label text-[12px] text-cream/80">{money(bjjBreakdown.tuitionCents)}</div>

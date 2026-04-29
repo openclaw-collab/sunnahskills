@@ -18,12 +18,27 @@ export async function onRequestGet({ request, env }: { request: Request; env: En
   if (!hasAdminPermission(admin, "payments", "read")) return json({ error: "Forbidden" }, { status: 403 });
 
   const url = new URL(request.url);
+  const programId = url.searchParams.get("programId");
+  const locationId = url.searchParams.get("locationId");
+  const paymentState = url.searchParams.get("paymentState");
   const review = url.searchParams.get("review");
   const status = url.searchParams.get("status");
+  const q = url.searchParams.get("q");
+  const dateFrom = url.searchParams.get("dateFrom");
+  const dateTo = url.searchParams.get("dateTo");
+  const sort = url.searchParams.get("sort") ?? "newest";
   const includeSuperseded = url.searchParams.get("includeSuperseded") === "1";
   const where: string[] = [];
   const binds: unknown[] = [];
 
+  if (programId) {
+    where.push("r.program_id = ?");
+    binds.push(programId);
+  }
+  if (locationId) {
+    where.push("COALESCE(ps.location_id, 'mississauga') = ?");
+    binds.push(locationId);
+  }
   if (review) {
     where.push("o.manual_review_status = ?");
     binds.push(review);
@@ -32,11 +47,39 @@ export async function onRequestGet({ request, env }: { request: Request; env: En
     where.push("o.status = ?");
     binds.push(status);
   }
+  if (q) {
+    where.push("(g.full_name LIKE ? OR g.email LIKE ? OR s.full_name LIKE ? OR CAST(o.id AS TEXT) LIKE ?)");
+    binds.push(`%${q}%`, `%${q}%`, `%${q}%`, `%${q}%`);
+  }
+  if (dateFrom) {
+    where.push("date(o.created_at) >= date(?)");
+    binds.push(dateFrom);
+  }
+  if (dateTo) {
+    where.push("date(o.created_at) <= date(?)");
+    binds.push(dateTo);
+  }
   if (!includeSuperseded) {
     where.push("o.status != 'superseded'");
   }
 
+  const paymentWhere: string[] = [];
+  if (paymentState === "paid_full") paymentWhere.push("paid_cents >= COALESCE(total_cents, 0) AND COALESCE(total_cents, 0) > 0");
+  if (paymentState === "paid_partial") paymentWhere.push("paid_cents > 0 AND paid_cents < COALESCE(total_cents, 0)");
+  if (paymentState === "pending") paymentWhere.push("(paid_cents = 0 OR paid_cents IS NULL) AND order_status NOT IN ('cancelled', 'superseded')");
+  if (paymentState === "failed") paymentWhere.push("latest_payment_status IN ('failed', 'requires_payment_method')");
+  if (paymentState === "superseded") paymentWhere.push("order_status = 'superseded'");
+  if (paymentState === "cancelled") paymentWhere.push("order_status = 'cancelled'");
+
+  const orderBy =
+    sort === "oldest" ? "ORDER BY created_at ASC" :
+    sort === "guardian" ? "ORDER BY guardian_name COLLATE NOCASE ASC, created_at DESC" :
+    sort === "amount_desc" ? "ORDER BY COALESCE(total_cents, amount_due_today_cents, 0) DESC, created_at DESC" :
+    sort === "amount_asc" ? "ORDER BY COALESCE(total_cents, amount_due_today_cents, 0) ASC, created_at DESC" :
+    "ORDER BY CASE WHEN manual_review_status = 'required' THEN 0 ELSE 1 END, created_at DESC";
+
   const sql = `
+    WITH order_rows AS (
     SELECT
       o.id as order_id,
       o.status as order_status,
@@ -55,9 +98,14 @@ export async function onRequestGet({ request, env }: { request: Request; env: En
       g.email as guardian_email,
       COUNT(DISTINCT r.id) as registration_count,
       GROUP_CONCAT(DISTINCT s.full_name) as student_names,
-      (SELECT SUM(CASE WHEN pay.status = 'paid' THEN pay.amount ELSE 0 END)
-       FROM payments pay
-       WHERE pay.enrollment_order_id = o.id) as paid_cents,
+      GROUP_CONCAT(DISTINCT p.name) as program_names,
+      GROUP_CONCAT(DISTINCT COALESCE(l.display_name, 'Mississauga')) as location_names,
+      GROUP_CONCAT(DISTINCT ps.age_group) as tracks,
+      COALESCE((
+        SELECT SUM(CASE WHEN pay.status = 'paid' THEN pay.amount ELSE 0 END)
+        FROM payments pay
+        WHERE pay.enrollment_order_id = o.id
+      ), 0) as paid_cents,
       (SELECT MAX(pay.status)
        FROM payments pay
        WHERE pay.enrollment_order_id = o.id) as latest_payment_status,
@@ -65,12 +113,17 @@ export async function onRequestGet({ request, env }: { request: Request; env: En
     FROM enrollment_orders o
     LEFT JOIN guardians g ON g.id = o.guardian_id
     LEFT JOIN registrations r ON r.enrollment_order_id = o.id
+    LEFT JOIN programs p ON p.id = r.program_id
+    LEFT JOIN program_sessions ps ON ps.id = r.session_id
+    LEFT JOIN locations l ON l.id = COALESCE(ps.location_id, 'mississauga')
     LEFT JOIN students s ON s.id = r.student_id
     ${where.length ? `WHERE ${where.join(" AND ")}` : ""}
     GROUP BY o.id
-    ORDER BY
-      CASE WHEN o.manual_review_status = 'required' THEN 0 ELSE 1 END,
-      o.created_at DESC
+    )
+    SELECT *
+    FROM order_rows
+    ${paymentWhere.length ? `WHERE ${paymentWhere.join(" AND ")}` : ""}
+    ${orderBy}
     LIMIT 250
   `;
 

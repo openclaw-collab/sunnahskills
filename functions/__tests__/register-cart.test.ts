@@ -283,9 +283,81 @@ describe("POST /api/register/cart", () => {
     expect(response.status).toBe(400);
     expect(data.error).toMatch(/self-defense/i);
   });
+
+  it("accepts the same kids BJJ track for one participant when locations are different", async () => {
+    const mockDb = env.DB as any;
+    mockDb.setMockData("programs", [{ id: "bjj", name: "Brazilian Jiu-Jitsu", status: "active" }]);
+    mockDb.setMockData("program_prices", [
+      { id: 1, program_id: "bjj", age_group: "boys-7-13", amount: 1200, registration_fee: 0, frequency: "per_session", metadata: null, active: 1 },
+    ]);
+    mockDb.setMockData("program_sessions", [
+      { id: 11, program_id: "bjj", location_id: "mississauga", age_group: "boys-7-13", capacity: 20, enrolled_count: 0, active_count: 0, visible: 1, status: "active" },
+      { id: 12, program_id: "bjj", location_id: "oakville", age_group: "boys-7-13", capacity: 20, enrolled_count: 0, active_count: 0, visible: 1, status: "active" },
+    ]);
+    mockDb.setMockData("semesters", [
+      { classes_in_semester: 13, price_per_class_cents: 1200, registration_fee_cents: 0, later_payment_date: "2026-05-12", start_date: "2026-03-31", end_date: "2026-06-27" },
+    ]);
+    mockDb.setMockData("waiver_documents", [
+      { id: 1, slug: "registration", active: 1, title: "Registration Waiver", version_label: "2026.03" },
+    ]);
+
+    const response = await onRequestPost({ request: createMockRequest("POST", "https://example.com/api/register/cart", {
+      body: bjjCartPayload([
+        { track: "boys-7-13", sessionId: 11, priceId: 1, locationId: "mississauga" },
+        { track: "boys-7-13", sessionId: 12, priceId: 1, locationId: "oakville" },
+      ], {
+        fullName: "Yusuf Example",
+        dateOfBirth: "2016-05-01",
+        gender: "male",
+        participantType: "child",
+      }),
+    }), env });
+    const data = await parseJsonResponse(response);
+
+    expect(response.status).toBe(200);
+    expect(data.registrationIds).toHaveLength(2);
+  });
+
+  it("rejects a BJJ line when the selected session does not match the selected location", async () => {
+    const mockDb = env.DB as any;
+    mockDb.setMockData("programs", [{ id: "bjj", name: "Brazilian Jiu-Jitsu", status: "active" }]);
+    mockDb.setMockData("program_prices", [
+      { id: 1, program_id: "bjj", age_group: "boys-7-13", amount: 1200, registration_fee: 0, frequency: "per_session", metadata: null, active: 1 },
+    ]);
+    mockDb.setMockData("program_sessions", [
+      { id: 11, program_id: "bjj", location_id: "mississauga", age_group: "boys-7-13", capacity: 20, enrolled_count: 0, active_count: 0, visible: 1, status: "active" },
+    ]);
+    mockDb.setMockData("semesters", [
+      { classes_in_semester: 13, price_per_class_cents: 1200, registration_fee_cents: 0, later_payment_date: "2026-05-12", start_date: "2026-03-31", end_date: "2026-06-27" },
+    ]);
+    mockDb.setMockData("waiver_documents", [
+      { id: 1, slug: "registration", active: 1, title: "Registration Waiver", version_label: "2026.03" },
+    ]);
+
+    const response = await onRequestPost({ request: createMockRequest("POST", "https://example.com/api/register/cart", {
+      body: bjjCartPayload([{ track: "boys-7-13", sessionId: 11, priceId: 1, locationId: "oakville" }], {
+        fullName: "Yusuf Example",
+        dateOfBirth: "2016-05-01",
+        gender: "male",
+        participantType: "child",
+      }),
+    }), env });
+    const data = await parseJsonResponse(response);
+
+    expect(response.status).toBe(400);
+    expect(data.error).toMatch(/location/i);
+  });
 });
 
-function bjjCartPayload(lines: Array<{ track: string; sessionId: number; priceId: number }>) {
+function bjjCartPayload(
+  lines: Array<{ track: string; sessionId: number; priceId: number; locationId?: string }>,
+  participant: Partial<{
+    participantType: "self" | "child";
+    fullName: string;
+    dateOfBirth: string;
+    gender: string;
+  }> = {},
+) {
   return {
     account: {
       fullName: "Parent Example",
@@ -299,10 +371,10 @@ function bjjCartPayload(lines: Array<{ track: string; sessionId: number; priceId
       programSlug: "bjj",
       participant: {
         id: 7,
-        participantType: "self",
-        fullName: "Aisha Example",
-        dateOfBirth: "2000-05-01",
-        gender: "female",
+        participantType: participant.participantType ?? "self",
+        fullName: participant.fullName ?? "Aisha Example",
+        dateOfBirth: participant.dateOfBirth ?? "2000-05-01",
+        gender: participant.gender ?? "female",
         experienceLevel: "beginner",
       },
       paymentChoice: "full",
@@ -311,6 +383,7 @@ function bjjCartPayload(lines: Array<{ track: string; sessionId: number; priceId
         priceId: line.priceId,
         programSpecific: {
           bjjTrack: line.track,
+          locationId: line.locationId ?? "mississauga",
         },
       },
     })),

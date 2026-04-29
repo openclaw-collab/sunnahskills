@@ -32,6 +32,7 @@ export type BjjFamilyCartLine = {
     priceId: number;
     programSpecific: {
       bjjTrack: string;
+      locationId?: string;
       notes?: string;
     };
   };

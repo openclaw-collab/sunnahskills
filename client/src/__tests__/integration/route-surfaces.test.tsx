@@ -171,6 +171,39 @@ describe("Additional route surface coverage", () => {
     expect(screen.getByRole("link", { name: /finish account setup/i })).toBeInTheDocument();
   });
 
+  it("shows location selection before BJJ tracks and filters Oakville schedule", async () => {
+    const user = userEvent.setup();
+    mockStore.currentGuardian = {
+      authenticated: true,
+      email: "guardian@example.com",
+      accountNumber: "ACC-1001",
+      fullName: "Guardian Example",
+      phone: "555-0100",
+      emergencyContactName: "Emergency Adult",
+      emergencyContactPhone: "555-0199",
+      accountRole: "parent_guardian",
+      accountComplete: true,
+    };
+    mockStore.guardianStudents = [
+      {
+        id: 8,
+        participant_type: "child",
+        full_name: "Yusuf Example",
+        date_of_birth: "2015-05-01",
+        gender: "male",
+        medical_notes: "",
+      },
+    ];
+
+    renderAt("/programs/bjj/register", <BJJRegistration />);
+
+    expect(await screen.findByText("Location")).toBeInTheDocument();
+    expect(screen.getAllByText("Mississauga").length).toBeGreaterThan(0);
+    await user.click(screen.getByText("Oakville, ON"));
+    expect(await screen.findByText(/Showing classes for/i)).toBeInTheDocument();
+    expect(screen.getByText(/Oakville · Tuesday 17:00-18:00/i)).toBeInTheDocument();
+  });
+
   it("renders the not-found page recovery actions", async () => {
     renderAt("/missing", <NotFound />);
 

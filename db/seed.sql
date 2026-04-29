@@ -1,6 +1,17 @@
 -- Seed data for Sunnah Skills programs, sessions, and prices
 -- BJJ sessions match merged plan: kids Fri 10 / Tue 2:30–3:30; Women Tue + Thu; Men Fri/Sat 8–9pm
 
+INSERT INTO locations (id, display_name, city, address, status, metadata)
+VALUES
+  ('mississauga', 'Mississauga', 'Mississauga', '918 Dundas St. West, Mississauga', 'active', '{"sort_order":1}'),
+  ('oakville', 'Oakville', 'Oakville', 'Oakville, ON — exact address shared after registration', 'active', '{"sort_order":2}')
+ON CONFLICT(id) DO UPDATE SET
+  display_name = excluded.display_name,
+  city = excluded.city,
+  address = excluded.address,
+  status = excluded.status,
+  metadata = excluded.metadata;
+
 INSERT INTO programs (id, name, slug, type, description, age_min, age_max, supports_trial, supports_recurring, status)
 VALUES
   ('bjj', 'Brazilian Jiu-Jitsu', 'bjj', 'recurring', 'Structured gi/no-gi grappling for youth and teens.', 5, 17, 1, 1, 'active'),
@@ -101,8 +112,10 @@ WHERE program_id = 'archery';
 
 UPDATE program_sessions
 SET status = 'coming_soon',
-    visible = 0
+    visible = 0,
+    location_id = COALESCE(location_id, 'mississauga')
 WHERE program_id = 'bjj'
+  AND COALESCE(location_id, 'mississauga') = 'mississauga'
   AND NOT (
     (age_group = 'girls-5-10' AND gender_group = 'female' AND day_of_week = 'Friday' AND start_time = '10:00' AND end_time = '11:00') OR
     (age_group = 'girls-5-10' AND gender_group = 'female' AND day_of_week = 'Tuesday' AND start_time = '14:30' AND end_time = '15:30') OR
@@ -115,83 +128,103 @@ WHERE program_id = 'bjj'
   );
 
 UPDATE program_sessions
-SET name = 'Girls 5–10 — Friday', season = NULL, capacity = 20, status = 'active', visible = 1
-WHERE program_id = 'bjj' AND age_group = 'girls-5-10' AND gender_group = 'female' AND day_of_week = 'Friday' AND start_time = '10:00' AND end_time = '11:00';
-INSERT INTO program_sessions (program_id, name, season, day_of_week, start_time, end_time, age_group, gender_group, capacity, status, visible)
-SELECT 'bjj', 'Girls 5–10 — Friday', NULL, 'Friday', '10:00', '11:00', 'girls-5-10', 'female', 16, 'active', 1
+SET name = 'Girls 5–10 — Friday', season = NULL, capacity = 20, status = 'active', visible = 1, location_id = 'mississauga'
+WHERE program_id = 'bjj' AND COALESCE(location_id, 'mississauga') = 'mississauga' AND age_group = 'girls-5-10' AND gender_group = 'female' AND day_of_week = 'Friday' AND start_time = '10:00' AND end_time = '11:00';
+INSERT INTO program_sessions (program_id, location_id, name, season, day_of_week, start_time, end_time, age_group, gender_group, capacity, status, visible)
+SELECT 'bjj', 'mississauga', 'Girls 5–10 — Friday', NULL, 'Friday', '10:00', '11:00', 'girls-5-10', 'female', 16, 'active', 1
 WHERE NOT EXISTS (
   SELECT 1 FROM program_sessions
-  WHERE program_id = 'bjj' AND age_group = 'girls-5-10' AND gender_group = 'female' AND day_of_week = 'Friday' AND start_time = '10:00' AND end_time = '11:00'
+  WHERE program_id = 'bjj' AND COALESCE(location_id, 'mississauga') = 'mississauga' AND age_group = 'girls-5-10' AND gender_group = 'female' AND day_of_week = 'Friday' AND start_time = '10:00' AND end_time = '11:00'
 );
 
 UPDATE program_sessions
-SET name = 'Girls 5–10 — Tuesday', season = NULL, capacity = 20, status = 'active', visible = 1
-WHERE program_id = 'bjj' AND age_group = 'girls-5-10' AND gender_group = 'female' AND day_of_week = 'Tuesday' AND start_time = '14:30' AND end_time = '15:30';
-INSERT INTO program_sessions (program_id, name, season, day_of_week, start_time, end_time, age_group, gender_group, capacity, status, visible)
-SELECT 'bjj', 'Girls 5–10 — Tuesday', NULL, 'Tuesday', '14:30', '15:30', 'girls-5-10', 'female', 16, 'active', 1
+SET name = 'Girls 5–10 — Tuesday', season = NULL, capacity = 20, status = 'active', visible = 1, location_id = 'mississauga'
+WHERE program_id = 'bjj' AND COALESCE(location_id, 'mississauga') = 'mississauga' AND age_group = 'girls-5-10' AND gender_group = 'female' AND day_of_week = 'Tuesday' AND start_time = '14:30' AND end_time = '15:30';
+INSERT INTO program_sessions (program_id, location_id, name, season, day_of_week, start_time, end_time, age_group, gender_group, capacity, status, visible)
+SELECT 'bjj', 'mississauga', 'Girls 5–10 — Tuesday', NULL, 'Tuesday', '14:30', '15:30', 'girls-5-10', 'female', 16, 'active', 1
 WHERE NOT EXISTS (
   SELECT 1 FROM program_sessions
-  WHERE program_id = 'bjj' AND age_group = 'girls-5-10' AND gender_group = 'female' AND day_of_week = 'Tuesday' AND start_time = '14:30' AND end_time = '15:30'
+  WHERE program_id = 'bjj' AND COALESCE(location_id, 'mississauga') = 'mississauga' AND age_group = 'girls-5-10' AND gender_group = 'female' AND day_of_week = 'Tuesday' AND start_time = '14:30' AND end_time = '15:30'
 );
 
 UPDATE program_sessions
-SET name = 'Boys 7–13 — Friday', season = NULL, capacity = 20, status = 'active', visible = 1
-WHERE program_id = 'bjj' AND age_group = 'boys-7-13' AND gender_group = 'male' AND day_of_week = 'Friday' AND start_time = '10:00' AND end_time = '11:00';
-INSERT INTO program_sessions (program_id, name, season, day_of_week, start_time, end_time, age_group, gender_group, capacity, status, visible)
-SELECT 'bjj', 'Boys 7–13 — Friday', NULL, 'Friday', '10:00', '11:00', 'boys-7-13', 'male', 16, 'active', 1
+SET name = 'Boys 7–13 — Friday', season = NULL, capacity = 20, status = 'active', visible = 1, location_id = 'mississauga'
+WHERE program_id = 'bjj' AND COALESCE(location_id, 'mississauga') = 'mississauga' AND age_group = 'boys-7-13' AND gender_group = 'male' AND day_of_week = 'Friday' AND start_time = '10:00' AND end_time = '11:00';
+INSERT INTO program_sessions (program_id, location_id, name, season, day_of_week, start_time, end_time, age_group, gender_group, capacity, status, visible)
+SELECT 'bjj', 'mississauga', 'Boys 7–13 — Friday', NULL, 'Friday', '10:00', '11:00', 'boys-7-13', 'male', 16, 'active', 1
 WHERE NOT EXISTS (
   SELECT 1 FROM program_sessions
-  WHERE program_id = 'bjj' AND age_group = 'boys-7-13' AND gender_group = 'male' AND day_of_week = 'Friday' AND start_time = '10:00' AND end_time = '11:00'
+  WHERE program_id = 'bjj' AND COALESCE(location_id, 'mississauga') = 'mississauga' AND age_group = 'boys-7-13' AND gender_group = 'male' AND day_of_week = 'Friday' AND start_time = '10:00' AND end_time = '11:00'
 );
 
 UPDATE program_sessions
-SET name = 'Boys 7–13 — Tuesday', season = NULL, capacity = 20, status = 'active', visible = 1
-WHERE program_id = 'bjj' AND age_group = 'boys-7-13' AND gender_group = 'male' AND day_of_week = 'Tuesday' AND start_time = '14:30' AND end_time = '15:30';
-INSERT INTO program_sessions (program_id, name, season, day_of_week, start_time, end_time, age_group, gender_group, capacity, status, visible)
-SELECT 'bjj', 'Boys 7–13 — Tuesday', NULL, 'Tuesday', '14:30', '15:30', 'boys-7-13', 'male', 16, 'active', 1
+SET name = 'Boys 7–13 — Tuesday', season = NULL, capacity = 20, status = 'active', visible = 1, location_id = 'mississauga'
+WHERE program_id = 'bjj' AND COALESCE(location_id, 'mississauga') = 'mississauga' AND age_group = 'boys-7-13' AND gender_group = 'male' AND day_of_week = 'Tuesday' AND start_time = '14:30' AND end_time = '15:30';
+INSERT INTO program_sessions (program_id, location_id, name, season, day_of_week, start_time, end_time, age_group, gender_group, capacity, status, visible)
+SELECT 'bjj', 'mississauga', 'Boys 7–13 — Tuesday', NULL, 'Tuesday', '14:30', '15:30', 'boys-7-13', 'male', 16, 'active', 1
 WHERE NOT EXISTS (
   SELECT 1 FROM program_sessions
-  WHERE program_id = 'bjj' AND age_group = 'boys-7-13' AND gender_group = 'male' AND day_of_week = 'Tuesday' AND start_time = '14:30' AND end_time = '15:30'
+  WHERE program_id = 'bjj' AND COALESCE(location_id, 'mississauga') = 'mississauga' AND age_group = 'boys-7-13' AND gender_group = 'male' AND day_of_week = 'Tuesday' AND start_time = '14:30' AND end_time = '15:30'
 );
 
 UPDATE program_sessions
-SET name = 'Teens+ Women 11+ — Tuesday', season = NULL, capacity = 20, status = 'active', visible = 1
-WHERE program_id = 'bjj' AND age_group = 'women-11-tue' AND gender_group = 'female' AND day_of_week = 'Tuesday' AND start_time = '12:30' AND end_time = '14:00';
-INSERT INTO program_sessions (program_id, name, season, day_of_week, start_time, end_time, age_group, gender_group, capacity, status, visible)
-SELECT 'bjj', 'Teens+ Women 11+ — Tuesday', NULL, 'Tuesday', '12:30', '14:00', 'women-11-tue', 'female', 14, 'active', 1
+SET name = 'Teens+ Women 11+ — Tuesday', season = NULL, capacity = 20, status = 'active', visible = 1, location_id = 'mississauga'
+WHERE program_id = 'bjj' AND COALESCE(location_id, 'mississauga') = 'mississauga' AND age_group = 'women-11-tue' AND gender_group = 'female' AND day_of_week = 'Tuesday' AND start_time = '12:30' AND end_time = '14:00';
+INSERT INTO program_sessions (program_id, location_id, name, season, day_of_week, start_time, end_time, age_group, gender_group, capacity, status, visible)
+SELECT 'bjj', 'mississauga', 'Teens+ Women 11+ — Tuesday', NULL, 'Tuesday', '12:30', '14:00', 'women-11-tue', 'female', 14, 'active', 1
 WHERE NOT EXISTS (
   SELECT 1 FROM program_sessions
-  WHERE program_id = 'bjj' AND age_group = 'women-11-tue' AND gender_group = 'female' AND day_of_week = 'Tuesday' AND start_time = '12:30' AND end_time = '14:00'
+  WHERE program_id = 'bjj' AND COALESCE(location_id, 'mississauga') = 'mississauga' AND age_group = 'women-11-tue' AND gender_group = 'female' AND day_of_week = 'Tuesday' AND start_time = '12:30' AND end_time = '14:00'
 );
 
 UPDATE program_sessions
-SET name = 'Teens+ Women 11+ — Thursday', season = NULL, capacity = 20, status = 'active', visible = 1
-WHERE program_id = 'bjj' AND age_group = 'women-11-thu' AND gender_group = 'female' AND day_of_week = 'Thursday' AND start_time = '20:00' AND end_time = '21:30';
-INSERT INTO program_sessions (program_id, name, season, day_of_week, start_time, end_time, age_group, gender_group, capacity, status, visible)
-SELECT 'bjj', 'Teens+ Women 11+ — Thursday', NULL, 'Thursday', '20:00', '21:30', 'women-11-thu', 'female', 14, 'active', 1
+SET name = 'Teens+ Women 11+ — Thursday', season = NULL, capacity = 20, status = 'active', visible = 1, location_id = 'mississauga'
+WHERE program_id = 'bjj' AND COALESCE(location_id, 'mississauga') = 'mississauga' AND age_group = 'women-11-thu' AND gender_group = 'female' AND day_of_week = 'Thursday' AND start_time = '20:00' AND end_time = '21:30';
+INSERT INTO program_sessions (program_id, location_id, name, season, day_of_week, start_time, end_time, age_group, gender_group, capacity, status, visible)
+SELECT 'bjj', 'mississauga', 'Teens+ Women 11+ — Thursday', NULL, 'Thursday', '20:00', '21:30', 'women-11-thu', 'female', 14, 'active', 1
 WHERE NOT EXISTS (
   SELECT 1 FROM program_sessions
-  WHERE program_id = 'bjj' AND age_group = 'women-11-thu' AND gender_group = 'female' AND day_of_week = 'Thursday' AND start_time = '20:00' AND end_time = '21:30'
+  WHERE program_id = 'bjj' AND COALESCE(location_id, 'mississauga') = 'mississauga' AND age_group = 'women-11-thu' AND gender_group = 'female' AND day_of_week = 'Thursday' AND start_time = '20:00' AND end_time = '21:30'
 );
 
 UPDATE program_sessions
-SET name = 'Teens+ Men 14+ — Friday', season = NULL, capacity = 20, status = 'active', visible = 1
-WHERE program_id = 'bjj' AND age_group = 'men-14' AND gender_group = 'male' AND day_of_week = 'Friday' AND start_time = '20:00' AND end_time = '21:00';
-INSERT INTO program_sessions (program_id, name, season, day_of_week, start_time, end_time, age_group, gender_group, capacity, status, visible)
-SELECT 'bjj', 'Teens+ Men 14+ — Friday', NULL, 'Friday', '20:00', '21:00', 'men-14', 'male', 18, 'active', 1
+SET name = 'Teens+ Men 14+ — Friday', season = NULL, capacity = 20, status = 'active', visible = 1, location_id = 'mississauga'
+WHERE program_id = 'bjj' AND COALESCE(location_id, 'mississauga') = 'mississauga' AND age_group = 'men-14' AND gender_group = 'male' AND day_of_week = 'Friday' AND start_time = '20:00' AND end_time = '21:00';
+INSERT INTO program_sessions (program_id, location_id, name, season, day_of_week, start_time, end_time, age_group, gender_group, capacity, status, visible)
+SELECT 'bjj', 'mississauga', 'Teens+ Men 14+ — Friday', NULL, 'Friday', '20:00', '21:00', 'men-14', 'male', 18, 'active', 1
 WHERE NOT EXISTS (
   SELECT 1 FROM program_sessions
-  WHERE program_id = 'bjj' AND age_group = 'men-14' AND gender_group = 'male' AND day_of_week = 'Friday' AND start_time = '20:00' AND end_time = '21:00'
+  WHERE program_id = 'bjj' AND COALESCE(location_id, 'mississauga') = 'mississauga' AND age_group = 'men-14' AND gender_group = 'male' AND day_of_week = 'Friday' AND start_time = '20:00' AND end_time = '21:00'
 );
 
 UPDATE program_sessions
-SET name = 'Teens+ Men 14+ — Saturday', season = NULL, capacity = 20, status = 'active', visible = 1
-WHERE program_id = 'bjj' AND age_group = 'men-14' AND gender_group = 'male' AND day_of_week = 'Saturday' AND start_time = '20:00' AND end_time = '21:00';
-INSERT INTO program_sessions (program_id, name, season, day_of_week, start_time, end_time, age_group, gender_group, capacity, status, visible)
-SELECT 'bjj', 'Teens+ Men 14+ — Saturday', NULL, 'Saturday', '20:00', '21:00', 'men-14', 'male', 18, 'active', 1
+SET name = 'Teens+ Men 14+ — Saturday', season = NULL, capacity = 20, status = 'active', visible = 1, location_id = 'mississauga'
+WHERE program_id = 'bjj' AND COALESCE(location_id, 'mississauga') = 'mississauga' AND age_group = 'men-14' AND gender_group = 'male' AND day_of_week = 'Saturday' AND start_time = '20:00' AND end_time = '21:00';
+INSERT INTO program_sessions (program_id, location_id, name, season, day_of_week, start_time, end_time, age_group, gender_group, capacity, status, visible)
+SELECT 'bjj', 'mississauga', 'Teens+ Men 14+ — Saturday', NULL, 'Saturday', '20:00', '21:00', 'men-14', 'male', 18, 'active', 1
 WHERE NOT EXISTS (
   SELECT 1 FROM program_sessions
-  WHERE program_id = 'bjj' AND age_group = 'men-14' AND gender_group = 'male' AND day_of_week = 'Saturday' AND start_time = '20:00' AND end_time = '21:00'
+  WHERE program_id = 'bjj' AND COALESCE(location_id, 'mississauga') = 'mississauga' AND age_group = 'men-14' AND gender_group = 'male' AND day_of_week = 'Saturday' AND start_time = '20:00' AND end_time = '21:00'
+);
+
+UPDATE program_sessions
+SET name = 'Oakville Girls 5–10 — Tuesday', season = NULL, capacity = 16, status = 'active', visible = 1
+WHERE program_id = 'bjj' AND location_id = 'oakville' AND age_group = 'girls-5-10' AND gender_group = 'female' AND day_of_week = 'Tuesday' AND start_time = '17:00' AND end_time = '18:00';
+INSERT INTO program_sessions (program_id, location_id, name, season, day_of_week, start_time, end_time, age_group, gender_group, capacity, status, visible)
+SELECT 'bjj', 'oakville', 'Oakville Girls 5–10 — Tuesday', NULL, 'Tuesday', '17:00', '18:00', 'girls-5-10', 'female', 16, 'active', 1
+WHERE NOT EXISTS (
+  SELECT 1 FROM program_sessions
+  WHERE program_id = 'bjj' AND location_id = 'oakville' AND age_group = 'girls-5-10' AND gender_group = 'female' AND day_of_week = 'Tuesday' AND start_time = '17:00' AND end_time = '18:00'
+);
+
+UPDATE program_sessions
+SET name = 'Oakville Boys 7–13 — Tuesday', season = NULL, capacity = 16, status = 'active', visible = 1
+WHERE program_id = 'bjj' AND location_id = 'oakville' AND age_group = 'boys-7-13' AND gender_group = 'male' AND day_of_week = 'Tuesday' AND start_time = '17:00' AND end_time = '18:00';
+INSERT INTO program_sessions (program_id, location_id, name, season, day_of_week, start_time, end_time, age_group, gender_group, capacity, status, visible)
+SELECT 'bjj', 'oakville', 'Oakville Boys 7–13 — Tuesday', NULL, 'Tuesday', '17:00', '18:00', 'boys-7-13', 'male', 16, 'active', 1
+WHERE NOT EXISTS (
+  SELECT 1 FROM program_sessions
+  WHERE program_id = 'bjj' AND location_id = 'oakville' AND age_group = 'boys-7-13' AND gender_group = 'male' AND day_of_week = 'Tuesday' AND start_time = '17:00' AND end_time = '18:00'
 );
 
 INSERT INTO program_sessions (id, program_id, offer_id, name, season, day_of_week, start_time, end_time, age_group, gender_group, capacity, enrolled_count, start_date, end_date, status, visible)

@@ -52,6 +52,19 @@ CREATE INDEX IF NOT EXISTS idx_admin_activity_logs_created_at ON admin_activity_
 CREATE INDEX IF NOT EXISTS idx_admin_activity_logs_actor ON admin_activity_logs(actor_admin_user_id);
 CREATE INDEX IF NOT EXISTS idx_admin_activity_logs_subject ON admin_activity_logs(subject_admin_user_id);
 
+-- Physical training locations / campuses
+CREATE TABLE IF NOT EXISTS locations (
+  id TEXT PRIMARY KEY,
+  display_name TEXT NOT NULL,
+  city TEXT NOT NULL,
+  address TEXT,
+  status TEXT DEFAULT 'active', -- 'active', 'coming_soon', 'archived'
+  metadata TEXT,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_locations_status ON locations(status);
+
 -- Programs catalog
 CREATE TABLE IF NOT EXISTS programs (
   id TEXT PRIMARY KEY,
@@ -72,6 +85,7 @@ CREATE TABLE IF NOT EXISTS programs (
 CREATE TABLE IF NOT EXISTS program_prices (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   program_id TEXT NOT NULL REFERENCES programs(id),
+  location_id TEXT REFERENCES locations(id),
   offer_id INTEGER REFERENCES program_offers(id),
   age_group TEXT NOT NULL,
   label TEXT NOT NULL,
@@ -116,6 +130,7 @@ CREATE INDEX IF NOT EXISTS idx_program_offer_dates_offer ON program_offer_dates(
 CREATE TABLE IF NOT EXISTS program_sessions (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   program_id TEXT NOT NULL REFERENCES programs(id),
+  location_id TEXT REFERENCES locations(id),
   offer_id INTEGER REFERENCES program_offers(id),
   name TEXT NOT NULL,
   season TEXT,
@@ -405,6 +420,7 @@ CREATE TABLE IF NOT EXISTS semesters (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   name TEXT NOT NULL,
   program_id TEXT NOT NULL REFERENCES programs(id),
+  location_id TEXT REFERENCES locations(id),
   start_date TEXT,
   end_date TEXT,
   classes_in_semester INTEGER NOT NULL DEFAULT 12,

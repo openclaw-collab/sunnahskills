@@ -36,7 +36,7 @@ const Programs = () => {
             <p className="font-body text-pretty text-sm text-charcoal/70 max-w-2xl mb-12">
                 <StudioText
                   k="programs.intro"
-                  defaultText="Brazilian Jiu-Jitsu and Archery are open now. Swimming and Horseback are coming soon. Sign in once, add your participants, then choose the program you want to register for."
+                  defaultText="Brazilian Jiu-Jitsu is open in Mississauga and Oakville, and Archery is open now. Swimming and Horseback are coming soon. Sign in once, add your participants, then choose the program you want to register for."
                   as="span"
                   className="inline"
                   multiline

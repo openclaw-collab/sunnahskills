@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 export type CatalogSession = {
   id: number;
   program_id: string;
+  location_id?: string | null;
   offer_id?: number | null;
   name: string;
   season?: string | null;
@@ -19,6 +20,7 @@ export type CatalogSession = {
 export type CatalogPrice = {
   id: number;
   program_id: string;
+  location_id?: string | null;
   offer_id?: number | null;
   age_group: string;
   label: string;
@@ -70,13 +72,22 @@ export type CatalogProgram = {
   active_semester: CatalogActiveSemester | null;
 };
 
+export type CatalogLocation = {
+  id: string;
+  display_name: string;
+  city: string;
+  address?: string | null;
+  status: string;
+  metadata?: string | null;
+};
+
 export function useProgramsCatalog() {
   return useQuery({
     queryKey: ["programs-catalog"],
     queryFn: async () => {
       const res = await fetch("/api/programs");
       if (!res.ok) throw new Error("Failed to load programs");
-      const data = (await res.json()) as { programs: CatalogProgram[] };
+      const data = (await res.json()) as { programs: CatalogProgram[]; locations?: CatalogLocation[] };
       return data;
     },
     staleTime: 60_000,

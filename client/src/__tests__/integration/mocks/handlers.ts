@@ -693,6 +693,7 @@ export const handlers = [
             {
               id: 1,
               program_id: "bjj",
+              location_id: "mississauga",
               name: "Boys 7–13 — Friday",
               day_of_week: "Friday",
               start_time: "10:00",
@@ -706,6 +707,7 @@ export const handlers = [
             {
               id: 2,
               program_id: "bjj",
+              location_id: "mississauga",
               name: "Boys 7–13 — Tuesday",
               day_of_week: "Tuesday",
               start_time: "14:30",
@@ -719,6 +721,7 @@ export const handlers = [
             {
               id: 3,
               program_id: "bjj",
+              location_id: "mississauga",
               name: "Girls 5–10 — Tuesday",
               day_of_week: "Tuesday",
               start_time: "13:30",
@@ -726,6 +729,20 @@ export const handlers = [
               age_group: "girls-5-10",
               gender_group: "female",
               capacity: 20,
+              enrolled_count: 0,
+              visible: 1,
+            },
+            {
+              id: 4,
+              program_id: "bjj",
+              location_id: "oakville",
+              name: "Oakville Boys 7–13 — Tuesday",
+              day_of_week: "Tuesday",
+              start_time: "17:00",
+              end_time: "18:00",
+              age_group: "boys-7-13",
+              gender_group: "male",
+              capacity: 16,
               enrolled_count: 0,
               visible: 1,
             },
@@ -877,6 +894,10 @@ export const handlers = [
           ],
           active_semester: null,
         },
+      ],
+      locations: [
+        { id: "mississauga", display_name: "Mississauga", city: "Mississauga", address: "918 Dundas St. West, Mississauga", status: "active" },
+        { id: "oakville", display_name: "Oakville", city: "Oakville", address: "Oakville, ON", status: "active" },
       ],
     });
   }),

@@ -39,10 +39,11 @@ export const PROGRAMS: Record<ProgramSlug, ProgramConfig> = {
       "Ground-based training that teaches leverage, timing, and composure while helping students grow through steady progression.",
     highlights: ["Age-group tracks", "Technique over strength", "Belt progression", "Confidence under pressure"],
     overviewBullets: [
-      "Girls 5–10 and Boys 7–13 train Tuesday 2:30-3:30 PM and Friday 10:00-11:00 AM",
+      "Mississauga Girls 5–10 and Boys 7–13 train Tuesday 2:30-3:30 PM and Friday 10:00-11:00 AM",
+      "Oakville kids classes are open for Girls 5–10 and Boys 7–13",
       "Women 11+ choose Tuesday 12:30-2:00 PM OR Thursday 8:00-9:30 PM (or both)",
       "Men 14+ train Friday 8:00-9:00 PM and Saturday 8:00-9:00 PM",
-      "All sessions at 918 Dundas St. West, Mississauga",
+      "Choose Mississauga or Oakville before selecting a BJJ track",
     ],
     heroImage: {
       src: "/programs/bjj.png",
@@ -52,7 +53,7 @@ export const PROGRAMS: Record<ProgramSlug, ProgramConfig> = {
     registerPath: "/programs/bjj/register",
     detailPath: "/programs/bjj",
     pricingBlurb: "Kids tuition follows semester math from admin pricing; women and men tracks use admin-set live rates.",
-    scheduleBlurb: "Tuesday / Friday youth, Tuesday / Thursday women, Friday / Saturday men.",
+    scheduleBlurb: "Mississauga full schedule; Oakville kids classes now open.",
     nextSteps: [
       "Sign in before registration.",
       "Choose the exact BJJ track and session that matches the student.",

@@ -23,6 +23,7 @@ export default defineConfig({
       "functions/__tests__/guardian-account.test.ts",
       "functions/__tests__/admin-contacts-reply.test.ts",
       "functions/__tests__/register-cart.test.ts",
+      "functions/__tests__/programs-location.test.ts",
       "functions/__tests__/waivers.test.ts",
       "functions/__tests__/utils.test.ts",
       "functions/__tests__/payments.test.ts",

@@ -53,12 +53,18 @@ function lineProgramLabel(line: FamilyCart["lines"][number]) {
   return "Brazilian Jiu-Jitsu";
 }
 
+function bjjLocationLabel(locationId: string | undefined) {
+  if (locationId === "oakville") return "Oakville";
+  return "Mississauga";
+}
+
 function lineDetailLabel(line: FamilyCart["lines"][number]) {
   if (line.programSlug === "archery") return ARCHERY_SERIES_LABEL;
   const track = line.programDetails.programSpecific.bjjTrack;
-  return Object.prototype.hasOwnProperty.call(BJJ_TRACK_BY_KEY, track)
+  const trackLabel = Object.prototype.hasOwnProperty.call(BJJ_TRACK_BY_KEY, track)
     ? BJJ_TRACK_BY_KEY[track as keyof typeof BJJ_TRACK_BY_KEY].registerLabel
     : track;
+  return `${bjjLocationLabel(line.programDetails.programSpecific.locationId)} · ${trackLabel}`;
 }
 
 function archeryLinePriceCents(lines: FamilyCart["lines"], lineId: string) {

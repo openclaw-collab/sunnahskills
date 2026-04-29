@@ -1,4 +1,5 @@
 import { Link } from "wouter";
+import { useState } from "react";
 import { ClayButton } from "@/components/brand/ClayButton";
 import { OutlineButton } from "@/components/brand/OutlineButton";
 import { DarkCard } from "@/components/brand/DarkCard";
@@ -11,8 +12,33 @@ import { MotionDiv, MotionPage, MotionSection } from "@/components/motion/PageMo
 import { PROGRAMS, getProgramTypeLabel } from "@/lib/programConfig";
 import { BJJ_MARKETING_GROUPS } from "@shared/bjjCatalog";
 
+const BJJ_LOCATIONS = [
+  {
+    id: "mississauga",
+    label: "Mississauga",
+    address: "918 Dundas St West",
+    summary: "Full BJJ schedule for kids, women, and men.",
+  },
+  {
+    id: "oakville",
+    label: "Oakville",
+    address: "Oakville, ON",
+    summary: "Kids BJJ launch classes for girls and boys.",
+  },
+] as const;
+
+const OAKVILLE_TRACK_SCHEDULES: Record<string, string> = {
+  "girls-5-10": "Tuesday 5:00 to 6:00 PM",
+  "boys-7-13": "Tuesday 5:00 to 6:00 PM",
+};
+
 const BJJProgram = () => {
   const program = PROGRAMS.bjj;
+  const [selectedLocationId, setSelectedLocationId] = useState<(typeof BJJ_LOCATIONS)[number]["id"]>("mississauga");
+  const selectedLocation = BJJ_LOCATIONS.find((location) => location.id === selectedLocationId) ?? BJJ_LOCATIONS[0];
+  const visibleGroups = selectedLocationId === "oakville"
+    ? BJJ_MARKETING_GROUPS.filter((group) => group.key === "girls" || group.key === "boys")
+    : BJJ_MARKETING_GROUPS;
 
   return (
     <MotionPage className="bg-cream min-h-screen">
@@ -37,8 +63,8 @@ const BJJProgram = () => {
                 {program.heroLead}
               </p>
               <p className="mt-4 text-cream/65 font-body text-sm max-w-2xl leading-relaxed text-pretty">
-                Weekly classes at 918 Dundas St West. Girls and Boys train Tuesday 2:30-3:30 PM and Friday 10-11 AM.
-                Women train Tuesday 12:30-2:00 PM or Thursday 8:00-9:30 PM. Men train Friday and Saturday 8-9 PM.
+                Weekly classes in Mississauga, with Oakville kids classes now available for girls and boys.
+                Choose the location that works for your family before registration.
               </p>
 
               <div className="mt-8 flex flex-wrap gap-2">
@@ -139,7 +165,7 @@ const BJJProgram = () => {
           <div className="flex items-end justify-between gap-6 flex-wrap">
             <SectionHeader eyebrow="Tracks" title="BJJ Class Schedule" />
             <p className="mt-2 max-w-2xl text-sm text-charcoal/60">
-              All classes at 918 Dundas St West. Choose the track that matches age and gender.
+              Choose a location to see the BJJ classes available there.
             </p>
             <Link href="/programs/bjj/register">
               <ClayButton className="text-[11px] uppercase tracking-[0.18em] px-6 py-3">
@@ -148,8 +174,28 @@ const BJJProgram = () => {
             </Link>
           </div>
 
+          <div className="mt-8 grid gap-3 sm:grid-cols-2">
+            {BJJ_LOCATIONS.map((location) => {
+              const active = location.id === selectedLocationId;
+              return (
+                <button
+                  key={location.id}
+                  type="button"
+                  className={`rounded-2xl border px-5 py-4 text-left transition-colors ${
+                    active ? "border-moss bg-moss/5" : "border-charcoal/10 bg-cream/50 hover:bg-cream"
+                  }`}
+                  onClick={() => setSelectedLocationId(location.id)}
+                >
+                  <div className="text-sm font-medium text-charcoal">{location.label}</div>
+                  <div className="mt-1 text-xs uppercase tracking-[0.16em] text-charcoal/55">{location.address}</div>
+                  <div className="mt-2 text-sm text-charcoal/65">{location.summary}</div>
+                </button>
+              );
+            })}
+          </div>
+
           <div className="mt-10 grid grid-cols-1 md:grid-cols-2 gap-6">
-            {BJJ_MARKETING_GROUPS.map((group, index) => (
+            {visibleGroups.map((group, index) => (
               <MotionDiv key={group.key} delay={index * 0.04}>
                 <PremiumCard className="bg-white border border-charcoal/10">
                   <div className="flex items-center justify-between gap-4">
@@ -164,9 +210,12 @@ const BJJProgram = () => {
                     </div>
                   </div>
                   <div className="mt-4 space-y-2">
-                    {group.sessions.map((session) => (
-                      <div key={session.trackKey} className="text-sm text-charcoal/70 leading-relaxed">
-                        <strong className="text-charcoal">{session.label}:</strong> {session.scheduleLabel}
+                      {group.sessions.map((session) => (
+                        <div key={session.trackKey} className="text-sm text-charcoal/70 leading-relaxed">
+                        <strong className="text-charcoal">{selectedLocation.label} · {session.label}:</strong>{" "}
+                        {selectedLocationId === "oakville"
+                          ? OAKVILLE_TRACK_SCHEDULES[session.trackKey] ?? session.scheduleLabel
+                          : session.scheduleLabel}
                       </div>
                     ))}
                   </div>

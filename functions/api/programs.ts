@@ -24,6 +24,10 @@ export async function onRequestGet({ env }: { request: Request; env: Env }) {
     ((await env.DB.prepare(`SELECT * FROM program_prices WHERE active = 1`).all()).results ?? []).filter(
       (price: any) => Number(price.active ?? 1) === 1,
     );
+  const locations = await env.DB.prepare(`SELECT * FROM locations WHERE status != 'archived'`)
+    .all()
+    .then((result) => result.results ?? [])
+    .catch(() => []);
   const offers = await env.DB.prepare(`SELECT * FROM program_offers WHERE active = 1`)
     .all()
     .then((result) => result.results ?? [])
@@ -91,5 +95,5 @@ export async function onRequestGet({ env }: { request: Request; env: Env }) {
     });
   }
 
-  return json({ programs: Object.values(byProgram) });
+  return json({ programs: Object.values(byProgram), locations });
 }

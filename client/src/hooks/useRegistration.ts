@@ -11,6 +11,7 @@ export type BjjTrackValue =
 
 export type BjjSpecific = {
   bjjTrack: BjjTrackValue;
+  locationId?: string;
   trialClass: "yes" | "no" | "";
   notes: string;
 };

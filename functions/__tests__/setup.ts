@@ -47,6 +47,7 @@ export function createMockD1Database() {
     guardians: [],
     students: [],
     programs: [],
+    locations: [],
     program_sessions: [],
     program_prices: [],
     program_offers: [],

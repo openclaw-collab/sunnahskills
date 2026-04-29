@@ -108,6 +108,11 @@ function normalizedName(value: string) {
   return compactWhitespace(value).toLowerCase();
 }
 
+function normalizeLocationId(value: unknown) {
+  const normalized = String(value ?? "").trim().toLowerCase();
+  return normalized || "mississauga";
+}
+
 function sameParticipantIdentity(
   a: { fullName: string; dateOfBirth: string },
   b: { fullName: string; dateOfBirth: string },
@@ -558,12 +563,15 @@ async function loadExistingBjjRegistrations(env: Env, guardianAccountId: number)
     `SELECT
        r.schedule_choice,
        r.status,
+       r.program_specific_data,
+       COALESCE(ps.location_id, 'mississauga') AS location_id,
        s.full_name as student_full_name,
        s.date_of_birth as student_date_of_birth,
        o.guardian_account_id
      FROM registrations r
      JOIN students s ON s.id = r.student_id
      JOIN enrollment_orders o ON o.id = r.enrollment_order_id
+     LEFT JOIN program_sessions ps ON ps.id = r.session_id
      WHERE o.guardian_account_id = ?
        AND r.program_id = 'bjj'
        AND r.status IN ('submitted', 'pending_payment', 'paid', 'active')
@@ -573,6 +581,8 @@ async function loadExistingBjjRegistrations(env: Env, guardianAccountId: number)
     .all<{
       schedule_choice: string | null;
       status: string | null;
+      program_specific_data?: string | null;
+      location_id?: string | null;
       student_full_name: string | null;
       student_date_of_birth: string | null;
       guardian_account_id?: number | null;
@@ -626,7 +636,8 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
   const duplicateKeys = new Set<string>();
   for (const line of body.lines) {
     const programSlug = line.programSlug ?? "bjj";
-    const duplicateKey = `${programSlug}|${normalizedName(line.participant.fullName)}|${line.participant.dateOfBirth}|${programSlug === "bjj" ? line.programDetails.programSpecific.bjjTrack : line.programDetails.sessionId}`;
+    const locationKey = programSlug === "bjj" ? normalizeLocationId(line.programDetails.programSpecific.locationId) : "";
+    const duplicateKey = `${programSlug}|${normalizedName(line.participant.fullName)}|${line.participant.dateOfBirth}|${programSlug === "bjj" ? `${line.programDetails.programSpecific.bjjTrack}|${locationKey}` : line.programDetails.sessionId}`;
     if (duplicateKeys.has(duplicateKey)) {
       return json({ error: "This participant already has that exact enrollment in the cart." }, { status: 400 });
     }
@@ -649,6 +660,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
     sessionId: number | null;
     priceId: number | null;
     track: string;
+    locationId: string | null;
     participantAge: number;
     trialBookingId: number | null;
     promoCode: string | null;
@@ -728,6 +740,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
         sessionId: session.id,
         priceId: line.programDetails.priceId ?? null,
         track: "archery",
+        locationId: null,
         participantAge,
         trialBookingId: null,
         promoCode,
@@ -763,11 +776,27 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
           { fullName: line.participant.fullName, dateOfBirth: line.participant.dateOfBirth },
         ),
       )
-      .map((row) => String(row.schedule_choice ?? "").trim())
-      .filter(Boolean);
-    if (existingTracksForParticipant.includes(track)) {
-      return json({ error: "This participant is already registered for that BJJ option.", line: index }, { status: 400 });
+      .map((row) => {
+        let storedLocationId = normalizeLocationId(row.location_id);
+        try {
+          const data = JSON.parse(String(row.program_specific_data ?? "{}")) as { locationId?: unknown };
+          storedLocationId = normalizeLocationId(data.locationId ?? storedLocationId);
+        } catch {
+          // Ignore older registration JSON.
+        }
+        return {
+          track: String(row.schedule_choice ?? "").trim(),
+          locationId: storedLocationId,
+        };
+      })
+      .filter((entry) => entry.track);
+    const requestedLocationId = normalizeLocationId(line.programDetails.programSpecific.locationId);
+    if (existingTracksForParticipant.some((entry) => entry.track === track && entry.locationId === requestedLocationId)) {
+      return json({ error: "This participant is already registered for that BJJ option at this location.", line: index }, { status: 400 });
     }
+    const existingTrackKeysForParticipant = existingTracksForParticipant
+      .map((entry) => entry.track)
+      .filter(Boolean);
 
     const sameCartTracksForParticipant = body.lines
       .slice(0, index)
@@ -778,12 +807,15 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
           { fullName: line.participant.fullName, dateOfBirth: line.participant.dateOfBirth },
         ),
       )
-      .map((otherLine) => String(otherLine.programDetails.programSpecific.bjjTrack ?? "").trim())
-      .filter(Boolean);
+      .map((otherLine) => ({
+        track: String(otherLine.programDetails.programSpecific.bjjTrack ?? "").trim(),
+        locationId: normalizeLocationId(otherLine.programDetails.programSpecific.locationId),
+      }))
+      .filter((entry) => entry.track);
 
     const hasWomenWeeklyInCartOrAccount =
-      sameCartTracksForParticipant.some(isWomenWeeklyBjjTrack) ||
-      existingTracksForParticipant.some(isWomenWeeklyBjjTrack);
+      sameCartTracksForParticipant.some((entry) => isWomenWeeklyBjjTrack(entry.track)) ||
+      existingTrackKeysForParticipant.some(isWomenWeeklyBjjTrack);
     if (isWomenSelfDefenseBjjTrack(track) && hasWomenWeeklyInCartOrAccount) {
       return json({
         error: "Women self-defense is for participants who are not already registered for Tuesday or Thursday women’s BJJ.",
@@ -792,25 +824,11 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
     }
     const womenSecondWeeklyClass =
       isWomenWeeklyBjjTrack(track) &&
-      (sameCartTracksForParticipant.some((otherTrack) => isWomenWeeklyBjjTrack(otherTrack) && otherTrack !== track) ||
-        existingTracksForParticipant.some((otherTrack) => isWomenWeeklyBjjTrack(otherTrack) && otherTrack !== track));
-
-    const priceRow = line.programDetails.priceId
-      ? await env.DB.prepare(
-          `SELECT id, amount, registration_fee, frequency, metadata
-           FROM program_prices
-           WHERE id = ? AND program_id = 'bjj' AND active = 1
-           LIMIT 1`,
-        )
-          .bind(line.programDetails.priceId)
-          .first<{ id: number; amount: number | null; registration_fee: number | null; frequency: string | null; metadata: string | null }>()
-      : null;
-    if (!priceRow?.id || !line.programDetails.sessionId) {
-      return json({ error: "Track pricing or session selection is missing.", line: index }, { status: 400 });
-    }
+      (sameCartTracksForParticipant.some((other) => isWomenWeeklyBjjTrack(other.track) && other.track !== track) ||
+        existingTrackKeysForParticipant.some((otherTrack) => isWomenWeeklyBjjTrack(otherTrack) && otherTrack !== track));
 
     const session = await env.DB.prepare(
-      `SELECT ps.id, ps.age_group, ps.capacity,
+      `SELECT ps.id, ps.age_group, ps.location_id, ps.capacity, ps.visible, ps.status,
               (SELECT COUNT(*) FROM registrations r
                WHERE r.session_id = ps.id AND r.program_id = 'bjj'
                  AND r.status IN ('active', 'submitted', 'pending_payment')) AS active_count
@@ -819,9 +837,45 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
        LIMIT 1`,
     )
       .bind(line.programDetails.sessionId)
-      .first<{ id: number; age_group: string | null; capacity: number | null; active_count: number }>();
+      .first<{ id: number; age_group: string | null; location_id?: string | null; capacity: number | null; visible?: number | null; status?: string | null; active_count: number }>();
     if (!session?.id || session.age_group !== track) {
       return json({ error: "Selected session does not match the chosen track.", line: index }, { status: 400 });
+    }
+    if (Number(session.visible ?? 1) !== 1 || session.status === "closed" || session.status === "coming_soon") {
+      return json({ error: "Selected BJJ session is not open for registration.", line: index }, { status: 400 });
+    }
+    const sessionLocationId = normalizeLocationId(session.location_id);
+    if (sessionLocationId !== requestedLocationId) {
+      return json({ error: "Selected session does not match the chosen location.", line: index }, { status: 400 });
+    }
+
+    const allBjjPrices = await env.DB.prepare(
+      `SELECT id, age_group, amount, registration_fee, frequency, metadata, active, location_id
+       FROM program_prices
+       WHERE program_id = 'bjj' AND active = 1`,
+    ).all<{
+      id: number;
+      age_group: string | null;
+      amount: number | null;
+      registration_fee: number | null;
+      frequency: string | null;
+      metadata: string | null;
+      active: number | null;
+      location_id?: string | null;
+    }>();
+    const eligiblePrices = (allBjjPrices.results ?? []).filter(
+      (price) =>
+        price.age_group === track &&
+        Number(price.active ?? 1) === 1 &&
+        (!price.location_id || normalizeLocationId(price.location_id) === sessionLocationId),
+    );
+    const priceRow =
+      eligiblePrices.find((price) => price.location_id && normalizeLocationId(price.location_id) === sessionLocationId) ??
+      eligiblePrices.find((price) => price.id === line.programDetails.priceId) ??
+      eligiblePrices[0] ??
+      null;
+    if (!priceRow?.id || !line.programDetails.sessionId) {
+      return json({ error: "Track pricing or session selection is missing.", line: index }, { status: 400 });
     }
 
     const waitlisted =
@@ -886,6 +940,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
       sessionId: session.id,
       priceId: priceRow.id,
       track,
+      locationId: sessionLocationId,
       participantAge,
       trialBookingId: trialMatch.id,
       promoCode,
@@ -996,6 +1051,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
         participantType: line.participant.participantType,
         experienceLevel: line.participant.experienceLevel,
         ...line.programDetails.programSpecific,
+        locationId: meta.locationId,
         discountCode: meta.promoCode,
         promoDiscountCents: meta.promoDiscountCents,
       },

@@ -5,6 +5,7 @@ import { OutlineButton } from "@/components/brand/OutlineButton";
 type Session = {
   id: number;
   program_id: string;
+  location_id?: string | null;
   name: string;
   day_of_week: string | null;
   start_time: string | null;
@@ -16,8 +17,14 @@ type Session = {
   visible: number;
 };
 
+type Location = {
+  id: string;
+  display_name: string;
+};
+
 export function SessionManager() {
   const [sessions, setSessions] = useState<Session[]>([]);
+  const [locations, setLocations] = useState<Location[]>([]);
   const [loading, setLoading] = useState(false);
 
   async function refresh() {
@@ -29,6 +36,7 @@ export function SessionManager() {
         ? (json.programs.flatMap((program: { sessions?: Session[] }) => program.sessions ?? []) as Session[])
         : [];
       setSessions(flat);
+      setLocations((json?.locations ?? []) as Location[]);
     } finally {
       setLoading(false);
     }
@@ -61,6 +69,7 @@ export function SessionManager() {
           <thead className="text-charcoal/60">
             <tr className="border-b border-charcoal/10">
               <th className="text-left py-2 pr-4">Session</th>
+              <th className="text-left py-2 pr-4">Location</th>
               <th className="text-left py-2 pr-4">Age group</th>
               <th className="text-left py-2 pr-4">Capacity</th>
               <th className="text-left py-2 pr-4">Status</th>
@@ -76,6 +85,9 @@ export function SessionManager() {
                   <div className="text-xs text-charcoal/60">
                     {s.day_of_week ?? "—"} • {s.start_time ?? "—"}–{s.end_time ?? "—"}
                   </div>
+                </td>
+                <td className="py-2 pr-4">
+                  {locations.find((location) => location.id === (s.location_id ?? "mississauga"))?.display_name ?? s.location_id ?? "Mississauga"}
                 </td>
                 <td className="py-2 pr-4">{s.age_group ?? "—"}</td>
                 <td className="py-2 pr-4">
@@ -127,7 +139,7 @@ export function SessionManager() {
             ))}
             {sessions.length === 0 ? (
               <tr>
-                <td colSpan={6} className="py-8 text-center text-charcoal/60">
+                <td colSpan={7} className="py-8 text-center text-charcoal/60">
                   No sessions found.
                 </td>
               </tr>

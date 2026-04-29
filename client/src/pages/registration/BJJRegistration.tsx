@@ -24,6 +24,8 @@ import { formatMoneyFromCents } from "@shared/money";
 import { StudioBlock } from "@/studio/StudioBlock";
 import { StudioText } from "@/studio/StudioText";
 
+const DEFAULT_BJJ_LOCATION_ID = "mississauga";
+
 function computeAge(dateOfBirth: string | null | undefined) {
   if (!dateOfBirth) return null;
   const birth = Date.parse(`${dateOfBirth}T12:00:00`);
@@ -47,12 +49,17 @@ function formatScheduleDate(iso: string | null) {
   return date.toLocaleDateString("en-CA", { month: "short", day: "numeric", year: "numeric" });
 }
 
+function normalizeLocationId(value: string | null | undefined) {
+  return value?.trim() || DEFAULT_BJJ_LOCATION_ID;
+}
+
 export default function BJJRegistration() {
   const [, navigate] = useLocation();
   const sessionQuery = useGuardianSession();
   const participantsQuery = useGuardianStudents(Boolean(sessionQuery.data?.authenticated));
   const programsQuery = useProgramsCatalog();
   const [selectedParticipantId, setSelectedParticipantId] = React.useState<number | null>(null);
+  const [selectedLocationId, setSelectedLocationId] = React.useState(DEFAULT_BJJ_LOCATION_ID);
   const [selectedTrack, setSelectedTrack] = React.useState<string>("");
   const [experienceLevel, setExperienceLevel] = React.useState("beginner");
   const [paymentChoice, setPaymentChoice] = React.useState<"full" | "plan">("full");
@@ -63,9 +70,23 @@ export default function BJJRegistration() {
   const session = sessionQuery.data;
   const participants = participantsQuery.data?.students ?? [];
   const program = programsQuery.data?.programs.find((item) => item.slug === "bjj");
+  const bjjLocations = React.useMemo(() => {
+    const catalogLocations = programsQuery.data?.locations ?? [];
+    const sessionLocationIds = new Set((program?.sessions ?? []).map((session) => normalizeLocationId(session.location_id)));
+    const matching = catalogLocations.filter((location) => sessionLocationIds.has(location.id));
+    const fallback = [
+      { id: "mississauga", display_name: "Mississauga", city: "Mississauga", address: "918 Dundas St. West, Mississauga", status: "active" },
+      { id: "oakville", display_name: "Oakville", city: "Oakville", address: "Oakville, ON", status: "active" },
+    ];
+    return matching.length > 0 ? matching : fallback;
+  }, [program?.sessions, programsQuery.data?.locations]);
+  const selectedLocation = bjjLocations.find((location) => location.id === selectedLocationId) ?? bjjLocations[0] ?? null;
   const semester = program?.active_semester ?? null;
   const prices = program?.prices ?? [];
-  const sessions = program?.sessions ?? [];
+  const sessions = React.useMemo(
+    () => (program?.sessions ?? []).filter((session) => normalizeLocationId(session.location_id) === selectedLocationId),
+    [program?.sessions, selectedLocationId],
+  );
 
   React.useEffect(() => {
     if (!selectedParticipantId && participants[0]?.id) {
@@ -78,11 +99,16 @@ export default function BJJRegistration() {
   const eligibleGroups = BJJ_MARKETING_GROUPS.filter((group: BjjMarketingGroup) =>
     group.sessions.some((sessionOption) =>
       selectedParticipantAge != null &&
-      isEligibleForBjjTrack(sessionOption.trackKey, selectedParticipantAge, selectedParticipant?.gender ?? ""),
+      isEligibleForBjjTrack(sessionOption.trackKey, selectedParticipantAge, selectedParticipant?.gender ?? "") &&
+      sessions.some((session) => session.age_group === sessionOption.trackKey),
     ),
   );
 
-  const selectedPrice = prices.find((price) => price.age_group === selectedTrack) ?? null;
+  const selectedPrice =
+    prices.find((price) => price.age_group === selectedTrack && price.location_id && normalizeLocationId(price.location_id) === selectedLocationId) ??
+    prices.find((price) => price.age_group === selectedTrack && !price.location_id) ??
+    prices.find((price) => price.age_group === selectedTrack) ??
+    null;
   const selectedSession = sessions.find((item) => item.age_group === selectedTrack) ?? null;
   const selectedParticipantExistingCartTracks = (cart?.lines ?? [])
     .filter((line) =>
@@ -91,15 +117,20 @@ export default function BJJRegistration() {
       line.participant.fullName.trim().toLowerCase() === selectedParticipant.full_name.trim().toLowerCase() &&
       line.participant.dateOfBirth === selectedParticipant.date_of_birth,
     )
-    .map((line) =>
-      "bjjTrack" in line.programDetails.programSpecific
+    .map((line) => ({
+      track: "bjjTrack" in line.programDetails.programSpecific
         ? String(line.programDetails.programSpecific.bjjTrack ?? "")
         : "",
-    );
-  const selectedParticipantHasWomenWeeklyInCart = selectedParticipantExistingCartTracks.some(isWomenWeeklyBjjTrack);
+      locationId: normalizeLocationId(
+        "locationId" in line.programDetails.programSpecific
+          ? String(line.programDetails.programSpecific.locationId ?? "")
+          : undefined,
+      ),
+    }));
+  const selectedParticipantHasWomenWeeklyInCart = selectedParticipantExistingCartTracks.some((entry) => isWomenWeeklyBjjTrack(entry.track));
   const selectedTrackIsSecondWomenWeekly =
     isWomenWeeklyBjjTrack(selectedTrack) &&
-    selectedParticipantExistingCartTracks.some((track) => isWomenWeeklyBjjTrack(track) && track !== selectedTrack);
+    selectedParticipantExistingCartTracks.some((entry) => isWomenWeeklyBjjTrack(entry.track) && entry.track !== selectedTrack);
   const selectedTrackIsBlockedSelfDefense =
     isWomenSelfDefenseBjjTrack(selectedTrack) && selectedParticipantHasWomenWeeklyInCart;
   const cartLinePreview =
@@ -225,7 +256,7 @@ export default function BJJRegistration() {
           />
           <StudioText
             k="registration.bjj.heroPitch"
-            defaultText="Choose a participant first, then we'll show only the BJJ tracks that fit. Add one or more registrations before checkout."
+            defaultText="Choose a location and participant first, then we'll show only the BJJ tracks that fit. Add one or more registrations before checkout."
             as="p"
             className="mb-8 max-w-3xl text-sm leading-relaxed text-charcoal/70"
           />
@@ -234,6 +265,30 @@ export default function BJJRegistration() {
         <div className="grid gap-6 xl:grid-cols-[0.9fr_1.15fr_0.95fr]">
           <StudioBlock id="registration.bjj.participants" label="BJJ participant chooser">
             <PremiumCard className="border border-charcoal/10 bg-white p-6">
+            <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-moss mb-3">Location</div>
+            <div className="mb-6 grid gap-3">
+              {bjjLocations.map((location) => {
+                const active = location.id === selectedLocationId;
+                return (
+                  <button
+                    key={location.id}
+                    type="button"
+                    className={`w-full rounded-2xl border px-4 py-4 text-left transition-colors ${
+                      active ? "border-moss bg-moss/5" : "border-charcoal/10 bg-cream/40 hover:bg-cream/70"
+                    }`}
+                    onClick={() => {
+                      setSelectedLocationId(location.id);
+                      setSelectedTrack("");
+                    }}
+                  >
+                    <div className="text-sm font-medium text-charcoal">{location.display_name}</div>
+                    <div className="mt-1 text-xs uppercase tracking-[0.16em] text-charcoal/55">
+                      {location.address ?? location.city}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
             <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-moss mb-3">Participants</div>
             <div className="space-y-3">
               {participants.map((participant) => {
@@ -269,6 +324,9 @@ export default function BJJRegistration() {
           <StudioBlock id="registration.bjj.tracks" label="BJJ track chooser">
             <PremiumCard className="border border-charcoal/10 bg-white p-6">
             <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-moss mb-3">Eligible BJJ tracks</div>
+            <div className="mb-4 rounded-2xl border border-charcoal/10 bg-cream/40 p-4 text-sm text-charcoal/70">
+              Showing classes for <strong className="text-charcoal">{selectedLocation?.display_name ?? "selected location"}</strong>.
+            </div>
             {!selectedParticipant ? (
               <div className="text-sm text-charcoal/70">Select a participant to begin.</div>
             ) : eligibleGroups.length === 0 ? (
@@ -281,7 +339,11 @@ export default function BJJRegistration() {
                     <div className="grid gap-3 md:grid-cols-2">
                       {group.sessions.map((option) => {
                         const selected = selectedTrack === option.trackKey;
-                        const optionPrice = prices.find((price) => price.age_group === option.trackKey);
+                        const optionSessions = sessions.filter((session) => session.age_group === option.trackKey);
+                        const optionPrice =
+                          prices.find((price) => price.age_group === option.trackKey && price.location_id && normalizeLocationId(price.location_id) === selectedLocationId) ??
+                          prices.find((price) => price.age_group === option.trackKey && !price.location_id) ??
+                          prices.find((price) => price.age_group === option.trackKey);
                         return (
                           <button
                             key={option.trackKey}
@@ -292,12 +354,18 @@ export default function BJJRegistration() {
                             onClick={() => setSelectedTrack(option.trackKey)}
                           >
                             <div className="text-sm font-medium text-charcoal">{option.label}</div>
-                            <div className="mt-2 text-sm text-charcoal/65">{option.scheduleLabel}</div>
+                            <div className="mt-2 text-sm text-charcoal/65">
+                              {optionSessions.length > 0
+                                ? optionSessions
+                                    .map((session) => `${selectedLocation?.display_name ?? "Location"} · ${session.day_of_week ?? "Day"} ${session.start_time ?? ""}-${session.end_time ?? ""}`)
+                                    .join(" / ")
+                                : option.scheduleLabel}
+                            </div>
                             <div className="mt-3 text-xs uppercase tracking-[0.16em] text-charcoal/55">
                               {optionPrice
                                 ? isWomenSelfDefenseBjjTrack(option.trackKey)
                                   ? "$25 one-time"
-                                  : selectedParticipantExistingCartTracks.some((track) => isWomenWeeklyBjjTrack(track) && track !== option.trackKey) && isWomenWeeklyBjjTrack(option.trackKey)
+                                  : selectedParticipantExistingCartTracks.some((entry) => isWomenWeeklyBjjTrack(entry.track) && entry.track !== option.trackKey) && isWomenWeeklyBjjTrack(option.trackKey)
                                     ? "$50 second class"
                                     : `${money(optionPrice.amount)} per class`
                                 : `${money(BJJ_TRACK_BY_KEY[option.trackKey].defaultPerClassCents)} per class`}
@@ -378,7 +446,7 @@ export default function BJJRegistration() {
                     className="px-6 py-3 text-[11px] uppercase tracking-[0.18em]"
                     onClick={() => {
                       if (!selectedParticipant || !selectedTrack || !selectedPrice || !selectedSession) {
-                        setError("Choose a participant and eligible BJJ track first.");
+                        setError("Choose a location, participant, and eligible BJJ track first.");
                         return;
                       }
                       if (selectedTrackIsBlockedSelfDefense) {
@@ -389,10 +457,11 @@ export default function BJJRegistration() {
                         line.programSlug !== "archery" &&
                         line.participant.fullName.trim().toLowerCase() === selectedParticipant.full_name.trim().toLowerCase() &&
                         line.participant.dateOfBirth === selectedParticipant.date_of_birth &&
-                        line.programDetails.programSpecific.bjjTrack === selectedTrack,
+                        line.programDetails.programSpecific.bjjTrack === selectedTrack &&
+                        normalizeLocationId(line.programDetails.programSpecific.locationId) === selectedLocationId,
                       );
                       if (duplicate) {
-                        setError("That exact participant and BJJ offering is already in the cart.");
+                        setError("That exact participant, location, and BJJ offering is already in the cart.");
                         return;
                       }
                       addLineToFamilyCart(accountSnapshot, {
@@ -411,6 +480,7 @@ export default function BJJRegistration() {
                           priceId: selectedPrice.id,
                           programSpecific: {
                             bjjTrack: selectedTrack,
+                            locationId: selectedLocationId,
                             notes: lineNotes.trim() || undefined,
                           },
                         },
@@ -445,7 +515,7 @@ export default function BJJRegistration() {
                           {line.programSlug === "archery"
                             ? "Traditional Archery"
                             : Object.prototype.hasOwnProperty.call(BJJ_TRACK_BY_KEY, line.programDetails.programSpecific.bjjTrack)
-                            ? BJJ_TRACK_BY_KEY[line.programDetails.programSpecific.bjjTrack as keyof typeof BJJ_TRACK_BY_KEY].registerLabel
+                            ? `${bjjLocations.find((location) => location.id === normalizeLocationId(line.programDetails.programSpecific.locationId))?.display_name ?? "Mississauga"} · ${BJJ_TRACK_BY_KEY[line.programDetails.programSpecific.bjjTrack as keyof typeof BJJ_TRACK_BY_KEY].registerLabel}`
                             : line.programDetails.programSpecific.bjjTrack}
                         </div>
                     </div>

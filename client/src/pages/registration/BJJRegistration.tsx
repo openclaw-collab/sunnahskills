@@ -95,7 +95,7 @@ function formatEligibilityReason(trackKey: string, age: number | null, gender: s
   const genderLabel = allowedGenders.includes("female") ? "girls/women" : allowedGenders.includes("male") ? "boys/men" : "the required gender";
 
   if (age < track.minAge || (track.maxAge != null && age > track.maxAge)) {
-    return `This profile is ${age}; this option is for ages ${ageRange}.`;
+    return `This option is for ages ${ageRange}. Choose a matching participant profile.`;
   }
   if (!allowedGenders.includes(normalizedGender)) {
     return `This option is for ${genderLabel}; update the profile or choose another track.`;
@@ -140,7 +140,10 @@ export default function BJJRegistration() {
   );
 
   React.useEffect(() => {
-    if (!selectedParticipantId && participants[0]?.id) {
+    const selectedStillExists = selectedParticipantId
+      ? participants.some((participant) => participant.id === selectedParticipantId)
+      : false;
+    if ((!selectedParticipantId || !selectedStillExists) && participants[0]?.id) {
       setSelectedParticipantId(participants[0].id);
     }
   }, [participants, selectedParticipantId]);

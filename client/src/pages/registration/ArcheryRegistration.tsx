@@ -31,6 +31,24 @@ function formatTimeRange(start?: string | null, end?: string | null) {
   return `${start ?? ""}${start && end ? "–" : ""}${end ?? ""}`;
 }
 
+function formatArcheryDateLabel(value: string) {
+  const trimmed = value.trim();
+  const parsed = Date.parse(`${trimmed}T12:00:00`);
+  if (Number.isFinite(parsed)) {
+    return new Date(parsed).toLocaleDateString("en-CA", { month: "short", day: "numeric", year: "numeric" });
+  }
+  return trimmed;
+}
+
+function archerySeriesDates(session: any, offers: any[]) {
+  const matchingOffer = offers.find((offer) => (offer.sessions ?? []).some((item: any) => Number(item.id) === Number(session?.id)));
+  const dates = (matchingOffer?.dates ?? []).filter(Boolean);
+  if (dates.length > 0) return dates.map(formatArcheryDateLabel);
+  const season = String(session?.season ?? "").trim();
+  if (!season) return [];
+  return season.split(",").map(formatArcheryDateLabel).filter(Boolean);
+}
+
 export default function ArcheryRegistration() {
   const [, navigate] = useLocation();
   const sessionQuery = useGuardianSession();
@@ -49,8 +67,10 @@ export default function ArcheryRegistration() {
   const participants = participantsQuery.data?.students ?? [];
   const archery = programsQuery.data?.programs.find((item) => item.slug === "archery");
   const sessions = (archery?.sessions ?? []).filter((item: any) => Number(item.visible ?? 1) === 1);
+  const offers = archery?.offers ?? [];
   const selectedParticipant = participants.find((participant) => participant.id === selectedParticipantId) ?? null;
   const selectedSession = sessions.find((item: any) => Number(item.id) === Number(selectedSessionId)) ?? sessions[0] ?? null;
+  const selectedSessionDates = archerySeriesDates(selectedSession, offers);
   const priceId = archery?.prices?.[0]?.id ?? null;
   const cartLines = cart?.lines ?? [];
   const archeryLineCount = cartLines.filter((line) => line.programSlug === "archery").length;
@@ -253,6 +273,13 @@ export default function ArcheryRegistration() {
                 </Select>
               </label>
 
+              {selectedSessionDates.length > 0 ? (
+                <div className="rounded-2xl border border-charcoal/10 bg-cream/50 p-4 text-sm text-charcoal/70">
+                  <div className="font-medium text-charcoal">Starts {selectedSessionDates[0]}</div>
+                  <div className="mt-1">Includes {selectedSessionDates.join(", ")}</div>
+                </div>
+              ) : null}
+
               <div className="rounded-2xl border border-moss/15 bg-moss/5 p-4">
                 <div className="text-sm font-medium text-charcoal">Eye dominance</div>
                 <p className="mt-2 text-sm leading-relaxed text-charcoal/65">
@@ -341,6 +368,11 @@ export default function ArcheryRegistration() {
                 <div>
                   <div className="font-medium text-charcoal">{selectedSession.name ?? "Selected time slot"}</div>
                   <div>{formatTimeRange(selectedSession.start_time, selectedSession.end_time)}</div>
+                  {selectedSessionDates.length > 0 ? (
+                    <div className="mt-1">
+                      Starts {selectedSessionDates[0]} · Includes {selectedSessionDates.join(", ")}
+                    </div>
+                  ) : null}
                 </div>
               ) : null}
               {error ? <div className="rounded-xl border border-clay/20 bg-clay/5 p-3 text-clay">{error}</div> : null}

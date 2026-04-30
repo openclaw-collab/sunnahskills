@@ -13,12 +13,30 @@ import { useProgramsCatalog } from "@/hooks/useProgramsCatalog";
 import { formatMoneyFromCents } from "@shared/money";
 import { ARCHERY_SERIES_PRICE_CENTS } from "../../../../shared/archeryCatalog";
 
+function formatArcheryDateLabel(value: string) {
+  const trimmed = value.trim();
+  const parsed = Date.parse(`${trimmed}T12:00:00`);
+  if (Number.isFinite(parsed)) {
+    return new Date(parsed).toLocaleDateString("en-CA", { month: "short", day: "numeric", year: "numeric" });
+  }
+  return trimmed;
+}
+
+function archerySessionDates(session: any, offers: any[]) {
+  const offer = offers.find((entry) => (entry.sessions ?? []).some((item: any) => Number(item.id) === Number(session?.id)));
+  const dates = (offer?.dates ?? []).filter(Boolean);
+  if (dates.length > 0) return dates.map(formatArcheryDateLabel);
+  const season = String(session?.season ?? "").trim();
+  return season ? season.split(",").map(formatArcheryDateLabel).filter(Boolean) : [];
+}
+
 const ArcheryProgram = () => {
   const program = PROGRAMS.archery;
   const catalog = useProgramsCatalog();
   const archery = catalog.data?.programs.find((entry) => entry.slug === "archery");
   const price = formatMoneyFromCents(Number(archery?.prices?.[0]?.amount ?? ARCHERY_SERIES_PRICE_CENTS));
   const sessions = (archery?.sessions ?? []).filter((session: any) => Number(session.visible ?? 1) === 1);
+  const offers = archery?.offers ?? [];
   const displaySessions = sessions.length > 0 ? sessions : [
     { name: "Next archery session", day_of_week: "Sunday", start_time: "Time listed in registration", end_time: "" },
   ];
@@ -130,6 +148,11 @@ const ArcheryProgram = () => {
                         <div className="mt-2 text-xs text-cream/70">
                           {s.start_time ?? ""}{s.start_time && s.end_time ? " – " : ""}{s.end_time ?? ""}
                         </div>
+                        {archerySessionDates(s, offers).length > 0 ? (
+                          <div className="mt-2 text-xs leading-relaxed text-cream/70">
+                            Starts {archerySessionDates(s, offers)[0]} · Includes {archerySessionDates(s, offers).join(", ")}
+                          </div>
+                        ) : null}
                         <div className="mt-2 text-[10px] font-mono-label uppercase tracking-[0.18em] text-cream/50">
                           All bows, arrows, targets, and safety equipment included
                         </div>

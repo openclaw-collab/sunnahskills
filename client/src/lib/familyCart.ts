@@ -33,6 +33,8 @@ export type BjjFamilyCartLine = {
     programSpecific: {
       bjjTrack: string;
       locationId?: string;
+      bundledSessionIds?: number[];
+      scheduleLabel?: string;
       notes?: string;
     };
   };

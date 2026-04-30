@@ -94,6 +94,31 @@ export async function onRequestGet({ request, env }: { request: Request; env: En
       ps.day_of_week as session_day_of_week,
       ps.start_time as session_start_time,
       ps.end_time as session_end_time,
+      COALESCE(
+        json_extract(r.program_specific_data, '$.scheduleLabel'),
+        CASE
+          WHEN p.slug = 'bjj' AND ps.age_group IN ('girls-5-10', 'boys-7-13', 'men-14') THEN (
+            SELECT GROUP_CONCAT(session_piece, ' / ')
+            FROM (
+              SELECT ps2.day_of_week || ' ' || ps2.start_time || '-' || ps2.end_time AS session_piece
+              FROM program_sessions ps2
+              WHERE ps2.program_id = ps.program_id
+                AND ps2.age_group = ps.age_group
+                AND COALESCE(ps2.location_id, 'mississauga') = COALESCE(ps.location_id, 'mississauga')
+                AND ps2.visible = 1
+                AND ps2.status NOT IN ('closed', 'coming_soon')
+              ORDER BY
+                CASE ps2.day_of_week
+                  WHEN 'Monday' THEN 1 WHEN 'Tuesday' THEN 2 WHEN 'Wednesday' THEN 3
+                  WHEN 'Thursday' THEN 4 WHEN 'Friday' THEN 5 WHEN 'Saturday' THEN 6
+                  WHEN 'Sunday' THEN 7 ELSE 8
+                END,
+                ps2.start_time ASC
+            )
+          )
+          ELSE NULL
+        END
+      ) as bundled_session_schedule,
       COALESCE(ps.location_id, 'mississauga') as location_id,
       COALESCE(l.display_name, 'Mississauga') as location_name,
       g.full_name as guardian_name,

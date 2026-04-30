@@ -89,6 +89,9 @@ export type LinePricingInput = {
   trialCreditCents?: number;
   prorationAllowed?: boolean;
   chargeDateIso?: string | null;
+  scheduleStartDateIso?: string | null;
+  scheduleEndDateIso?: string | null;
+  meetingDaysOverride?: readonly string[];
   womenSecondWeeklyClass?: boolean;
 };
 
@@ -135,19 +138,27 @@ export function resolveChargeStartDateIso(
   return maxIsoDate(semesterStart, requested);
 }
 
-export function resolveClassesInSemester(meta: string | null, sem: SemesterRow | null, track?: string, startDateIso?: string) {
+export function resolveClassesInSemester(
+  meta: string | null,
+  sem: SemesterRow | null,
+  track?: string,
+  startDateIso?: string,
+  endDateIso?: string | null,
+  meetingDaysOverride?: readonly string[],
+) {
   if (track && isWomenSelfDefenseBjjTrack(track)) return 1;
 
   if (track && isBjjTrackKey(track)) {
     const startIso = startDateIso ?? sem?.start_date?.trim() ?? isoDateOnly(new Date());
-    const endIso = sem?.end_date?.trim();
+    const endIso = endDateIso?.trim() || sem?.end_date?.trim();
+    const meetingDays = meetingDaysOverride?.length ? meetingDaysOverride : BJJ_TRACK_BY_KEY[track].meetingDays;
     if (endIso) {
       const start = safeMiddayDate(startIso);
       const end = safeMiddayDate(endIso);
       if (start && end && end >= start) {
         let count = 0;
         for (let cursor = new Date(start); cursor <= end; cursor.setUTCDate(cursor.getUTCDate() + 1)) {
-          if (BJJ_TRACK_BY_KEY[track].meetingDays.includes(weekdayName(cursor))) {
+          if (meetingDays.includes(weekdayName(cursor))) {
             count += 1;
           }
         }
@@ -182,8 +193,15 @@ type LineCore = {
 
 function linePricingCore(input: LinePricingInput): LineCore {
   const sem = input.semester;
-  const startDateIso = resolveChargeStartDateIso(sem, input.chargeDateIso, Boolean(input.prorationAllowed));
-  const scheduledClassCount = resolveClassesInSemester(input.priceMetadataJson, sem, input.track, startDateIso);
+  const startDateIso = input.scheduleStartDateIso?.trim() || resolveChargeStartDateIso(sem, input.chargeDateIso, Boolean(input.prorationAllowed));
+  const scheduledClassCount = resolveClassesInSemester(
+    input.priceMetadataJson,
+    sem,
+    input.track,
+    startDateIso,
+    input.scheduleEndDateIso,
+    input.meetingDaysOverride,
+  );
   const regFeeSem = sem?.registration_fee_cents ?? 0;
   const regFeePrice = input.programPriceRegFee ?? 0;
   const regFee = Number.isInteger(regFeeSem) && regFeeSem > 0 ? regFeeSem : regFeePrice;

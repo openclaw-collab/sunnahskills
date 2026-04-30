@@ -17,6 +17,7 @@ import {
   isEligibleForBjjTrack,
   isWomenSelfDefenseBjjTrack,
   isWomenWeeklyBjjTrack,
+  normalizeGenderLabel,
   type BjjMarketingGroup,
 } from "../../../../shared/bjjCatalog";
 import { computeLaterPaymentDateIso, computeLineTuitionCents, splitPaymentPlan } from "../../../../shared/orderPricing";
@@ -51,6 +52,55 @@ function formatScheduleDate(iso: string | null) {
 
 function normalizeLocationId(value: string | null | undefined) {
   return value?.trim() || DEFAULT_BJJ_LOCATION_ID;
+}
+
+function isBundledBjjTrack(trackKey: string) {
+  return trackKey === "girls-5-10" || trackKey === "boys-7-13" || trackKey === "men-14";
+}
+
+function sessionTimeLabel(session: { day_of_week: string | null; start_time: string | null; end_time: string | null }) {
+  return `${session.day_of_week ?? "Day"} ${session.start_time ?? ""}-${session.end_time ?? ""}`.trim();
+}
+
+function scheduleLabelForSessions(locationName: string | undefined, sessions: Array<{ day_of_week: string | null; start_time: string | null; end_time: string | null }>) {
+  return sessions.length > 0
+    ? `${locationName ?? "Location"} · ${sessions.map(sessionTimeLabel).join(" / ")}`
+    : "";
+}
+
+function uniqueSessionDays(sessions: Array<{ day_of_week: string | null }>) {
+  return Array.from(new Set(sessions.map((session) => session.day_of_week).filter((day): day is string => Boolean(day))));
+}
+
+function earliestDate(sessions: Array<{ start_date?: string | null }>) {
+  return sessions.map((session) => session.start_date).filter((date): date is string => Boolean(date)).sort()[0] ?? null;
+}
+
+function latestDate(sessions: Array<{ end_date?: string | null }>) {
+  const dates = sessions.map((session) => session.end_date).filter((date): date is string => Boolean(date)).sort();
+  return dates.length ? dates[dates.length - 1] : null;
+}
+
+function formatEligibilityReason(trackKey: string, age: number | null, gender: string | null | undefined) {
+  const track = BJJ_TRACK_BY_KEY[trackKey as keyof typeof BJJ_TRACK_BY_KEY];
+  if (!track) return "This profile is not eligible for this option.";
+  if (age == null) return "Add a date of birth to this profile to check eligibility.";
+
+  const ageRange =
+    track.maxAge == null
+      ? `${track.minAge}+`
+      : `${track.minAge}-${track.maxAge}`;
+  const normalizedGender = normalizeGenderLabel(gender ?? "");
+  const allowedGenders = track.allowedGenders.map(normalizeGenderLabel);
+  const genderLabel = allowedGenders.includes("female") ? "girls/women" : allowedGenders.includes("male") ? "boys/men" : "the required gender";
+
+  if (age < track.minAge || (track.maxAge != null && age > track.maxAge)) {
+    return `This profile is ${age}; this option is for ages ${ageRange}.`;
+  }
+  if (!allowedGenders.includes(normalizedGender)) {
+    return `This option is for ${genderLabel}; update the profile or choose another track.`;
+  }
+  return "This profile is not eligible for this option.";
 }
 
 export default function BJJRegistration() {
@@ -97,13 +147,29 @@ export default function BJJRegistration() {
 
   const selectedParticipant = participants.find((participant) => participant.id === selectedParticipantId) ?? null;
   const selectedParticipantAge = computeAge(selectedParticipant?.date_of_birth);
-  const eligibleGroups = BJJ_MARKETING_GROUPS.filter((group: BjjMarketingGroup) =>
-    group.sessions.some((sessionOption) =>
-      selectedParticipantAge != null &&
-      isEligibleForBjjTrack(sessionOption.trackKey, selectedParticipantAge, selectedParticipant?.gender ?? "") &&
+  const visibleGroups = BJJ_MARKETING_GROUPS.map((group: BjjMarketingGroup) => ({
+    ...group,
+    sessions: group.sessions.filter((sessionOption) =>
       sessions.some((session) => session.age_group === sessionOption.trackKey),
     ),
-  );
+  })).filter((group) => group.sessions.length > 0);
+
+  React.useEffect(() => {
+    if (!selectedTrack) return;
+    const stillSelectable =
+      selectedParticipantAge != null &&
+      isEligibleForBjjTrack(selectedTrack, selectedParticipantAge, selectedParticipant?.gender ?? "") &&
+      sessions.some((session) => session.age_group === selectedTrack);
+    if (!stillSelectable) {
+      setSelectedTrack("");
+      setSelectedSessionId(null);
+    }
+  }, [selectedParticipant?.gender, selectedParticipantAge, selectedTrack, sessions]);
+
+  React.useEffect(() => {
+    if (selectedSessionId || !selectedTrack) return;
+    setSelectedSessionId(sessions.find((session) => session.age_group === selectedTrack)?.id ?? null);
+  }, [selectedSessionId, selectedTrack, sessions]);
 
   const selectedPrice =
     prices.find((price) => price.age_group === selectedTrack && price.location_id && normalizeLocationId(price.location_id) === selectedLocationId) ??
@@ -115,6 +181,9 @@ export default function BJJRegistration() {
     selectedTrackSessions.find((item) => item.id === selectedSessionId) ??
     selectedTrackSessions[0] ??
     null;
+  const selectedTrackMeetingDays = uniqueSessionDays(selectedTrackSessions);
+  const selectedTrackScheduleStart = earliestDate(selectedTrackSessions);
+  const selectedTrackScheduleEnd = latestDate(selectedTrackSessions);
   const selectedParticipantExistingCartTracks = (cart?.lines ?? [])
     .filter((line) =>
       line.programSlug !== "archery" &&
@@ -150,6 +219,9 @@ export default function BJJRegistration() {
           paymentChoice,
           siblingRankAmongKidsStudents: 0,
           semester,
+          scheduleStartDateIso: selectedTrackScheduleStart,
+          scheduleEndDateIso: selectedTrackScheduleEnd,
+          meetingDaysOverride: selectedTrackMeetingDays,
           womenSecondWeeklyClass: selectedTrackIsSecondWomenWeekly,
         })
       : null;
@@ -254,17 +326,17 @@ export default function BJJRegistration() {
       <div className="noise-overlay" />
       <main className="mx-auto max-w-7xl px-6 pt-28">
         <StudioBlock id="registration.bjj.hero" label="BJJ registration hero">
-          <SectionHeader
-            eyebrow={<StudioText k="registration.bjj.heroEyebrow" defaultText="BJJ Registration" />}
-            title={<StudioText k="registration.bjj.heroTitle" defaultText="Choose BJJ classes" />}
-            className="mb-6"
-          />
-          <StudioText
-            k="registration.bjj.heroPitch"
-            defaultText="Choose a location and participant first, then we'll show only the BJJ tracks that fit. Add one or more registrations before checkout."
-            as="p"
-            className="mb-8 max-w-3xl text-sm leading-relaxed text-charcoal/70"
-          />
+            <SectionHeader
+              eyebrow={<StudioText k="registration.bjj.heroEyebrow" defaultText="BJJ Registration" />}
+              title={<StudioText k="registration.bjj.heroTitle" defaultText="Choose BJJ classes" />}
+              className="mb-6"
+            />
+            <StudioText
+              k="registration.bjj.heroPitch"
+              defaultText="Choose a location and participant first. Every available BJJ track stays visible, and unavailable options explain why that profile cannot select them."
+              as="p"
+              className="mb-8 max-w-3xl text-sm leading-relaxed text-charcoal/70"
+            />
         </StudioBlock>
 
         <div className="grid gap-6 xl:grid-cols-[0.9fr_1.15fr_0.95fr]">
@@ -330,28 +402,32 @@ export default function BJJRegistration() {
 
           <StudioBlock id="registration.bjj.tracks" label="BJJ track chooser">
             <PremiumCard className="border border-charcoal/10 bg-white p-6">
-            <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-moss mb-3">Eligible BJJ tracks</div>
+            <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-moss mb-3">BJJ tracks</div>
             <div className="mb-4 rounded-2xl border border-charcoal/10 bg-cream/40 p-4 text-sm text-charcoal/70">
-              Showing classes for <strong className="text-charcoal">{selectedLocation?.display_name ?? "selected location"}</strong>.
+              Showing classes for <strong className="text-charcoal">{selectedLocation?.display_name ?? "selected location"}</strong>. Ineligible tracks stay visible for clarity.
             </div>
             {!selectedParticipant ? (
               <div className="text-sm text-charcoal/70">Select a participant to begin.</div>
-            ) : eligibleGroups.length === 0 ? (
-              <div className="text-sm text-charcoal/70">No live BJJ track matches this participant yet.</div>
+            ) : visibleGroups.length === 0 ? (
+              <div className="text-sm text-charcoal/70">No live BJJ tracks are currently available at this location.</div>
             ) : (
               <div className="space-y-5">
-                {eligibleGroups.map((group: BjjMarketingGroup) => (
+                {visibleGroups.map((group: BjjMarketingGroup) => (
                   <div key={group.key}>
                     <div className="mb-3 text-sm font-medium text-charcoal">{group.label}</div>
                     <div className="grid gap-3 md:grid-cols-2">
                       {group.sessions.map((option) => {
                         const selected = selectedTrack === option.trackKey;
                         const optionSessions = sessions.filter((session) => session.age_group === option.trackKey);
+                        const eligible =
+                          selectedParticipantAge != null &&
+                          isEligibleForBjjTrack(option.trackKey, selectedParticipantAge, selectedParticipant.gender ?? "");
+                        const disabled = !eligible || optionSessions.length === 0;
                         const optionPrice =
                           prices.find((price) => price.age_group === option.trackKey && price.location_id && normalizeLocationId(price.location_id) === selectedLocationId) ??
                           prices.find((price) => price.age_group === option.trackKey && !price.location_id) ??
                           prices.find((price) => price.age_group === option.trackKey);
-                        const optionPricingPreview = optionPrice
+                        const optionPricingPreview = optionPrice && eligible
                           ? computeLineTuitionCents({
                               track: option.trackKey,
                               priceId: optionPrice.id,
@@ -362,6 +438,9 @@ export default function BJJRegistration() {
                               paymentChoice,
                               siblingRankAmongKidsStudents: 0,
                               semester,
+                              scheduleStartDateIso: earliestDate(optionSessions),
+                              scheduleEndDateIso: latestDate(optionSessions),
+                              meetingDaysOverride: uniqueSessionDays(optionSessions),
                               womenSecondWeeklyClass:
                                 selectedParticipantExistingCartTracks.some((entry) => isWomenWeeklyBjjTrack(entry.track) && entry.track !== option.trackKey) &&
                                 isWomenWeeklyBjjTrack(option.trackKey),
@@ -371,27 +450,49 @@ export default function BJJRegistration() {
                           <button
                             key={option.trackKey}
                             type="button"
+                            aria-disabled={disabled}
                             className={`rounded-2xl border px-4 py-4 text-left transition-colors ${
-                              selected ? "border-moss bg-moss/5" : "border-charcoal/10 bg-cream/40 hover:bg-cream/70"
+                              disabled
+                                ? "cursor-not-allowed border-charcoal/10 bg-charcoal/[0.03] opacity-55"
+                                : selected
+                                  ? "border-moss bg-moss/5"
+                                  : "border-charcoal/10 bg-cream/40 hover:bg-cream/70"
                             }`}
                             onClick={() => {
+                              if (disabled) {
+                                setError(formatEligibilityReason(option.trackKey, selectedParticipantAge, selectedParticipant.gender));
+                                return;
+                              }
                               setSelectedTrack(option.trackKey);
                               setSelectedSessionId(optionSessions[0]?.id ?? null);
+                              setError(null);
                             }}
                           >
                             <div className="text-sm font-medium text-charcoal">{option.label}</div>
                             <div className="mt-2 text-sm text-charcoal/65">
                               {optionSessions.length > 0
-                                ? optionSessions
-                                    .map((session) => `${selectedLocation?.display_name ?? "Location"} · ${session.day_of_week ?? "Day"} ${session.start_time ?? ""}-${session.end_time ?? ""}`)
-                                    .join(" / ")
+                                ? scheduleLabelForSessions(selectedLocation?.display_name, optionSessions)
                                 : option.scheduleLabel}
                             </div>
+                            {isBundledBjjTrack(option.trackKey) && optionSessions.length > 1 ? (
+                              <div className="mt-2 text-xs leading-relaxed text-charcoal/55">
+                                Registration includes both weekly classes.
+                              </div>
+                            ) : null}
                             <div className="mt-3 text-xs uppercase tracking-[0.16em] text-charcoal/55">
                               {optionPricingPreview
                                 ? `Semester tuition ${money(optionPricingPreview.afterSiblingCents)}`
-                                : "Semester tuition confirmed at checkout"}
+                                : disabled
+                                  ? "Unavailable for this profile"
+                                  : "Semester tuition confirmed at checkout"}
                             </div>
+                            {disabled ? (
+                              <div className="mt-2 rounded-xl border border-charcoal/10 bg-white/70 px-3 py-2 text-xs leading-relaxed text-charcoal/65">
+                                {optionSessions.length === 0
+                                  ? "This track is not currently scheduled at this location."
+                                  : formatEligibilityReason(option.trackKey, selectedParticipantAge, selectedParticipant.gender)}
+                              </div>
+                            ) : null}
                             {isWomenSelfDefenseBjjTrack(option.trackKey) ? (
                               <div className="mt-2 text-xs leading-relaxed text-charcoal/55">
                                 For women who are not registered for Tuesday or Thursday BJJ.
@@ -404,7 +505,7 @@ export default function BJJRegistration() {
                   </div>
                 ))}
 
-                {selectedTrack && selectedTrackSessions.length > 1 ? (
+                {selectedTrack && selectedTrackSessions.length > 1 && !isBundledBjjTrack(selectedTrack) ? (
                   <label className="block text-sm text-charcoal">
                     Pick your {selectedLocation?.display_name ?? "location"} session
                     <Select
@@ -524,6 +625,10 @@ export default function BJJRegistration() {
                           programSpecific: {
                             bjjTrack: selectedTrack,
                             locationId: selectedLocationId,
+                            bundledSessionIds: isBundledBjjTrack(selectedTrack)
+                              ? selectedTrackSessions.map((session) => session.id)
+                              : [selectedSession.id],
+                            scheduleLabel: scheduleLabelForSessions(selectedLocation?.display_name, selectedTrackSessions),
                             notes: lineNotes.trim() || undefined,
                           },
                         },

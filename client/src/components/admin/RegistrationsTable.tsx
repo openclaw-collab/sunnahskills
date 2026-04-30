@@ -18,6 +18,7 @@ type RegistrationRow = {
   session_day_of_week?: string | null;
   session_start_time?: string | null;
   session_end_time?: string | null;
+  bundled_session_schedule?: string | null;
   location_id?: string | null;
   location_name?: string | null;
   guardian_name: string;
@@ -324,9 +325,12 @@ export function RegistrationsTable({
                   <td className="py-3 pr-4">
                     <div className="text-charcoal">{r.location_name ?? (r.location_id === "oakville" ? "Oakville" : "Mississauga")}</div>
                     <div className="mt-1 text-xs text-charcoal/55">
-                      {[r.session_day_of_week, r.session_start_time && r.session_end_time ? `${r.session_start_time}-${r.session_end_time}` : null]
-                        .filter(Boolean)
-                        .join(" · ") || r.session_name || "No session"}
+                      {r.bundled_session_schedule ||
+                        [r.session_day_of_week, r.session_start_time && r.session_end_time ? `${r.session_start_time}-${r.session_end_time}` : null]
+                          .filter(Boolean)
+                          .join(" · ") ||
+                        r.session_name ||
+                        "No session"}
                     </div>
                   </td>
                   <td className="py-3 pr-4">

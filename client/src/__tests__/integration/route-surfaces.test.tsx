@@ -199,9 +199,11 @@ describe("Additional route surface coverage", () => {
 
     expect(await screen.findByText("Location")).toBeInTheDocument();
     expect(screen.getAllByText("Mississauga").length).toBeGreaterThan(0);
-    await user.click(screen.getByText("Oakville, ON"));
+    await user.click(screen.getByText("2200 Speers Road, Oakville"));
     expect(await screen.findByText(/Showing classes for/i)).toBeInTheDocument();
-    expect(screen.getByText(/Oakville · Tuesday 17:00-18:00/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/Oakville · Monday 14:30-15:30 \/ Wednesday 14:30-15:30/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Registration includes both weekly classes/i).length).toBeGreaterThan(0);
+    expect(screen.getByText(/This option is for girls\/women/i)).toBeInTheDocument();
   });
 
   it("renders the not-found page recovery actions", async () => {

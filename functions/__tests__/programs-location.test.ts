@@ -15,8 +15,8 @@ describe("GET /api/programs location catalog", () => {
     ]);
     mockDb.setMockData("program_sessions", [
       { id: 1, program_id: "bjj", location_id: "mississauga", age_group: "boys-7-13", visible: 1 },
-      { id: 2, program_id: "bjj", location_id: "oakville", age_group: "boys-7-13", day_of_week: "Monday", start_time: "14:30", end_time: "15:30", start_date: "2026-05-15", visible: 1 },
-      { id: 3, program_id: "bjj", location_id: "oakville", age_group: "boys-7-13", day_of_week: "Wednesday", start_time: "14:30", end_time: "15:30", start_date: "2026-05-15", visible: 1 },
+      { id: 2, program_id: "bjj", location_id: "oakville", age_group: "boys-7-13", day_of_week: "Monday", start_time: "14:30", end_time: "15:30", start_date: "2026-05-18", end_date: "2026-06-26", visible: 1 },
+      { id: 3, program_id: "bjj", location_id: "oakville", age_group: "boys-7-13", day_of_week: "Wednesday", start_time: "14:30", end_time: "15:30", start_date: "2026-05-18", end_date: "2026-06-26", visible: 1 },
     ]);
     mockDb.setMockData("program_prices", [
       { id: 1, program_id: "bjj", age_group: "boys-7-13", active: 1 },
@@ -34,6 +34,7 @@ describe("GET /api/programs location catalog", () => {
       "Monday 14:30-15:30",
       "Wednesday 14:30-15:30",
     ]);
-    expect(oakvilleSessions.map((session: any) => session.start_date)).toEqual(["2026-05-15", "2026-05-15"]);
+    expect(oakvilleSessions.map((session: any) => session.start_date)).toEqual(["2026-05-18", "2026-05-18"]);
+    expect(oakvilleSessions.map((session: any) => session.end_date)).toEqual(["2026-06-26", "2026-06-26"]);
   });
 });

@@ -58,6 +58,10 @@ function ageLabel(participant: SavedStudent) {
   return `Age ${Math.max(0, age)}`;
 }
 
+function hasCompleteParticipantProfile(participant: SavedStudent) {
+  return Boolean(participant.full_name?.trim() && participant.date_of_birth?.trim() && participant.gender?.trim());
+}
+
 export default function RegistrationHub() {
   const [, navigate] = useLocation();
   const targetPath = nextPath();
@@ -150,6 +154,7 @@ export default function RegistrationHub() {
   const authenticated = Boolean(session?.authenticated);
   const accountComplete = Boolean(session?.accountComplete);
   const participants = participantsQuery.data?.students ?? [];
+  const hasRegistrationReadyProfile = participants.some(hasCompleteParticipantProfile);
 
   React.useEffect(() => {
     if (!session) return;
@@ -695,19 +700,26 @@ export default function RegistrationHub() {
                     <div className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-clay mb-2">Available programs</div>
                     <h3 className="font-heading text-xl text-charcoal">Choose what to register for</h3>
                     <p className="mt-2 text-sm leading-relaxed text-charcoal/65">
-                      BJJ shows tracks that match age and gender. Archery is open to any saved participant.
+                      Program options stay visible. If a profile is missing eligibility details, the card explains what to fix.
                     </p>
                   </div>
                   <div className="grid gap-3">
                     <button
                       type="button"
-                      disabled={participants.length === 0}
-                      onClick={() => navigate("/programs/bjj/register")}
-                      className="group flex items-center justify-between rounded-2xl border border-moss/15 bg-white px-4 py-4 text-left shadow-sm transition-colors hover:border-moss/40 hover:bg-moss/5 disabled:cursor-not-allowed disabled:opacity-50"
+                      disabled={!hasRegistrationReadyProfile}
+                      onClick={() => {
+                        if (hasRegistrationReadyProfile) navigate("/programs/bjj/register");
+                      }}
+                      className="group flex items-center justify-between rounded-2xl border border-moss/15 bg-white px-4 py-4 text-left shadow-sm transition-colors hover:border-moss/40 hover:bg-moss/5 disabled:cursor-not-allowed disabled:bg-charcoal/[0.03] disabled:opacity-55"
                     >
                       <div>
                         <div className="text-sm font-medium text-charcoal">Brazilian Jiu-Jitsu</div>
                         <div className="mt-1 text-xs text-charcoal/50">Mississauga + Oakville</div>
+                        {!hasRegistrationReadyProfile ? (
+                          <div className="mt-2 text-xs leading-relaxed text-charcoal/60">
+                            Add a participant profile with date of birth and gender to check BJJ eligibility.
+                          </div>
+                        ) : null}
                       </div>
                       <span className="rounded-full border border-moss/20 bg-moss/8 px-3 py-1 text-[10px] font-mono-label uppercase tracking-[0.16em] text-moss">
                         Register
@@ -715,13 +727,20 @@ export default function RegistrationHub() {
                     </button>
                     <button
                       type="button"
-                      disabled={participants.length === 0}
-                      onClick={() => navigate("/programs/archery/register")}
-                      className="group flex items-center justify-between rounded-2xl border border-clay/20 bg-white px-4 py-4 text-left shadow-sm transition-colors hover:border-clay/40 hover:bg-clay/5 disabled:cursor-not-allowed disabled:opacity-50"
+                      disabled={!hasRegistrationReadyProfile}
+                      onClick={() => {
+                        if (hasRegistrationReadyProfile) navigate("/programs/archery/register");
+                      }}
+                      className="group flex items-center justify-between rounded-2xl border border-clay/20 bg-white px-4 py-4 text-left shadow-sm transition-colors hover:border-clay/40 hover:bg-clay/5 disabled:cursor-not-allowed disabled:bg-charcoal/[0.03] disabled:opacity-55"
                     >
                       <div>
                         <div className="text-sm font-medium text-charcoal">Traditional Archery</div>
                         <div className="mt-1 text-xs text-charcoal/50">Open registration</div>
+                        {!hasRegistrationReadyProfile ? (
+                          <div className="mt-2 text-xs leading-relaxed text-charcoal/60">
+                            Add a participant profile with date of birth and gender before registering.
+                          </div>
+                        ) : null}
                       </div>
                       <span className="rounded-full border border-clay/20 bg-clay/8 px-3 py-1 text-[10px] font-mono-label uppercase tracking-[0.16em] text-clay">
                         Register

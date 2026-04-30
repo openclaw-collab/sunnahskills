@@ -12,7 +12,8 @@ SET
   day_of_week = 'Monday',
   start_time = '14:30',
   end_time = '15:30',
-  start_date = '2026-05-15',
+  start_date = '2026-05-18',
+  end_date = '2026-06-26',
   status = 'active',
   visible = 1
 WHERE program_id = 'bjj'
@@ -24,10 +25,10 @@ WHERE program_id = 'bjj'
 
 INSERT INTO program_sessions (
   program_id, location_id, name, season, day_of_week, start_time, end_time,
-  age_group, gender_group, capacity, start_date, status, visible
+  age_group, gender_group, capacity, start_date, end_date, status, visible
 )
 SELECT 'bjj', 'oakville', 'Oakville Girls 5-10 - Monday', NULL, 'Monday', '14:30', '15:30',
-       'girls-5-10', 'female', 16, '2026-05-15', 'active', 1
+       'girls-5-10', 'female', 16, '2026-05-18', '2026-06-26', 'active', 1
 WHERE NOT EXISTS (
   SELECT 1 FROM program_sessions
   WHERE program_id = 'bjj'
@@ -38,12 +39,21 @@ WHERE NOT EXISTS (
     AND end_time = '15:30'
 );
 
+UPDATE program_sessions
+SET start_date = '2026-05-18', end_date = '2026-06-26'
+WHERE program_id = 'bjj'
+  AND location_id = 'oakville'
+  AND age_group IN ('girls-5-10', 'boys-7-13')
+  AND day_of_week IN ('Monday', 'Wednesday')
+  AND start_time = '14:30'
+  AND end_time = '15:30';
+
 INSERT INTO program_sessions (
   program_id, location_id, name, season, day_of_week, start_time, end_time,
-  age_group, gender_group, capacity, start_date, status, visible
+  age_group, gender_group, capacity, start_date, end_date, status, visible
 )
 SELECT 'bjj', 'oakville', 'Oakville Boys 7-13 - Monday', NULL, 'Monday', '14:30', '15:30',
-       'boys-7-13', 'male', 16, '2026-05-15', 'active', 1
+       'boys-7-13', 'male', 16, '2026-05-18', '2026-06-26', 'active', 1
 WHERE NOT EXISTS (
   SELECT 1 FROM program_sessions
   WHERE program_id = 'bjj'
@@ -56,10 +66,10 @@ WHERE NOT EXISTS (
 
 INSERT INTO program_sessions (
   program_id, location_id, name, season, day_of_week, start_time, end_time,
-  age_group, gender_group, capacity, start_date, status, visible
+  age_group, gender_group, capacity, start_date, end_date, status, visible
 )
 SELECT 'bjj', 'oakville', 'Oakville Girls 5-10 - Wednesday', NULL, 'Wednesday', '14:30', '15:30',
-       'girls-5-10', 'female', 16, '2026-05-15', 'active', 1
+       'girls-5-10', 'female', 16, '2026-05-18', '2026-06-26', 'active', 1
 WHERE NOT EXISTS (
   SELECT 1 FROM program_sessions
   WHERE program_id = 'bjj'
@@ -72,10 +82,10 @@ WHERE NOT EXISTS (
 
 INSERT INTO program_sessions (
   program_id, location_id, name, season, day_of_week, start_time, end_time,
-  age_group, gender_group, capacity, start_date, status, visible
+  age_group, gender_group, capacity, start_date, end_date, status, visible
 )
 SELECT 'bjj', 'oakville', 'Oakville Boys 7-13 - Wednesday', NULL, 'Wednesday', '14:30', '15:30',
-       'boys-7-13', 'male', 16, '2026-05-15', 'active', 1
+       'boys-7-13', 'male', 16, '2026-05-18', '2026-06-26', 'active', 1
 WHERE NOT EXISTS (
   SELECT 1 FROM program_sessions
   WHERE program_id = 'bjj'

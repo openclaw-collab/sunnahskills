@@ -106,3 +106,31 @@ describe("orderPricing women BJJ add-ons", () => {
     expect(breakdown.dueTodayCents).toBe(2500);
   });
 });
+
+describe("orderPricing BJJ location schedules", () => {
+  it("uses selected location meeting days and dates for bundled Oakville kids pricing", () => {
+    const breakdown = getLinePriceBreakdown({
+      track: "boys-7-13",
+      priceId: 2,
+      programPriceAmount: 1200,
+      programPriceRegFee: 0,
+      programPriceFrequency: "per_session",
+      priceMetadataJson: null,
+      paymentChoice: "full",
+      semester: {
+        classes_in_semester: 13,
+        price_per_class_cents: 1200,
+        registration_fee_cents: 0,
+        later_payment_date: "2026-06-01",
+        start_date: "2026-03-31",
+        end_date: "2026-06-27",
+      },
+      scheduleStartDateIso: "2026-05-18",
+      scheduleEndDateIso: "2026-06-26",
+      meetingDaysOverride: ["Monday", "Wednesday"],
+    });
+
+    expect(breakdown.scheduledClassCount).toBe(12);
+    expect(breakdown.lineSubtotalCents).toBe(14400);
+  });
+});

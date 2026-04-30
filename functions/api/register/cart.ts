@@ -113,6 +113,28 @@ function normalizeLocationId(value: unknown) {
   return normalized || "mississauga";
 }
 
+function isBundledBjjTrack(track: string) {
+  return track === "girls-5-10" || track === "boys-7-13" || track === "men-14";
+}
+
+function scheduleLabelForSessions(locationId: string, sessions: Array<{ day_of_week: string | null; start_time: string | null; end_time: string | null }>) {
+  const locationName = locationId === "oakville" ? "Oakville" : "Mississauga";
+  return `${locationName} · ${sessions.map((session) => `${session.day_of_week ?? "Day"} ${session.start_time ?? ""}-${session.end_time ?? ""}`.trim()).join(" / ")}`;
+}
+
+function uniqueSessionDays(sessions: Array<{ day_of_week: string | null }>) {
+  return Array.from(new Set(sessions.map((session) => session.day_of_week).filter((day): day is string => Boolean(day))));
+}
+
+function earliestDate(sessions: Array<{ start_date?: string | null }>) {
+  return sessions.map((session) => session.start_date).filter((date): date is string => Boolean(date)).sort()[0] ?? null;
+}
+
+function latestDate(sessions: Array<{ end_date?: string | null }>) {
+  const dates = sessions.map((session) => session.end_date).filter((date): date is string => Boolean(date)).sort();
+  return dates.length ? dates[dates.length - 1] : null;
+}
+
 function sameParticipantIdentity(
   a: { fullName: string; dateOfBirth: string },
   b: { fullName: string; dateOfBirth: string },
@@ -661,6 +683,8 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
     priceId: number | null;
     track: string;
     locationId: string | null;
+    bundledSessionIds: number[];
+    scheduleLabel: string | null;
     participantAge: number;
     trialBookingId: number | null;
     promoCode: string | null;
@@ -741,6 +765,8 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
         priceId: line.programDetails.priceId ?? null,
         track: "archery",
         locationId: null,
+        bundledSessionIds: [session.id],
+        scheduleLabel: null,
         participantAge,
         trialBookingId: null,
         promoCode,
@@ -829,6 +855,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
 
     const session = await env.DB.prepare(
       `SELECT ps.id, ps.age_group, ps.location_id, ps.capacity, ps.visible, ps.status,
+              ps.day_of_week, ps.start_time, ps.end_time, ps.start_date, ps.end_date,
               (SELECT COUNT(*) FROM registrations r
                WHERE r.session_id = ps.id AND r.program_id = 'bjj'
                  AND r.status IN ('active', 'submitted', 'pending_payment')) AS active_count
@@ -837,7 +864,20 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
        LIMIT 1`,
     )
       .bind(line.programDetails.sessionId)
-      .first<{ id: number; age_group: string | null; location_id?: string | null; capacity: number | null; visible?: number | null; status?: string | null; active_count: number }>();
+      .first<{
+        id: number;
+        age_group: string | null;
+        location_id?: string | null;
+        capacity: number | null;
+        visible?: number | null;
+        status?: string | null;
+        day_of_week: string | null;
+        start_time: string | null;
+        end_time: string | null;
+        start_date?: string | null;
+        end_date?: string | null;
+        active_count: number;
+      }>();
     if (!session?.id || session.age_group !== track) {
       return json({ error: "Selected session does not match the chosen track.", line: index }, { status: 400 });
     }
@@ -847,6 +887,34 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
     const sessionLocationId = normalizeLocationId(session.location_id);
     if (sessionLocationId !== requestedLocationId) {
       return json({ error: "Selected session does not match the chosen location.", line: index }, { status: 400 });
+    }
+
+    const bundledSessions = isBundledBjjTrack(track)
+      ? ((await env.DB.prepare(
+          `SELECT ps.id, ps.age_group, ps.location_id, ps.capacity, ps.visible, ps.status,
+                  ps.day_of_week, ps.start_time, ps.end_time, ps.start_date, ps.end_date,
+                  (SELECT COUNT(*) FROM registrations r
+                   WHERE r.session_id = ps.id AND r.program_id = 'bjj'
+                     AND r.status IN ('active', 'submitted', 'pending_payment')) AS active_count
+           FROM program_sessions ps
+           WHERE ps.program_id = 'bjj'
+             AND ps.age_group = ?
+             AND COALESCE(ps.location_id, 'mississauga') = ?
+             AND ps.visible = 1
+             AND ps.status NOT IN ('closed', 'coming_soon')
+           ORDER BY
+             CASE ps.day_of_week
+               WHEN 'Monday' THEN 1 WHEN 'Tuesday' THEN 2 WHEN 'Wednesday' THEN 3
+               WHEN 'Thursday' THEN 4 WHEN 'Friday' THEN 5 WHEN 'Saturday' THEN 6
+               WHEN 'Sunday' THEN 7 ELSE 8
+             END,
+             ps.start_time ASC`,
+        )
+          .bind(track, sessionLocationId)
+          .all<typeof session>()).results ?? [])
+      : [session];
+    if (isBundledBjjTrack(track) && bundledSessions.length < 2) {
+      return json({ error: "This BJJ track must have both weekly classes available before registration.", line: index }, { status: 400 });
     }
 
     const allBjjPrices = await env.DB.prepare(
@@ -878,8 +946,9 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
       return json({ error: "Track pricing or session selection is missing.", line: index }, { status: 400 });
     }
 
-    const waitlisted =
-      session.capacity != null && Number(session.active_count ?? 0) >= Number(session.capacity);
+    const waitlisted = bundledSessions.some(
+      (bundledSession) => bundledSession.capacity != null && Number(bundledSession.active_count ?? 0) >= Number(bundledSession.capacity),
+    );
 
     const trialMatch = await resolveTrialMatch(
       env,
@@ -903,6 +972,9 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
       trialCreditCents,
       prorationAllowed: Boolean(prorationCode),
       chargeDateIso: todayIso(),
+      scheduleStartDateIso: earliestDate(bundledSessions),
+      scheduleEndDateIso: latestDate(bundledSessions),
+      meetingDaysOverride: uniqueSessionDays(bundledSessions),
       womenSecondWeeklyClass,
     });
     let promoCode: string | null = null;
@@ -941,6 +1013,8 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
       priceId: priceRow.id,
       track,
       locationId: sessionLocationId,
+      bundledSessionIds: bundledSessions.map((bundledSession) => Number(bundledSession.id)),
+      scheduleLabel: scheduleLabelForSessions(sessionLocationId, bundledSessions),
       participantAge,
       trialBookingId: trialMatch.id,
       promoCode,
@@ -1052,6 +1126,8 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
         experienceLevel: line.participant.experienceLevel,
         ...line.programDetails.programSpecific,
         locationId: meta.locationId,
+        bundledSessionIds: meta.bundledSessionIds,
+        scheduleLabel: meta.scheduleLabel,
         discountCode: meta.promoCode,
         promoDiscountCents: meta.promoDiscountCents,
       },

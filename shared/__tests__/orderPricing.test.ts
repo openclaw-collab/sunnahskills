@@ -125,12 +125,12 @@ describe("orderPricing BJJ location schedules", () => {
         start_date: "2026-03-31",
         end_date: "2026-06-27",
       },
-      scheduleStartDateIso: "2026-05-18",
-      scheduleEndDateIso: "2026-06-26",
+      scheduleStartDateIso: "2026-07-01",
+      scheduleEndDateIso: "2026-07-26",
       meetingDaysOverride: ["Monday", "Wednesday"],
     });
 
-    expect(breakdown.scheduledClassCount).toBe(12);
-    expect(breakdown.lineSubtotalCents).toBe(14400);
+    expect(breakdown.scheduledClassCount).toBe(7);
+    expect(breakdown.lineSubtotalCents).toBe(8400);
   });
 });
